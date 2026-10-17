@@ -1,0 +1,19 @@
+# Local credentials
+.env
+.env.*
+!.env.example
+*.local
+
+# Generated previews and outputs
+/tmp/
+/output/
+
+# Frontend and Rust build artifacts
+node_modules/
+dist/
+target/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
