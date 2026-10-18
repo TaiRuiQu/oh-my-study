@@ -47,3 +47,5 @@ C# / .NET / WinUI Native AOT 重写已完成 P0–P9 开发实现与本机自动
 Git 签名配置（2026-10-18）：本仓库显式设置 `gpg.format=ssh`、`commit.gpgsign=true`，使用当前账户已有 ED25519 密钥，并配置本地公钥验签文件。独立测试提交对象签名与 `git verify-commit` 验证通过，未改变分支历史。GitHub 验证还需账户登记对应 Signing Key。此前 `b7c1ab5` 未签名，不因配置更新自动补签；后续不得关闭签名提交。
 
 0.1.0 发布准备（2026-10-18）：本次仅更新签名约定与交接文档；仓库边界检查、Release 干运行及五项无效输入回归、git diff --check 通过。计划推送 v0.1.0 标签，由 CI 对标签提交重新检查、构建并发布 ZIP 与校验清单；实际结果以该标签的 Actions 与 Release 为准，现有人工验收待办继续保留。
+
+0.1.0 发布完成（2026-10-18）：SSH 签名提交 d28742c962e89223317c3904153b739f226af555 已推送至 main，v0.1.0 标签指向该提交。GitHub Actions 39119056807 的检查与测试、离线包构建、Release 发布全部成功：https://github.com/TaiRuiQu/oh-my-study/actions/runs/39119056807 。正式 Release：https://github.com/TaiRuiQu/oh-my-study/releases/tag/v0.1.0 ，已上传 OhMyStudy-v0.1.0-win-x64.zip（149301546 字节；SHA-256：3a4bcdb83ec7cb273a4cfeee411d79bb195b60edbfff447984f32f6bbd17aadc）、SHA256SUMS.txt 和 build-manifest.json。该版本按普通 Release 发布；构建保留人工验收待完成状态，不能据此宣称人工验收或二进制签名已通过。下一步继续执行上述验收与产品待办。
