@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 2,
+  "ref": "v0.1.0",
+  "commit": "b431f6f91b8078ba99f5abc645d8faf58a6976ed",
+  "packages": [
+    {
+      "variant": "aot-avx512",
+      "kind": "installer",
+      "name": "OhMyStudy-v0.1.0-win-x64-aot-avx512-installer.exe",
+      "sha256": "30507af990344236e0882a7c4e7d12a78011494b72fbf2a30fc7ff53f3c999ef",
+      "bytes": 153101312
+    },
+    {
+      "variant": "aot-avx512",
+      "kind": "portable",
+      "name": "OhMyStudy-v0.1.0-win-x64-aot-avx512-portable.zip",
+      "sha256": "27a8b324833a5c4d7dc0c0419b997c6da6c61e690f272b35c1fb3549557c525e",
+      "bytes": 149589247
+    },
+    {
+      "variant": "aot",
+      "kind": "installer",
+      "name": "OhMyStudy-v0.1.0-win-x64-aot-installer.exe",
+      "sha256": "c2548da100d3c930de8b71cd6ce43b1760e464d60c11f1e3ebd2f1aa9dbeebdf",
+      "bytes": 153062400
+    },
+    {
+      "variant": "aot",
+      "kind": "portable",
+      "name": "OhMyStudy-v0.1.0-win-x64-aot-portable.zip",
+      "sha256": "561946381f2e4b960391365ad7a785f326b777e5974f3dc78b40fcff6bb817e3",
+      "bytes": 149550152
+    },
+    {
+      "variant": "framework-dependent",
+      "kind": "installer",
+      "name": "OhMyStudy-v0.1.0-win-x64-framework-dependent-installer.exe",
+      "sha256": "52191bedf9ea0ce86412109cc6c536e1560e762f81d3b1f574694b21396d565b",
+      "bytes": 142213632
+    },
+    {
+      "variant": "framework-dependent",
+      "kind": "portable",
+      "name": "OhMyStudy-v0.1.0-win-x64-framework-dependent-portable.zip",
+      "sha256": "c50c31e49d06578c5d1f8e7b89d746a80bf4bcc3d3ede35d094c472b6cfd1c90",
+      "bytes": 138701776
+    },
+    {
+      "variant": "self-contained",
+      "kind": "installer",
+      "name": "OhMyStudy-v0.1.0-win-x64-self-contained-installer.exe",
+      "sha256": "98545199360183725386771102e62c2f4a9a02c364c08c86a6fe56719f8abfee",
+      "bytes": 179101696
+    },
+    {
+      "variant": "self-contained",
+      "kind": "portable",
+      "name": "OhMyStudy-v0.1.0-win-x64-self-contained-portable.zip",
+      "sha256": "4409514c29807ffc2fd252c2a4aff11a909c0d9d6ca0120629a91ce2476dced6",
+      "bytes": 175589725
+    }
+  ],
+  "builds": [
+    {
+      "schemaVersion": 2,
+      "commit": "b431f6f91b8078ba99f5abc645d8faf58a6976ed",
+      "ref": "v0.1.0",
+      "variant": "aot",
+      "packages": [
+        {
+          "variant": "aot",
+          "kind": "portable",
+          "name": "OhMyStudy-v0.1.0-win-x64-aot-portable.zip",
+          "sha256": "561946381f2e4b960391365ad7a785f326b777e5974f3dc78b40fcff6bb817e3",
+          "bytes": 149550152
+        },
+        {
+          "variant": "aot",
+          "kind": "installer",
+          "name": "OhMyStudy-v0.1.0-win-x64-aot-installer.exe",
+          "sha256": "c2548da100d3c930de8b71cd6ce43b1760e464d60c11f1e3ebd2f1aa9dbeebdf",
+          "bytes": 153062400
+        }
+      ],
+      "validationStatus": "release-candidate-user-acceptance-pending",
+      "runUrl": "https://github.com/TaiRuiQu/oh-my-study/actions/runs/39121738918",
+      "notRun": [
+        "redistribution-license-review",
+        "binary-code-signing"
+      ]
+    },
+    {
+      "schemaVersion": 2,
+      "commit": "b431f6f91b8078ba99f5abc645d8faf58a6976ed",
+      "ref": "v0.1.0",
+      "variant": "aot-avx512",
+      "packages": [
+        {
+          "variant": "aot-avx512",
+          "kind": "portable",
+          "name": "OhMyStudy-v0.1.0-win-x64-aot-avx512-portable.zip",
+          "sha256": "27a8b324833a5c4d7dc0c0419b997c6da6c61e690f272b35c1fb3549557c525e",
+          "bytes": 149589247
+        },
+        {
+          "variant": "aot-avx512",
+          "kind": "installer",
+          "name": "OhMyStudy-v0.1.0-win-x64-aot-avx512-installer.exe",
+          "sha256": "30507af990344236e0882a7c4e7d12a78011494b72fbf2a30fc7ff53f3c999ef",
+          "bytes": 153101312
+        }
+      ],
+      "validationStatus": "release-candidate-user-acceptance-pending",
+      "runUrl": "https://github.com/TaiRuiQu/oh-my-study/actions/runs/39121738918",
+      "notRun": [
+        "redistribution-license-review",
+        "binary-code-signing"
+      ]
+    },
+    {
+      "schemaVersion": 2,
+      "commit": "b431f6f91b8078ba99f5abc645d8faf58a6976ed",
+      "ref": "v0.1.0",
+      "variant": "framework-dependent",
+      "packages": [
+        {
+          "variant": "framework-dependent",
+          "kind": "portable",
+          "name": "OhMyStudy-v0.1.0-win-x64-framework-dependent-portable.zip",
+          "sha256": "c50c31e49d06578c5d1f8e7b89d746a80bf4bcc3d3ede35d094c472b6cfd1c90",
+          "bytes": 138701776
+        },
+        {
+          "variant": "framework-dependent",
+          "kind": "installer",
+          "name": "OhMyStudy-v0.1.0-win-x64-framework-dependent-installer.exe",
+          "sha256": "52191bedf9ea0ce86412109cc6c536e1560e762f81d3b1f574694b21396d565b",
+          "bytes": 142213632
+        }
+      ],
+      "validationStatus": "release-candidate-user-acceptance-pending",
+      "runUrl": "https://github.com/TaiRuiQu/oh-my-study/actions/runs/39121738918",
+      "notRun": [
+        "redistribution-license-review",
+        "binary-code-signing"
+      ]
+    },
+    {
+      "schemaVersion": 2,
+      "commit": "b431f6f91b8078ba99f5abc645d8faf58a6976ed",
+      "ref": "v0.1.0",
+      "variant": "self-contained",
+      "packages": [
+        {
+          "variant": "self-contained",
+          "kind": "portable",
+          "name": "OhMyStudy-v0.1.0-win-x64-self-contained-portable.zip",
+          "sha256": "4409514c29807ffc2fd252c2a4aff11a909c0d9d6ca0120629a91ce2476dced6",
+          "bytes": 175589725
+        },
+        {
+          "variant": "self-contained",
+          "kind": "installer",
+          "name": "OhMyStudy-v0.1.0-win-x64-self-contained-installer.exe",
+          "sha256": "98545199360183725386771102e62c2f4a9a02c364c08c86a6fe56719f8abfee",
+          "bytes": 179101696
+        }
+      ],
+      "validationStatus": "release-candidate-user-acceptance-pending",
+      "runUrl": "https://github.com/TaiRuiQu/oh-my-study/actions/runs/39121738918",
+      "notRun": [
+        "redistribution-license-review",
+        "binary-code-signing"
+      ]
+    }
+  ]
+}

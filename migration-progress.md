@@ -58,3 +58,5 @@ Git 签名配置（2026-10-18）：本仓库显式设置 `gpg.format=ssh`、`com
 首次补充发布 CI 39121014511：完整质量检查通过；两项 AOT 构建在锁定还原失败，原因是全局 PublishAot=true 给引用库增加 ILCompiler 依赖。已将运行时属性限制在 App 工程，四种 profile 均以 --force --locked-mode 实际还原通过，并加入 CI Checks 防止增量还原掩盖此问题。本机非 AOT 桌面检查及含内嵌 ZIP 的实际原生 installer 隔离安装/卸载也通过。完整矩阵重跑结果待记录。
 
 首轮两项非 AOT 构建均已成功完成 portable、独立 installer、安装后校验及卸载；发布因 AOT 两项失败而正确跳过。修复后本机 Checks（含四种强制锁定还原）和解决方案编译全部通过，0 警告/0 错误。
+
+四种构建补充发布完成（2026-10-18）：最终源码 b431f6f91b8078ba99f5abc645d8faf58a6976ed；CI 39121738918 的完整检查/回归、四项构建、各项 portable 校验和独立 installer 实际安装/安装后逐文件校验/卸载、统一发布全部成功：https://github.com/TaiRuiQu/oh-my-study/actions/runs/39121738918 。0.1.0 Release 已公开四种构建的 4 个 ZIP + 4 个 EXE，两个清单均已下载复核为八个文件且来源提交一致。[发布资产与哈希快照](docs/verification/release-variants.2026-10-18.json)。保留原 v0.1.0 标签 d28742c，旧单一 ZIP 继续保留；新增八件套及其真实来源在 Release 说明与新构建清单中明确。工作流现已默认每次发布完整八件套。AVX-512 App 未在托管运行器执行，人工验收和二进制代码签名待办继续保留。
