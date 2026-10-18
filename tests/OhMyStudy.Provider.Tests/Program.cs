@@ -1,5 +1,6 @@
 using System.Net;
 using System.Runtime.Versioning;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -9,6 +10,7 @@ using OhMyStudy.Infrastructure.Providers;
 [assembly: SupportedOSPlatform("windows10.0.19041")]
 
 // All payloads and credentials in this runner are synthetic and stay inside fake handlers.
+if (RuntimeFeature.IsDynamicCodeSupported) throw new InvalidOperationException("Run the published Native AOT protocol executable.");
 var fixtures = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "round-trips.synthetic.json")))!;
 var completed = 0;
 await Run("native requests, images, opaque tool context and usage", NativeRoundTrips);
@@ -21,6 +23,7 @@ await Run("native HTTP endpoints, headers and streaming bodies", HttpFraming);
 await Run("sanitized errors and bounded explicit retries", ErrorsAndRetries);
 await Run("cancellation and ambiguous failures never replay", Cancellation);
 await Run("response bounds and URL/header validation", Bounds);
+await Run("actual loopback HTTP, chunked SSE, pagination, redirects and cancellation", () => LoopbackRegression.RunAsync(fixtures));
 Console.WriteLine($"Provider protocol regression: {completed} scenarios passed (synthetic, no supplier network).");
 
 async Task Run(string name, Func<Task> test)

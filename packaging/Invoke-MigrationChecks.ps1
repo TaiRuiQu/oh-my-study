@@ -43,6 +43,12 @@ function Assert-NativeExe([string]$Path) {
     $pe = [BitConverter]::ToInt32($bytes,0x3c)
     if ($pe -lt 0 -or $pe + 264 -ge $bytes.Length -or [BitConverter]::ToUInt16($bytes,$pe+4) -ne 0x8664 -or
         [BitConverter]::ToUInt16($bytes,$pe+24) -ne 0x20b -or [BitConverter]::ToUInt32($bytes,$pe+24+112+14*8) -ne 0) { throw "Expected native x64 PE without CLR header: $Path" }
+    # A framework-dependent apphost is also a native PE. Its managed entry assembly and
+    # runtime configuration distinguish it from a real Native AOT executable.
+    $stem=Join-Path (Split-Path -Parent $Path) ([IO.Path]::GetFileNameWithoutExtension($Path))
+    foreach ($suffix in @('.dll','.deps.json','.runtimeconfig.json')) {
+        if (Test-Path -LiteralPath ($stem+$suffix)) { throw "Managed apphost is not a Native AOT publish: $Path ($suffix)" }
+    }
 }
 
 try {

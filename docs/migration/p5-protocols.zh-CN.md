@@ -31,13 +31,16 @@ Responses 输出已经包含 reasoning，不重复相加；Messages 输入为普
 
 ## 验证方法与状态
 
-测试项目：`tests/OhMyStudy.Provider.Tests/OhMyStudy.Provider.Tests.csproj`，无新增测试框架包。测试读取正式 `tests/Fixtures/ProviderProtocols/` 合成夹具，只在内存中发送给 fake HTTP 处理器，不对供应商发起请求；夹具内 fake 签名不能外发。
+测试项目：`tests/OhMyStudy.Provider.Tests/OhMyStudy.Provider.Tests.csproj`，无新增测试框架包。读取正式合成夹具，原10组使用内存HTTP处理器；新第11组使用随机端口的真实127.0.0.1 TCP服务和正式默认SocketsHttpHandler，不访问供应商，凭据仅为合成字符串。环回检查覆盖三协议非流式/逐字节HTTP chunked SSE、分页游标、认证重定向不跟随、正文挂起取消，不注册URL ACL或监听外部网卡。
+
+**2026-10-18验证纠正与收尾**：此前Provider工程没有Native AOT发布属性；旧PE检查只检查CLR头，把同样是原生PE的apphost误判为AOT。现补`RuntimeIdentifier=win-x64`、Release PublishAot/SelfContained；测试启动还要求`RuntimeFeature.IsDynamicCodeSupported=false`，集中脚本拒绝入口同名DLL/deps/runtimeconfig。新的`output/migration/publish/provider-aot-loopback/OhMyStudy.Provider.Tests.exe`已实际发布并执行11组全部通过，无入口托管DLL或CoreCLR。首次离线还原NU1900仅表示漏洞数据网络不可达，不作为审计通过。
 
 已执行 Release 回归（2026-10-18，.NET SDK 10.0.402）：
 
 ```powershell
-dotnet restore tests/OhMyStudy.Provider.Tests --ignore-failed-sources -p:NuGetAudit=false
-dotnet run --project tests/OhMyStudy.Provider.Tests -c Release --no-restore
+dotnet restore tests/OhMyStudy.Provider.Tests -p:Configuration=Release --locked-mode
+dotnet publish tests/OhMyStudy.Provider.Tests -c Release --no-restore -o output/migration/provider-aot
+./output/migration/provider-aot/OhMyStudy.Provider.Tests.exe
 ```
 
 结果：10 个场景全部通过，编译未报告警告或错误。合成覆盖包括三协议 JSON/流式请求和模型游标、工具/图片/签名回传、原生思考参数、能力未知/拒绝/元数据、扩展参数碰撞、UTF-8 任意字节分块、用量/估价、流截断和非法状态、错误脱敏、有限重试、在途正文取消、响应上限及地址/头校验。
