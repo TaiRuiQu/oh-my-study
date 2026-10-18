@@ -2,7 +2,7 @@
 
 更新：2026-10-18（Asia/Shanghai）。依据 [migration.md](migration.md) 和根 [AGENTS.md](AGENTS.md)。
 
-**本轮剩余实现已完成，最终统一11分项回归全部通过，正在完成离线包解压/安装运行检查。** 用户明确要求：干净系统、真实模型/样卷、Sandbox实机、实际打印及外部人工验收由用户执行，本轮跳过；这些未执行项不算通过。下一位维护者先看“接续入口”和[用户验收清单](docs/migration/user-acceptance.zh-CN.md)。
+**本轮P0–P9剩余开发实现及本机自动检查已完成。** 最终统一11分项通过，离线ZIP解压/安装后运行/卸载保留数据通过；最后App增量30项通过。用户明确要求：干净系统、真实模型/样卷、Sandbox实机、实际打印及外部人工验收由用户执行，本轮跳过；这些未执行项不算通过。下一位维护者先看“接续入口”和[用户验收清单](docs/migration/user-acceptance.zh-CN.md)。
 
 ## 不变约定
 
@@ -22,9 +22,9 @@
 | P4 任务与执行 | 队列/事件/权限/取消屏障、Windows Job、私有Python、新CLI按ID创建/释放沙箱、nonce桥接 | `844cab9`；17组AOT；实机沙箱交用户 |
 | P5 协议与整卷 | 三协议原生上下文/SSE/工具/用量、三模式整卷与手改保护、真实环回HTTP | `eddcbd3`；Provider11场景、Grading211断言；真实语义交用户 |
 | P6 文档与公式 | 图片/PDF/四向坐标、公式回退、递归题/表格/图像、统一A3/A4题答模板 | `b7b39d5`；媒体26项、8份45页PDF，实际打印交用户 |
-| P7 原生工作流 | 复杂原生编辑、参考匹配与覆盖、分级缓存/受限预取、每页视口/焦点、导航/切库失败恢复 | `3e7b66e`；28项AOT流程及独立桌面通过 |
+| P7 原生工作流 | 复杂原生编辑、参考匹配与覆盖、分级缓存/受限预取、每页视口/焦点、导航/切库失败恢复 | `3e7b66e`+`7ca2f96`；最终30项AOT流程及独立桌面通过 |
 | P8 体验与性能 | 原生快捷键/窄窗口/主题/辅助名称、3次独立启动与阅读/分发/Rendering/GC/内存曲线 | `759075f`；参考机/DPI/IME/读屏/GPU交用户 |
-| P9 发布与退役 | C# AOT离线安装器、原子升级/失败回退、可恢复卸载、资料保留、源码/许可证/哈希、CI | 40项AOT及候选包安装运行卸载通过，最终源码对应包整理后提交；系统集成身份交用户 |
+| P9 发布与退役 | C# AOT离线安装器、原子升级/失败回退、可恢复卸载、资料保留、源码/许可证/哈希、CI | 40项AOT及候选ZIP解压/安装运行卸载通过，已完成；系统集成身份交用户 |
 
 迁移不包含原先未实现的完整标签、高级筛选、按日期选错题、M4复习卷生成/独立校验和手机传图。这些仍是独立产品计划，不是本轮遗留Rust业务。
 
@@ -57,6 +57,7 @@
 - P7最后补齐：`output/migration/publish/app-release-final/OhMyStudy.App.exe`，SHA-256 `819951623c6940b16b6c3c4f3f78da68f7cc2b8d734ccc88a68a5843baee00a0`；`output/migration/evidence/app-delivery/{desktop,workflow}-smoke.json`均通过，工作流现为30项。增加沙箱联网开关、设置串行修改避免快速操作丢字段、完整模型分页及重复/超限边界。变化仅App层，已针对新产物复验桌面和工作流，不重复未变化的核心套件。
 - P8：`output/migration/evidence/performance-final/summary.json`，3次独立实际AOT采集成功；摘要已提交为`docs/migration/evidence.2026-10-18.performance.json`。顺序启动P95=636.3232ms；空库自然空闲约104–106MiB；阅读P95=20.65–23.98ms；UI分发P95=1.59–1.90ms。释放缓存后自然空闲约201–202MiB略高于200MiB门槛。没有强制GC/清系统缓存；Rendering回调不是GPU呈现帧，预算未替用户验收。
 - P9：`output/migration/setup-aot-tests.json`，40项实际AOT通过。两版本安装、四点升级失败回退、半复制清理/重试、七处卸载中断恢复、篡改/链接/并发/占用拒绝、用户文件保留、原生ShellLink、实际CLI安装与自卸载助手。没有修改真实开始菜单/HKCU入口。完整包仍将单独做安装/运行/卸载验证。
+- P9完整包首轮：`output/migration/evidence/p9-complete-package.json`为`selected-local-checks-passed`，4822文件逐项哈希、私有运行时、ZIP重解压、包内桌面、隔离安装→安装路径真实工作流→卸载→合成用户文件保留全部通过。最终源码提交后会重打包含最后30项App的候选，稳定入口`output/migration/latest-package.json`记录准确ZIP/可运行目录/哈希及对应源码提交，不复用首轮旧App作为最后产物。
 
 历史更正：此前Provider工程缺AOT属性，旧检查仅看PE的CLR头，误把普通apphost当成AOT。`eddcbd3`已补发布属性、运行时dynamic-code断言与同名DLL/deps/runtimeconfig拒绝。旧“八组全部实际AOT”仅Provider分项无效，不能沿用；本轮已实跑纠正。
 

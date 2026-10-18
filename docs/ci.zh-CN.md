@@ -19,8 +19,8 @@
 | --- | --- |
 | Lint | C#空格格式；固定版本/哈希的actionlint检查workflow |
 | Checks | C#仓库边界、PowerShell语法、JSON/XML解析、Release发布输入干运行回归；整个解决方案警告视为错误构建 |
-| Test | Domain、Storage、Provider、Execution、Grading、Media、Infrastructure、Documents的实际Native AOT可执行回归；缺少必需套件或跳过私有计算测试会失败 |
-| Build | Native AOT/WinUI自包含发布、完整离线依赖/许可证/源码打包、包哈希验证，整理ZIP和发布清单 |
+| Test | Domain、Storage、Provider、Execution、Grading、Media、Infrastructure、Documents、Installation的实际Native AOT回归（先发布Setup供真实CLI测试）；缺少必需套件或跳过私有计算会失败 |
+| Build | App与Setup Native AOT/WinUI自包含发布、完整离线依赖/许可证/源码打包、包哈希验证，整理ZIP和发布清单 |
 
 测试项目是可执行兼容回归，必须运行发布的EXE，不能用一次空的`dotnet test`替代。宿主和私有计算测试使用合成任务；不访问用户资料、真实密钥和模型服务。
 

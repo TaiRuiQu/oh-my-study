@@ -13,8 +13,17 @@ internal static class SandboxChecks
         foreach (var name in new[] { "python.exe", "execute.py", "sandbox-worker.py" }) await File.WriteAllTextAsync(Path.Combine(runtime, name), "synthetic");
         var input = Path.Combine(root, "sandbox-input"); Directory.CreateDirectory(input);
         await File.WriteAllTextAsync(Path.Combine(input, "资料.txt"), "合成输入");
-        ExecutionCall Call(string id) => new() { ProtocolVersion = 1, JobId = id, CallId = "call-1", Tool = ToolKind.Python,
-            Content = "print('你好')", Arguments = ["中文", "a b"], WorkingDirectory = input, TimeoutMs = 5000 };
+        ExecutionCall Call(string id) => new()
+        {
+            ProtocolVersion = 1,
+            JobId = id,
+            CallId = "call-1",
+            Tool = ToolKind.Python,
+            Content = "print('你好')",
+            Arguments = ["中文", "a b"],
+            WorkingDirectory = input,
+            TimeoutMs = 5000
+        };
         ExecutionPolicy Policy(bool network = false) => ExecutionPolicy.Freeze(ExecutionMode.Sandbox, new() { State = CapabilityState.Ready, Reason = "synthetic" }, network);
         await check("sandbox-owned-id-minimal-mappings-and-post-stop-result", async () =>
         {
@@ -122,8 +131,12 @@ internal sealed class SyntheticSandbox : ISandboxControl
         var message = new SandboxMessage(1, Corrupt == "identity" ? "wrong-job" : jobId, request.CallId, Corrupt == "nonce" ? "wrong" : nonce, request.Digest, "ready", null, "", "");
         await WriteAsync("handshake.json", message, cancellationToken); WorkerStarted.TrySetResult();
         if (HoldResponse) { await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken); return; }
-        _message = message with { Status = Corrupt == "status" ? "replay_on_host" : "completed", ExitCode = Corrupt == "exit" ? 7u : 0,
-            Stdout = Corrupt == "null" ? null! : Corrupt == "output" ? new string('x', 2_097_153) : "before-stop" };
+        _message = message with
+        {
+            Status = Corrupt == "status" ? "replay_on_host" : "completed",
+            ExitCode = Corrupt == "exit" ? 7u : 0,
+            Stdout = Corrupt == "null" ? null! : Corrupt == "output" ? new string('x', 2_097_153) : "before-stop"
+        };
         if (Corrupt == "json")
         {
             await File.WriteAllTextAsync(Path.Combine(_results, "response.pending"), "{", cancellationToken);

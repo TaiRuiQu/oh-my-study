@@ -7,10 +7,10 @@ WinUI 3 App 已组合正式 C# 领域、仓储、任务、协议和文档服务�
 - 导入 PNG、JPEG、WebP、PDF，选择教师批改、AI 批改或空白卷模式；材料和参考答案合计最多 12 页。
 - 资料选择、页管理、旋转和移除持久化；仍被题目/参考答案引用的页不能直接移除。原件与 PDF 原页关系保留。
 - 原件缩放、平移与题目来源高亮共用坐标变换；按页/分辨率缓存有字节预算。WebP 无可用系统 codec 时使用私有 dwebp。
-- 题目通过原生文字、公式、表格和图像呈现；答案、备注及完整编辑通过显式保存进入资料库，重批保留手动/教师评分。刷新保留未保存编辑。
+- 题目通过原生文字、公式、表格和图像呈现；完整编辑支持选项、表格单元格、配图、来源及最多八层小问。标准答案、学生作答与教师批注保持独立，重批保护手动/教师评分；刷新和导航保留草稿，保存期间新输入不被覆盖，校验失败保留窗口。退出或切库前说明未保存后果。
 - 设置支持三协议供应商、密钥、模型、执行方式；整卷任务单个运行，其余排队，支持取消及具体执行请求审阅。供应商请求由用户刷新模型或启动任务触发，工具调用遵守所选执行策略。
 - 题库与错题使用保存结果，空白卷不会因未作答被误标错题。完整标签和高级筛选仍为独立待办。
-- A3/A4 题目或答案 PDF 导出支持可完整呈现的文字/公式和受支持小问。图片、表格、多层小问或不支持公式会明确阻止导出，避免丢内容。
+- A3/A4题目或答案PDF导出支持文字、公式、选项、表格、配图裁片和递归小问，题答分开排版。不能完整呈现的公式或其他内容仍明确阻止导出，避免丢内容。
 - 原件打印通过用户点击打开原生系统打印界面；分页/预览已接线，尚无物理打印验收。
 - 资料备份、恢复及旧资料复制使用完整新目录，不覆盖正在使用的库。
 
@@ -18,7 +18,9 @@ WinUI 3 App 已组合正式 C# 领域、仓储、任务、协议和文档服务�
 
 默认资料库为 `%LOCALAPPDATA%/OhMyStudy/Library`。用户显式选择其他恢复副本后，路径记在同一应用目录的 `active-library.txt`。旧版目录仍解析为 `%APPDATA%/io.ohmystudy.desktop`，不会因发现旧数据就自动切换或就地升级。
 
-“导入旧资料”由用户选择旧目录，只读在线备份并恢复到新的 `Imported-*` 目录，再切换。应先退出旧版并保留备份；此流程在合成旧库测试过，尚未对用户真实资料及目标安装身份验收。新版 lease 仅约束合作实例，旧进程名称检查不能阻止检查后启动或改名程序。
+“导入旧资料”由用户选择旧目录，只读在线备份并恢复到新的`Imported-*`目录，仅升级副本，核对指纹并写迁移收据。完整初始化成功后才更新默认路径；初始化中途失败会释放新会话并重新打开原库。应先退出旧版并保留备份；合成旧库通过不代表真实资料及安装身份验收。新版lease仅约束合作实例，旧进程名称检查不能阻止检查后启动或改名程序。
+
+Sandbox使用新wsb CLI按每次调用创建和停止明确ID的独立VM，不跨调用保留任意状态；Windows10、旧Windows11或缺少CLI时不会标记就绪。开始对话框可说明影响后冻结本机回退，Sandbox执行失败不在宿主重放。真实会话和系统矩阵由用户验收。
 
 密钥保存在 Windows Credential Manager，库内只存引用。自动回归使用合成 vault，不读取真实凭据。凭据清理失败与数据库保存结果分开报告，跨账户迁移和系统凭据失败恢复仍需授权验证。
 
@@ -41,7 +43,9 @@ dotnet publish src/OhMyStudy.App/OhMyStudy.App.csproj -c Release --no-restore -o
 ./packaging/Publish-OfflinePackage.ps1 -AppPublishDirectory ./output/migration/app-local -DesktopSmoke -WorkflowSmoke
 ```
 
-完整目录属于部署产物，不能只复制 EXE。发布目标包含 `OhMyStudy.App.pri`、`App.xbf`、`MainWindow.xbf`、主题 XBF 和图标；打包脚本加入 SQLite、PDFium/notices、Typst、字体、dwebp 及 `runtime/python`。普通用户运行完整 portable 目录中的 EXE，不需要开发 SDK 或系统 Python/Node/TeX。
+完整目录属于部署产物，不能只复制EXE。发布目标包含PRI/XBF和图标；打包脚本加入SQLite、PDFium/notices、Typst、字体、dwebp、两个计算worker及`runtime/python`。`OhMyStudy.Setup`也是Native AOT工程，打包脚本发布其EXE并纳入离线包。
+
+普通用户解压完整包后运行`OhMyStudy.Setup.exe`，默认安装到`%LOCALAPPDATA%/Programs/OhMyStudy`，再从开始菜单打开。升级使用独立版本目录、清单校验和原子活动指针，失败回退旧版本；系统设置或开始菜单可卸载，资料保留。也可使用完整portable目录。两者均不需要开发SDK或系统Python/Node/TeX。本轮不签名，Setup的40项隔离回归不替代干净系统真实安装验收。
 
 公式、PDF、预览、导出及打印没有浏览器控件路径；WinUI 传递发布的可选 WebView2 interop 文件单列在包检查报告，不等同于浏览器进程。候选包的目标系统兼容性及完整离线矩阵尚未关闭，见 [P9](../../docs/migration/p9-release.zh-CN.md)。
 
@@ -58,12 +62,17 @@ OhMyStudy.App.exe --smoke-test C:\absolute\evidence\pdf.json --preview-pdf C:\ab
 
 # 在报告旁新建隔离合成库，验证正式导入、编辑、备份和重开链路。
 OhMyStudy.App.exe --workflow-smoke C:\absolute\evidence\workflow.json
+
+# 隔离性能原始采样；默认三次独立顺序启动。
+./packaging/Measure-NativePerformance.ps1 -Executable C:\absolute\publish\OhMyStudy.App.exe
 ```
 
 `--smoke-test` 明确加载合成表示数据，验证窗口、编译绑定、虚拟化、主题、旋转/来源及任务取消演示，并输出当前 App 自身 XAML 树截图。可选 PDF 输入请使用合成资料。`IsNativeAot` 来自 `!RuntimeFeature.IsDynamicCodeSupported`；JIT 运行不能冒充 AOT 通过。启动失败会尽力写出同目录 `.startup-error.txt`，调用方应将超时或缺少报告视为失败。
 
-`--workflow-smoke` 使用报告旁唯一 `synthetic-workflow-*` 目录，经过正式媒体、仓储及界面操作，不读取默认真实库，不请求供应商，不访问真实凭据。已有 fresh AOT App 在隔离库通过 12 页导入、原字节、翻页、旋转保存、题目编辑、来源高亮、题库错题、缓存预算、备份重开和主题/焦点等 17 项检查。后续修复必须以对应新报告确认，不把旧截图当作新构建证据。
+`--workflow-smoke`使用报告旁唯一`synthetic-workflow-*`目录及专用默认路径文件，不读取真实库、不请求供应商、不访问真实凭据。最新Native AOT工作流28项通过，涵盖12页导入、复杂编辑与小问、答案/教师证据隔离、来源、题库、草稿与保存竞争、切库初始化失败恢复、页面/分辨率与阅读状态等。后续修复以新报告确认，旧截图不作为新构建证据。
 
-单次流程记录私有字节 324759552、缓存约 51.8 MB，仅为运行中观察；没有证明空闲预算、冷启动 P95、帧时间或长期内存回收达标。真实文件对话框、拖放、输入法、读屏、高对比系统开关、DPI/多屏、Win10/11 干净系统、真实供应商、Sandbox 与物理打印需独立验收。
+`--performance-smoke <报告路径>`在空库初始化及分发器响应后写同名`.ready`，随后采样12页三种分辨率、500题连续滚动缩放、Rendering间隔、后台UI排队延迟及自然内存回收曲线；外层脚本只管理自身启动的PID。本轮三次顺序启动P95为636.3232ms，空库自然空闲约104–106MiB，释放资源后约201–202MiB，略超200MiB，不能声称该预算通过。没有强制GC；Rendering回调不等于GPU呈现/ETW，三次顺序样本不等于冷/热启动分布。
+
+真实文件选择/拖放、输入法、读屏、高对比、DPI/多屏、干净Win10/11、真实资料与凭据、供应商、Sandbox、物理打印、GPU/ETW和参考设备性能均由用户负责，当前未标记通过。最新各层数量为Storage93、Provider11、Execution17、Grading211、Media26、Documents8份45页及Setup40；原始结果以根进度与对应报告为准。
 
 维护细节见[架构](../../docs/architecture.zh-CN.md)、[设计原则](../../docs/design-principles.zh-CN.md)、[存储](../../docs/migration/p3-storage.zh-CN.md)与[媒体](../../docs/migration/p6-media.zh-CN.md)。

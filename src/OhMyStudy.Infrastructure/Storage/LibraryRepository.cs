@@ -18,7 +18,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
     private SqliteConnection connection = null!;
     private LibraryWriterLease? lease;
     private int disposed;
-    private string Root => Path.GetFullPath(options.Directory);
+    private string Root => Path.TrimEndingDirectorySeparator(Path.GetFullPath(options.Directory));
     private string AssetRoot => Path.Combine(Root, "assets");
     private bool Writable => options.Mode != LibraryOpenMode.ReadOnly;
     public bool IsReadOnly => !Writable;

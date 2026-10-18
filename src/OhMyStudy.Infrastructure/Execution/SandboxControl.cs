@@ -43,9 +43,16 @@ public sealed class SandboxCliControl(string executable) : ISandboxControl
         var allowed = SandboxCapability.FindCli();
         if (allowed is null || !Path.GetFullPath(executable).Equals(allowed, StringComparison.OrdinalIgnoreCase))
             throw new IOException("沙箱运行组件不可用。");
-        var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = system,
-            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 };
+        var start = new ProcessStartInfo(executable)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            WorkingDirectory = system,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
+        };
         start.Environment.Clear();
         foreach (var pair in WindowsProcessRunner.CreateEnvironment(Path.GetDirectoryName(executable)!, Path.GetTempPath())) start.Environment[pair.Key] = pair.Value;
         // The Store app execution alias requires the current identity, but no provider secrets.

@@ -24,8 +24,12 @@ public sealed partial class MainWindow
             fields.Children.Add(error); fields.Children.Add(editor.Panel);
             var dialog = new ContentDialog
             {
-                XamlRoot = RootGrid.XamlRoot, Title = "编辑题目", Content = new ScrollViewer { Content = fields, MaxHeight = 620 },
-                PrimaryButtonText = "保存", CloseButtonText = "取消", DefaultButton = ContentDialogButton.Primary
+                XamlRoot = RootGrid.XamlRoot,
+                Title = "编辑题目",
+                Content = new ScrollViewer { Content = fields, MaxHeight = 620 },
+                PrimaryButtonText = "保存",
+                CloseButtonText = "取消",
+                DefaultButton = ContentDialogButton.Primary
             };
             dialog.PrimaryButtonClick += async (_, args) =>
             {
@@ -133,16 +137,27 @@ public sealed partial class MainWindow
             var points = ParseScore(_points.Text);
             return _original with
             {
-                Number = _number.Text.Trim(), Subject = _subject.Text.Trim(), QuestionType = _type.Text.Trim(),
-                Content = _content.Read(), Options = _options.Read(), StandardAnswer = _answer.Text, Explanation = _explanation.Text,
-                KnowledgePoints = Lines(_knowledge.Text), Points = points, Sources = _sources.Read(), Uncertainties = Lines(_uncertainties.Text),
+                Number = _number.Text.Trim(),
+                Subject = _subject.Text.Trim(),
+                QuestionType = _type.Text.Trim(),
+                Content = _content.Read(),
+                Options = _options.Read(),
+                StandardAnswer = _answer.Text,
+                Explanation = _explanation.Text,
+                KnowledgePoints = Lines(_knowledge.Text),
+                Points = points,
+                Sources = _sources.Read(),
+                Uncertainties = Lines(_uncertainties.Text),
                 Parts = _parts.Read(),
                 Attempt = _original.Attempt is { } attempt ? attempt with
                 {
-                    StudentAnswer = _student!.Text, StudentRegions = _studentRegions!.Read(), AiSolution = _solution!.Text,
+                    StudentAnswer = _student!.Text,
+                    StudentRegions = _studentRegions!.Read(),
+                    AiSolution = _solution!.Text,
                     Grade = attempt.Grade with
                     {
-                        Verdict = (Verdict)_verdict!.SelectedIndex, Earned = ParseScore(_earned!.Text),
+                        Verdict = (Verdict)_verdict!.SelectedIndex,
+                        Earned = ParseScore(_earned!.Text),
                         Possible = points == _original.Points && ParseScore(_earned!.Text) == attempt.Grade.Earned ? attempt.Grade.Possible : points,
                         Reason = _reason!.Text
                     }
@@ -239,8 +254,10 @@ public sealed partial class MainWindow
         return new(panel, () => region with
         {
             PageId = pageChoice.SelectedIndex < 0 ? region.PageId : pages[pageChoice.SelectedIndex].Id,
-            X = ParseRequired(x.Text) / 100, Y = ParseRequired(y.Text) / 100,
-            Width = ParseRequired(width.Text) / 100, Height = ParseRequired(height.Text) / 100
+            X = ParseRequired(x.Text) / 100,
+            Y = ParseRequired(y.Text) / 100,
+            Width = ParseRequired(width.Text) / 100,
+            Height = ParseRequired(height.Text) / 100
         });
     }
     private static TextBox AddText(StackPanel panel, string label, string value, bool multiline = false)
@@ -259,12 +276,23 @@ public sealed partial class MainWindow
     private static Region FullPage(string page) => new() { PageId = page, X = 0, Y = 0, Width = 1, Height = 1 };
     private static Question NewPart(Question parent, Document document, string number) => parent with
     {
-        DraftKey = "manual-" + Guid.NewGuid().ToString("N"), Number = number, Content = [new TextContent { Text = "" }], Options = [], Points = null,
-        StandardAnswer = "", Explanation = "", KnowledgePoints = [], Uncertainties = [], Parts = [],
+        DraftKey = "manual-" + Guid.NewGuid().ToString("N"),
+        Number = number,
+        Content = [new TextContent { Text = "" }],
+        Options = [],
+        Points = null,
+        StandardAnswer = "",
+        Explanation = "",
+        KnowledgePoints = [],
+        Uncertainties = [],
+        Parts = [],
         Sources = parent.Sources.Take(1).ToList(),
         Attempt = document.Mode == ImportMode.Blank ? null : new Attempt
         {
-            StudentAnswer = "", StudentRegions = [], AiSolution = "", Grade = new Grade { Verdict = Verdict.Uncertain, Source = GradeSource.Manual, Reason = "待确认" }
+            StudentAnswer = "",
+            StudentRegions = [],
+            AiSolution = "",
+            Grade = new Grade { Verdict = Verdict.Uncertain, Source = GradeSource.Manual, Reason = "待确认" }
         }
     };
 }

@@ -37,6 +37,7 @@ internal static class Program
             await GradingAndJobs();
             await CredentialAtomicity();
             await CopyUpgradeRecovery();
+            await ComplexCopyUpgradeRecovery();
             Console.WriteLine($"Storage regression: {passed} checks passed. Synthetic temporary libraries only. {Root}");
             return 0;
         }
@@ -131,11 +132,132 @@ internal static class Program
             Check((await recovered.InspectAsync()).SchemaVersion == version && (await recovered.ListProvidersAsync()).Single().KeyRef == Fixture<Provider>("provider").KeyRef, "rollback preserves original schema and key reference");
             await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source, Unique("unused-backup"), destination), "migration refuses overwrite before creating backup");
             await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source, Path.Combine(source, "inside"), Unique("unused-copy")), "migration rejects backup inside original");
+            await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, Path.Combine(source, "inside-trailing"), Unique("unused-copy")), "migration containment survives trailing separator");
             using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
             string canceledCopy = Unique("canceled-copy"), canceledBackup = Unique("canceled-backup");
             await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source, canceledBackup, canceledCopy, cancelled.Token), "canceled migration creates no destination");
             Check(!Directory.Exists(canceledBackup) && !Directory.Exists(canceledCopy), "pre-cancel leaves source and destinations unchanged");
         }
+    }
+
+    private static async Task ComplexCopyUpgradeRecovery()
+    {
+        string source = CreateLegacy(2), backup = Unique("complex-backup"), destination = Unique("complex-copy");
+        var document = Fixture<Document>("document");
+        var original = Fixture<Question>("question");
+        var teacherGrade = original.Attempt!.Grade with { Source = GradeSource.Teacher, Reason = "合成教师批注：保留步骤分" };
+        var nested = original with
+        {
+            DraftKey = "legacy-nested",
+            Number = "1(1)",
+            Attempt = original.Attempt with { Grade = teacherGrade, Teacher = new() { Raw = "√ +1", Regions = original.Sources, Grade = teacherGrade } },
+            Parts = []
+        };
+        var complex = original with
+        {
+            DraftKey = "legacy-root",
+            Attempt = null,
+            Parts = [nested with { Parts = [nested with { DraftKey = "legacy-deep", Number = "1(1)a" }] }]
+        };
+        static string Extend(string json, string value) => json[..^1] + ",\"legacy_unknown\":" + value + "}";
+        using (var database = Db(source))
+        {
+            Sql(database, "ALTER TABLE assets ADD COLUMN legacy_blob BLOB");
+            Sql(database, "UPDATE assets SET legacy_blob=X'0001FF',thumbnail_file='legacy-thumbnail.png'");
+            Sql(database, "UPDATE source_pages SET page_index=page_index+10");
+            Sql(database, "UPDATE source_pages SET page_index=11-page_index,rotation=90");
+            Sql(database, "UPDATE providers SET config_json=$p0", Extend(DomainJson.Serialize(Fixture<Provider>("provider")), "{\"opaque\":\"\\u4e2d文\",\"flags\":[1,null,true]}"));
+            Sql(database, "UPDATE settings SET settings_json=$p0", Extend(DomainJson.Serialize(Fixture<AppSettings>("settings")), "{\"legacy_order\":[3,1,2]}"));
+            for (int history = 1; history <= 2; history++)
+            {
+                var job = Fixture<Job>("job") with { Id = history == 1 ? "71000000-0000-4000-8000-000000000001" : "71000000-0000-4000-8000-000000000002", CreatedAt = 1792281600000, State = JobState.Completed, Sequence = 2 };
+                Sql(database, "INSERT INTO jobs(id,kind,state,created_at,updated_at,progress,message,snapshot_json) VALUES($p0,'grading','COMPLETED',$p1,$p2,1,$p3,$p4)",
+                    job.Id, job.CreatedAt.ToString(), job.UpdatedAt.ToString(), job.Message, Extend(DomainJson.Serialize(job), "{\"history\":" + history + "}"));
+                for (ulong sequence = 1; sequence <= 2; sequence++)
+                {
+                    var jobEvent = Event(job with { Sequence = sequence });
+                    Sql(database, "INSERT INTO job_events(id,job_id,sequence,created_at,kind,payload_json) VALUES($p0,$p1,$p2,$p3,'snapshot',$p4)",
+                        jobEvent.Id, job.Id, (long)sequence, jobEvent.CreatedAt.ToString(), Extend(DomainJson.Serialize(jobEvent), "{\"old_event\":true}"));
+                }
+                var references = Fixture<List<ReferenceAnswer>>("references").Select(item => item with { Answer = "历史答案 " + history, MatchedDraftKey = complex.DraftKey }).ToList();
+                var coverage = Fixture<List<Coverage>>("coverage").Select(item => item with { Reason = "历史覆盖 " + history }).ToList();
+                Sql(database, "INSERT INTO grading_runs(job_id,document_id,input_json,coverage_json,references_json) VALUES($p0,$p1,$p2,$p3,$p4)",
+                    job.Id, document.Id, Extend(DomainJson.Serialize(job.Input!), "{\"input_history\":" + history + "}"), DomainJson.Serialize(coverage), DomainJson.Serialize(references));
+                Sql(database, "INSERT INTO model_calls(job_id,ordinal,details_json) VALUES($p0,0,$p1)", job.Id,
+                    Extend(contracts.RootElement.GetProperty("model_call").GetRawText(), "{\"response_history\":" + history + ",\"raw_provider_field\":null}"));
+            }
+            Sql(database, "INSERT INTO questions(id,document_id,draft_key,content_json,updated_at) VALUES('72000000-0000-4000-8000-000000000001',$p0,$p1,$p2,'2026-10-18T00:00:00Z')", document.Id, complex.DraftKey, DomainJson.Serialize(complex));
+            // A supported-version database can retain an extension table with types the UI never interprets.
+            Sql(database, "CREATE TABLE legacy_annotations(id TEXT PRIMARY KEY,raw_json TEXT,sample BLOB,real_value REAL,null_value TEXT)");
+            Sql(database, "INSERT INTO legacy_annotations VALUES('one',$p0,X'FF0010',1.25,NULL)", " { \"opaque\" : [ true, null, \"中文\" ] } ");
+        }
+        File.WriteAllBytes(Path.Combine(source, "assets", "legacy-thumbnail.png"), png);
+        var databaseBefore = File.ReadAllBytes(Path.Combine(source, "study.sqlite3"));
+        var rawBefore = RawRows(source);
+        var assetsBefore = Directory.GetFiles(Path.Combine(source, "assets")).ToDictionary(path => Path.GetFileName(path)!, File.ReadAllBytes, StringComparer.Ordinal);
+        var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, backup, destination);
+        Check(migration.OriginalSchemaVersion == 2 && migration.CurrentSchemaVersion == 2 && migration.Questions == 1, "complex v2 migration includes nested question and historical runs");
+        Check(databaseBefore.SequenceEqual(File.ReadAllBytes(Path.Combine(source, "study.sqlite3"))), "complex migration leaves original database bytes unchanged");
+        foreach (string path in new[] { backup, destination })
+        {
+            var rows = RawRows(path);
+            Check(rows.Count == rawBefore.Count && rows.All(pair => rawBefore.TryGetValue(pair.Key, out var expected) && expected.SequenceEqual(pair.Value)),
+                "complex raw rows preserve all columns, JSON bytes, historical runs, jobs/events and extension data: " + Path.GetFileName(path));
+            Check(assetsBefore.All(pair => pair.Value.SequenceEqual(File.ReadAllBytes(Path.Combine(path, "assets", pair.Key!))))
+                && Directory.GetFiles(Path.Combine(path, "assets")).Length == assetsBefore.Count, "complex original and thumbnail bytes preserved: " + Path.GetFileName(path));
+        }
+        await using (var copy = await LibraryRepository.OpenAsync(new(destination)))
+        {
+            var saved = (await copy.ListQuestionsAsync()).Single();
+            Check(DomainJson.Serialize(saved.Question) == DomainJson.Serialize(complex) && saved.Question.Parts[0].Parts[0].Attempt!.Teacher!.Raw == "√ +1",
+                "complex nested teacher evidence remains readable after copy");
+            Check((await copy.LoadJobSnapshotsAsync()).Count == 2 && (await copy.ListJobEventsAsync("71000000-0000-4000-8000-000000000001")).Count == 2,
+                "complex legacy jobs and events remain readable after copy");
+        }
+        string trailingBackup = Path.Combine(source, "forbidden-backup");
+        string trailingCopy = Path.Combine(source, "forbidden-copy");
+        await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, trailingBackup, Unique("outside-copy")), "trailing source separator still rejects contained backup");
+        await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, Unique("outside-backup"), trailingCopy), "trailing source separator still rejects contained migration copy");
+        Check(!Directory.Exists(trailingBackup) && !Directory.Exists(trailingCopy), "contained paths rejected before creating backup or copy");
+    }
+
+    private static Dictionary<string, List<string>> RawRows(string path)
+    {
+        using var database = Db(path);
+        var tables = new List<string>();
+        using (var command = database.CreateCommand())
+        {
+            command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
+            using var reader = command.ExecuteReader(); while (reader.Read()) tables.Add(reader.GetString(0));
+        }
+        var result = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (string table in tables)
+        {
+            using var command = database.CreateCommand();
+            command.CommandText = "SELECT * FROM \"" + table.Replace("\"", "\"\"", StringComparison.Ordinal) + "\" ORDER BY rowid";
+            using var reader = command.ExecuteReader(); var rows = new List<string>();
+            while (reader.Read())
+            {
+                var values = new List<string>();
+                for (int index = 0; index < reader.FieldCount; index++)
+                {
+                    object value = reader.GetValue(index);
+                    string exact = value switch
+                    {
+                        DBNull => "null",
+                        byte[] bytes => "blob:" + Convert.ToBase64String(bytes),
+                        string text => "text:" + Convert.ToBase64String(Encoding.UTF8.GetBytes(text)),
+                        long integer => "integer:" + integer.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        double number => "real:" + BitConverter.DoubleToInt64Bits(number).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        _ => throw new InvalidDataException("Unexpected SQLite storage class")
+                    };
+                    values.Add(reader.GetName(index) + "=" + exact);
+                }
+                rows.Add(string.Join("|", values));
+            }
+            result.Add(table, rows);
+        }
+        return result;
     }
 
     private static async Task ImportRecovery()

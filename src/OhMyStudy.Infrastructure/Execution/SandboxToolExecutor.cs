@@ -58,8 +58,11 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
                 protocol.Handshake(handshake.ProtocolVersion, handshake.JobId, handshake.Nonce); protocol.BeginCall(call.CallId);
                 using var execution = CancellationTokenSource.CreateLinkedTokenSource(live.Token);
                 execution.CancelAfter(TimeSpan.FromMilliseconds(call.TimeoutMs) + TimeSpan.FromSeconds(5));
-                try { await WaitForFileAsync(Path.Combine(root, "results", "response.json"), worker,
-                    TimeSpan.FromMilliseconds(call.TimeoutMs) + TimeSpan.FromSeconds(5), execution.Token).ConfigureAwait(false); }
+                try
+                {
+                    await WaitForFileAsync(Path.Combine(root, "results", "response.json"), worker,
+                    TimeSpan.FromMilliseconds(call.TimeoutMs) + TimeSpan.FromSeconds(5), execution.Token).ConfigureAwait(false);
+                }
                 catch (OperationCanceledException) when (!live.IsCancellationRequested) { return new("timed_out", null, "", "运行超时。"); }
                 catch (TimeoutException) { return new("timed_out", null, "", "运行超时。"); }
             }

@@ -29,6 +29,8 @@ $projects = @(
     @{name='media'; project='tests/OhMyStudy.Media.Tests/OhMyStudy.Media.Tests.csproj'; executable='OhMyStudy.Media.Tests.exe'},
     @{name='infrastructure'; project='tests/OhMyStudy.IntegrationTests/OhMyStudy.IntegrationTests.csproj'; executable='OhMyStudy.IntegrationTests.exe'},
     @{name='documents'; project='probes/OhMyStudy.Documents.Probe/OhMyStudy.Documents.Probe.csproj'; executable='OhMyStudy.Documents.Probe.exe'},
+    @{name='setup'; project='src/OhMyStudy.Setup/OhMyStudy.Setup.csproj'; executable='OhMyStudy.Setup.exe'},
+    @{name='installation'; project='tests/OhMyStudy.Setup.Tests/OhMyStudy.Setup.Tests.csproj'; executable='OhMyStudy.Setup.Tests.exe'},
     @{name='app'; project='src/OhMyStudy.App/OhMyStudy.App.csproj'; executable='OhMyStudy.App.exe'}
 )
 
@@ -79,7 +81,9 @@ try {
             Assert-NativeExe $exe
             if (Test-Path -LiteralPath (Join-Path $publish 'coreclr.dll')) { throw 'CoreCLR found in Native AOT output' }
             $check.executable = $exe; $check.sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($entry.name -eq 'app') {
+            if ($entry.name -eq 'setup') {
+                $check.status='publish-passed'; $report.setupPublishDirectory=$publish
+            } elseif ($entry.name -eq 'app') {
                 $check.status='publish-passed'; $report.appPublishDirectory=$publish
                 if ($DesktopSmoke) {
                     $smoke = Join-Path $run 'desktop-smoke.json'
@@ -116,6 +120,7 @@ try {
             } else {
                 $arguments = @()
                 if ($entry.name -eq 'documents') { $arguments=@($workspace,(Join-Path $run 'documents')) }
+                elseif ($entry.name -eq 'installation') { $arguments=@((Join-Path $run 'installation.json'),(Join-Path $report.setupPublishDirectory 'OhMyStudy.Setup.exe')) }
                 elseif ($entry.name -eq 'domain') { $arguments=@((Join-Path $run 'domain.json')) }
                 elseif ($entry.name -eq 'infrastructure') { $arguments=@((Join-Path $run 'infrastructure')) }
                 elseif ($entry.name -eq 'execution') {

@@ -50,7 +50,7 @@ try {
             # printing acceptance remain separate; every console suite still runs actual AOT.
             & (Join-Path $PSScriptRoot 'Invoke-MigrationChecks.ps1') -SkipApp
             $report = Get-Content -LiteralPath 'output/migration/latest-migration-run.json' -Raw | ConvertFrom-Json
-            foreach ($name in @('domain','storage','provider','execution','grading','media','documents','infrastructure')) {
+            foreach ($name in @('domain','storage','provider','execution','grading','media','documents','infrastructure','installation')) {
                 if (-not @($report.checks | Where-Object { $_.name -eq $name -and $_.status -eq 'passed' }).Count) { throw "Required test suite did not pass: $name" }
             }
             if (@($report.notRun | Where-Object { $_ -like 'execution:*' }).Count) { throw 'Private computation runtime test was skipped' }

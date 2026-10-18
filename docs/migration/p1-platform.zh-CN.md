@@ -46,7 +46,13 @@ App 以 `net10.0-windows10.0.26100.0` 编译，`TargetPlatformMinVersion=10.0.19
 5. 发布脚本的restore不能用全局`-r`污染类库的锁文件图；RID留在可执行工程声明。解决方案显式设x64配置。跳过项单列为`notRun`并返回`selected-checks-passed`，App所需PDFium及其notices不会因为跳过文档探针而遗漏。
 6. Native AOT下，原生对象可能先被投影为基类，普通`is`和对象值DP/Tag拆箱不能作为真实类型或交互证据。面板用IInspectable确认native类并以`WinRT.CastExtensions.As<T>`显式投影；导航使用原生菜单向量的身份定位。桌面自检实际滚到500号再返回并验证过滤/导航，避免只检查构造出的VM。
 
-## 尚需独立验收
+## 本轮技术路线收尾
+
+2026-10-18用户将外部系统/设备验收交由用户执行。P1技术路线在本机最终统一运行`migration-20261018-165025-f15e94a5`继续成立：11分项Native AOT发布/实际运行通过，WinUI自包含资源、打印API、复杂PDF/公式、图片、SQLite和生产工作区通过；新增纯BCL AOT安装器不引入.NET/脚本宿主运行依赖。三次混合高分辨率12页/500题/内存采样见P8，原来的“尚未测量产品高分辨率材料”仅适用于此前历史轮次。
+
+Provider旧工程AOT属性遗漏及apphost误判已在P5纠正；不能仅凭PE无CLR头声称AOT。最终检查同时拒绝入口同名托管DLL/deps/runtimeconfig，并由实际运行检查dynamic-code。目标平台版本没有改变；干净Win10/11与实际安装身份仍未测。
+
+## 用户负责的独立验收
 
 - Windows 10 22H2 / LTSC 2021、Windows 11 24H2 / 25H2 的干净系统和无 WebView2 场景。
 - 普通安装身份的旧目录、旧凭据可见性、离线依赖完整性与 VC++ 运行库。

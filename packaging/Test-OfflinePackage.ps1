@@ -5,7 +5,8 @@ param(
     [Parameter(Mandatory,ParameterSetName='Zip')][string]$PackageZip,
     [string]$ReportFile,
     [switch]$DesktopSmoke,
-    [switch]$WorkflowSmoke
+    [switch]$WorkflowSmoke,
+    [switch]$InstallSmoke
 )
 $ErrorActionPreference='Stop'
 $workspace=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
@@ -15,7 +16,7 @@ New-Item -ItemType Directory -Path $evidence -Force | Out-Null
 if (-not $ReportFile) { $ReportFile=Join-Path $evidence 'package-verification.json' }
 $reportPath=[IO.Path]::GetFullPath($ReportFile)
 New-Item -ItemType Directory -Path (Split-Path -Parent $reportPath) -Force | Out-Null
-$report=[ordered]@{ schemaVersion=1; status='release-candidate-unvalidated'; checkStatus='running'; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O'); checks=@(); notRun=@('clean-Windows-10-11-offline-installation','installer-update-uninstall','real-user-library-and-credentials','real-provider-semantics','real-Sandbox-and-physical-printing','redistribution-license-review','source-correspondence-review') }
+$report=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; checkStatus='running'; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O'); checks=@(); userValidation=@('clean-Windows-10-11-offline-installation','actual-installed-identity-and-system-entry-points','real-user-library-and-credentials','real-provider-semantics','real-Sandbox-and-physical-printing'); notRun=@('redistribution-license-review','binary-code-signing') }
 
 function Assert-Path([string]$Root,[string]$Relative) {
     if ([string]::IsNullOrWhiteSpace($Relative) -or $Relative.Contains(':') -or [IO.Path]::IsPathRooted($Relative)) { throw "Invalid manifest path: $Relative" }
@@ -35,6 +36,8 @@ function Assert-NativeApp([string]$Path) {
     if ($bytes.Length -lt 256 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw 'Application is not PE' }
     $pe=[BitConverter]::ToInt32($bytes,0x3c)
     if ($pe -lt 0 -or $pe+264 -ge $bytes.Length -or [BitConverter]::ToUInt16($bytes,$pe+4) -ne 0x8664 -or [BitConverter]::ToUInt16($bytes,$pe+24) -ne 0x20b -or [BitConverter]::ToUInt32($bytes,$pe+24+112+14*8) -ne 0) { throw 'Application must be native x64 without CLR header' }
+    $stem=Join-Path (Split-Path -Parent $Path) ([IO.Path]::GetFileNameWithoutExtension($Path))
+    foreach ($suffix in @('.dll','.deps.json','.runtimeconfig.json')) { if(Test-Path -LiteralPath ($stem+$suffix)){throw "Managed apphost is not Native AOT: $Path"} }
 }
 
 try {
@@ -49,7 +52,7 @@ try {
     if ($reportPath.StartsWith($root+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) { throw 'Verification report must be outside the immutable package' }
     $manifestPath=Assert-Path $root 'package-manifest.json'
     $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-    if ($manifest.schemaVersion -ne 1 -or $manifest.status -ne 'release-candidate-unvalidated' -or -not $manifest.manifestExcludesItself) { throw 'Unsupported package manifest/status' }
+    if ($manifest.schemaVersion -ne 1 -or $manifest.status -ne 'release-candidate-user-acceptance-pending' -or -not $manifest.manifestExcludesItself) { throw 'Unsupported package manifest/status' }
     $listed=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($file in $manifest.files) {
         if (-not $listed.Add($file.path)) { throw "Duplicate manifest path: $($file.path)" }
@@ -67,6 +70,9 @@ try {
     $report.checks+='all-manifest-file-sizes-and-sha256'; $report.fileCount=$manifest.files.Count
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','Assets/App.ico','Microsoft.ui.xaml.dll','e_sqlite3.dll','native/pdfium.dll','native/pdfium-licenses/pdfium.txt','native/typst/typst.exe','native/typst/LICENSE','native/typst/NOTICE','native/fonts/SourceHanSerifSC-Regular.otf','native/fonts/OFL.txt','runtime/runtime-manifest.json','runtime/python/python.exe','runtime/python/execute.py','LICENSE','THIRD-PARTY-NOTICES.txt','components.json','source/source-snapshot.zip')) { $null=Assert-Path $root $required }
     Assert-NativeApp (Join-Path $root 'OhMyStudy.App.exe')
+    $null=Assert-Path $root 'OhMyStudy.Setup.exe'
+    $null=Assert-Path $root 'runtime/python/sandbox-worker.py'
+    Assert-NativeApp (Join-Path $root 'OhMyStudy.Setup.exe')
     $report.checks+='native-x64-app-PRI-XBF-and-private-runtime-present'
     $documentLock=Get-Content -LiteralPath (Join-Path $root 'licenses/native-documents.lock.json') -Raw | ConvertFrom-Json
     Assert-FileHash (Join-Path $root 'native/pdfium.dll') $documentLock.pdfium.librarySha256
@@ -145,6 +151,33 @@ try {
         $report.checks+='portable-persisted-twelve-page-workflow'
         $report.workflowReport=$workflow
     } else { $report.notRun+='portable-persisted-workflow: not requested' }
+    if ($InstallSmoke) {
+        # Exercise the actual delivered installer and application in a newly owned folder.
+        # --no-shortcuts deliberately keeps the user's registry and Start menu unchanged.
+        $installRoot=Join-Path $evidence 'installed-app'
+        $setup=Join-Path $root 'OhMyStudy.Setup.exe'
+        $installedReport=Join-Path $evidence 'installation.json'
+        $installer=Start-Process -FilePath $setup -ArgumentList @('--install','--source',('"'+$root+'"'),'--root',('"'+$installRoot+'"'),'--no-shortcuts','--quiet','--report',('"'+$installedReport+'"')) -WindowStyle Hidden -PassThru
+        if(-not $installer.WaitForExit(120000)){$installer.Kill();throw 'Owned installer exceeded two minutes'}
+        if($installer.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $installedReport -Raw|ConvertFrom-Json).success){throw 'Actual package installation failed'}
+        $active=Get-Content -LiteralPath (Join-Path $installRoot 'active.json') -Raw|ConvertFrom-Json
+        if($active.version -notmatch '^[a-f0-9]{64}$' -or $active.entryPoint -ne 'OhMyStudy.App.exe'){throw 'Installed pointer is invalid'}
+        $installedApp=Join-Path $installRoot ('versions/'+$active.version+'/OhMyStudy.App.exe')
+        Assert-NativeApp $installedApp
+        $installedWorkflow=Join-Path $evidence 'installed-workflow.json'
+        $appProcess=Start-Process -FilePath $installedApp -ArgumentList @('--workflow-smoke',('"'+$installedWorkflow+'"')) -WindowStyle Hidden -PassThru
+        if(-not $appProcess.WaitForExit(90000)){$appProcess.Kill();throw 'Owned installed application exceeded 90 seconds'}
+        if($appProcess.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $installedWorkflow -Raw|ConvertFrom-Json).Passed){throw 'Installed application workflow failed'}
+        $keep=Join-Path $installRoot 'user-keep.txt'
+        [IO.File]::WriteAllText($keep,'SYNTHETIC-USER-DATA')
+        $uninstallReport=Join-Path $evidence 'uninstallation.json'
+        $uninstaller=Start-Process -FilePath $setup -ArgumentList @('--uninstall','--root',('"'+$installRoot+'"'),'--quiet','--report',('"'+$uninstallReport+'"')) -WindowStyle Hidden -PassThru
+        if(-not $uninstaller.WaitForExit(120000)){$uninstaller.Kill();throw 'Owned uninstaller exceeded two minutes'}
+        if($uninstaller.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $uninstallReport -Raw|ConvertFrom-Json).success){throw 'Actual package uninstallation failed'}
+        if([IO.File]::ReadAllText($keep) -ne 'SYNTHETIC-USER-DATA' -or (Test-Path -LiteralPath (Join-Path $installRoot 'active.json'))){throw 'Uninstallation failed to preserve user data or remove active pointer'}
+        $report.checks+='actual-package-install-run-uninstall-preserves-data'
+        $report.installedWorkflowReport=$installedWorkflow
+    } else { $report.notRun+='actual-package-isolated-install-run-uninstall: not requested' }
     # The portable tree is immutable. A diagnostic run must keep reports, libraries and caches
     # outside it, and must not quietly invalidate the package that will be archived next.
     foreach ($file in $manifest.files) { Assert-FileHash (Assert-Path $root $file.path) $file.sha256 }

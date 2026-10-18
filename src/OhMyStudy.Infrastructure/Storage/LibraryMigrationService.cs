@@ -15,7 +15,7 @@ public static class LibraryMigrationService
     public static async Task<LibraryMigrationResult> CopyAndUpgradeAsync(string sourceDirectory, string backupDirectory,
         string newLibraryDirectory, CancellationToken cancellationToken = default)
     {
-        string source = Path.GetFullPath(sourceDirectory), backup = Path.GetFullPath(backupDirectory), destination = Path.GetFullPath(newLibraryDirectory);
+        string source = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceDirectory)), backup = Path.TrimEndingDirectorySeparator(Path.GetFullPath(backupDirectory)), destination = Path.TrimEndingDirectorySeparator(Path.GetFullPath(newLibraryDirectory));
         foreach (string path in new[] { backup, destination })
             if (path.Equals(source, StringComparison.OrdinalIgnoreCase) || path.StartsWith(source + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 throw new IOException("请为备份和新资料选择独立目录。");
@@ -74,6 +74,7 @@ public static class LibraryMigrationService
         var documents = await library.ListDocumentsAsync(ct).ConfigureAwait(false);
         var questions = await library.ListQuestionsAsync(ct).ConfigureAwait(false);
         var providers = await library.ListProvidersAsync(ct).ConfigureAwait(false);
+        Add(await library.MigrationContentFingerprintAsync(ct).ConfigureAwait(false));
         Add(DomainJson.Serialize(await library.GetSettingsAsync(ct).ConfigureAwait(false)));
         foreach (var item in providers.OrderBy(p => p.Id, StringComparer.Ordinal)) Add(DomainJson.Serialize(item));
         foreach (var document in documents.OrderBy(d => d.Id, StringComparer.Ordinal))

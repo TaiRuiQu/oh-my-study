@@ -2,6 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$AppPublishDirectory,
+    [string]$SetupPublishDirectory,
     [string]$RuntimeDirectory,
     [string]$OutputDirectory,
     [switch]$DesktopSmoke,
@@ -20,7 +21,7 @@ $package=Join-Path $run 'portable'
 New-Item -ItemType Directory -Path $package -Force | Out-Null
 $savedLocation=Get-Location; $savedEnvironment=@{}
 foreach ($key in @('DOTNET_CLI_HOME','NUGET_PACKAGES','DOTNET_CLI_TELEMETRY_OPTOUT','DOTNET_GENERATE_ASPNET_CERTIFICATE')) { $savedEnvironment[$key]=[Environment]::GetEnvironmentVariable($key,'Process') }
-$report=[ordered]@{ schemaVersion=1; status='release-candidate-unvalidated'; packageStatus='running'; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O'); runRoot=$run; packageDirectory=$package; notRun=@('clean-Windows-10-11-offline-matrix','installer-upgrade-uninstall','real-data-and-credential-cutover','real-provider-semantics','real-Sandbox-ownership','physical-printing','redistribution-license-review','source-correspondence-review') }
+$report=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; packageStatus='running'; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O'); runRoot=$run; packageDirectory=$package; userValidation=@('clean-Windows-10-11-offline-matrix','actual-installation-identity-and-system-entry-points','real-data-and-credential-cutover','real-provider-semantics','real-Sandbox-ownership','physical-printing','DPI-IME-accessibility-reference-device-budgets'); notRun=@('redistribution-license-review','binary-code-signing') }
 
 function Assert-UnlinkedTree([string]$Root) {
     $item=Get-Item -LiteralPath $Root
@@ -59,6 +60,16 @@ try {
     $report.appSourceProvenance='Working-tree snapshot included; when supplying an existing publish, its exact source correspondence is a caller responsibility.'
     if (Test-Path -LiteralPath (Join-Path $appSource 'coreclr.dll')) { throw 'CoreCLR runtime found; provide a fresh Native AOT publish' }
     Copy-Tree $appSource $package
+    if (-not $SetupPublishDirectory) {
+        $setupProject=Join-Path $workspace 'src/OhMyStudy.Setup/OhMyStudy.Setup.csproj'
+        Invoke-Dotnet @('restore',$setupProject,'-p:Configuration=Release','--locked-mode','--disable-parallel') (Join-Path $run 'setup-restore.log')
+        $SetupPublishDirectory=Join-Path $run 'setup-publish'
+        Invoke-Dotnet @('publish',$setupProject,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$SetupPublishDirectory) (Join-Path $run 'setup-publish.log')
+    }
+    $setupSource=(Resolve-Path -LiteralPath $SetupPublishDirectory).Path
+    if (Test-Path -LiteralPath (Join-Path $setupSource 'OhMyStudy.Setup.dll')) { throw 'Setup must be an actual Native AOT publish' }
+    Copy-Item -LiteralPath (Join-Path $setupSource 'OhMyStudy.Setup.exe') -Destination (Join-Path $package 'OhMyStudy.Setup.exe')
+    $report.setupPublishDirectory=$setupSource
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','e_sqlite3.dll','Microsoft.ui.xaml.dll','Assets/App.ico')) {
         if (-not (Test-Path -LiteralPath (Join-Path $package $required) -PathType Leaf)) { throw "Required native app output missing: $required" }
     }
@@ -152,13 +163,15 @@ Redistribution/license review and clean-system installation acceptance remain un
     $sourceDirectory=Join-Path $package 'source'; New-Item -ItemType Directory -Path $sourceDirectory -Force | Out-Null
     [IO.Compression.ZipFile]::CreateFromDirectory($sourceStage,(Join-Path $sourceDirectory 'source-snapshot.zip'),[IO.Compression.CompressionLevel]::Optimal,$false)
     @'
-解压到新的文件夹后运行 OhMyStudy.App.exe。无需安装 .NET、Node.js、Python 或 TeX。
-本候选包尚未完成干净 Windows 10/11、安装升级、真实资料迁移与硬件打印验收。
-首次检查旧资料请使用只读方式；切换前退出旧版，并保留一致备份。恢复请使用新目录副本。
-不要覆盖已有资料库，也不要将此候选包的运行结果视为旧版回退兼容承诺。
+解压后双击 OhMyStudy.Setup.exe 安装，然后从开始菜单打开 Oh My Study。
+也可直接运行 OhMyStudy.App.exe。资料和备份会保留，卸载应用不会删除。
+首次导入旧资料前请退出旧版；导入会保留原资料并创建独立副本。
+本候选包的系统兼容、真实资料与打印验收由维护者继续完成。
 '@ | Set-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Encoding utf8
     $files=@(Get-ChildItem -LiteralPath $package -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{ path=[IO.Path]::GetRelativePath($package,$_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
-    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-unvalidated'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; entryPoint='OhMyStudy.App.exe'; manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun }
+    $sourceCommit=(& git -C $workspace rev-parse HEAD).Trim()
+    $sourceStatus=@(& git -C $workspace status --porcelain --untracked-files=normal)
+    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; entryPoint='OhMyStudy.App.exe'; installer='OhMyStudy.Setup.exe'; version=if($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
     $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $package 'package-manifest.json') -Encoding utf8
     $verification=Join-Path $run 'package-verification.json'
     & (Join-Path $PSScriptRoot 'Test-OfflinePackage.ps1') -PackageDirectory $package -ReportFile $verification -DesktopSmoke:$DesktopSmoke -WorkflowSmoke:$WorkflowSmoke

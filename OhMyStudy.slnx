@@ -8,6 +8,7 @@
     <Project Path="src/OhMyStudy.Infrastructure/OhMyStudy.Infrastructure.csproj" />
     <Project Path="src/OhMyStudy.Documents/OhMyStudy.Documents.csproj" />
     <Project Path="src/OhMyStudy.App/OhMyStudy.App.csproj" />
+    <Project Path="src/OhMyStudy.Setup/OhMyStudy.Setup.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OhMyStudy.Domain.Tests/OhMyStudy.Domain.Tests.csproj" />
@@ -17,6 +18,7 @@
     <Project Path="tests/OhMyStudy.Grading.Tests/OhMyStudy.Grading.Tests.csproj" />
     <Project Path="tests/OhMyStudy.Media.Tests/OhMyStudy.Media.Tests.csproj" />
     <Project Path="tests/OhMyStudy.IntegrationTests/OhMyStudy.IntegrationTests.csproj" />
+    <Project Path="tests/OhMyStudy.Setup.Tests/OhMyStudy.Setup.Tests.csproj" />
   </Folder>
   <Folder Name="/probes/">
     <Project Path="probes/OhMyStudy.Documents.Probe/OhMyStudy.Documents.Probe.csproj" />

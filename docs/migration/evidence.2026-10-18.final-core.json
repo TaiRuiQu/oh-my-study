@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "runId": "migration-20261018-165025-f15e94a5",
+  "date": "2026-10-18",
+  "checkStatus": "selected-checks-passed",
+  "sourcePhase": "P3-P9 implementation completion",
+  "checks": [
+    {
+      "name": "domain",
+      "status": "passed",
+      "sha256": "43d4ab140c542faa609709cbf71678296e28b6dbe1e5dcbefa1a8b0b8d9dd6a1",
+      "exitCode": 0
+    },
+    {
+      "name": "storage",
+      "status": "passed",
+      "sha256": "581ec52c433d2068138b56de9c90dfefdbb29d8a6f77518fa9976838ef35fc9e",
+      "exitCode": 0
+    },
+    {
+      "name": "provider",
+      "status": "passed",
+      "sha256": "9fe6d96e6fafb1fe54138e4509bddebc5a75e6bca40e761b5fb75efcfc6b9324",
+      "exitCode": 0
+    },
+    {
+      "name": "execution",
+      "status": "passed",
+      "sha256": "1bde3ea225578a4ff8529d0803727c814dba3ca385f14b6e2ec0834f3c682769",
+      "exitCode": 0
+    },
+    {
+      "name": "grading",
+      "status": "passed",
+      "sha256": "cb7bdd1104b93677af368b98f66598f20fb402be05e95872329f7fdee2f28849",
+      "exitCode": 0
+    },
+    {
+      "name": "media",
+      "status": "passed",
+      "sha256": "c4dafe7d53caafd67080c367e92dd00f2a79a9972cdb3c045ea4edbfba136289",
+      "exitCode": 0
+    },
+    {
+      "name": "infrastructure",
+      "status": "passed",
+      "sha256": "232221ac9f863edc4f4f8b232569a55ad505d5e4562bf259ba7a865b944d822f",
+      "exitCode": 0
+    },
+    {
+      "name": "documents",
+      "status": "passed",
+      "sha256": "0f5516fa88151b0da3031ef24c981a2ec8776c3be4e0faf8f4ee82f5b2329005",
+      "exitCode": 0
+    },
+    {
+      "name": "setup",
+      "status": "publish-passed",
+      "sha256": "02532e62a7592d5a6ff0dff5e1344983afb6d25109888778f28d25753c656c63",
+      "exitCode": null
+    },
+    {
+      "name": "installation",
+      "status": "passed",
+      "sha256": "338abecf3d89a6393d237169487cd49ab259b0dee84dd6ea2964123f115f961c",
+      "exitCode": 0
+    },
+    {
+      "name": "app",
+      "status": "passed",
+      "sha256": "63a28f4d7b633f757295146b3e9b3401367bbb146d675fc0368ab8f2aae1c55e",
+      "exitCode": 0
+    }
+  ],
+  "counts": {
+    "domain": 107,
+    "storage": 93,
+    "providerScenarios": 11,
+    "executionScenarios": 17,
+    "gradingAssertions": 211,
+    "media": 26,
+    "infrastructure": 6,
+    "pdfEditions": 8,
+    "pdfPages": 45,
+    "installer": 40,
+    "workflow": 28
+  },
+  "userValidation": [
+    "clean-Windows-10-11-offline-installation-matrix",
+    "real-library-cutover-and-rollback",
+    "real-provider-and-paper-semantics",
+    "real-Sandbox-session-ownership",
+    "physical-printing",
+    "DPI-accessibility-and-performance-budget",
+    "real-credential-store-migration"
+  ],
+  "nativeExeValidation": "x64 PE, no CLR header, no same-name managed DLL/deps/runtimeconfig; runtime checks in executable suites",
+  "rawDirectory": "output/migration/runs/migration-20261018-165025-f15e94a5"
+}
