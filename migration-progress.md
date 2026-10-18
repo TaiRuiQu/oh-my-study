@@ -54,3 +54,7 @@ Git 签名配置（2026-10-18）：本仓库显式设置 `gpg.format=ssh`、`com
 多版本发布流程（2026-10-18）：正在扩展四项构建（普通 Native AOT / AVX-512 Native AOT / 非 AOT self-contained / 非 AOT framework-dependent），每项同时生成 portable ZIP 与独立 installer EXE。通用原生安装器内嵌相同 ZIP，安装后保留小启动器；发布作业要求四项及八件套全部通过。用户要求同时补充 0.1.0，保留已有标签，新增文件记录当前源码提交。已通过：安装器实际 Native AOT 回归 47 项；完整八件套发布干运行及缺失/无效/混合提交等拒绝用例；非 AOT framework-dependent WinUI 实际编译。正在验证完整 CI 与四项打包，不能将这些新变体记为已正式发布或已通过人工验收。
 
 本机补充验证：Lint（C# 格式及 actionlint）与 Checks（仓库边界、全部 PowerShell 语法、JSON/XML、八件套发布回归、解决方案警告视为错误编译）通过，编译为 0 警告/0 错误；显式 x86-64,-avx512 的通用安装器 Native AOT 编译通过。下一步推送并手动运行 release_tag=v0.1.0 的 CI，待完整四项成功再记录已发布。
+
+首次补充发布 CI 39121014511：完整质量检查通过；两项 AOT 构建在锁定还原失败，原因是全局 PublishAot=true 给引用库增加 ILCompiler 依赖。已将运行时属性限制在 App 工程，四种 profile 均以 --force --locked-mode 实际还原通过，并加入 CI Checks 防止增量还原掩盖此问题。本机非 AOT 桌面检查及含内嵌 ZIP 的实际原生 installer 隔离安装/卸载也通过。完整矩阵重跑结果待记录。
+
+首轮两项非 AOT 构建均已成功完成 portable、独立 installer、安装后校验及卸载；发布因 AOT 两项失败而正确跳过。修复后本机 Checks（含四种强制锁定还原）和解决方案编译全部通过，0 警告/0 错误。

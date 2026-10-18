@@ -19,6 +19,15 @@
     <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
     <NuGetLockFilePath Condition="'$(OhMyStudyPublishVariant)' == 'self-contained' Or '$(OhMyStudyPublishVariant)' == 'framework-dependent'">packages.$(OhMyStudyPublishVariant).lock.json</NuGetLockFilePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(OhMyStudyPublishVariant)' != ''">
+    <PublishAot Condition="'$(OhMyStudyPublishVariant)' == 'aot' Or '$(OhMyStudyPublishVariant)' == 'aot-avx512'">true</PublishAot>
+    <PublishAot Condition="'$(OhMyStudyPublishVariant)' == 'self-contained' Or '$(OhMyStudyPublishVariant)' == 'framework-dependent'">false</PublishAot>
+    <SelfContained Condition="'$(OhMyStudyPublishVariant)' == 'framework-dependent'">false</SelfContained>
+    <SelfContained Condition="'$(OhMyStudyPublishVariant)' != 'framework-dependent'">true</SelfContained>
+    <PublishTrimmed>$(PublishAot)</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <UseAppHost>true</UseAppHost>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />

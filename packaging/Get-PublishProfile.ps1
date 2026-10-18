@@ -11,8 +11,8 @@ $instructionSet = if ($Variant -eq 'aot-avx512') { 'x86-64-v4' } else { 'x86-64,
     nativeAot = $aot
     selfContained = $selfContained
     instructionSet = if ($aot) { $instructionSet } else { $null }
-    properties = @("-p:PublishAot=$($aot.ToString().ToLowerInvariant())",
-        "-p:SelfContained=$($selfContained.ToString().ToLowerInvariant())",
-        '-p:PublishReadyToRun=false', "-p:PublishTrimmed=$($aot.ToString().ToLowerInvariant())", '-p:UseAppHost=true', "-p:OhMyStudyPublishVariant=$Variant") +
+    # Scope runtime properties in the App project. Global PublishAot=true would
+    # add ILCompiler to every referenced library and invalidate their lock files.
+    properties = @("-p:OhMyStudyPublishVariant=$Variant") +
         $(if ($aot) { @("-p:IlcInstructionSet=$($instructionSet.Replace(',','%2c'))", "-p:IlcMaxVectorTBitWidth=$(if ($Variant -eq 'aot-avx512') { 512 } else { 128 })") })
 }

@@ -44,6 +44,13 @@ try {
                 } else { $null = [xml]$text }
             }
             & (Join-Path $PSScriptRoot 'tests/Test-CIRelease.ps1')
+            # Force restore each profile: an incremental restore can conceal global
+            # property changes that invalidate a referenced library's lock file.
+            foreach ($profileVariant in @('aot','aot-avx512','self-contained','framework-dependent')) {
+                $profile = & (Join-Path $PSScriptRoot 'Get-PublishProfile.ps1') -Variant $profileVariant
+                Invoke-Dotnet (@('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Release','--locked-mode','--force','--disable-parallel') + $profile.properties)
+            }
+            Invoke-Dotnet @('restore','OhMyStudy.slnx','-p:Configuration=Release','--locked-mode','--disable-parallel')
             Invoke-Dotnet @('build','OhMyStudy.slnx','-c','Release','--no-restore','-warnaserror')
         }
         'Test' {
