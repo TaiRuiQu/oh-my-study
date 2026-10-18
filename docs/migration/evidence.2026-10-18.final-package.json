@@ -28,5 +28,5 @@
   "appArchitecture": "x64 Native AOT",
   "userValidationStatus": "user-owned-not-performed",
   "rawReport": "output/migration/evidence/p9-final-delivery.json",
-  "sourceCorrespondence": "199 snapshot files matched clean checked-out tree at verification; later handoff-only documentation commits do not rebuild these binaries"
+  "sourceCorrespondence": "199 snapshot files matched clean checked-out tree at verification; later documentation and CI test cold-start-budget changes do not change or rebuild product binaries"
 }

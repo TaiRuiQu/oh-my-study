@@ -64,7 +64,9 @@
 
 ## 发布和资料保护
 
-`origin`为`https://github.com/TaiRuiQu/oh-my-study.git`。已有`f419ba6`配置main/PR的lint、checks、test→构建artifacts，tag走同链后发布Release。官方Actions固定SHA；本轮新增安装器回归和guest worker缓存键/清单。代码阶段提交已推送`main`，服务端CI运行`39113860502`；精确结果从Actions检查，不以本机通过替代服务端结论。本轮未创建tag或Release。
+`origin`为`https://github.com/TaiRuiQu/oh-my-study.git`。已有`f419ba6`配置main/PR的lint、checks、test→构建artifacts，tag走同链后发布Release。官方Actions固定SHA；本轮新增安装器回归和guest worker缓存键/清单。本轮未创建tag或Release。
+
+服务端首次运行`39113860502`：lint/checks、领域/存储/协议通过，但固定worker的PowerShell参数用例在托管机15秒冷启动预算内未启动完成。已将**该参数保持用例**预算改60秒、测试外壳改120秒；150ms超时终止用例保留，产品超时设置与执行实现不变。新提交重新跑CI，后续仅文档/测试等待预算变化，不改已交付包的产品EXE。精确CI结果从Actions检查，不以本机通过替代。
 
 默认新库`%LOCALAPPDATA%/OhMyStudy/Library`；旧目录`%APPDATA%/io.ohmystudy.desktop`只读检查。显式导入：一致备份→新目录恢复/仅副本升级→原始字段/实体/资产校验→完整初始化成功→原子更新`active-library.txt`。失败重新打开原库且不改指针。凭据只保留旧引用，不导出密钥；换Windows账户需重新配置。
 

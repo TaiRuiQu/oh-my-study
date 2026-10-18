@@ -22,7 +22,10 @@ with tempfile.TemporaryDirectory(prefix="oms-sandbox-worker-") as temporary:
         ("python-nonzero", "python", "raise SystemExit(7)", 5000, "failed", []),
         ("python-timeout", "python", "import time;time.sleep(30)", 150, "timed_out", []),
         ("python-output-limit", "python", "import sys;sys.stdout.write('x'*2000000);sys.stdout.flush()", 5000, "output_limit", []),
-        ("powershell-arguments", "shell", "param($a,$b,$c);[Console]::WriteLine(($a,$b,$c -join '|'))", 15000, "completed", ["中文|a b|尾\\"]),
+        # This checks argument preservation, not PowerShell cold-start performance. Hosted
+        # Windows runners can spend >15 s in first-launch security scanning. The separate
+        # 150 ms python-timeout case above continues to verify enforced termination.
+        ("powershell-arguments", "shell", "param($a,$b,$c);[Console]::WriteLine(($a,$b,$c -join '|'))", 60000, "completed", ["中文|a b|尾\\"]),
     ]
     for name, tool, content, timeout, expected, fragments in cases:
         result_dir = root / name

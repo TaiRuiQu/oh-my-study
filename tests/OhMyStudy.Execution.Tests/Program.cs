@@ -208,7 +208,7 @@ if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
         var runtime = Path.GetFullPath(args[runtimeArgument + 1]);
         var result = await processRunner.RunAsync(new(Path.Combine(runtime, "python.exe"),
             ["-I", "-X", "utf8", Path.Combine(AppContext.BaseDirectory, "sandbox_worker_checks.py"), Path.Combine(AppContext.BaseDirectory, "sandbox-worker.py"), runtime],
-            root, WindowsProcessRunner.CreateEnvironment(runtime, root), TimeSpan.FromSeconds(45)));
+            root, WindowsProcessRunner.CreateEnvironment(runtime, root), TimeSpan.FromSeconds(120)));
         Require(result.Succeeded && result.Stdout.Contains("powershell-arguments"), result.Stderr + result.Stdout);
     });
 }
