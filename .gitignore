@@ -12,6 +12,7 @@
 node_modules/
 dist/
 target/
+/src-tauri/gen/
 
 # Operating system files
 .DS_Store

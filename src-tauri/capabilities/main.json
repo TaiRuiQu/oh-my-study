@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-capability",
+  "description": "Local main window, custom typed commands only; no filesystem or shell plugin API.",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-close"]
+}

@@ -1,3 +1,9 @@
-//! M0 risk probes. Desktop commands and persistence start at M1.
+//! Local study application core, with an optional Tauri desktop host.
 pub mod ai;
+pub mod credentials;
+#[cfg(feature = "desktop")]
+pub mod desktop;
+pub mod domain;
 pub mod execution;
+pub mod jobs;
+pub mod storage;

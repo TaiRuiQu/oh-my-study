@@ -2,7 +2,7 @@
 
 面向学生的本地桌面学习程序，围绕试卷识别批改、题库与错题、复习卷生成三个功能设计。
 
-需求与技术架构已定稿，当前正在实现 **M0 风险验证**，尚未交付桌面应用。阶段状态、验证证据和接手步骤见 [progress.md](progress.md)。
+当前已实现 **M1 桌面应用基础**：本地材料、供应商／模型设置、任务与执行权限；整卷 AI 识别批改将在 M2 接入。M0 仍有真实供应商和沙箱兼容验收缺口。阶段状态、验证证据和接手步骤见 [progress.md](progress.md)。
 
 - [需求与决策记录](docs/requirements.zh-CN.md)
 - [技术架构选型](docs/architecture.zh-CN.md)
@@ -11,6 +11,14 @@
 - [用户样卷分析](docs/sample-analysis.zh-CN.md)
 - [M0 资源测量](docs/m0-resources.zh-CN.md)
 - [M0 验收与开发验证命令](docs/m0-acceptance.zh-CN.md)
+- [M1 桌面界面与开发命令](docs/m1-ui.zh-CN.md)
+
+```powershell
+npm ci
+npm run desktop:dev
+```
+
+开发需要 Node.js、Rust MSVC 工具链与 Windows C++ 构建工具。`npm run desktop:build` 构建应用；完整离线安装包属于 M5。Python 自检需先按 [私有运行时说明](docs/m0-execution.zh-CN.md) 准备依赖，普通浏览与设置不需要模型服务在线。
 
 M0 工程使用 Rust 工作区验证执行权限与三种原生协议，`probes/typesetting` 验证公式与 PDF 排版，`runtime` 保存私有计算运行时的构建来源。真实供应商调用、Windows Sandbox 兼容性与纸张打印需分别取得实测证据，不能以合成样本测试替代。
 
