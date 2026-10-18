@@ -1,6 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
+    [ValidateSet('aot','aot-avx512','self-contained','framework-dependent')][string]$Variant = 'aot',
     [string]$AppPublishDirectory,
     [string]$SetupPublishDirectory,
     [string]$RuntimeDirectory,
@@ -11,17 +12,18 @@ param(
 $ErrorActionPreference='Stop'
 $workspace=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $cache=Join-Path $workspace 'output/migration'
+$profile = & (Join-Path $PSScriptRoot 'Get-PublishProfile.ps1') -Variant $Variant
 if (-not $RuntimeDirectory) { $RuntimeDirectory=Join-Path $cache 'toolchain/runtime' }
 if (-not $OutputDirectory) { $OutputDirectory=Join-Path $workspace 'output/releases' }
 $destination=[IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
-$runId='OhMyStudy-win-x64-rc-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[Guid]::NewGuid().ToString('N').Substring(0,8)
+$runId=('OhMyStudy-win-x64-'+$Variant+'-rc-')+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[Guid]::NewGuid().ToString('N').Substring(0,8)
 $run=Join-Path $destination $runId
 $package=Join-Path $run 'portable'
 New-Item -ItemType Directory -Path $package -Force | Out-Null
 $savedLocation=Get-Location; $savedEnvironment=@{}
 foreach ($key in @('DOTNET_CLI_HOME','NUGET_PACKAGES','DOTNET_CLI_TELEMETRY_OPTOUT','DOTNET_GENERATE_ASPNET_CERTIFICATE')) { $savedEnvironment[$key]=[Environment]::GetEnvironmentVariable($key,'Process') }
-$report=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; packageStatus='running'; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O'); runRoot=$run; packageDirectory=$package; userValidation=@('clean-Windows-10-11-offline-matrix','actual-installation-identity-and-system-entry-points','real-data-and-credential-cutover','real-provider-semantics','real-Sandbox-ownership','physical-printing','DPI-IME-accessibility-reference-device-budgets'); notRun=@('redistribution-license-review','binary-code-signing') }
+$report=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; packageStatus='running'; variant=$Variant; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O'); runRoot=$run; packageDirectory=$package; userValidation=@('clean-Windows-10-11-offline-matrix','actual-installation-identity-and-system-entry-points','real-data-and-credential-cutover','real-provider-semantics','real-Sandbox-ownership','physical-printing','DPI-IME-accessibility-reference-device-budgets'); notRun=@('redistribution-license-review','binary-code-signing') }
 
 function Assert-UnlinkedTree([string]$Root) {
     $item=Get-Item -LiteralPath $Root
@@ -51,20 +53,20 @@ try {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT='1'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'
     if (-not $AppPublishDirectory) {
         $project=Join-Path $workspace 'src/OhMyStudy.App/OhMyStudy.App.csproj'
-        Invoke-Dotnet @('restore',$project,'-p:Configuration=Release','--locked-mode','--disable-parallel') (Join-Path $run 'app-restore.log')
+        Invoke-Dotnet (@('restore',$project,'-p:Configuration=Release','--locked-mode','--disable-parallel') + $profile.properties) (Join-Path $run 'app-restore.log')
         $AppPublishDirectory=Join-Path $run 'app-publish'
-        Invoke-Dotnet @('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$AppPublishDirectory) (Join-Path $run 'app-publish.log')
+        Invoke-Dotnet (@('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$AppPublishDirectory) + $profile.properties) (Join-Path $run 'app-publish.log')
     }
     $appSource=(Resolve-Path -LiteralPath $AppPublishDirectory).Path
     $report.appPublishDirectory=$appSource
     $report.appSourceProvenance='Working-tree snapshot included; when supplying an existing publish, its exact source correspondence is a caller responsibility.'
-    if (Test-Path -LiteralPath (Join-Path $appSource 'coreclr.dll')) { throw 'CoreCLR runtime found; provide a fresh Native AOT publish' }
+    if ($profile.nativeAot -and (Test-Path -LiteralPath (Join-Path $appSource 'coreclr.dll'))) { throw 'CoreCLR runtime found; provide a fresh Native AOT publish' }
     Copy-Tree $appSource $package
     if (-not $SetupPublishDirectory) {
         $setupProject=Join-Path $workspace 'src/OhMyStudy.Setup/OhMyStudy.Setup.csproj'
-        Invoke-Dotnet @('restore',$setupProject,'-p:Configuration=Release','--locked-mode','--disable-parallel') (Join-Path $run 'setup-restore.log')
+        Invoke-Dotnet @('restore',$setupProject,'-p:Configuration=Release','--locked-mode','--disable-parallel','-p:IlcInstructionSet=x86-64') (Join-Path $run 'setup-restore.log')
         $SetupPublishDirectory=Join-Path $run 'setup-publish'
-        Invoke-Dotnet @('publish',$setupProject,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$SetupPublishDirectory) (Join-Path $run 'setup-publish.log')
+        Invoke-Dotnet @('publish',$setupProject,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$SetupPublishDirectory,'-p:IlcInstructionSet=x86-64') (Join-Path $run 'setup-publish.log')
     }
     $setupSource=(Resolve-Path -LiteralPath $SetupPublishDirectory).Path
     if (Test-Path -LiteralPath (Join-Path $setupSource 'OhMyStudy.Setup.dll')) { throw 'Setup must be an actual Native AOT publish' }
@@ -115,7 +117,7 @@ try {
     $components.Add([ordered]@{ name='CPython'; version=$pythonLock.cpython.version; distributionArchiveSha256=$pythonLock.cpython.sha256; path='runtime/python/python.exe'; source=$pythonLock.cpython.url; notices='runtime/python/LICENSE.txt' })
     foreach ($wheel in $pythonLock.wheels) { $components.Add([ordered]@{ name=$wheel.name; version=$wheel.version; distributionArchiveSha256=$wheel.sha256; source=$wheel.url; scope='extracted private runtime wheel'; notices='runtime/python/Lib/site-packages/*dist-info/' }) }
     $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    foreach ($lockPath in @('src/OhMyStudy.App/packages.lock.json','src/OhMyStudy.Infrastructure/packages.lock.json')) {
+    foreach ($lockPath in @($(if ($profile.nativeAot) { 'src/OhMyStudy.App/packages.lock.json' } else { 'src/OhMyStudy.App/packages.'+$Variant+'.lock.json' }),'src/OhMyStudy.Infrastructure/packages.lock.json')) {
         $graph=Get-Content -LiteralPath (Join-Path $workspace $lockPath) -Raw | ConvertFrom-Json
         foreach ($framework in $graph.dependencies.PSObject.Properties) {
             foreach ($dependency in $framework.Value.PSObject.Properties) {
@@ -168,16 +170,41 @@ Redistribution/license review and clean-system installation acceptance remain un
 首次导入旧资料前请退出旧版；导入会保留原资料并创建独立副本。
 本候选包的系统兼容、真实资料与打印验收由维护者继续完成。
 '@ | Set-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Encoding utf8
+    $requirements = switch ($Variant) {
+        'aot-avx512' { '此版本需要支持 x86-64-v4（AVX-512 F/BW/CD/DQ/VL）的处理器和操作系统；不确定时请选择普通 AOT 版。' }
+        'framework-dependent' { '运行应用前请安装 Microsoft .NET 10 x64 Runtime；安装器不会自动下载运行时。' }
+        default { '此版本无需另行安装 .NET 运行时。' }
+    }
+    Add-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Value $requirements
     $files=@(Get-ChildItem -LiteralPath $package -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{ path=[IO.Path]::GetRelativePath($package,$_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
     $sourceCommit=(& git -C $workspace rev-parse HEAD).Trim()
     $sourceStatus=@(& git -C $workspace status --porcelain --untracked-files=normal)
-    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; entryPoint='OhMyStudy.App.exe'; installer='OhMyStudy.Setup.exe'; version=if($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
+    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; variant=$Variant; nativeAot=$profile.nativeAot; selfContained=$profile.selfContained; instructionSet=$profile.instructionSet; entryPoint='OhMyStudy.App.exe'; installer='OhMyStudy.Setup.exe'; version=if($env:RELEASE_TAG){$env:RELEASE_TAG}elseif($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
     $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $package 'package-manifest.json') -Encoding utf8
     $verification=Join-Path $run 'package-verification.json'
     & (Join-Path $PSScriptRoot 'Test-OfflinePackage.ps1') -PackageDirectory $package -ReportFile $verification -DesktopSmoke:$DesktopSmoke -WorkflowSmoke:$WorkflowSmoke
     $report.verificationReport=$verification
     $zip=Join-Path $run "$runId.zip"
     [IO.Compression.ZipFile]::CreateFromDirectory($package,$zip,[IO.Compression.CompressionLevel]::Optimal,$false)
+    # Recompile only the generic native bootstrap with the exact portable archive embedded.
+    # The installed launcher remains the small bootstrap inside that archive.
+    $setupProject=Join-Path $workspace 'src/OhMyStudy.Setup/OhMyStudy.Setup.csproj'
+    $installerPublish=Join-Path $run 'installer-publish'
+    Invoke-Dotnet @('restore',$setupProject,'-p:Configuration=Release','--locked-mode','--disable-parallel') (Join-Path $run 'installer-restore.log')
+    Invoke-Dotnet @('publish',$setupProject,'-c','Release','--no-restore','-p:IlcInstructionSet=x86-64',('-p:InstallerPayload='+$zip),'-o',$installerPublish) (Join-Path $run 'installer-publish.log')
+    $report.installer=Join-Path $installerPublish 'OhMyStudy.Setup.exe'
+    $report.installerSha256=(Get-FileHash -LiteralPath $report.installer -Algorithm SHA256).Hash.ToLowerInvariant()
+    # Exercise the downloadable EXE, with no sibling portable files or --source argument.
+    $installed=Join-Path $run 'installer-check'
+    $installReport=Join-Path $run 'installer-check.json'
+    $process=Start-Process -FilePath $report.installer -ArgumentList @('--install','--root',('"'+$installed+'"'),'--no-shortcuts','--quiet','--report',('"'+$installReport+'"')) -WindowStyle Hidden -PassThru
+    if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Bundled installer timed out' }
+    if ($process.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $installReport -Raw | ConvertFrom-Json).success) { throw 'Bundled installer failed' }
+    $active=Get-Content -LiteralPath (Join-Path $installed 'active.json') -Raw | ConvertFrom-Json
+    & (Join-Path $PSScriptRoot 'Test-OfflinePackage.ps1') -PackageDirectory (Join-Path $installed ('versions/'+$active.version)) -ReportFile (Join-Path $run 'installed-verification.json')
+    $process=Start-Process -FilePath (Join-Path $package 'OhMyStudy.Setup.exe') -ArgumentList @('--uninstall','--root',('"'+$installed+'"'),'--no-shortcuts','--quiet','--report',('"'+(Join-Path $run 'uninstall-check.json')+'"')) -WindowStyle Hidden -PassThru
+    if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Bundled uninstall timed out' }
+    if ($process.ExitCode -ne 0 -or (Test-Path -LiteralPath (Join-Path $installed 'active.json'))) { throw 'Bundled uninstall failed' }
     $report.zip=$zip; $report.zipSha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); $report.fileCount=$files.Count
     $report.packageStatus='created-and-local-checks-passed'
 } catch { $report.packageStatus='failed'; $report.error=$_.Exception.Message; throw }

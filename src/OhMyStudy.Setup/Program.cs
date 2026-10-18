@@ -54,7 +54,9 @@ internal static partial class Program
             else
             {
                 if (!quiet && MessageBox(0, "安装 Oh My Study？安装完成后可从开始菜单打开。", "Oh My Study", 0x24) != 6) return 0;
-                result = engine.Install(new(Value(args, "--source") ?? ownDirectory, root, !args.Contains("--no-shortcuts", StringComparer.Ordinal)));
+                string? source = Value(args, "--source");
+                using var payload = source is null ? BundledPayload.Open() : null;
+                result = engine.Install(new(source ?? payload?.DirectoryPath ?? ownDirectory, root, !args.Contains("--no-shortcuts", StringComparer.Ordinal)));
                 if (!quiet) MessageBox(0, "安装完成。请从开始菜单打开 Oh My Study。", "Oh My Study", 0x40);
             }
             WriteReport(report, new(true, operation, result, !RuntimeFeature.IsDynamicCodeSupported, null));

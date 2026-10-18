@@ -17,6 +17,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
+    <NuGetLockFilePath Condition="'$(OhMyStudyPublishVariant)' == 'self-contained' Or '$(OhMyStudyPublishVariant)' == 'framework-dependent'">packages.$(OhMyStudyPublishVariant).lock.json</NuGetLockFilePath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />

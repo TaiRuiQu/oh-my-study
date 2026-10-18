@@ -29,6 +29,49 @@ string Package(string name, string body)
     File.WriteAllBytes(Path.Combine(directory, InstallerEngine.ManifestName), JsonSerializer.SerializeToUtf8Bytes(new PackageManifest(1, "win-x64", "OhMyStudy.App.exe", files, body), SetupJson.Default.PackageManifest));
     return directory;
 }
+Test("bundled payload extracts, installs and cleans its owned folder", () =>
+{
+    string source = Package("bundle-source", "bundle");
+    using var zip = new MemoryStream();
+    System.IO.Compression.ZipFile.CreateFromDirectory(source, zip);
+    zip.Position = 0;
+    string extracted;
+    using (var payload = BundledPayload.Extract(zip))
+    {
+        extracted = payload.DirectoryPath;
+        var bundledEngine = new InstallerEngine(new FakeIntegration());
+        string target = Path.Combine(testRoot, "bundle-target");
+        bundledEngine.Install(new(payload.DirectoryPath, target, false));
+        Require(File.ReadAllText(bundledEngine.ResolveLaunch(target)).EndsWith("bundle", StringComparison.Ordinal), "wrong bundled app");
+        bundledEngine.Uninstall(target);
+    }
+    Require(!Directory.Exists(extracted), "extraction directory retained");
+});
+foreach (string path in new[] { "../outside.txt", "/outside.txt", "C:/outside.txt", "native/../../escape", "CON", "bad\\name" })
+    Test("bundled payload rejects " + path, () =>
+    {
+        using var zip = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zip, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            using var writer = new StreamWriter(archive.CreateEntry(path).Open()); writer.Write("unsafe");
+        }
+        zip.Position = 0;
+        Rejected(() => BundledPayload.Extract(zip).Dispose());
+    });
+Test("bundled payload rejects duplicate files and missing manifest", () =>
+{
+    foreach (bool duplicate in new[] { false, true })
+    {
+        using var zip = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zip, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            archive.CreateEntry("file.txt");
+            if (duplicate) archive.CreateEntry("FILE.txt");
+        }
+        zip.Position = 0;
+        Rejected(() => BundledPayload.Extract(zip).Dispose());
+    }
+});
 var integration = new FakeIntegration();
 var engine = new InstallerEngine(integration);
 string package1 = Package("包 一", "1.0"), package2 = Package("包 二", "2.0"), install = Path.Combine(testRoot, "安装位置");

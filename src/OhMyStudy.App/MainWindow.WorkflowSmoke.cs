@@ -257,7 +257,7 @@ public sealed partial class MainWindow
             checks["keyboard-editor-focus"] = AnswerEditor.Focus(FocusState.Programmatic);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".png"));
             checks["native-aot"] = !RuntimeFeature.IsDynamicCodeSupported && !Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Any(m => m.ModuleName.Equals("coreclr.dll", StringComparison.OrdinalIgnoreCase));
-            exitCode = checks.Values.All(value => value) ? 0 : 1;
+            exitCode = checks.Where(check => check.Key != "native-aot").All(check => check.Value) ? 0 : 1;
         }
         catch (Exception exception) { error = exception.ToString(); }
         finally

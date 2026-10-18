@@ -8,4 +8,7 @@
     <AssemblyName>OhMyStudy.Setup</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <ItemGroup Condition="'$(InstallerPayload)' != ''">
+    <EmbeddedResource Include="$(InstallerPayload)" LogicalName="OhMyStudy.Payload.zip" />
+  </ItemGroup>
 </Project>

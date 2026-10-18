@@ -53,6 +53,9 @@ try {
     $manifestPath=Assert-Path $root 'package-manifest.json'
     $manifest=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     if ($manifest.schemaVersion -ne 1 -or $manifest.status -ne 'release-candidate-user-acceptance-pending' -or -not $manifest.manifestExcludesItself) { throw 'Unsupported package manifest/status' }
+    $variant=if ($manifest.variant) { $manifest.variant } else { 'aot' }
+    $profile=& (Join-Path $PSScriptRoot 'Get-PublishProfile.ps1') -Variant $variant
+    $report.variant=$variant
     $listed=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($file in $manifest.files) {
         if (-not $listed.Add($file.path)) { throw "Duplicate manifest path: $($file.path)" }
@@ -65,11 +68,24 @@ try {
         $relative=[IO.Path]::GetRelativePath($root,$file.FullName).Replace('\','/')
         if ($relative -ne 'package-manifest.json' -and -not $listed.Contains($relative)) { throw "Unlisted package file: $relative" }
         if (($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Linked package file: $relative" }
-        if ($file.Name -match '(?i)^(node|npm|npx|cargo|rustc|msedge|msedgewebview2|chrome|chromium|firefox|coreclr|clrjit)\.(exe|dll|cmd|bat)$' -or $file.Extension -eq '.rs') { throw "Unexpected legacy/browser/JIT runtime file: $relative" }
+        if ($file.Name -match '(?i)^(node|npm|npx|cargo|rustc|msedge|msedgewebview2|chrome|chromium|firefox)\.(exe|dll|cmd|bat)$' -or $file.Extension -eq '.rs') { throw "Unexpected legacy/browser/JIT runtime file: $relative" }
     }
     $report.checks+='all-manifest-file-sizes-and-sha256'; $report.fileCount=$manifest.files.Count
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','Assets/App.ico','Microsoft.ui.xaml.dll','e_sqlite3.dll','native/pdfium.dll','native/pdfium-licenses/pdfium.txt','native/typst/typst.exe','native/typst/LICENSE','native/typst/NOTICE','native/fonts/SourceHanSerifSC-Regular.otf','native/fonts/OFL.txt','runtime/runtime-manifest.json','runtime/python/python.exe','runtime/python/execute.py','LICENSE','THIRD-PARTY-NOTICES.txt','components.json','source/source-snapshot.zip')) { $null=Assert-Path $root $required }
-    Assert-NativeApp (Join-Path $root 'OhMyStudy.App.exe')
+    if ($profile.nativeAot) {
+        Assert-NativeApp (Join-Path $root 'OhMyStudy.App.exe')
+        foreach ($name in @('coreclr.dll','clrjit.dll')) { if (Test-Path -LiteralPath (Join-Path $root $name)) { throw "JIT file in AOT package: $name" } }
+    } else {
+        foreach ($name in @('OhMyStudy.App.dll','OhMyStudy.App.deps.json','OhMyStudy.App.runtimeconfig.json')) { $null=Assert-Path $root $name }
+        $config=Get-Content -LiteralPath (Join-Path $root 'OhMyStudy.App.runtimeconfig.json') -Raw | ConvertFrom-Json
+        if ($profile.selfContained) {
+            foreach ($name in @('coreclr.dll','clrjit.dll','hostfxr.dll','hostpolicy.dll','System.Private.CoreLib.dll')) { $null=Assert-Path $root $name }
+            if (-not $config.runtimeOptions.includedFrameworks) { throw 'Self-contained runtime configuration missing' }
+        } else {
+            foreach ($name in @('coreclr.dll','clrjit.dll','hostfxr.dll','System.Private.CoreLib.dll')) { if (Test-Path -LiteralPath (Join-Path $root $name)) { throw "Bundled .NET runtime in framework-dependent package: $name" } }
+            if (-not @(@($config.runtimeOptions.framework) + @($config.runtimeOptions.frameworks) | Where-Object { $_ } | Where-Object { $_.name -eq 'Microsoft.NETCore.App' -and $_.version -like '10.*' }).Count) { throw 'Expected .NET 10 framework requirement' }
+        }
+    }
     $null=Assert-Path $root 'OhMyStudy.Setup.exe'
     $null=Assert-Path $root 'runtime/python/sandbox-worker.py'
     Assert-NativeApp (Join-Path $root 'OhMyStudy.Setup.exe')
@@ -99,7 +115,7 @@ try {
     $report.checks+='private-runtime-manifest-hashes'
     $optionalInterop=@($allFiles | Where-Object { $_.Extension -eq '.dll' -and $_.Name -match '(?i)webview2' } | ForEach-Object { [IO.Path]::GetRelativePath($root,$_.FullName).Replace('\','/') })
     $report.optionalWinUiWebViewInteropFiles=$optionalInterop
-    $report.checks+='no-bundled-Node-Rust-browser-executable-or-CoreCLR'
+    $report.checks+='no-bundled-Node-Rust-browser-executable; runtime-matches-profile'
     # Inspect the shipped corresponding App source for fixed browser controls/launches. Generic
     # user-approved shell/Python tools are not asserted incapable of starting arbitrary programs.
     $sourceArchive=[IO.Compression.ZipFile]::OpenRead((Join-Path $root 'source/source-snapshot.zip'))
@@ -133,7 +149,7 @@ try {
         $process.WaitForExit(); $report.desktopExitCode=$process.ExitCode
         if ($process.ExitCode -ne 0) { throw "Portable desktop smoke exit $($process.ExitCode)" }
         $desktop=Get-Content -LiteralPath $smoke -Raw | ConvertFrom-Json
-        if (-not $desktop.Passed -or -not $desktop.IsNativeAot) { throw 'Portable native desktop assertions failed' }
+        if (-not $desktop.Passed -or ($desktop.IsNativeAot -ne $profile.nativeAot)) { throw 'Portable native desktop assertions failed' }
         $forbidden=@($observed | Where-Object { $_ -match '(?i)^(node|npm|npx|cargo|rustc|msedge|msedgewebview2|chrome|chromium|firefox)\.exe$' })
         if ($forbidden.Count) { throw "Unexpected child processes: $($forbidden -join ', ')" }
         $report.observedChildProcessNames=@($observed); $report.childProcessObservation='100 ms CIM samples; very short-lived children may be missed; not an execution sandbox'
@@ -147,7 +163,7 @@ try {
         if (-not $process.WaitForExit(60000)) { $process.Kill(); throw 'Portable workflow smoke exceeded 60 seconds' }
         if ($process.ExitCode -ne 0) { throw "Portable workflow smoke exit $($process.ExitCode)" }
         $result=Get-Content -LiteralPath $workflow -Raw | ConvertFrom-Json
-        if (-not $result.Passed -or -not $result.Checks.'native-aot') { throw 'Portable persisted workflow assertions failed' }
+        if (-not $result.Passed -or ($result.Checks.'native-aot' -ne $profile.nativeAot)) { throw 'Portable persisted workflow assertions failed' }
         $report.checks+='portable-persisted-twelve-page-workflow'
         $report.workflowReport=$workflow
     } else { $report.notRun+='portable-persisted-workflow: not requested' }
@@ -163,7 +179,7 @@ try {
         $active=Get-Content -LiteralPath (Join-Path $installRoot 'active.json') -Raw|ConvertFrom-Json
         if($active.version -notmatch '^[a-f0-9]{64}$' -or $active.entryPoint -ne 'OhMyStudy.App.exe'){throw 'Installed pointer is invalid'}
         $installedApp=Join-Path $installRoot ('versions/'+$active.version+'/OhMyStudy.App.exe')
-        Assert-NativeApp $installedApp
+        if ($profile.nativeAot) { Assert-NativeApp $installedApp }
         $installedWorkflow=Join-Path $evidence 'installed-workflow.json'
         $appProcess=Start-Process -FilePath $installedApp -ArgumentList @('--workflow-smoke',('"'+$installedWorkflow+'"')) -WindowStyle Hidden -PassThru
         if(-not $appProcess.WaitForExit(90000)){$appProcess.Kill();throw 'Owned installed application exceeded 90 seconds'}

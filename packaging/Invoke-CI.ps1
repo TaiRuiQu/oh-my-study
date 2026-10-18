@@ -1,6 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
-param([Parameter(Mandatory)][ValidateSet('Lint','Checks','Test','Build')][string]$Phase)
+param([Parameter(Mandatory)][ValidateSet('Lint','Checks','Test','Build')][string]$Phase,
+    [ValidateSet('aot','aot-avx512','self-contained','framework-dependent')][string]$Variant = 'aot')
 $ErrorActionPreference = 'Stop'
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $savedLocation = Get-Location
@@ -56,32 +57,37 @@ try {
             if (@($report.notRun | Where-Object { $_ -like 'execution:*' }).Count) { throw 'Private computation runtime test was skipped' }
         }
         'Build' {
-            & (Join-Path $PSScriptRoot 'Publish-OfflinePackage.ps1')
-            $reportFile = Get-ChildItem -LiteralPath 'output/releases' -Filter 'package-report.json' -File -Recurse |
+            $releaseOutput=Join-Path $workspace ('output/releases/'+$Variant)
+            & (Join-Path $PSScriptRoot 'Publish-OfflinePackage.ps1') -Variant $Variant -OutputDirectory $releaseOutput
+            $reportFile = Get-ChildItem -LiteralPath $releaseOutput -Filter 'package-report.json' -File -Recurse |
                 Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
             if ($null -eq $reportFile) { throw 'Package report missing' }
             $report = Get-Content -LiteralPath $reportFile.FullName -Raw | ConvertFrom-Json
-            if ($report.packageStatus -ne 'created-and-local-checks-passed') { throw 'Offline package verification failed' }
-            $ref = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { 'build-' + ($env:GITHUB_RUN_NUMBER ?? 'local') }
+            if ($report.packageStatus -ne 'created-and-local-checks-passed' -or $report.variant -ne $Variant) { throw 'Package verification failed' }
+            $ref = if ($env:RELEASE_TAG) { $env:RELEASE_TAG } elseif ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { 'build-' + ($env:GITHUB_RUN_NUMBER ?? 'local') }
             $slug = ($ref -replace '[^A-Za-z0-9._-]', '-').Trim('.','-')
             if ([string]::IsNullOrWhiteSpace($slug)) { $slug = 'build' }
             if ($slug.Length -gt 80) { $slug = $slug.Substring(0,80) }
-            $assets = Join-Path $workspace 'output/ci/artifacts'
+            $assets = Join-Path $workspace ('output/ci/artifacts/'+$Variant)
             New-Item -ItemType Directory -Path $assets -Force | Out-Null
             if (@(Get-ChildItem -LiteralPath $assets -Force).Count) { throw 'CI artifact directory must be empty' }
-            $name = "OhMyStudy-$slug-win-x64.zip"
-            Copy-Item -LiteralPath $report.zip -Destination (Join-Path $assets $name)
-            $digest = (Get-FileHash -LiteralPath (Join-Path $assets $name) -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($digest -ne $report.zipSha256) { throw 'Copied package hash changed' }
-            [IO.File]::WriteAllText((Join-Path $assets 'SHA256SUMS.txt'), "$digest  $name`n", [Text.UTF8Encoding]::new($false))
+            $packages=@()
+            foreach ($kind in @('portable','installer')) {
+                $name = "OhMyStudy-$slug-win-x64-$Variant-$kind" + $(if ($kind -eq 'portable') { '.zip' } else { '.exe' })
+                $source=if ($kind -eq 'portable') { $report.zip } else { $report.installer }
+                $expected=if ($kind -eq 'portable') { $report.zipSha256 } else { $report.installerSha256 }
+                Copy-Item -LiteralPath $source -Destination (Join-Path $assets $name)
+                $digest = (Get-FileHash -LiteralPath (Join-Path $assets $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+                if ($digest -ne $expected) { throw 'Copied package hash changed' }
+                $packages += [ordered]@{ variant=$Variant; kind=$kind; name=$name; sha256=$digest; bytes=(Get-Item -LiteralPath (Join-Path $assets $name)).Length }
+            }
             $commit = (& git rev-parse HEAD).Trim()
             if ($LASTEXITCODE -ne 0) { throw 'Cannot identify package source commit' }
-            [ordered]@{ schemaVersion=1; commit=$commit; ref=$ref; package=$name; sha256=$digest;
-                bytes=(Get-Item -LiteralPath (Join-Path $assets $name)).Length; validationStatus=$report.status;
+            [ordered]@{ schemaVersion=2; commit=$commit; ref=$ref; variant=$Variant; packages=$packages; validationStatus=$report.status;
                 runUrl=if ($env:GITHUB_RUN_ID) { "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" } else { $null };
-                notRun=$report.notRun } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $assets 'build-manifest.json') -Encoding utf8
+                notRun=$report.notRun } | ConvertTo-Json -Depth 7 | Set-Content -LiteralPath (Join-Path $assets 'build-manifest.json') -Encoding utf8
             if ($env:GITHUB_OUTPUT) {
-                "artifact-name=OhMyStudy-win-x64-${env:GITHUB_RUN_ID}-${env:GITHUB_RUN_ATTEMPT}" | Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
+                "artifact-name=OhMyStudy-win-x64-$Variant-${env:GITHUB_RUN_ID}-${env:GITHUB_RUN_ATTEMPT}" | Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8
             }
             Write-Output "Offline artifacts: $assets"
         }

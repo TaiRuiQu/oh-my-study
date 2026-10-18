@@ -7,6 +7,7 @@
     <SelfContained>true</SelfContained>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/OhMyStudy.Setup/BundledPayload.cs" Link="BundledPayload.cs" />
     <Compile Include="../../src/OhMyStudy.Setup/InstallerEngine.cs" Link="InstallerEngine.cs" />
     <Compile Include="../../src/OhMyStudy.Setup/WindowsInstallationIntegration.cs" Link="WindowsInstallationIntegration.cs" />
   </ItemGroup>

@@ -1,6 +1,6 @@
 # Oh My Study
 
-面向学生的原生 Windows 学习应用，支持试卷导入与批改、原件对照、题库和错题整理。当前工程采用 C# / .NET 10 / WinUI 3，以 Native AOT 发布，面向 Windows 10/11 x64。
+面向学生的原生 Windows 学习应用，支持试卷导入与批改、原件对照、题库和错题整理。当前工程采用 C# / .NET 10 / WinUI 3，提供 Native AOT（普通 / AVX-512）、非 AOT 自带运行时和依赖 .NET 的版本，均面向 Windows 10/11 x64。每种版本同时提供 portable ZIP 与独立 installer EXE；下载选择见 [安装说明](docs/installation.zh-CN.md)。
 
 已实现图片与 PDF 导入、三种导入模式、三协议整卷任务、题目编辑、来源定位、备份恢复、A3/A4 题目与答案 PDF 导出，以及离线安装、升级和卸载。真实模型与样卷、干净系统、Sandbox、物理打印和辅助功能仍待用户验收；当前验证状态与待办见 [维护进度](migration-progress.md)。
 

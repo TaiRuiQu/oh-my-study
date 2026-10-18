@@ -49,3 +49,8 @@ Git 签名配置（2026-10-18）：本仓库显式设置 `gpg.format=ssh`、`com
 0.1.0 发布准备（2026-10-18）：本次仅更新签名约定与交接文档；仓库边界检查、Release 干运行及五项无效输入回归、git diff --check 通过。计划推送 v0.1.0 标签，由 CI 对标签提交重新检查、构建并发布 ZIP 与校验清单；实际结果以该标签的 Actions 与 Release 为准，现有人工验收待办继续保留。
 
 0.1.0 发布完成（2026-10-18）：SSH 签名提交 d28742c962e89223317c3904153b739f226af555 已推送至 main，v0.1.0 标签指向该提交。GitHub Actions 39119056807 的检查与测试、离线包构建、Release 发布全部成功：https://github.com/TaiRuiQu/oh-my-study/actions/runs/39119056807 。正式 Release：https://github.com/TaiRuiQu/oh-my-study/releases/tag/v0.1.0 ，已上传 OhMyStudy-v0.1.0-win-x64.zip（149301546 字节；SHA-256：3a4bcdb83ec7cb273a4cfeee411d79bb195b60edbfff447984f32f6bbd17aadc）、SHA256SUMS.txt 和 build-manifest.json。该版本按普通 Release 发布；构建保留人工验收待完成状态，不能据此宣称人工验收或二进制签名已通过。下一步继续执行上述验收与产品待办。
+
+
+多版本发布流程（2026-10-18）：正在扩展四项构建（普通 Native AOT / AVX-512 Native AOT / 非 AOT self-contained / 非 AOT framework-dependent），每项同时生成 portable ZIP 与独立 installer EXE。通用原生安装器内嵌相同 ZIP，安装后保留小启动器；发布作业要求四项及八件套全部通过。用户要求同时补充 0.1.0，保留已有标签，新增文件记录当前源码提交。已通过：安装器实际 Native AOT 回归 47 项；完整八件套发布干运行及缺失/无效/混合提交等拒绝用例；非 AOT framework-dependent WinUI 实际编译。正在验证完整 CI 与四项打包，不能将这些新变体记为已正式发布或已通过人工验收。
+
+本机补充验证：Lint（C# 格式及 actionlint）与 Checks（仓库边界、全部 PowerShell 语法、JSON/XML、八件套发布回归、解决方案警告视为错误编译）通过，编译为 0 警告/0 错误；显式 x86-64,-avx512 的通用安装器 Native AOT 编译通过。下一步推送并手动运行 release_tag=v0.1.0 的 CI，待完整四项成功再记录已发布。

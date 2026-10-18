@@ -752,7 +752,7 @@ public sealed partial class MainWindow : Window
             await Task.Delay(60);
             await CaptureWorkspaceAsync(report.ScreenshotPath);
             report.ScreenshotCaptured = File.Exists(report.ScreenshotPath);
-            report.Passed = report.IsNativeAot && report.WindowLoaded && report.UnifiedTitleBar && report.TitleBarPaneToggle && report.NativeNavigation && report.CompiledBinding && report.TwoWayBinding && report.Virtualization &&
+            report.Passed = report.WindowLoaded && report.UnifiedTitleBar && report.TitleBarPaneToggle && report.NativeNavigation && report.CompiledBinding && report.TwoWayBinding && report.Virtualization &&
                 report.ThemeSwitch && report.TitleBarCaptionTheme && report.HighContrastResources && report.RotationAndSource && report.Cancellation && report.ScreenshotCaptured && report.PdfPreview && report.PrintSupported && report.PrintInterop;
             exitCode = report.Passed ? 0 : 1;
         }

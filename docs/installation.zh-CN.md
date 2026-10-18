@@ -6,7 +6,7 @@
 
 `src/OhMyStudy.Setup/`为独立纯BCL、`net10.0`、`win-x64`、Native AOT WinExe，运行不需要.NET、PowerShell、脚本宿主、Node或系统Python。`app.manifest`固定`asInvoker`，不请求管理员权限。安装确认、成功和错误使用系统原生消息框；技术诊断只写显式请求的报告文件。
 
-发布输出为`OhMyStudy.Setup.exe`。打包时将它复制到portable根目录，**然后**生成`package-manifest.json`，使安装器本身也纳入逐文件哈希清单。安装器读取与现有portable相同的`schemaVersion=1`、`architecture=win-x64`、`entryPoint=OhMyStudy.App.exe`及`files[{path,bytes,sha256}]`，可选`version`用于系统应用列表。无需自解压封装；用户解压整个目录后双击安装器。
+发布输出为`OhMyStudy.Setup.exe`。打包时将它复制到portable根目录，**然后**生成`package-manifest.json`，使安装器本身也纳入逐文件哈希清单。安装器读取与现有portable相同的`schemaVersion=1`、`architecture=win-x64`、`entryPoint=OhMyStudy.App.exe`及`files[{path,bytes,sha256}]`，可选`version`用于系统应用列表。portable 内附此小安装器；下载页另提供携带同一完整 ZIP 的独立 installer EXE，双击即可安装，无需先解压。
 
 正常安装位置为`%LOCALAPPDATA%/Programs/OhMyStudy`。安装器提供开始菜单启动/卸载快捷方式以及HKCU卸载注册项。启动快捷方式指向根目录稳定安装器的`--launch`，再解析当前版本的真实应用路径。快捷方式使用ShellLink原生COM vtable，不使用动态COM、WSH、PowerShell或外部脚本。自动回归只在隔离目录创建真实`.lnk`，没有修改当前用户的开始菜单或卸载注册表。
 
@@ -49,3 +49,18 @@ OhMyStudy.Setup.exe --uninstall --root <安装绝对路径> --quiet --report <�
 打包使用 `packaging/Publish-OfflinePackage.ps1`，默认新发布 App 与 Setup；如指定已有发布目录，调用者须核对二进制与源码对应。包包含完整 portable 目录、原生依赖、私有计算运行时、许可证、源码快照和逐文件哈希清单。源码快照不包含 `.reference/`、Git 数据、缓存和用户资料。CI 与版本发布步骤见 [CI 文档](ci.zh-CN.md)。
 
 恢复卸载可从原完整解压包运行 `OhMyStudy.Setup.exe --uninstall --root <原安装绝对路径>`。保留的恢复记录只覆盖受限产品文件集合，不将未知用户文件加入删除列表。故障注入回归不能代替实际磁盘耗尽、断电或文件系统损坏验证。
+
+## 下载选择
+
+每个版本都提供以下四种构建，每种均有 portable ZIP 和独立 installer EXE：
+
+| 文件标识 | 适用情况 |
+| --- | --- |
+| `aot` | 普通 Native AOT，无需另装 .NET，不启用 AVX-512；不确定时选此项 |
+| `aot-avx512` | Native AOT，需要处理器与系统支持 x86-64-v4（AVX-512 F/BW/CD/DQ/VL） |
+| `self-contained` | 非 AOT，随包携带 .NET 运行时，无需另装 |
+| `framework-dependent` | 非 AOT，需要先安装 Microsoft .NET 10 x64 Runtime；安装器不会自动下载 |
+
+希望直接安装请选择 `-installer.exe`；希望解压运行请选择 `-portable.zip`。四种应用均附带 Windows App SDK 及私有计算运行时；依赖 .NET 的版本仅不携带 .NET 运行时本身。安装器与稳定启动器始终不依赖已安装的 .NET。
+
+installer 将内嵌 ZIP 解包到本次创建的临时目录，再执行相同的逐文件校验与安装事务；结束后清理临时解包目录。安装目录保留小型稳定启动器，后续启动/卸载不必重复解包。下载文件校验以 Release 的 `SHA256SUMS.txt` 为准；人工验收待办和未代码签名状态仍保留。

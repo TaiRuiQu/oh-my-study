@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to supplement (empty builds artifacts only)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -62,12 +67,14 @@ jobs:
           retention-days: 14
 
   build:
-    name: Build offline Windows artifact
+    name: Build ${{ matrix.variant }} portable and installer
     needs: quality
     runs-on: windows-2025
     timeout-minutes: 30
-    outputs:
-      artifact-name: ${{ steps.package.outputs.artifact-name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [aot, aot-avx512, self-contained, framework-dependent]
     steps:
       - name: Checkout tested commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,39 +89,42 @@ jobs:
           ./packaging/prepare-runtime.ps1
       - name: Publish and package
         id: package
-        run: ./packaging/Invoke-CI.ps1 -Phase Build
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: ./packaging/Invoke-CI.ps1 -Phase Build -Variant '${{ matrix.variant }}'
       - name: Upload offline application
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.package.outputs.artifact-name }}
-          path: output/ci/artifacts/*
+          path: output/ci/artifacts/${{ matrix.variant }}/*
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
 
   release:
     name: Publish tagged release
-    if: github.event_name == 'push' && github.ref_type == 'tag' && !github.event.deleted
+    if: (github.event_name == 'push' && github.ref_type == 'tag' && !github.event.deleted) || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     needs: build
     runs-on: windows-2025
     timeout-minutes: 10
     permissions:
       contents: write
     concurrency:
-      group: release-${{ github.ref }}
+      group: release-${{ inputs.release_tag || github.ref_name }}
       cancel-in-progress: false
     steps:
       - name: Checkout release script
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Download tested package
+      - name: Download all four tested packages
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: ${{ needs.build.outputs.artifact-name }}
+          pattern: OhMyStudy-win-x64-*-${{ github.run_id }}-${{ github.run_attempt }}
+          merge-multiple: false
           path: output/ci/artifacts
       - name: Publish release with ZIP and checksums
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Repository $env:GITHUB_REPOSITORY -AssetDirectory output/ci/artifacts
