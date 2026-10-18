@@ -2,7 +2,7 @@
 
 面向学生的本地桌面学习程序，围绕试卷识别批改、题库与错题、复习卷生成三个功能设计。
 
-当前已实现 **M1 桌面应用基础**：本地材料、供应商／模型设置、任务与执行权限；整卷 AI 识别批改将在 M2 接入。M0 仍有真实供应商和沙箱兼容验收缺口。阶段状态、验证证据和接手步骤见 [progress.md](progress.md)。
+已完成 **M1 桌面应用基础**，并接通 **M2 整卷闭环**：图片／PDF 逐页导入、整卷识别批改、参考答案匹配、自动保存与编辑；UI 使用 Microsoft Fluent Design 2。M2 真实供应商及三份样卷的语义验收、M0 沙箱兼容验收仍待完成。阶段状态与验证证据见 [progress.md](progress.md)。
 
 - [需求与决策记录](docs/requirements.zh-CN.md)
 - [技术架构选型](docs/architecture.zh-CN.md)
@@ -12,9 +12,11 @@
 - [M0 资源测量](docs/m0-resources.zh-CN.md)
 - [M0 验收与开发验证命令](docs/m0-acceptance.zh-CN.md)
 - [M1 桌面界面与开发命令](docs/m1-ui.zh-CN.md)
+- [M2 整卷闭环、Fluent 2 与验证](docs/m2-grading.zh-CN.md)
 
 ```powershell
 npm ci
+./scripts/prepare-pdfium.ps1
 npm run desktop:dev
 ```
 

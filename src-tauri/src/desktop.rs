@@ -2,6 +2,7 @@
 use crate::{
     ai::providers::transport::{Credentials, Transport},
     credentials,
+    domain::grading::{GradingInput, GradingResult, Question, SavedQuestion},
     domain::{AppSettings, Document, ImportMode, ModelConfig, PageEdit, Provider},
     execution::{Capability, CapabilityState, ExecutionMode, ExecutionPolicy, ExecutorKind},
     jobs::{DiagnosticKind, Job, JobConfig, JobEvent, JobManager, PermissionChoice},
@@ -198,7 +199,7 @@ async fn import_files(
         .checked_add(reference_paths.len())
         .ok_or("文件数量超限")?;
     if paths.is_empty() || count > MAX_INPUT_PAGES {
-        return Err("请选择材料，总计最多 12 个输入；PDF 页级处理将在 M2 接入".into());
+        return Err("请选择材料，图片与 PDF 解析后总计最多 12 页".into());
     }
     let shared = state.inner().clone();
     let sources = tauri::async_runtime::spawn_blocking(move || {
@@ -502,6 +503,9 @@ async fn resolve_permission(
 #[tauri::command]
 async fn queue_diagnostic_job(state: AppState<'_>, kind: DiagnosticKind) -> Result<Job, String> {
     let _operation = operation(&state).await?;
+    if !matches!(kind, DiagnosticKind::Storage | DiagnosticKind::Permission) {
+        return Err("请选择诊断类型".into());
+    }
     let settings = state
         .storage
         .get_settings()
@@ -512,6 +516,142 @@ async fn queue_diagnostic_job(state: AppState<'_>, kind: DiagnosticKind) -> Resu
     tauri::async_runtime::spawn_blocking(move || shared.jobs.submit(kind, policy))
         .await
         .map_err(|_| "任务提交中断")?
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn queue_grading_job(
+    state: AppState<'_>,
+    document_id: String,
+    provider_id: String,
+    model_id: String,
+    thinking: Option<crate::ai::providers::Thinking>,
+    allow_unknown: bool,
+    reference_only: bool,
+) -> Result<Job, String> {
+    let _operation = operation(&state).await?;
+    let document = state
+        .storage
+        .get_document(document_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    if document.pending_pdf_pages {
+        return Err("请先解析旧材料中的 PDF".into());
+    }
+    if !document.pages.iter().any(|p| {
+        p.role
+            == if reference_only {
+                "reference"
+            } else {
+                "material"
+            }
+    }) {
+        return Err("没有对应的输入页".into());
+    }
+    let provider = state
+        .storage
+        .list_providers()
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|p| p.id == provider_id)
+        .ok_or("供应商不存在")?;
+    let model = provider
+        .models
+        .iter()
+        .find(|m| m.id == model_id)
+        .cloned()
+        .ok_or("模型不存在")?;
+    let options = crate::ai::providers::RequestOptions {
+        model: crate::ai::providers::Model {
+            id: model.id.clone(),
+            capabilities: model.capabilities.clone(),
+            raw: serde_json::Value::Null,
+        },
+        max_output_tokens: 16384,
+        stream: true,
+        thinking: thinking.clone(),
+        allow_unknown_capabilities: allow_unknown,
+        extra: Default::default(),
+    };
+    options
+        .validate(provider.protocol, true, true)
+        .map_err(|e| e.to_string())?;
+    if provider.key_ref.is_none() {
+        return Err("请先保存供应商密钥".into());
+    }
+    let settings = state
+        .storage
+        .get_settings()
+        .await
+        .map_err(|e| e.to_string())?;
+    let policy = environment(&state, &settings)?.policy;
+    let shared = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        if shared.jobs.list()?.iter().any(|j| {
+            !j.state.is_terminal()
+                && j.input
+                    .as_ref()
+                    .is_some_and(|i| i.document.id == document.id)
+        }) {
+            return Err("该材料已有未完成任务，请等待或取消".into());
+        }
+        shared.jobs.submit_input(
+            if reference_only {
+                DiagnosticKind::References
+            } else {
+                DiagnosticKind::Grading
+            },
+            policy,
+            Some(GradingInput {
+                document,
+                provider,
+                model,
+                thinking,
+                allow_unknown,
+            }),
+        )
+    })
+    .await
+    .map_err(|_| "整卷任务提交中断")?
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn grading_result(state: AppState<'_>, document_id: String) -> Result<GradingResult, String> {
+    state
+        .storage
+        .grading_result(document_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command]
+async fn list_questions(state: AppState<'_>) -> Result<Vec<SavedQuestion>, String> {
+    state
+        .storage
+        .list_questions()
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command(rename_all = "snake_case")]
+async fn parse_pending_pdfs(state: AppState<'_>, document_id: String) -> Result<Document, String> {
+    let _operation = operation(&state).await?;
+    state
+        .storage
+        .parse_pending_pdfs(document_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command(rename_all = "snake_case")]
+async fn edit_question(
+    state: AppState<'_>,
+    id: String,
+    question: Question,
+) -> Result<SavedQuestion, String> {
+    let _operation = operation(&state).await?;
+    state
+        .storage
+        .edit_question(id, question)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -557,13 +697,23 @@ pub fn run() {
             } else {
                 app.path().resource_dir()?.join("runtime/python")
             };
-            let storage = Storage::open(&data_directory)?;
-            let jobs = JobManager::new(
+            let pdfium_library = if cfg!(debug_assertions) {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/pdfium/bin/pdfium.dll")
+            } else {
+                app.path()
+                    .resource_dir()?
+                    .join("resources/pdfium/bin/pdfium.dll")
+            };
+            let storage = Storage::open_with_pdfium(&data_directory, pdfium_library)?;
+            let jobs = JobManager::with_runner(
                 Arc::new(storage.clone()),
                 JobConfig {
                     private_runtime,
                     results_root,
                 },
+                Arc::new(crate::ai::grading::GradingRunner {
+                    storage: storage.clone(),
+                }),
             )?;
             app.manage(Arc::new(DesktopState {
                 storage,
@@ -610,7 +760,12 @@ pub fn run() {
             cancel_job,
             resolve_permission,
             queue_diagnostic_job,
-            subscribe_jobs
+            subscribe_jobs,
+            queue_grading_job,
+            grading_result,
+            list_questions,
+            edit_question,
+            parse_pending_pdfs
         ])
         .build(tauri::generate_context!())
         .expect("Oh My Study desktop initialization failed");

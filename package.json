@@ -21,6 +21,7 @@
     "@tanstack/react-query": "^5.90.0",
     "@tauri-apps/api": "^2.9.0",
     "lucide-react": "^0.468.0",
+    "mathjax-full": "3.2.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.0"
@@ -40,5 +41,8 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.2.0"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.9.12"
   }
 }

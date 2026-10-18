@@ -28,6 +28,9 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"
 tokio-util = { version = "0.7", features = ["rt"] }
 futures-util = "0.3"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "image_025", "thread_safe"] }
+base64 = "0.22"
+schemars = "0.8"
 rusqlite = { version = "0.32", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }

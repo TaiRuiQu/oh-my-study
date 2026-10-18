@@ -1,5 +1,7 @@
 # M1 本地数据与资产
 
+本文记录 M1 数据版本 1；M2 已增加版本 2 迁移、PDFium 页级导入、原 PDF 页引用和批改保存，见 [M2 文档](m2-grading.zh-CN.md)。已有 M1 数据自动迁移，旧 pending PDF 由用户显式点击解析。
+
 `src-tauri/src/storage` 通过一个名为 `study-database` 的工作线程独占 SQLite connection。异步接口只发送操作并等待 oneshot 返回，SQL、文件写入和图片解码均不占用 Tauri 的异步执行线程。`Storage::open(data_dir)` 仅供应用初始化使用；队列的同步 JobStore 接口仅供队列工作线程使用。
 
 数据库保存在应用私有数据目录 `study.sqlite3`，原件与缩略图在同目录的 `assets/`。不将这个目录映射给计算沙箱。前端 DTO 只有 ID 和元信息，没有本机存储路径。

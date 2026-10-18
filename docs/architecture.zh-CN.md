@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | 桌面宿主 | Tauri 2、系统 WebView2 | Rust 业务与静态前端集成，避免额外常驻应用服务器 |
 | 界面 | React、TypeScript、Vite | 用户指定；使用静态 SPA，不使用 SSR |
-| 样式与组件 | Tailwind CSS、shadcn/ui、Radix、Lucide | 统一尺寸、排版与交互，只引入实际使用的组件 |
+| 样式与组件 | Microsoft Fluent Design 2、Fluent UI React v9、Fluent Icons | 2026-10-18 用户新增要求；统一设计 tokens、控件、导航和交互，接近 Windows 原生应用 |
 | 前端数据 | TanStack Query、React 本地状态 | IPC 查询缓存与局部界面状态，不再引入全局状态框架 |
 | 页面导航 | React Router HashRouter | 静态资源部署，导航不依赖 HTTP 服务端回退 |
 | 业务与任务 | Rust、Tokio、Serde、tracing | 任务、数据、进程与网络统一管理 |

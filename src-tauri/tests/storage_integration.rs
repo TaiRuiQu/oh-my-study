@@ -88,7 +88,7 @@ async fn migration_wal_settings_and_provider_survive_reopen() {
     let version: i32 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!(version, 1);
+    assert_eq!(version, 2);
     assert!(connection.execute("INSERT INTO source_pages(id,document_id,asset_id,page_index,rotation,preview_status,role) VALUES('bad','missing','missing',0,0,'ready','material')",[]).is_err());
     reopened.delete_provider(id).await.unwrap();
     assert!(reopened.list_providers().await.unwrap().is_empty());
@@ -190,7 +190,7 @@ async fn magic_thumbnails_originals_roles_and_page_edits_are_persistent() {
 }
 
 #[tokio::test]
-async fn rejected_batch_is_atomic_and_pdf_preview_is_explicitly_pending() {
+async fn rejected_batch_and_malformed_pdf_are_atomic() {
     let fixture = Fixture::new();
     let storage = fixture.open();
     let invalid = ImportSource {
@@ -223,29 +223,15 @@ async fn rejected_batch_is_atomic_and_pdf_preview_is_explicitly_pending() {
         bytes: b"%PDF-1.7\noriginal-unparsed-by-M1\n%%EOF".to_vec(),
         role: "material".into(),
     };
-    let document = storage
+    assert!(storage
         .import_document("PDF".into(), ImportMode::AiGrading, vec![pdf])
         .await
-        .unwrap();
-    assert!(document.pending_pdf_pages);
-    assert_eq!(document.pages[0].preview_status, "pending_pdf");
-    assert!(document.pages[0].width.is_none());
-    assert!(storage
-        .read_asset(document.pages[0].asset_id.clone(), true)
-        .await
-        .unwrap_err()
-        .to_string()
-        .contains("pending"));
+        .is_err());
+    assert!(storage.list_documents().await.unwrap().is_empty());
     assert_eq!(
-        storage
-            .read_asset(document.pages[0].asset_id.clone(), false)
-            .await
-            .unwrap()
-            .mime,
-        "application/pdf"
+        std::fs::read_dir(fixture.0.join("assets")).unwrap().count(),
+        0
     );
-    let cleared = storage.update_pages(document.id, vec![]).await.unwrap();
-    assert!(!cleared.pending_pdf_pages);
 }
 
 #[tokio::test]

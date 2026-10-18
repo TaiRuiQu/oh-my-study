@@ -264,6 +264,7 @@ fn restarting_interrupts_all_unfinished_states_without_resuming_permissions() {
         .enumerate()
         {
             let job = Job {
+                input: None,
                 id: uuid::Uuid::new_v4().to_string(),
                 kind: DiagnosticKind::Permission,
                 state,

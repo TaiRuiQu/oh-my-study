@@ -102,9 +102,13 @@ impl Storage {
             }
         }
         self.run(move |db| {
+            db.document_idle(&document_id)?;
             let document = db.document(&document_id)?;
             if pages.iter().any(|edit| !document.pages.iter().any(|page| page.id == edit.id)) {
                 return Err(StorageError("page does not belong to this document".into()));
+            }
+            for old in &document.pages {
+                if !unique.contains(&old.id) && db.page_has_results(&document_id,&old.id)? {return Err(StorageError("该页仍被题目或参考答案引用，请先编辑结果移除引用，再删除页面；原图来源需要保留".into()));}
             }
             let transaction = db.connection.transaction()?;
             // Lift ordinals temporarily to avoid uniqueness collisions during reorder.
@@ -141,7 +145,7 @@ impl Database {
             )
             .optional()?
             .ok_or_else(|| StorageError("document not found".into()))?;
-        let mut statement = self.connection.prepare("SELECT p.id,p.asset_id,p.page_index,p.rotation,a.width,a.height,p.preview_status,p.role FROM source_pages p JOIN assets a ON a.id=p.asset_id WHERE p.document_id=?1 ORDER BY p.page_index")?;
+        let mut statement = self.connection.prepare("SELECT p.id,p.asset_id,p.page_index,p.rotation,a.width,a.height,p.preview_status,p.role,p.original_asset_id,p.pdf_page_index FROM source_pages p JOIN assets a ON a.id=p.asset_id WHERE p.document_id=?1 ORDER BY p.page_index")?;
         let pages = statement
             .query_map([id], |row| {
                 Ok(SourcePage {
@@ -153,6 +157,8 @@ impl Database {
                     height: row.get(5)?,
                     preview_status: row.get(6)?,
                     role: row.get(7)?,
+                    original_asset_id: row.get(8)?,
+                    pdf_page_index: row.get(9)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

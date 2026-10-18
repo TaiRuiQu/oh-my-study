@@ -1,36 +1,35 @@
 import { useEffect, useState } from 'react';
+import { Input } from '@fluentui/react-components';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  BookOpen,
-  Check,
-  ChevronRight,
-  ClipboardCheck,
-  FileCheck2,
-  FileImage,
-  FilePlus2,
-  FileText,
-  FolderOpen,
-  ImagePlus,
-  Layers,
-  ListChecks,
-  LoaderCircle,
-  Plus,
-  RotateCw,
-  ScanLine,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
-  UploadCloud,
-} from 'lucide-react';
+  ArrowDownRegular as ArrowDown,
+  ArrowLeftRegular as ArrowLeft,
+  ArrowRightRegular as ArrowRight,
+  ArrowUpRegular as ArrowUp,
+  CheckmarkRegular as Check,
+  ChevronRightRegular as ChevronRight,
+  ClipboardCheckmarkRegular as ClipboardCheck,
+  DocumentCheckmarkRegular as FileCheck2,
+  ImageRegular as FileImage,
+  DocumentAddRegular as FilePlus2,
+  DocumentRegular as FileText,
+  FolderOpenRegular as FolderOpen,
+  LayerRegular as Layers,
+  TaskListSquareLtrRegular as ListChecks,
+  ArrowSyncRegular as LoaderCircle,
+  AddRegular as Plus,
+  ArrowClockwiseRegular as RotateCw,
+  ScanRegular as ScanLine,
+  ShieldCheckmarkRegular as ShieldCheck,
+  SparkleRegular as Sparkles,
+  DeleteRegular as Trash2,
+  ArrowUploadRegular as UploadCloud,
+} from '@fluentui/react-icons';
 import type { PageProps } from '../app/App';
 import { api, desktopAvailable } from '../lib/api';
-import type { ImportMode, SourceDocument, SourcePage } from '../lib/api';
+import type { ImportMode, SourceDocument, SourcePage, Region } from '../lib/api';
 import { Button, EmptyState, Notice, SectionTitle } from '../components/ui';
+import { GradingPanel } from './grading';
 
 const modeLabels: Record<ImportMode, string> = {
   teacher_graded: '已有教师批改',
@@ -115,7 +114,7 @@ export function ImportPage({ data, onChanged }: PageProps) {
           <p>留住每一次练习，让知识点和错题慢慢清晰。</p>
         </div>
         <span className="outline-badge">
-          <ShieldCheck size={14} />
+          <ShieldCheck fontSize={14} />
           本地保存 · 原件保留
         </span>
       </div>
@@ -147,13 +146,13 @@ export function ImportPage({ data, onChanged }: PageProps) {
                 <div className="paper-back" />
                 <div className="paper-front">
                   <span className="paper-fold" />
-                  <FileText size={34} strokeWidth={1.25} />
+                  <FileText fontSize={34} />
                   <i />
                   <i />
                   <i />
                 </div>
                 <span className="upload-symbol">
-                  <Plus size={20} />
+                  <Plus fontSize={20} />
                 </span>
                 <span className="illustration-dot one" />
                 <span className="illustration-dot two" />
@@ -161,10 +160,10 @@ export function ImportPage({ data, onChanged }: PageProps) {
               <h3>一份试卷，一次完整的整理</h3>
               <p>选择本机照片、扫描件或 PDF 原件</p>
               <Button onClick={() => void choose()} disabled={!desktopAvailable} busy={selecting}>
-                <FolderOpen size={16} />
+                <FolderOpen fontSize={16} />
                 选择文件
               </Button>
-              <small>支持 JPG、PNG、WebP、PDF · 最多 12 份输入 · PDF 页数待解析</small>
+              <small>支持 JPG、PNG、WebP、PDF · 材料和答案合计最多 12 页</small>
             </div>
           ) : (
             <div className="staged-files">
@@ -175,14 +174,14 @@ export function ImportPage({ data, onChanged }: PageProps) {
                   disabled={selecting || paths.length >= 12}
                   onClick={() => void choose()}
                 >
-                  <Plus size={14} />
+                  <Plus fontSize={14} />
                   继续添加
                 </Button>
               </div>
               {paths.map((path, index) => (
                 <div className="staged-file" key={`${path}-${index}`}>
                   <span className="file-order">{index + 1}</span>
-                  <FileImage size={21} />
+                  <FileImage fontSize={21} />
                   <span className="file-label" title={path}>
                     {filename(path)}
                   </span>
@@ -193,7 +192,7 @@ export function ImportPage({ data, onChanged }: PageProps) {
                       disabled={index === 0}
                       onClick={() => move(index, -1)}
                     >
-                      <ArrowUp size={14} />
+                      <ArrowUp fontSize={14} />
                     </button>
                     <button
                       className="icon-button"
@@ -201,14 +200,14 @@ export function ImportPage({ data, onChanged }: PageProps) {
                       disabled={index === paths.length - 1}
                       onClick={() => move(index, 1)}
                     >
-                      <ArrowDown size={14} />
+                      <ArrowDown fontSize={14} />
                     </button>
                     <button
                       className="icon-button"
                       aria-label={`移除 ${filename(path)}`}
                       onClick={() => setPaths(paths.filter((_, i) => i !== index))}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 fontSize={14} />
                     </button>
                   </div>
                 </div>
@@ -217,7 +216,7 @@ export function ImportPage({ data, onChanged }: PageProps) {
             </div>
           )}
           <div className="material-footnote">
-            <FileCheck2 size={16} />
+            <FileCheck2 fontSize={16} />
             <span>原始文件会完整保留，整理不会改动你的原件</span>
           </div>
         </section>
@@ -237,21 +236,19 @@ export function ImportPage({ data, onChanged }: PageProps) {
                 onClick={() => setMode(value)}
               >
                 <span className="mode-icon">
-                  <Icon size={20} strokeWidth={1.6} />
+                  <Icon fontSize={20} />
                 </span>
                 <span>
                   <strong>{title}</strong>
                   <small>{hint}</small>
                 </span>
-                <span className="radio-mark">
-                  {mode === value && <Check size={10} strokeWidth={3} />}
-                </span>
+                <span className="radio-mark">{mode === value && <Check fontSize={10} />}</span>
               </button>
             ))}
           </div>
           <div className="reference-box">
             <div>
-              <FilePlus2 size={17} />
+              <FilePlus2 fontSize={17} />
               <strong>附加参考答案</strong>
               <span>可选</span>
             </div>
@@ -261,7 +258,7 @@ export function ImportPage({ data, onChanged }: PageProps) {
               disabled={!desktopAvailable || selecting}
               onClick={() => void choose(true)}
             >
-              <Plus size={14} />
+              <Plus fontSize={14} />
               {references.length ? `已选 ${references.length} 份，继续添加` : '添加答案文件'}
             </Button>
             {references.map((path, index) => (
@@ -272,7 +269,7 @@ export function ImportPage({ data, onChanged }: PageProps) {
                   aria-label={`移除参考答案 ${filename(path)}`}
                   onClick={() => setReferences(references.filter((_, i) => i !== index))}
                 >
-                  <Trash2 size={13} />
+                  <Trash2 fontSize={13} />
                 </button>
               </div>
             ))}
@@ -282,7 +279,7 @@ export function ImportPage({ data, onChanged }: PageProps) {
       <section className="panel import-action">
         <label className="name-field">
           <span>材料名称</span>
-          <input
+          <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="例如：数学 · 第三单元练习"
@@ -296,21 +293,20 @@ export function ImportPage({ data, onChanged }: PageProps) {
             disabled={!desktopAvailable || !paths.length}
             onClick={() => void save()}
           >
-            <UploadCloud size={16} />
+            <UploadCloud fontSize={16} />
             保存到本地
-            <ArrowRight size={16} />
+            <ArrowRight fontSize={16} />
           </Button>
         </div>
       </section>
       <div className="scope-note">
         <span className="mini-stage">M1</span>
         <p>
-          材料导入、原件管理和模型设置已开放。整卷识别与 AI 批改将在 M2
-          接入，当前保存不会调用模型或产生模型费用。
+          材料导入、原件管理和模型设置已开放。保存材料后，在详情页选择模型开始整卷识别与批改。当前保存不会调用模型或产生模型费用。
         </p>
         <Link to="/settings">
           配置模型
-          <ChevronRight size={14} />
+          <ChevronRight fontSize={14} />
         </Link>
       </div>
       <section className="recent-section">
@@ -326,7 +322,7 @@ export function ImportPage({ data, onChanged }: PageProps) {
         ) : (
           <div className="recent-empty">
             <span>
-              <Layers size={21} strokeWidth={1.4} />
+              <Layers fontSize={21} />
             </span>
             <div>
               <strong>你的学习材料，从这里开始积累</strong>
@@ -343,24 +339,24 @@ function DocumentRow({ document }: { document: SourceDocument }) {
   return (
     <Link className="document-row" to={`/documents/${document.id}`}>
       <span className="document-icon">
-        <FileText size={21} />
+        <FileText fontSize={21} />
       </span>
       <div>
         <strong>{document.name}</strong>
         <small>
           {modeLabels[document.mode]} ·{' '}
-          {document.pages.filter((p) => p.role !== 'reference').length} 个原件
+          {document.pages.filter((p) => p.role !== 'reference').length} 页材料
           {document.pending_pdf_pages ? ' · PDF 待解析' : ''}
         </small>
       </div>
       <span className="subtle">{dateLabel(document.created_at)}</span>
       <span className="status-tag">已保存</span>
-      <ChevronRight size={16} />
+      <ChevronRight fontSize={16} />
     </Link>
   );
 }
 
-function AssetPreview({ page }: { page: SourcePage }) {
+function AssetPreview({ page, region }: { page: SourcePage; region?: Region | null }) {
   const [asset, setAsset] = useState<{ url: string; mime: string } | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -385,30 +381,48 @@ function AssetPreview({ page }: { page: SourcePage }) {
   if (!asset)
     return (
       <div className="preview-loading">
-        <LoaderCircle className="spin" size={22} />
+        <LoaderCircle className="spin" fontSize={22} />
         读取本地原件…
       </div>
     );
   if (asset.mime === 'application/pdf')
     return (
       <div className="pdf-preview">
-        <Notice>
-          此处显示 PDF 原件。M1 尚未集成 PDFium，页数和逐页旋转待 M2 解析；若下方无法显示，是当前
-          WebView2 未提供 PDF 查看器。原件仍已保存在本地。
-        </Notice>
+        <Notice>旧材料的 PDF 原件已保留。请点击右侧“解析 PDF 页面”，完成后使用逐页预览。</Notice>
         <iframe src={asset.url} title="PDF 原件预览" />
       </div>
     );
   const width = page.width ?? 1;
   const height = page.height ?? 1;
   const swapped = page.rotation % 180 !== 0;
-  const transform = page.rotation === 90 ? `translate(${height} 0) rotate(90)`
-    : page.rotation === 180 ? `translate(${width} ${height}) rotate(180)`
-    : page.rotation === 270 ? `translate(0 ${width}) rotate(270)` : undefined;
+  const transform =
+    page.rotation === 90
+      ? `translate(${height} 0) rotate(90)`
+      : page.rotation === 180
+        ? `translate(${width} ${height}) rotate(180)`
+        : page.rotation === 270
+          ? `translate(0 ${width}) rotate(270)`
+          : undefined;
   return (
     <div className="image-preview">
-      <svg role="img" aria-label="导入材料原件" viewBox={`0 0 ${swapped ? height : width} ${swapped ? width : height}`} preserveAspectRatio="xMidYMid meet">
+      <svg
+        role="img"
+        aria-label="导入材料原件"
+        viewBox={`0 0 ${swapped ? height : width} ${swapped ? width : height}`}
+        preserveAspectRatio="xMidYMid meet"
+      >
         <image href={asset.url} width={width} height={height} transform={transform} />
+        {region?.page_id === page.id && (
+          <rect
+            x={region.x * width}
+            y={region.y * height}
+            width={region.width * width}
+            height={region.height * height}
+            transform={transform}
+            fill="#0f6cbd22"
+            stroke="#0f6cbd"
+          />
+        )}
       </svg>
     </div>
   );
@@ -418,13 +432,14 @@ export function DocumentPage({ data, onChanged }: PageProps) {
   const { id } = useParams();
   const document = data?.documents.find((item) => item.id === id);
   const [selected, setSelected] = useState('');
+  const [region, setRegion] = useState<Region | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   if (!document)
     return (
       <div className="page">
         <Link to="/import" className="back-link">
-          <ArrowLeft size={15} />
+          <ArrowLeft fontSize={15} />
           返回导入
         </Link>
         <EmptyState title="未找到这份材料">请从最近导入中选择已保存的材料。</EmptyState>
@@ -478,7 +493,7 @@ export function DocumentPage({ data, onChanged }: PageProps) {
   return (
     <div className="page detail-page">
       <Link to="/import" className="back-link">
-        <ArrowLeft size={15} />
+        <ArrowLeft fontSize={15} />
         返回导入与批改
       </Link>
       <div className="page-heading">
@@ -487,11 +502,11 @@ export function DocumentPage({ data, onChanged }: PageProps) {
           <h1>{document.name}</h1>
           <p>
             {modeLabels[document.mode]} · {dateLabel(document.created_at)} · {document.pages.length}{' '}
-            个原件
+            页材料
           </p>
         </div>
         <span className="status-tag">
-          <Check size={13} />
+          <Check fontSize={13} />
           本地已保存
         </span>
       </div>
@@ -511,7 +526,7 @@ export function DocumentPage({ data, onChanged }: PageProps) {
                 onClick={() => setSelected(item.id)}
                 className={`page-tab ${item.id === page?.id ? 'active' : ''}`}
               >
-                <FileImage size={14} />
+                <FileImage fontSize={14} />
                 {item.role === 'reference' ? '答案' : '材料'} {index + 1}
                 {item.preview_status === 'pending_pdf' && <small>PDF</small>}
               </button>
@@ -532,7 +547,7 @@ export function DocumentPage({ data, onChanged }: PageProps) {
                     onClick={() => void edit('up')}
                     title="上移"
                   >
-                    <ArrowUp size={15} />
+                    <ArrowUp fontSize={15} />
                   </button>
                   <button
                     className="icon-button"
@@ -540,7 +555,7 @@ export function DocumentPage({ data, onChanged }: PageProps) {
                     onClick={() => void edit('down')}
                     title="下移"
                   >
-                    <ArrowDown size={15} />
+                    <ArrowDown fontSize={15} />
                   </button>
                   <button
                     className="icon-button"
@@ -548,7 +563,7 @@ export function DocumentPage({ data, onChanged }: PageProps) {
                     onClick={() => void edit('rotate')}
                     title="顺时针旋转"
                   >
-                    <RotateCw size={15} />
+                    <RotateCw fontSize={15} />
                   </button>
                   <button
                     className="icon-button"
@@ -556,11 +571,11 @@ export function DocumentPage({ data, onChanged }: PageProps) {
                     onClick={() => void edit('delete')}
                     title="从材料中移除（原件保留）"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 fontSize={15} />
                   </button>
                 </div>
               </div>
-              <AssetPreview key={page.id} page={page} />
+              <AssetPreview key={page.id} page={page} region={region} />
             </>
           ) : (
             <EmptyState title="材料中暂无页面">
@@ -571,32 +586,21 @@ export function DocumentPage({ data, onChanged }: PageProps) {
         <section className="panel grading-panel">
           <div className="panel-heading">
             <h2>
-              <ScanLine size={17} />
+              <ScanLine fontSize={17} />
               题目与批改
             </h2>
             <span className="mini-stage">M2</span>
           </div>
-          <EmptyState title="原件已就位，识别尚未开始">
-            整卷识别与批改将在下一阶段接入。当前没有生成题目、得分或 AI 判断。
-          </EmptyState>
+          <GradingPanel
+            document={document}
+            data={data}
+            onChanged={onChanged}
+            onSource={(r) => {
+              setSelected(r.page_id);
+              setRegion(r);
+            }}
+          />
           <div className="detail-next">
-            <h3>接下来可以做什么</h3>
-            <p>
-              <Check size={14} />
-              检查材料顺序和图片方向
-            </p>
-            <p>
-              <Check size={14} />
-              查看教师批改与参考答案原件
-            </p>
-            <p>
-              <Check size={14} />
-              先配置供应商和模型能力
-            </p>
-            <Link to="/settings" className="text-link">
-              打开模型设置
-              <ArrowRight size={14} />
-            </Link>
             <div className="append-reference">
               <Button
                 variant="secondary"
@@ -604,7 +608,7 @@ export function DocumentPage({ data, onChanged }: PageProps) {
                 disabled={!desktopAvailable || document.pages.length >= 12}
                 onClick={() => void appendReferences()}
               >
-                <FilePlus2 size={14} />
+                <FilePlus2 fontSize={14} />
                 后补参考答案
               </Button>
               <p>只保存附件，不会自动批改或产生模型费用。</p>
@@ -616,55 +620,13 @@ export function DocumentPage({ data, onChanged }: PageProps) {
   );
 }
 
-export function QuestionPage({ wrong }: { wrong: boolean }) {
-  return (
-    <div className="page">
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">{wrong ? '从错误中，找到下一步' : '把学过的题，留在身边'}</span>
-          <h1>
-            {wrong ? '错题整理' : '我的题库'}
-            <span className="heading-dot">.</span>
-          </h1>
-          <p>
-            {wrong
-              ? '错误、部分正确和未作答的题目，将在这里汇集。'
-              : '每份材料里的题目，都有自己的来源和整理记录。'}
-          </p>
-        </div>
-        <span className="outline-badge">{wrong ? 'M3 · 错题视图' : 'M2 · 识别后入库'}</span>
-      </div>
-      <section className="panel">
-        <div className="filter-bar">
-          <span className="search-placeholder">
-            <Search size={16} />
-            识别入库后，可搜索题目内容
-          </span>
-          <span className="subtle">0 道题目</span>
-        </div>
-        <EmptyState title={wrong ? '还没有可展示的错题' : '还没有识别入库的题目'}>
-          {wrong
-            ? 'M1 只保存材料原件；完成 M2 批改闭环后，M3 将提供错题筛选与整理。'
-            : '你可以先导入材料。M2 接入整卷识别后，题目、答案与解析会在这里保存。'}
-        </EmptyState>
-        <div className="empty-action">
-          <Link className="button button-primary" to="/import">
-            <ImagePlus size={16} />
-            导入一份材料
-            <ArrowRight size={15} />
-          </Link>
-        </div>
-      </section>
-      <div className="quiet-info">
-        <BookOpen size={17} />
-        <p>原始材料始终保留，题目会关联到对应页面。当前没有使用演示题目填充题库。</p>
-      </div>
-    </div>
-  );
-}
-
 export function PapersPage({ data }: { data: PageProps['data'] }) {
-  const pdfDocuments = data?.documents.filter((document) => document.pending_pdf_pages) ?? [];
+  const pdfDocuments =
+    data?.documents.filter((document) =>
+      document.pages.some(
+        (page) => page.original_asset_id !== null || page.preview_status === 'pending_pdf',
+      ),
+    ) ?? [];
   return (
     <div className="page">
       <div className="page-heading">
@@ -680,7 +642,7 @@ export function PapersPage({ data }: { data: PageProps['data'] }) {
       <div className="paper-types">
         <section className="panel paper-type">
           <span className="mode-icon">
-            <Layers size={23} />
+            <Layers fontSize={23} />
           </span>
           <h2>原题复现</h2>
           <p>保留题目内容，去除作答与答案，重新检查理解。</p>
@@ -688,7 +650,7 @@ export function PapersPage({ data }: { data: PageProps['data'] }) {
         </section>
         <section className="panel paper-type">
           <span className="mode-icon">
-            <Sparkles size={23} />
+            <Sparkles fontSize={23} />
           </span>
           <h2>AI 巩固练习</h2>
           <p>围绕错题知识点生成新题，再独立解题核验。</p>
@@ -698,7 +660,7 @@ export function PapersPage({ data }: { data: PageProps['data'] }) {
       <section className="panel">
         <div className="panel-heading">
           <h2>
-            <ListChecks size={18} />
+            <ListChecks fontSize={18} />
             已生成的复习卷
           </h2>
           <span className="subtle">0 份</span>

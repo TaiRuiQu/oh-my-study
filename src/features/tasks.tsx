@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import {
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  CircleX,
-  Clock3,
-  Database,
-  LoaderCircle,
-  Play,
-  Shield,
-  ShieldAlert,
-  Square,
-  Terminal,
-} from 'lucide-react';
+  CheckmarkCircleRegular as CheckCircle2,
+  ChevronDownRegular as ChevronDown,
+  ChevronRightRegular as ChevronRight,
+  CircleRegular as Circle,
+  DismissCircleRegular as CircleX,
+  ClockRegular as Clock3,
+  DatabaseRegular as Database,
+  ArrowSyncRegular as LoaderCircle,
+  PlayRegular as Play,
+  ShieldRegular as Shield,
+  ShieldErrorRegular as ShieldAlert,
+  SquareRegular as Square,
+  CodeRegular as Terminal,
+} from '@fluentui/react-icons';
 import type { Bootstrap, Job } from '../lib/api';
 import { api, desktopAvailable } from '../lib/api';
 import { executionLabels } from '../lib/labels';
@@ -96,7 +96,7 @@ export function TaskDrawer({
         </div>
         <div className="diagnostic-section">
           <h3>
-            <Database size={16} />
+            <Database fontSize={16} />
             本地诊断
           </h3>
           <p>运行真实的存储检查，或使用私有 Python 检查当前执行方式。诊断不会调用模型。</p>
@@ -107,7 +107,7 @@ export function TaskDrawer({
               disabled={!desktopAvailable}
               onClick={() => void diagnose('storage')}
             >
-              <Database size={14} />
+              <Database fontSize={14} />
               检查存储
             </Button>
             <Button
@@ -116,7 +116,7 @@ export function TaskDrawer({
               disabled={!desktopAvailable}
               onClick={() => void diagnose('permission')}
             >
-              <Terminal size={14} />
+              <Terminal fontSize={14} />
               执行诊断
             </Button>
           </div>
@@ -151,7 +151,7 @@ function TaskItem({ job, onChanged }: { job: Job; onChanged: () => Promise<void>
     <article className={`task-item task-${job.state.toLowerCase()}`}>
       <div className="task-title">
         <span className="task-state-icon">
-          <Icon size={18} className={job.state === 'RUNNING' ? 'spin' : ''} />
+          <Icon fontSize={18} className={job.state === 'RUNNING' ? 'spin' : ''} />
         </span>
         <div>
           <h3>
@@ -159,7 +159,11 @@ function TaskItem({ job, onChanged }: { job: Job; onChanged: () => Promise<void>
               ? '本地存储诊断'
               : job.kind === 'permission'
                 ? '执行环境诊断'
-                : job.kind}
+                : job.kind === 'grading'
+                  ? '整卷识别与批改'
+                  : job.kind === 'references'
+                    ? '参考答案整理与匹配'
+                    : job.kind}
           </h3>
           <span>
             {stateLabels[job.state]} ·{' '}
@@ -177,7 +181,7 @@ function TaskItem({ job, onChanged }: { job: Job; onChanged: () => Promise<void>
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          {expanded ? <ChevronDown fontSize={16} /> : <ChevronRight fontSize={16} />}
         </button>
       </div>
       <p className="task-message">{job.message}</p>
@@ -193,13 +197,13 @@ function TaskItem({ job, onChanged }: { job: Job; onChanged: () => Promise<void>
       </div>
       <div className="task-meta">
         <span>
-          <Shield size={12} />
+          <Shield fontSize={12} />
           {executionLabels[job.execution_policy.effective_mode]} ·{' '}
           {job.execution_policy.executor_kind === 'host' ? '本机' : '沙箱'}
         </span>
         {active(job) && (
           <Button variant="ghost" busy={busy} onClick={() => void cancel()}>
-            <Square size={11} />
+            <Square fontSize={11} />
             取消
           </Button>
         )}
@@ -296,7 +300,7 @@ function PermissionDialog({ job, onChanged }: { job: Job; onChanged: () => Promi
       </div>
       <div className="permission-actions">
         <Button variant="secondary" disabled={busy} onClick={() => void cancel()}>
-          <Square size={12} />
+          <Square fontSize={12} />
           取消任务
         </Button>
         <Button variant="danger" disabled={busy} onClick={() => void resolve('deny')}>
@@ -307,7 +311,7 @@ function PermissionDialog({ job, onChanged }: { job: Job; onChanged: () => Promi
           允许本任务
         </Button>
         <Button busy={busy} onClick={() => void resolve('allow_once')}>
-          <Play size={14} />
+          <Play fontSize={14} />
           仅允许这次
         </Button>
       </div>

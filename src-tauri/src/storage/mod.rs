@@ -1,5 +1,6 @@
 //! A single SQLite owner thread keeps blocking database/image work off the async runtime.
 mod assets;
+mod grading;
 mod jobs;
 mod records;
 
@@ -42,6 +43,7 @@ type Work = Box<dyn FnOnce(&mut Database) + Send>;
 struct Database {
     connection: Connection,
     asset_root: PathBuf,
+    pdfium_library: PathBuf,
 }
 
 #[derive(Clone)]
@@ -52,6 +54,13 @@ pub struct Storage {
 impl Storage {
     /// Call during application setup, not from an async IPC handler.
     pub fn open(data_dir: impl AsRef<Path>) -> Result<Self> {
+        Self::open_with_pdfium(
+            data_dir,
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/pdfium/bin/pdfium.dll"),
+        )
+    }
+
+    pub fn open_with_pdfium(data_dir: impl AsRef<Path>, pdfium_library: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(data_dir.as_ref())?;
         reject_link(data_dir.as_ref())?;
         let data_dir = data_dir.as_ref().canonicalize()?;
@@ -60,7 +69,7 @@ impl Storage {
         thread::Builder::new()
             .name("study-database".into())
             .spawn(move || {
-                let result = Database::open(&data_dir);
+                let result = Database::open(&data_dir, pdfium_library);
                 match result {
                     Ok(mut database) => {
                         let _ = ready_sender.send(Ok(()));
@@ -114,14 +123,14 @@ impl Storage {
 }
 
 impl Database {
-    fn open(data_dir: &Path) -> Result<Self> {
+    fn open(data_dir: &Path, pdfium_library: PathBuf) -> Result<Self> {
         let mut connection = Connection::open(data_dir.join("study.sqlite3"))?;
         connection.busy_timeout(std::time::Duration::from_secs(5))?;
         connection.execute_batch(
             "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;",
         )?;
         let version: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
-        if version > 1 {
+        if version > 2 {
             return Err(StorageError(
                 "database version is newer than this application".into(),
             ));
@@ -130,6 +139,12 @@ impl Database {
             let transaction = connection.transaction()?;
             transaction.execute_batch(include_str!("../../migrations/001_initial.sql"))?;
             transaction.pragma_update(None, "user_version", 1)?;
+            transaction.commit()?;
+        }
+        if version < 2 {
+            let transaction = connection.transaction()?;
+            transaction.execute_batch(include_str!("../../migrations/002_grading.sql"))?;
+            transaction.pragma_update(None, "user_version", 2)?;
             transaction.commit()?;
         }
         let asset_root = data_dir.join("assets");
@@ -144,6 +159,7 @@ impl Database {
         Ok(Self {
             connection,
             asset_root,
+            pdfium_library,
         })
     }
 }

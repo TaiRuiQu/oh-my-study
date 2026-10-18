@@ -1,16 +1,16 @@
 @import 'tailwindcss';
 
 :root {
-  font-family: Inter, 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  font-family: 'Segoe UI Variable', 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
   color: #252936;
   background: #f7f8fa;
   font-size: 14px;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --accent: #6c60d8;
-  --accent-dark: #5a4fc2;
-  --accent-light: #eeebfb;
+  --accent: #0f6cbd;
+  --accent-dark: #115ea3;
+  --accent-light: #ebf3fc;
   --muted: #888d9a;
   --line: #e9ebf0;
   --surface: #fff;
@@ -58,7 +58,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #b9b0f3;
+  outline: 3px solid #0f6cbd;
   outline-offset: 3px;
 }
 button {
@@ -84,8 +84,8 @@ select {
 }
 input:focus,
 select:focus {
-  border-color: #a79de6;
-  box-shadow: 0 0 0 3px #efecfa;
+  border-color: #0f6cbd;
+  box-shadow: 0 0 0 3px #ebf3fc;
 }
 input::placeholder {
   color: #acb0bc;
@@ -135,7 +135,7 @@ strong {
   background: var(--accent);
   color: #fff;
   border-radius: 11px;
-  box-shadow: 0 4px 9px #6c60d826;
+  box-shadow: 0 4px 9px #0f6cbd26;
 }
 .brand strong {
   display: block;
@@ -189,7 +189,7 @@ strong {
 }
 .nav-item.active {
   color: var(--accent);
-  background: #eeebfa;
+  background: #ebf3fc;
 }
 .nav-item > span {
   flex: 1;
@@ -410,7 +410,7 @@ h1 {
 .button-primary {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 3px 6px #6c60d81c;
+  box-shadow: 0 3px 6px #0f6cbd1c;
 }
 .button-primary:hover:not(:disabled) {
   background: var(--accent-dark);
@@ -2589,4 +2589,443 @@ h1 {
   .execution-banner > a {
     display: none;
   }
+}
+
+/* Fluent 2 desktop layout. Components take colors and interactive states from FluentProvider. */
+.fluent-root {
+  min-height: 100vh;
+  background: var(--colorNeutralBackground2);
+  color: var(--colorNeutralForeground1);
+  font-family: var(--fontFamilyBase);
+}
+:root {
+  --accent: #0f6cbd;
+  --accent-dark: #115ea3;
+  --accent-light: #ebf3fc;
+  --line: #e0e0e0;
+  --muted: #616161;
+}
+.sidebar {
+  background: #f3f3f3;
+  border-right: 0;
+  padding: 0 12px;
+}
+.brand {
+  height: 64px;
+  padding: 0 8px;
+}
+.brand-mark {
+  border-radius: 4px;
+  box-shadow: none;
+  width: 28px;
+  height: 28px;
+}
+.brand strong {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.brand small,
+.brand-dot,
+.heading-dot,
+.local-note,
+.nav-item small,
+.nav-chevron,
+.paper-illustration,
+.eyebrow,
+.workflow-step small {
+  display: none;
+}
+.workspace-label {
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #616161;
+  padding: 16px 8px 10px;
+}
+.nav-item {
+  position: relative;
+  color: #242424;
+  min-height: 40px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.nav-item:hover {
+  background: #eaeaea;
+  color: #242424;
+}
+.nav-item.active {
+  background: #e6e6e6;
+  color: #242424;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  height: 18px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.sidebar-footer {
+  padding: 16px 4px;
+}
+.topbar {
+  height: 48px;
+  background: #f3f3f3;
+  backdrop-filter: none;
+  padding: 0 24px;
+  border-bottom: 0;
+}
+.page {
+  padding: 24px;
+  max-width: 1600px;
+}
+.page-heading {
+  margin-bottom: 24px;
+}
+.page-heading h1,
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.page-heading p {
+  font-size: 14px;
+  color: #616161;
+  margin-top: 8px;
+}
+.panel {
+  border-radius: 8px;
+  box-shadow: none;
+  border-color: #e0e0e0;
+}
+.panel-heading {
+  padding: 16px 20px;
+}
+.panel-heading h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.section-number,
+.mini-stage {
+  display: none;
+}
+.upload-zone {
+  padding: 32px 24px;
+  min-height: 230px;
+  background: #fafafa;
+  border-radius: 4px;
+}
+.upload-zone h3 {
+  font-size: 18px;
+}
+.upload-zone > p {
+  margin: 8px 0 20px;
+}
+.upload-zone > small {
+  display: block;
+  margin-top: 16px;
+  color: #616161;
+  font-size: 12px;
+}
+.mode-option {
+  border-radius: 4px;
+  box-shadow: none;
+}
+.mode-option.selected {
+  background: #ebf3fc;
+  border-color: #0f6cbd;
+}
+.mode-option.selected .mode-icon {
+  background: #ebf3fc;
+  color: #0f6cbd;
+}
+.mode-icon {
+  border-radius: 4px;
+}
+.reference-box,
+.import-action,
+.scope-note {
+  border-radius: 4px;
+}
+input,
+select,
+textarea {
+  border-radius: 4px;
+}
+.study-button {
+  flex-shrink: 0;
+  gap: 8px;
+}
+.study-danger {
+  color: var(--colorPaletteRedForeground1);
+}
+.study-notice {
+  margin: 12px 0;
+}
+.study-dialog {
+  width: min(760px, calc(100vw - 48px));
+  max-width: 760px;
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+.study-drawer {
+  width: min(480px, calc(100vw - 48px));
+}
+.dialog-description {
+  color: var(--colorNeutralForeground2);
+  margin: 0 0 16px;
+}
+.grading-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.grading-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.grading-status {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.question-card {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 16px;
+  background: var(--colorNeutralBackground1);
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.question-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.question-text {
+  white-space: pre-wrap;
+  margin: 8px 0;
+  line-height: 1.6;
+}
+.question-part {
+  padding: 16px 0;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.question-card details {
+  margin: 12px 0;
+}
+.question-card details p {
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+.question-card summary,
+.result-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.attempt-result {
+  background: var(--colorNeutralBackground2);
+  padding: 12px;
+  border-radius: 4px;
+  margin: 12px 0;
+}
+.attempt-result p {
+  white-space: pre-wrap;
+  margin: 4px 0;
+}
+.reference-match {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.result-section {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.result-section p {
+  margin: 8px 0;
+}
+.question-editor {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.structure-editor textarea {
+  min-height: 360px;
+  font-family: Consolas, monospace;
+}
+.table-scroll,
+.math-formula {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 8px 0;
+}
+.math-formula svg {
+  max-width: 100%;
+}
+.question-table {
+  border-collapse: collapse;
+}
+.question-table td {
+  padding: 8px;
+  border: 1px solid var(--line);
+  white-space: pre-wrap;
+}
+@media (forced-colors: active) {
+  .nav-item.active::before {
+    background: Highlight;
+  }
+  .question-card,
+  .panel {
+    border-color: CanvasText;
+  }
+}
+
+/* Native-sized text and consistent Fluent form slots. */
+.field > .fui-Input,
+.field > .fui-Select {
+  width: 100%;
+  color: var(--colorNeutralForeground1);
+  font-size: 14px;
+}
+.fui-Input input,
+.fui-Input input:focus {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+}
+.fui-Select select,
+.fui-Select select:focus {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  min-height: 30px;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+}
+.execution-option.selected {
+  background: var(--colorBrandBackground2);
+  border-color: var(--colorBrandStroke1);
+}
+.execution-option.selected .mode-icon,
+.execution-option.selected strong,
+.environment-symbol {
+  color: var(--colorBrandForeground1);
+  background: var(--colorBrandBackground2);
+}
+.execution-option strong,
+.mode-option strong {
+  font-size: 14px;
+  color: var(--colorNeutralForeground1);
+}
+.execution-option small,
+.mode-option small,
+.field-hint,
+.subtle,
+.page-toolbar,
+.field > span,
+.environment-body > p,
+.environment-body dt,
+.environment-body dd {
+  font-size: 12px;
+  color: var(--colorNeutralForeground2);
+}
+.field-hint {
+  line-height: 1.6;
+}
+.environment-body h3 {
+  font-size: 16px;
+  color: var(--colorNeutralForeground1);
+}
+.data-directory strong,
+.data-directory code {
+  font-size: 12px;
+  color: var(--colorNeutralForeground2);
+}
+.page-tab.active {
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+  border-color: var(--colorBrandStroke2);
+}
+.back-link,
+.text-link {
+  color: var(--colorBrandForegroundLink);
+}
+.study-dialog .permission-meta dt,
+.study-dialog .permission-meta dd,
+.study-dialog .task-summary {
+  font-size: 12px;
+  color: var(--colorNeutralForeground2);
+}
+.nav-chevron {
+  display: none;
+}
+
+.secure-key-field {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-bottom-color: var(--colorNeutralStrokeAccessible);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1) !important;
+  font-size: 14px !important;
+}
+.secure-key-field:focus-within {
+  border-bottom: 2px solid var(--colorBrandStroke1);
+}
+.secure-key-field input,
+.secure-key-field input:focus {
+  width: 100%;
+  padding: 0;
+  min-height: 30px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+}
+
+.fui-Select select {
+  border: 1px solid var(--colorNeutralStroke1);
+  border-bottom-color: var(--colorNeutralStrokeAccessible);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1);
+  padding: 5px 32px 5px 12px;
+  min-height: 32px;
+}
+.fui-Select select:focus {
+  border: 1px solid var(--colorNeutralStroke1);
+  border-bottom: 2px solid var(--colorBrandStroke1);
+  background: var(--colorNeutralBackground1);
+}
+.grading-content .fui-Select,
+.grading-content .fui-Input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }

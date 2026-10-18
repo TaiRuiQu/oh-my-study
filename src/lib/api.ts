@@ -6,6 +6,8 @@ export type Protocol = 'responses' | 'messages' | 'gemini';
 export interface SourcePage {
   id: string;
   asset_id: string;
+  original_asset_id: string | null;
+  pdf_page_index: number | null;
   page_index: number;
   rotation: number;
   width: number | null;
@@ -101,6 +103,7 @@ export interface Job {
   execution_policy: ExecutionPolicy;
   pending_permission: PermissionRequest | null;
   error: string | null;
+  input?: { document: SourceDocument; model: ModelConfig; provider: Provider } | null;
 }
 export interface Bootstrap {
   documents: SourceDocument[];
@@ -128,6 +131,29 @@ export async function desktopCall<T>(command: string, args?: Record<string, unkn
 }
 
 export const api = {
+  gradingResult: (document_id: string) =>
+    desktopCall<GradingResult>('grading_result', { document_id }),
+  listQuestions: () => desktopCall<SavedQuestion[]>('list_questions'),
+  editQuestion: (id: string, question: Question) =>
+    desktopCall<SavedQuestion>('edit_question', { id, question }),
+  parsePdfs: (document_id: string) =>
+    desktopCall<SourceDocument>('parse_pending_pdfs', { document_id }),
+  queueGrading: (
+    document_id: string,
+    provider_id: string,
+    model_id: string,
+    thinking: Thinking | null,
+    allow_unknown: boolean,
+    reference_only: boolean,
+  ) =>
+    desktopCall<Job>('queue_grading_job', {
+      document_id,
+      provider_id,
+      model_id,
+      thinking,
+      allow_unknown,
+      reference_only,
+    }),
   bootstrap: () => desktopCall<Bootstrap>('bootstrap'),
   selectFiles: () => desktopCall<string[]>('select_import_files'),
   listDocuments: () => desktopCall<SourceDocument[]>('list_documents'),
@@ -154,3 +180,80 @@ export const api = {
   queueDiagnosticJob: (kind: 'storage' | 'permission') =>
     desktopCall<Job>('queue_diagnostic_job', { kind }),
 };
+
+export interface Region {
+  page_id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+export type Content =
+  | { kind: 'text'; text: string }
+  | { kind: 'formula'; latex: string }
+  | { kind: 'table'; rows: string[][] }
+  | { kind: 'image'; region: Region; contains_handwriting: boolean; caption: string };
+export type Verdict = 'correct' | 'partial' | 'incorrect' | 'unanswered' | 'uncertain';
+export interface Grade {
+  verdict: Verdict;
+  earned: number | null;
+  possible: number | null;
+  source: 'teacher' | 'ai_reference' | 'ai_solution' | 'manual';
+  reason: string;
+}
+export interface Question {
+  draft_key: string;
+  number: string;
+  subject: string;
+  question_type: string;
+  content: Content[];
+  options: string[];
+  points: number | null;
+  standard_answer: string;
+  explanation: string;
+  knowledge_points: string[];
+  sources: Region[];
+  uncertainties: string[];
+  attempt: {
+    student_answer: string;
+    student_regions: Region[];
+    teacher: { raw: string; regions: Region[]; grade: Grade | null } | null;
+    reference_key: string | null;
+    ai_solution: string;
+    conflict: string | null;
+    grade: Grade;
+  } | null;
+  parts: Question[];
+}
+export interface SavedQuestion {
+  id: string;
+  document_id: string;
+  updated_at: string;
+  question: Question;
+}
+export interface ReferenceAnswer {
+  key: string;
+  number: string;
+  answer: string;
+  explanation: string;
+  sources: Region[];
+  matched_draft_key: string | null;
+  uncertain_reason: string | null;
+}
+export interface Coverage {
+  page_id: string;
+  status: string;
+  question_keys: string[];
+  reason: string;
+}
+export interface GradingResult {
+  questions: SavedQuestion[];
+  coverage: Coverage[];
+  references: ReferenceAnswer[];
+  model_calls: {
+    model: string;
+    usage: { input: number | null; output: number | null };
+    estimated_cost: number | null;
+    currency: string;
+  }[];
+}

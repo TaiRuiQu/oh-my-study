@@ -101,6 +101,7 @@
 
 ## 9. 已采用的简单默认值
 
+- 2026-10-18 新增：UI 使用 Microsoft Fluent Design 2。React 采用官方 Fluent UI React v9；界面接近 Windows 原生应用，统一导航、按钮、输入、对话框、状态与系统字体，兼顾键盘操作和 Windows 缩放。
 - 参考答案补传后由用户点击触发重新批改，不自动产生新模型费用。
 - 默认整卷处理，不开发独立单题入口、线上答题、修改历史或特殊复习追踪。
 - 权限行为与 Windows Sandbox 的版本兼容方案见 [执行与权限设计](execution-permissions.zh-CN.md)。

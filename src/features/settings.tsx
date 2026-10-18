@@ -1,22 +1,23 @@
 import { useRef, useState } from 'react';
+import { Input as FluentInput, Select as FluentSelect } from '@fluentui/react-components';
 import {
-  Check,
-  ChevronRight,
-  CircleHelp,
-  Cpu,
-  Eye,
-  KeyRound,
-  Layers3,
-  Plus,
-  RefreshCw,
-  Save,
-  Server,
-  Settings2,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  Trash2,
-} from 'lucide-react';
+  CheckmarkRegular as Check,
+  ChevronRightRegular as ChevronRight,
+  QuestionCircleRegular as CircleHelp,
+  DeveloperBoardRegular as Cpu,
+  EyeRegular as Eye,
+  KeyRegular as KeyRound,
+  CollectionsRegular as Layers3,
+  AddRegular as Plus,
+  ArrowSyncRegular as RefreshCw,
+  SaveRegular as Save,
+  ServerRegular as Server,
+  SettingsRegular as Settings2,
+  ShieldRegular as Shield,
+  ShieldErrorRegular as ShieldAlert,
+  ShieldCheckmarkRegular as ShieldCheck,
+  DeleteRegular as Trash2,
+} from '@fluentui/react-icons';
 import type { FormEvent } from 'react';
 import type { PageProps } from '../app/App';
 import { api, desktopAvailable } from '../lib/api';
@@ -85,7 +86,7 @@ export function SettingsPage({ data, onChanged }: PageProps) {
           <p>管理模型连接，以及计算任务的执行方式。</p>
         </div>
         <span className="outline-badge">
-          <Settings2 size={14} />
+          <Settings2 fontSize={14} />
           本地配置
         </span>
       </div>
@@ -96,7 +97,7 @@ export function SettingsPage({ data, onChanged }: PageProps) {
           className={tab === 'models' ? 'active' : ''}
           onClick={() => setTab('models')}
         >
-          <Cpu size={16} />
+          <Cpu fontSize={16} />
           供应商与模型
         </button>
         <button
@@ -105,7 +106,7 @@ export function SettingsPage({ data, onChanged }: PageProps) {
           className={tab === 'execution' ? 'active' : ''}
           onClick={() => setTab('execution')}
         >
-          <Shield size={16} />
+          <Shield fontSize={16} />
           执行与权限
         </button>
       </div>
@@ -125,12 +126,12 @@ export function SettingsPage({ data, onChanged }: PageProps) {
                   setCreating(false);
                 }}
               >
-                <Server size={17} />
+                <Server fontSize={17} />
                 <span>
                   <strong>{item.name}</strong>
                   <small>{protocolLabels[item.protocol]}</small>
                 </span>
-                <ChevronRight size={14} />
+                <ChevronRight fontSize={14} />
               </button>
             ))}
             <Button
@@ -142,11 +143,11 @@ export function SettingsPage({ data, onChanged }: PageProps) {
                 setDraftId((value) => value + 1);
               }}
             >
-              <Plus size={16} />
+              <Plus fontSize={16} />
               添加供应商
             </Button>
             <p className="provider-help">
-              <CircleHelp size={15} />
+              <CircleHelp fontSize={15} />
               三种原生协议分别处理。兼容服务需明确选择实际支持的协议。
             </p>
           </aside>
@@ -172,7 +173,7 @@ export function SettingsPage({ data, onChanged }: PageProps) {
                   setDraftId((value) => value + 1);
                 }}
               >
-                <Plus size={16} />
+                <Plus fontSize={16} />
                 添加供应商
               </Button>
               <div className="protocol-chips">
@@ -262,11 +263,11 @@ function ProviderEditor({
     >
       <div className="panel-heading">
         <h2>
-          <Server size={18} />
+          <Server fontSize={18} />
           {initial.name || '添加模型供应商'}
         </h2>
         <span className={`key-status ${provider.has_key ? 'configured' : ''}`}>
-          <KeyRound size={13} />
+          <KeyRound fontSize={13} />
           {provider.has_key ? '密钥已设置' : '未设置密钥'}
         </span>
       </div>
@@ -274,7 +275,7 @@ function ProviderEditor({
         <div className="field-grid">
           <label className="field">
             <span>供应商名称</span>
-            <input
+            <FluentInput
               value={provider.name}
               required
               maxLength={200}
@@ -284,7 +285,7 @@ function ProviderEditor({
           </label>
           <label className="field">
             <span>原生协议</span>
-            <select
+            <FluentSelect
               value={provider.protocol}
               onChange={(event) => {
                 const protocol = event.target.value as Protocol;
@@ -299,12 +300,12 @@ function ProviderEditor({
               <option value="responses">OpenAI Responses</option>
               <option value="messages">Anthropic Messages</option>
               <option value="gemini">Gemini 原生 API</option>
-            </select>
+            </FluentSelect>
           </label>
         </div>
         <label className="field">
           <span>API 地址</span>
-          <input
+          <FluentInput
             value={provider.base_url}
             required
             type="url"
@@ -315,18 +316,21 @@ function ProviderEditor({
         </label>
         <label className="field">
           <span>
-            <KeyRound size={13} />
+            <KeyRound fontSize={13} />
             API 密钥
             <span className="subtle">{provider.has_key ? '留空保留现有密钥' : '可稍后设置'}</span>
           </span>
-          <input
-            ref={keyInput}
-            type="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            placeholder={provider.has_key ? '输入新密钥以替换' : '输入供应商提供的密钥'}
-            maxLength={16384}
-          />
+          {/* Fluent Input stores uncontrolled values in React state. Keep secrets DOM-only. */}
+          <span className="secure-key-field">
+            <input
+              ref={keyInput}
+              type="password"
+              autoComplete="new-password"
+              spellCheck={false}
+              placeholder={provider.has_key ? '输入新密钥以替换' : '输入供应商提供的密钥'}
+              maxLength={16384}
+            />
+          </span>
           <small>提交后输入框立即清空。密钥不进入前端状态、日志或普通备份。</small>
         </label>
       </div>
@@ -354,7 +358,7 @@ function ProviderEditor({
           busy={refreshing}
           onClick={() => void refresh()}
         >
-          <RefreshCw size={14} />
+          <RefreshCw fontSize={14} />
           获取模型列表
         </Button>
       </div>
@@ -372,7 +376,7 @@ function ProviderEditor({
         ))}
         {!provider.models.length && (
           <div className="models-empty">
-            <Cpu size={22} />
+            <Cpu fontSize={22} />
             <strong>还没有模型</strong>
             <p>保存供应商后获取列表，或手动添加模型 ID。</p>
           </div>
@@ -382,17 +386,17 @@ function ProviderEditor({
           type="button"
           onClick={() => setProvider({ ...provider, models: [...provider.models, newModel()] })}
         >
-          <Plus size={15} />
+          <Plus fontSize={15} />
           手动添加模型
         </Button>
       </div>
       <div className="form-footer">
         <span>
-          <ShieldCheck size={14} />
+          <ShieldCheck fontSize={14} />
           配置保存在本机
         </span>
         <Button type="submit" busy={busy} disabled={!desktopAvailable || refreshing}>
-          <Save size={15} />
+          <Save fontSize={15} />
           保存配置
         </Button>
       </div>
@@ -450,8 +454,8 @@ function ModelEditor({
   return (
     <div className="model-card">
       <div className="model-id">
-        <Cpu size={17} />
-        <input
+        <Cpu fontSize={17} />
+        <FluentInput
           aria-label="模型 ID"
           value={model.id}
           placeholder="输入准确的模型 ID"
@@ -460,16 +464,16 @@ function ModelEditor({
           onChange={(event) => onChange({ ...model, id: event.target.value })}
         />
         <button type="button" className="icon-button" aria-label="删除模型配置" onClick={onRemove}>
-          <Trash2 size={14} />
+          <Trash2 fontSize={14} />
         </button>
       </div>
       <div className="model-capabilities">
         <label>
           <span>
-            <Eye size={13} />
+            <Eye fontSize={13} />
             图片理解
           </span>
-          <select
+          <FluentSelect
             value={
               model.capabilities.vision === null ? 'unknown' : String(model.capabilities.vision)
             }
@@ -478,35 +482,35 @@ function ModelEditor({
             <option value="unknown">未知</option>
             <option value="true">支持</option>
             <option value="false">不支持</option>
-          </select>
+          </FluentSelect>
         </label>
         <label>
           <span>
-            <Layers3 size={13} />
+            <Layers3 fontSize={13} />
             工具调用
           </span>
-          <select
+          <FluentSelect
             value={model.capabilities.tools === null ? 'unknown' : String(model.capabilities.tools)}
             onChange={(event) => capability('tools', event.target.value)}
           >
             <option value="unknown">未知</option>
             <option value="true">支持</option>
             <option value="false">不支持</option>
-          </select>
+          </FluentSelect>
         </label>
       </div>
       <div className="thinking-section">
         <div>
           <span>原生思考参数</span>
           <button type="button" className="text-button" onClick={addThinking}>
-            <Plus size={12} />
+            <Plus fontSize={12} />
             添加
           </button>
         </div>
         {model.capabilities.thinking.length === 0 && <small>未配置 · 不自动发送思考参数</small>}
         {model.capabilities.thinking.map((thinking, index) => (
           <div className="thinking-row" key={index}>
-            <select
+            <FluentSelect
               aria-label="思考参数类型"
               value={thinking.kind}
               onChange={(event) => {
@@ -534,20 +538,20 @@ function ModelEditor({
                   <option value="gemini_budget">thinkingBudget</option>
                 </>
               )}
-            </select>
+            </FluentSelect>
             {'tokens' in thinking ? (
-              <input
+              <FluentInput
                 aria-label="思考预算 tokens"
                 type="number"
                 min={thinking.kind === 'gemini_budget' ? -1 : 1}
                 step="1"
-                value={thinking.tokens}
+                value={String(thinking.tokens)}
                 onChange={(event) =>
                   updateThinking(index, { ...thinking, tokens: Number(event.target.value) })
                 }
               />
             ) : (
-              <input
+              <FluentInput
                 aria-label="思考强度"
                 required
                 value={'effort' in thinking ? thinking.effort : thinking.level}
@@ -575,7 +579,7 @@ function ModelEditor({
                 })
               }
             >
-              <Trash2 size={13} />
+              <Trash2 fontSize={13} />
             </button>
           </div>
         ))}
@@ -583,13 +587,13 @@ function ModelEditor({
       <div className="pricing-row">
         <label>
           输入 / 百万 tokens
-          <input
+          <FluentInput
             aria-label="输入价格每百万 tokens"
             type="number"
             step="any"
             min="0"
             placeholder="未配置"
-            value={model.price_input ?? ''}
+            value={model.price_input?.toString() ?? ''}
             onChange={(event) =>
               onChange({
                 ...model,
@@ -600,13 +604,13 @@ function ModelEditor({
         </label>
         <label>
           输出 / 百万 tokens
-          <input
+          <FluentInput
             aria-label="输出价格每百万 tokens"
             type="number"
             step="any"
             min="0"
             placeholder="未配置"
-            value={model.price_output ?? ''}
+            value={model.price_output?.toString() ?? ''}
             onChange={(event) =>
               onChange({
                 ...model,
@@ -617,7 +621,7 @@ function ModelEditor({
         </label>
         <label>
           币种
-          <input
+          <FluentInput
             aria-label="价格币种"
             required
             maxLength={16}
@@ -685,7 +689,7 @@ function ExecutionSettings({ data, onChanged }: PageProps) {
       <section className="panel execution-panel">
         <div className="panel-heading">
           <h2>
-            <Shield size={18} />
+            <Shield fontSize={18} />
             计算执行方式
           </h2>
           <span>新设置应用于新任务</span>
@@ -704,14 +708,14 @@ function ExecutionSettings({ data, onChanged }: PageProps) {
               }}
             >
               <span className="mode-icon">
-                <Icon size={22} />
+                <Icon fontSize={22} />
               </span>
               <span>
                 <strong>{title}</strong>
                 <small>{description}</small>
               </span>
               <span className="radio-mark">
-                {settings.execution_mode === value && <Check size={10} strokeWidth={3} />}
+                {settings.execution_mode === value && <Check fontSize={10} />}
               </span>
             </button>
           ))}
@@ -732,7 +736,7 @@ function ExecutionSettings({ data, onChanged }: PageProps) {
         <div className="default-model-setting">
           <label className="field">
             <span>默认模型</span>
-            <select
+            <FluentSelect
               aria-label="默认模型"
               value={settings.default_model ?? ''}
               onChange={(event) =>
@@ -747,7 +751,7 @@ function ExecutionSettings({ data, onChanged }: PageProps) {
                   </option>
                 )),
               )}
-            </select>
+            </FluentSelect>
           </label>
         </div>
         {error && (
@@ -763,7 +767,7 @@ function ExecutionSettings({ data, onChanged }: PageProps) {
         <div className="form-footer">
           <span>不会自动提权或修改系统功能</span>
           <Button busy={busy} disabled={!desktopAvailable} onClick={() => void save()}>
-            <Save size={15} />
+            <Save fontSize={15} />
             保存设置
           </Button>
         </div>
@@ -774,7 +778,7 @@ function ExecutionSettings({ data, onChanged }: PageProps) {
         </div>
         <div className="environment-body">
           <span className="environment-symbol">
-            <ShieldCheck size={27} />
+            <ShieldCheck fontSize={27} />
           </span>
           <h3>{data ? executionLabels[data.environment.policy.effective_mode] : '等待桌面环境'}</h3>
           <p>

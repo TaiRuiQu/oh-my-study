@@ -13,6 +13,7 @@ node_modules/
 dist/
 target/
 /src-tauri/gen/
+/src-tauri/resources/pdfium/
 
 # Operating system files
 .DS_Store

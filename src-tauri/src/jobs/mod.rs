@@ -1,4 +1,5 @@
 //! Durable, serial local diagnostics. This is not the M2 model/agent pipeline.
+use crate::domain::grading::GradingInput;
 use crate::execution::{
     host::{HostExecutor, HostStatus},
     permissions::{
@@ -20,6 +21,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::broadcast;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -46,6 +48,8 @@ impl JobState {
 pub enum DiagnosticKind {
     Storage,
     Permission,
+    Grading,
+    References,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +79,8 @@ pub struct Job {
     pub execution_policy: ExecutionPolicy,
     pub pending_permission: Option<PermissionReview>,
     pub error: Option<String>,
+    #[serde(default)]
+    pub input: Option<GradingInput>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -124,7 +130,7 @@ impl DiagnosticExecutor for PrivatePython {
             .execute(call, results, cancelled, 1_048_576)?;
         if result.status != HostStatus::Completed {
             return Err(format!(
-                "私有 Python 自检失败 ({:?}, exit {:?}): {}",
+                "本地执行失败 ({:?}, exit {:?}): {}",
                 result.status, result.exit_code, result.stderr
             ));
         }
@@ -134,6 +140,7 @@ impl DiagnosticExecutor for PrivatePython {
 
 struct Control {
     cancelled: Arc<AtomicBool>,
+    cancel_token: CancellationToken,
     authorized: Option<AuthorizedCall>,
 }
 struct State {
@@ -151,6 +158,73 @@ struct Inner {
     events: broadcast::Sender<JobEvent>,
     executor: Arc<dyn DiagnosticExecutor>,
     results_root: PathBuf,
+    business: Option<Arc<dyn BusinessRunner>>,
+}
+
+pub trait BusinessRunner: Send + Sync + 'static {
+    fn run(&self, job: &Job, context: &JobContext<'_>) -> Result<(), String>;
+}
+pub struct JobContext<'a> {
+    inner: &'a Inner,
+    id: String,
+}
+impl JobContext<'_> {
+    pub fn cancellation(&self) -> Result<CancellationToken, String> {
+        let state = self.inner.state.lock().map_err(|_| "任务锁已损坏")?;
+        state
+            .controls
+            .get(&self.id)
+            .map(|c| c.cancel_token.clone())
+            .ok_or("任务已取消".into())
+    }
+    pub fn progress(&self, progress: f64, message: String) -> Result<(), String> {
+        if self
+            .inner
+            .update(&self.id, JobState::Running, progress, message, None)?
+        {
+            Ok(())
+        } else {
+            Err("任务已取消或终止".into())
+        }
+    }
+    /// Serialize every result write against cancellation and terminal state commits.
+    pub fn commit<T>(&self, operation: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+        let state = self.inner.state.lock().map_err(|_| "任务锁已损坏")?;
+        healthy(&state)?;
+        if state.jobs[&self.id].state.is_terminal() {
+            return Err("任务已终止，拒绝迟到写入".into());
+        }
+        operation()
+    }
+    pub fn execute(
+        &self,
+        content: String,
+        tool: ToolKind,
+        call_id: String,
+    ) -> Result<String, String> {
+        let job = self.inner.state.lock().map_err(|_| "任务锁已损坏")?.jobs[&self.id].clone();
+        if job.execution_policy.executor_kind == ExecutorKind::WindowsSandbox {
+            return Err("Windows Sandbox 执行器尚未接入；不会在宿主重放".into());
+        }
+        let job_dir = self.inner.results_root.join(&self.id);
+        create_checked_directory(&job_dir)?;
+        let call = ExecutionCall {
+            protocol_version: 1,
+            job_id: self.id.clone(),
+            call_id: call_id.clone(),
+            tool,
+            content,
+            arguments: vec![],
+            working_directory: job_dir.to_string_lossy().into(),
+            timeout_ms: 60_000,
+        };
+        let Some((authorized, cancelled)) = self.inner.authorize(call)? else {
+            return Err("执行已取消或拒绝".into());
+        };
+        self.inner
+            .executor
+            .execute(authorized, &job_dir.join(call_id), &cancelled)
+    }
 }
 
 pub struct JobManager {
@@ -165,6 +239,16 @@ fn now() -> u64 {
 }
 
 impl JobManager {
+    pub fn with_runner(
+        store: Arc<dyn JobStore>,
+        config: JobConfig,
+        runner: Arc<dyn BusinessRunner>,
+    ) -> Result<Self, String> {
+        let executor = Arc::new(PrivatePython {
+            runtime: config.private_runtime.clone(),
+        });
+        Self::with_business(store, config, executor, Some(runner))
+    }
     pub fn new(store: Arc<dyn JobStore>, config: JobConfig) -> Result<Self, String> {
         let executor = Arc::new(PrivatePython {
             runtime: config.private_runtime.clone(),
@@ -176,6 +260,14 @@ impl JobManager {
         store: Arc<dyn JobStore>,
         config: JobConfig,
         executor: Arc<dyn DiagnosticExecutor>,
+    ) -> Result<Self, String> {
+        Self::with_business(store, config, executor, None)
+    }
+    pub fn with_business(
+        store: Arc<dyn JobStore>,
+        config: JobConfig,
+        executor: Arc<dyn DiagnosticExecutor>,
+        business: Option<Arc<dyn BusinessRunner>>,
     ) -> Result<Self, String> {
         if !config.results_root.is_absolute() || !config.private_runtime.is_absolute() {
             return Err("任务运行时和输出目录必须是应用提供的绝对路径".into());
@@ -212,6 +304,7 @@ impl JobManager {
             events,
             executor,
             results_root: config.results_root,
+            business,
         });
         let background = inner.clone();
         let worker = thread::Builder::new()
@@ -225,8 +318,32 @@ impl JobManager {
     }
 
     pub fn submit(&self, kind: DiagnosticKind, policy: ExecutionPolicy) -> Result<Job, String> {
+        self.submit_input(kind, policy, None)
+    }
+    pub fn submit_input(
+        &self,
+        kind: DiagnosticKind,
+        policy: ExecutionPolicy,
+        input: Option<GradingInput>,
+    ) -> Result<Job, String> {
+        if matches!(kind, DiagnosticKind::Grading | DiagnosticKind::References)
+            && (input.is_none() || self.inner.business.is_none())
+        {
+            return Err("整卷任务未配置".into());
+        }
         let mut state = self.inner.state.lock().map_err(|_| "任务锁已损坏")?;
         healthy(&state)?;
+        if let Some(input) = &input {
+            if state.jobs.values().any(|job| {
+                !job.state.is_terminal()
+                    && job
+                        .input
+                        .as_ref()
+                        .is_some_and(|old| old.document.id == input.document.id)
+            }) {
+                return Err("该材料已有未完成整卷任务".into());
+            }
+        }
         let id = loop {
             let id = uuid::Uuid::new_v4().to_string();
             if !state.jobs.contains_key(&id) {
@@ -241,11 +358,16 @@ impl JobManager {
             created_at,
             updated_at: created_at,
             progress: 0.0,
-            message: "本地诊断已入队；不会调用模型供应商".into(),
+            message: if input.is_some() {
+                "整卷模型任务已入队".into()
+            } else {
+                "本地诊断已入队；不会调用模型供应商".into()
+            },
             sequence: 1,
             execution_policy: policy.clone(),
             pending_permission: None,
             error: None,
+            input,
         };
         self.inner.persist(&mut state, &job, "queued")?;
         state.broker.register_job(&id, policy)?;
@@ -253,6 +375,7 @@ impl JobManager {
             id.clone(),
             Control {
                 cancelled: Arc::new(AtomicBool::new(false)),
+                cancel_token: CancellationToken::new(),
                 authorized: None,
             },
         );
@@ -298,6 +421,7 @@ impl JobManager {
         // Revoke first: even a failed DB commit must never allow further execution.
         if let Some(control) = state.controls.get_mut(id) {
             control.cancelled.store(true, Ordering::Release);
+            control.cancel_token.cancel();
             control.authorized = None;
         }
         state.broker.close(id, PermissionState::Cancelled);
@@ -462,6 +586,7 @@ impl Inner {
             state.stopped = true;
             for control in state.controls.values() {
                 control.cancelled.store(true, Ordering::Release);
+                control.cancel_token.cancel();
             }
             self.wake.notify_all();
             return Err(error);
@@ -535,17 +660,27 @@ impl Inner {
         }
     }
     fn execute_job(&self, id: &str) -> Result<(), String> {
-        if !self.update(
-            id,
-            JobState::Running,
-            5.0,
-            "开始本地诊断（不调用模型）".into(),
-            None,
-        )? {
+        if !self.update(id, JobState::Running, 0.0, "任务开始".into(), None)? {
             return Ok(());
         }
         let job = self.state.lock().map_err(|_| "任务锁已损坏")?.jobs[id].clone();
         match job.kind {
+            DiagnosticKind::Grading | DiagnosticKind::References => {
+                self.business.as_ref().ok_or("整卷任务未配置")?.run(
+                    &job,
+                    &JobContext {
+                        inner: self,
+                        id: id.into(),
+                    },
+                )?;
+                self.update(
+                    id,
+                    JobState::Completed,
+                    100.0,
+                    "整卷处理完成，覆盖检查与结果已保存".into(),
+                    None,
+                )?;
+            }
             DiagnosticKind::Storage => {
                 let report = self.store.verify_integrity()?;
                 // Read after the RUNNING commit to verify read/write visibility.

@@ -1,6 +1,7 @@
 //! Persisted application data. Secrets and local filesystem paths are never DTO fields.
 use crate::ai::providers::{Capabilities, Protocol};
 use serde::{Deserialize, Serialize};
+pub mod grading;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Provider {
@@ -46,6 +47,8 @@ pub struct Document {
 pub struct SourcePage {
     pub id: String,
     pub asset_id: String,
+    pub original_asset_id: Option<String>,
+    pub pdf_page_index: Option<u32>,
     pub page_index: u32,
     pub rotation: u16,
     pub width: Option<u32>,

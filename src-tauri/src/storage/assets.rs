@@ -26,6 +26,9 @@ pub struct AssetData {
 }
 
 struct PreparedAsset {
+    original_asset_id: Option<String>,
+    pdf_page_index: Option<u32>,
+    original_only: bool,
     metadata: Asset,
     original_file: String,
     thumbnail_file: Option<String>,
@@ -35,6 +38,56 @@ struct PreparedAsset {
 }
 
 impl Storage {
+    /// Upgrade M1 pending PDF entries atomically, keeping the first source page ID.
+    pub async fn parse_pending_pdfs(&self, document_id: String) -> Result<Document> {
+        valid_id(&document_id)?;
+        self.run(move|db|{
+            db.document_idle(&document_id)?;
+            let document=db.document(&document_id)?;
+            if !document.pending_pdf_pages {return Ok(document);}
+            let mut prepared=Vec::new();
+            let mut order=Vec::new();
+            let mut rotations=Vec::new();
+            let mut total_bytes=document.pages.iter().try_fold(0usize,|total,page|db.asset(&page.asset_id).map(|asset|total+asset.byte_size as usize))?;
+            for page in &document.pages {
+                if page.preview_status!="pending_pdf" {order.push(page.id.clone());rotations.push(page.rotation);continue;}
+                let file:String=db.connection.query_row("SELECT original_file FROM assets WHERE id=?1",[&page.asset_id],|r|r.get(0))?;
+                let path=safe_file(&db.asset_root,&file)?;
+                if std::fs::metadata(&path)?.len()>MAX_ASSET_BYTES as u64 {return Err(StorageError("PDF 原件超出限制".into()));}
+                let images=crate::documents::render_pdf(&std::fs::read(path)?,&db.pdfium_library,MAX_INPUT_PAGES.saturating_sub(order.len())).map_err(StorageError)?;
+                for (index,bytes) in images.into_iter().enumerate() {
+                    let mut image=prepare(ImportSource{name:String::new(),bytes,role:page.role.clone()})?;
+                    total_bytes+=image.bytes.len()+image.thumbnail.as_ref().map_or(0,Vec::len);
+                    if total_bytes>MAX_BATCH_BYTES {return Err(StorageError("原件和页面缓存合计超过 256 MiB；旧材料未修改".into()));}
+                    image.original_asset_id=Some(page.asset_id.clone());image.pdf_page_index=Some(index as u32);
+                    let id=if index==0 {page.id.clone()} else {new_id()};
+                    order.push(id.clone());rotations.push(page.rotation);prepared.push((id,image));
+                }
+            }
+            if order.len()>MAX_INPUT_PAGES {return Err(StorageError("PDF 解析后超过 12 页，请重新分批导入".into()));}
+            let mut created=Vec::new();
+            let result=(||->Result<()> {
+                for (_,asset) in &prepared {
+                    let path=db.asset_root.join(&asset.original_file);write_new(&db.asset_root,&path,&asset.bytes)?;created.push(path);
+                    if let (Some(name),Some(bytes))=(&asset.thumbnail_file,&asset.thumbnail) {let path=db.asset_root.join(name);write_new(&db.asset_root,&path,bytes)?;created.push(path);}
+                }
+                let tx=db.connection.transaction()?;
+                tx.execute("DELETE FROM source_pages WHERE document_id=?1 AND preview_status='pending_pdf'",[&document_id])?;
+                tx.execute("UPDATE source_pages SET page_index=page_index+1000 WHERE document_id=?1",[&document_id])?;
+                for (id,asset) in &prepared {
+                    let m=&asset.metadata;
+                    tx.execute("INSERT INTO assets(id,mime,byte_size,width,height,original_file,thumbnail_file) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![m.id,m.mime,m.byte_size,m.width,m.height,asset.original_file,asset.thumbnail_file])?;
+                    let index=order.iter().position(|p|p==id).unwrap();
+                    tx.execute("INSERT INTO source_pages(id,document_id,asset_id,page_index,rotation,preview_status,role,original_asset_id,pdf_page_index) VALUES(?1,?2,?3,?4,?5,'ready',?6,?7,?8)",params![id,document_id,m.id,index,rotations[index],asset.role,asset.original_asset_id,asset.pdf_page_index])?;
+                }
+                for (index,id) in order.iter().enumerate() {tx.execute("UPDATE source_pages SET page_index=?1 WHERE id=?2",params![index,id])?;}
+                tx.execute("UPDATE documents SET pending_pdf_pages=0 WHERE id=?1",[&document_id])?;
+                tx.commit()?;Ok(())
+            })();
+            if result.is_err() {for path in created {let _=std::fs::remove_file(path);}}
+            result?;db.document(&document_id)
+        }).await
+    }
     pub async fn import_document(
         &self,
         name: String,
@@ -48,10 +101,7 @@ impl Storage {
         }
         validate_batch(&sources)?;
         self.run(move |db| {
-            let assets = sources
-                .into_iter()
-                .map(prepare)
-                .collect::<Result<Vec<_>>>()?;
+            let assets = prepare_inputs(sources, &db.pdfium_library, MAX_INPUT_PAGES)?;
             let id = new_id();
             db.write_import(&id, Some((name, mode)), assets)?;
             db.document(&id)
@@ -67,9 +117,10 @@ impl Storage {
         valid_id(&document_id)?;
         validate_batch(&sources)?;
         self.run(move |db| {
+            db.document_idle(&document_id)?;
             let document = db.document(&document_id)?;
             if document.pages.len()+sources.len()>MAX_INPUT_PAGES { return Err(StorageError("a document supports at most 12 image/input entries; PDF page parsing is pending".into())); }
-            let assets = sources.into_iter().map(prepare).collect::<Result<Vec<_>>>()?;
+            let assets = prepare_inputs(sources, &db.pdfium_library, MAX_INPUT_PAGES-document.pages.len())?;
             db.write_import(&document_id,None,assets)?;
             db.document(&document_id)
         }).await
@@ -206,6 +257,9 @@ fn prepare(source: ImportSource) -> Result<PreparedAsset> {
         ("application/pdf", "pdf", None, None, None)
     };
     Ok(PreparedAsset {
+        original_asset_id: None,
+        pdf_page_index: None,
+        original_only: false,
         original_file: format!("{id}.{extension}"),
         thumbnail_file: thumbnail.as_ref().map(|_| format!("{id}.thumb.png")),
         metadata: Asset {
@@ -219,6 +273,60 @@ fn prepare(source: ImportSource) -> Result<PreparedAsset> {
         thumbnail,
         role: source.role,
     })
+}
+
+fn prepare_inputs(
+    sources: Vec<ImportSource>,
+    library: &Path,
+    maximum: usize,
+) -> Result<Vec<PreparedAsset>> {
+    let mut result = Vec::new();
+    let mut count = 0;
+    for source in sources {
+        let mut original = prepare(source)?;
+        if original.metadata.mime == "application/pdf" {
+            let pages = crate::documents::render_pdf(
+                &original.bytes,
+                library,
+                maximum.saturating_sub(count),
+            )
+            .map_err(StorageError)?;
+            let original_id = original.metadata.id.clone();
+            let role = original.role.clone();
+            original.original_only = true;
+            result.push(original);
+            for (index, bytes) in pages.into_iter().enumerate() {
+                let mut page = prepare(ImportSource {
+                    name: String::new(),
+                    bytes,
+                    role: role.clone(),
+                })?;
+                page.original_asset_id = Some(original_id.clone());
+                page.pdf_page_index = Some(index as u32);
+                result.push(page);
+                count += 1;
+            }
+        } else {
+            result.push(original);
+            count += 1;
+        }
+        if count > maximum {
+            return Err(StorageError(
+                "材料和参考答案合计最多 12 页；整批未导入".into(),
+            ));
+        }
+        if result
+            .iter()
+            .map(|a| a.bytes.len() + a.thumbnail.as_ref().map_or(0, Vec::len))
+            .sum::<usize>()
+            > MAX_BATCH_BYTES
+        {
+            return Err(StorageError(
+                "原件和页面缓存合计超过 256 MiB；整批未导入".into(),
+            ));
+        }
+    }
+    Ok(result)
 }
 
 impl Database {
@@ -268,10 +376,14 @@ impl Database {
                 [document_id],
                 |row| row.get(0),
             )?;
-            for (index, asset) in assets.iter().enumerate() {
+            let mut ordinal = start;
+            for asset in &assets {
                 let metadata = &asset.metadata;
                 transaction.execute("INSERT INTO assets(id,mime,byte_size,width,height,original_file,thumbnail_file) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![metadata.id,metadata.mime,metadata.byte_size,metadata.width,metadata.height,asset.original_file,asset.thumbnail_file])?;
-                transaction.execute("INSERT INTO source_pages(id,document_id,asset_id,page_index,rotation,preview_status,role) VALUES(?1,?2,?3,?4,0,?5,?6)",params![new_id(),document_id,metadata.id,start+index as u32,if metadata.mime=="application/pdf" {"pending_pdf"} else {"ready"},asset.role])?;
+                if !asset.original_only {
+                    transaction.execute("INSERT INTO source_pages(id,document_id,asset_id,page_index,rotation,preview_status,role,original_asset_id,pdf_page_index) VALUES(?1,?2,?3,?4,0,'ready',?5,?6,?7)",params![new_id(),document_id,metadata.id,ordinal,asset.role,asset.original_asset_id,asset.pdf_page_index])?;
+                    ordinal += 1;
+                }
             }
             transaction.execute("UPDATE documents SET pending_pdf_pages=EXISTS(SELECT 1 FROM source_pages WHERE document_id=?1 AND preview_status='pending_pdf') WHERE id=?1",[document_id])?;
             transaction.commit()?;

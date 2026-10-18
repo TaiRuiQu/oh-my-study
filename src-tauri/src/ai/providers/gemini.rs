@@ -26,7 +26,7 @@ pub fn request(
         }),
         !tools.is_empty(),
     )?;
-    let mut body = json!({"contents":contents,"generationConfig":{"maxOutputTokens":options.max_output_tokens,"candidateCount":1},"tools":[{"functionDeclarations":tools.iter().map(|t|json!({"name":t.name,"description":t.description,"parameters":t.schema})).collect::<Vec<_>>()}]});
+    let mut body = json!({"contents":contents,"generationConfig":{"maxOutputTokens":options.max_output_tokens,"candidateCount":1},"tools":[{"functionDeclarations":tools.iter().map(|t|json!({"name":t.name,"description":t.description,"parametersJsonSchema":t.schema})).collect::<Vec<_>>()}]});
     if tools.is_empty() {
         body.as_object_mut().unwrap().remove("tools");
     }

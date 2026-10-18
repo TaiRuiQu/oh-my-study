@@ -1,5 +1,19 @@
-import * as Dialog from '@radix-ui/react-dialog';
-import { AlertCircle, ArrowRight, Check, FileText, LoaderCircle, X } from 'lucide-react';
+import {
+  Button as FluentButton,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  MessageBar,
+  MessageBarBody,
+} from '@fluentui/react-components';
+import {
+  ArrowRightRegular as ArrowRight,
+  DocumentRegular as FileText,
+  ArrowSyncRegular as LoaderCircle,
+  DismissRegular as X,
+} from '@fluentui/react-icons';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 export function Button({
@@ -13,14 +27,15 @@ export function Button({
   busy?: boolean;
 }) {
   return (
-    <button
-      className={`button button-${variant} ${className}`}
+    <FluentButton
+      appearance={variant === 'primary' ? 'primary' : variant === 'ghost' ? 'subtle' : 'secondary'}
+      className={`study-button ${variant === 'danger' ? 'study-danger' : ''} ${className}`}
       {...props}
       disabled={props.disabled || busy}
     >
-      {busy && <LoaderCircle size={15} className="spin" />}
+      {busy && <LoaderCircle fontSize={15} className="spin" />}
       {children}
-    </button>
+    </FluentButton>
   );
 }
 
@@ -32,10 +47,9 @@ export function Notice({
   kind?: 'info' | 'warning' | 'error' | 'success';
 }) {
   return (
-    <div className={`notice notice-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
-      {kind === 'success' ? <Check size={16} /> : <AlertCircle size={16} />}
-      <div>{children}</div>
-    </div>
+    <MessageBar intent={kind} className="study-notice">
+      <MessageBarBody>{children}</MessageBarBody>
+    </MessageBar>
   );
 }
 
@@ -51,7 +65,7 @@ export function EmptyState({
   return (
     <div className="empty-state">
       <span className="empty-icon">
-        <FileText size={28} strokeWidth={1.4} />
+        <FileText fontSize={28} />
       </span>
       <h3>{title}</h3>
       <p>{children}</p>
@@ -78,23 +92,28 @@ export function Modal({
   closeLabel?: string;
 }) {
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className={drawer ? 'dialog-content drawer' : 'dialog-content'}>
-          <div className="dialog-heading">
-            <div>
-              <Dialog.Title>{title}</Dialog.Title>
-              <Dialog.Description>{description}</Dialog.Description>
-            </div>
-            <Dialog.Close className="icon-button" aria-label={closeLabel}>
-              <X size={18} />
-            </Dialog.Close>
-          </div>
-          {children}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Dialog open={open} onOpenChange={(_, detail) => onOpenChange(detail.open)}>
+      <DialogSurface className={drawer ? 'study-dialog study-drawer' : 'study-dialog'}>
+        <DialogBody>
+          <DialogTitle
+            action={
+              <FluentButton
+                appearance="subtle"
+                aria-label={closeLabel}
+                onClick={() => onOpenChange(false)}
+                icon={<X fontSize={18} />}
+              />
+            }
+          >
+            {title}
+          </DialogTitle>
+          <DialogContent>
+            <p className="dialog-description">{description}</p>
+            {children}
+          </DialogContent>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
   );
 }
 
@@ -122,7 +141,7 @@ export function StageLink({ children }: { children: ReactNode }) {
   return (
     <span className="stage-link">
       {children}
-      <ArrowRight size={14} />
+      <ArrowRight fontSize={14} />
     </span>
   );
 }

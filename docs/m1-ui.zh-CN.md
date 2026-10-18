@@ -1,5 +1,7 @@
 # M1 桌面界面与前端交接
 
+本文记录 M1 提交 `308b33e` 时的界面与验证边界。2026-10-18 后续已按新增需求迁移为 Fluent Design 2／Fluent UI React v9，并接入 M2 结果页面；当前能力以 [M2 文档](m2-grading.zh-CN.md) 为准。
+
 前端使用 React、TypeScript、Vite、HashRouter、TanStack Query、Tailwind CSS、Lucide 和 Radix Dialog。静态资源由 Tauri 加载；浏览器开发模式明确显示“界面预览”，不读取本机文件、不生成示例数据库，也不展示虚构模型或题目。
 
 ## 页面与当前能力
