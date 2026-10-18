@@ -99,9 +99,13 @@ public sealed partial class MainWindow
             string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy");
             var pointer = _libraryPointerOverride ?? Path.Combine(appData, "active-library.txt");
             var selected = directory is null && File.Exists(pointer) ? (await File.ReadAllTextAsync(pointer, _lifetime.Token)).Trim() : null;
-            _libraryDirectory = directory ?? (selected is not null && Path.IsPathFullyQualified(selected) && File.Exists(LegacyLibraryLocation.DatabaseFile(selected)) ? selected : Path.Combine(appData, "Library"));
+            _libraryDirectory = directory ?? selected ?? Path.Combine(appData, "Library");
+            LibraryPath.Text = _libraryDirectory;
+            if (selected is not null && (!Path.IsPathFullyQualified(selected) || !File.Exists(LegacyLibraryLocation.DatabaseFile(selected))))
+                throw new IOException("保存位置无法访问。");
             var mode = File.Exists(LegacyLibraryLocation.DatabaseFile(_libraryDirectory)) ? LibraryOpenMode.ReadWrite : LibraryOpenMode.CreateNew;
             _library = await LibraryRepository.OpenAsync(new(_libraryDirectory, mode) { MediaProcessor = new NativeMediaProcessor() }, _lifetime.Token);
+            LibraryPath.Text = _libraryDirectory;
             string privateRuntime = Path.Combine(AppContext.BaseDirectory, "runtime", "python");
             var activeLibrary = _library;
             _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new GradingRunner(_library, new NativePageImages()),
@@ -133,16 +137,17 @@ public sealed partial class MainWindow
                 WorkspaceNotice.IsOpen = false;
             }
             string legacy = LegacyLibraryLocation.ResolveDefault(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
-            if (directory is null && File.Exists(LegacyLibraryLocation.DatabaseFile(legacy)) && _documents.Count == 0)
+            if (directory is null && !_settings.LegacyNoticeDismissed && File.Exists(LegacyLibraryLocation.DatabaseFile(legacy)) && _documents.Count == 0)
             {
                 WorkspaceNotice.Title = "发现旧版资料";
                 WorkspaceNotice.Message = "可从更多菜单导入，原资料会保留。"; WorkspaceNotice.IsOpen = true;
             }
             complete = true;
+            ViewModel.StatusMessage = "";
             return true;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { return false; }
-        catch { ViewModel.StatusMessage = "资料库无法打开，请关闭其他窗口后重新打开。"; GradeButton.IsEnabled = false; return false; }
+        catch { ViewModel.StatusMessage = "资料库无法打开，请检查保存位置或在设置中选择已有资料库。"; GradeButton.IsEnabled = false; return false; }
         finally
         {
             if (!complete)
@@ -264,7 +269,7 @@ public sealed partial class MainWindow
                 _restoringRotation = true; _rotation = page.Rotation;
                 // Keep one geometry at every resolution so zoom upgrades preserve the source overlay.
                 SetPageDimensions(page.Width ?? (uint)raster.Width, page.Height ?? (uint)raster.Height); _restoringRotation = false;
-                OriginalCaption.Text = page.Role == "reference" ? "参考答案" : "原件";
+                OriginalCaption.Text = page.Role == "reference" ? "参考答案" : "";
                 PdfPageControls.Visibility = document.Pages.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
                 PdfPageLabel.Text = $"第 {index + 1} / {document.Pages.Count} 页";
                 PreviousPdfPage.IsEnabled = index > 0; NextPdfPage.IsEnabled = index + 1 < document.Pages.Count;
@@ -288,6 +293,11 @@ public sealed partial class MainWindow
         if (!await _importGate.WaitAsync(0)) return;
         try
         {
+            if (HasUnsavedSettingsChanges)
+            {
+                if (!await ConfirmDiscardSettingsAsync()) return;
+                DiscardSettingsForm();
+            }
             if (files.Count > LibraryLimits.MaximumPages) { ViewModel.StatusMessage = "一次最多导入12页。"; return; }
             ImportMode mode = ImportMode.AiGrading;
             if (!reference)
@@ -345,23 +355,63 @@ public sealed partial class MainWindow
     {
         if (_library is null) return;
         var providers = await _library.ListProvidersAsync(_lifetime.Token);
-        _providers.Clear(); foreach (var provider in providers) _providers.Add(provider);
-        ProviderPicker.SelectedItem = _providers.FirstOrDefault(p => p.Id == _selectedProviderId) ?? _providers.FirstOrDefault();
+        _refreshingProviders = true;
+        try
+        {
+            _providers.Clear(); foreach (var provider in providers) _providers.Add(provider);
+            ProviderPicker.SelectedItem = _providers.FirstOrDefault(p => p.Id == _selectedProviderId) ?? _providers.FirstOrDefault();
+        }
+        finally { _refreshingProviders = false; }
+        if (ProviderPicker.SelectedItem is Provider selectedProvider) PopulateProviderEditor(selectedProvider);
+        else ClearProviderEditor();
     }
-    private void ProviderPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void ProviderPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (ProviderPicker.SelectedItem is not Provider provider) return;
+        if (_refreshingProviders || ProviderPicker.SelectedItem is not Provider provider) return;
+        if (HasUnsavedSettingsChanges)
+        {
+            _refreshingProviders = true;
+            try { ProviderPicker.SelectedItem = _providers.FirstOrDefault(p => p.Id == _selectedProviderId); }
+            finally { _refreshingProviders = false; }
+            if (!await ConfirmDiscardSettingsAsync()) return;
+            _refreshingProviders = true;
+            try { ProviderPicker.SelectedItem = provider; }
+            finally { _refreshingProviders = false; }
+        }
+        PopulateProviderEditor(provider);
+    }
+    private void PopulateProviderEditor(Provider provider)
+    {
         _selectedProviderId = provider.Id; ProviderName.Text = provider.Name; ProviderUrl.Text = provider.BaseUrl;
         ProtocolPicker.SelectedIndex = (int)provider.Protocol; ProviderKey.Password = "";
-        ModelId.Text = provider.Models.FirstOrDefault()?.Id ?? ""; ProviderFeedback.Text = "";
+        ProviderFeedback.Text = "";
+        UpdateModelList(provider);
+        ModelFeedback.Text = provider.Models.Count == 0 ? "还没有模型，可获取列表或手动添加。" : "";
+        _providerFormBaseline = ProviderFormState(); _settingsFormsReady = true;
     }
-    private void NewProvider_Click(object sender, RoutedEventArgs e)
+    private async void NewProvider_Click(object sender, RoutedEventArgs e)
     {
-        ProviderPicker.SelectedIndex = -1; _selectedProviderId = null; ProviderName.Text = ""; ProviderUrl.Text = ""; ProviderKey.Password = ""; ModelId.Text = ""; ProviderFeedback.Text = "";
+        if (await ConfirmDiscardSettingsAsync()) ClearProviderEditor();
     }
-    private async void SaveProvider_Click(object sender, RoutedEventArgs e)
+    private void ClearProviderEditor()
     {
-        if (_library is null) return;
+        ProviderPicker.SelectedIndex = -1; _selectedProviderId = null; ProviderName.Text = ""; ProviderUrl.Text = ""; ProviderKey.Password = ""; ProviderFeedback.Text = "";
+        ProtocolPicker.SelectedIndex = 0;
+        _modelSelectionSuppressed = true;
+        try { ModelPicker.ItemsSource = null; }
+        finally { _modelSelectionSuppressed = false; }
+        ModelEditor.Visibility = Visibility.Collapsed; ModelFeedback.Text = "先保存供应商，再添加模型。";
+        ModelPicker.Visibility = Visibility.Collapsed;
+        UpdateSettingsActionAvailability();
+        _providerFormBaseline = ProviderFormState(); _modelFormBaseline = ModelFormState(); _settingsFormsReady = true;
+    }
+    private async void SaveProvider_Click(object sender, RoutedEventArgs e) => await SaveProviderAsync();
+
+    private async Task SaveProviderAsync()
+    {
+        if (_library is null) { ProviderFeedback.Text = "请先选择可用的资料库。"; return; }
+        if (_modelRequestRunning) return;
+        _modelRequestRunning = true; SettingsPanel.IsEnabled = false;
         byte[]? key = null;
         try
         {
@@ -369,8 +419,8 @@ public sealed partial class MainWindow
             var protocol = (Protocol)Math.Clamp(ProtocolPicker.SelectedIndex, 0, 2);
             using var validation = new ProviderClient(protocol, ProviderUrl.Text.Trim());
             var models = old?.Models.ToList() ?? [];
-            if (!string.IsNullOrWhiteSpace(ModelId.Text) && models.All(m => m.Id != ModelId.Text.Trim()))
-                models.Add(new() { Id = ModelId.Text.Trim(), Capabilities = Capabilities.Unknown, Currency = "USD" });
+            if (old is not null && old.Protocol != protocol && models.Count > 0)
+                throw new InvalidOperationException("已有模型的供应商不能直接更改接口，请添加新的供应商。");
             var provider = new Provider
             {
                 Id = _selectedProviderId ?? Guid.NewGuid().ToString(),
@@ -382,23 +432,39 @@ public sealed partial class MainWindow
             if (!string.IsNullOrEmpty(ProviderKey.Password)) key = Encoding.UTF8.GetBytes(ProviderKey.Password);
             var saved = await new ProviderCredentialService(_library, new WindowsCredentialVault()).SaveAsync(provider, key is null ? null : key.AsMemory(), _lifetime.Token);
             _selectedProviderId = saved.Provider.Id; ProviderKey.Password = "";
-            if (models.Count > 0) await ChangeSettingsAsync(current => current with { DefaultModel = saved.Provider.Id + ":" + models[^1].Id });
-            await RefreshProvidersAsync(); ProviderFeedback.Text = "已保存。";
+            UpdateProviderEntry(saved.Provider); _providerFormBaseline = ProviderFormState();
+            if (saved.Provider.Models.Count == 0 && ModelEditor.Visibility == Visibility.Collapsed)
+                ModelFeedback.Text = "还没有模型，可获取列表或手动添加。";
+            ProviderFeedback.Text = saved.CredentialCleanupRequired ? "已保存；旧密钥未能清理，请稍后重新保存。" : "已保存。";
         }
+        catch (InvalidOperationException error) when (error.Message.StartsWith("已有模型的供应商", StringComparison.Ordinal)) { ProviderFeedback.Text = error.Message; }
         catch { ProviderFeedback.Text = "无法保存，请检查名称、地址和密钥。"; }
-        finally { if (key is not null) CryptographicOperations.ZeroMemory(key); }
+        finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; if (key is not null) CryptographicOperations.ZeroMemory(key); }
     }
     private async void DeleteProvider_Click(object sender, RoutedEventArgs e)
     {
         if (_library is null || _selectedProviderId is null) return;
         var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = "删除供应商？", Content = "已有资料与批改记录会保留。", PrimaryButtonText = "删除", CloseButtonText = "取消" };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-        try { await new ProviderCredentialService(_library, new WindowsCredentialVault()).DeleteAsync(_selectedProviderId, _lifetime.Token); NewProvider_Click(sender, e); await RefreshProvidersAsync(); }
+        _modelRequestRunning = true; SettingsPanel.IsEnabled = false;
+        try
+        {
+            var id = _selectedProviderId;
+            var cleanupRequired = await new ProviderCredentialService(_library, new WindowsCredentialVault()).DeleteAsync(id, _lifetime.Token);
+            if (_settings.DefaultModel?.StartsWith(id + ":", StringComparison.Ordinal) == true)
+                await ChangeSettingsAsync(current => current with { DefaultModel = null });
+            ClearProviderEditor(); await RefreshProvidersAsync();
+            ProviderFeedback.Text = cleanupRequired ? "供应商已删除，密钥未能清理。" : "已删除。";
+        }
         catch { ProviderFeedback.Text = "无法删除，请稍后重试。"; }
+        finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; }
     }
     private async void RefreshModels_Click(object sender, RoutedEventArgs e)
     {
+        if (_modelRequestRunning) return;
         if (_library is null || ProviderPicker.SelectedItem is not Provider provider) return;
+        if (!await ConfirmDiscardSettingsAsync(modelOnly: true)) return;
+        _modelRequestRunning = true; SettingsPanel.IsEnabled = false;
         byte[]? key = null;
         try
         {
@@ -413,13 +479,13 @@ public sealed partial class MainWindow
                 var page = await client.ListModelsAsync(new(Encoding.UTF8.GetString(key)), cursor, _lifetime.Token);
                 foreach (var model in page.Models) if (!models.ContainsKey(model.Id)) models[model.Id] = new() { Id = model.Id, Capabilities = model.Capabilities, Currency = "USD" };
                 cursor = page.Next;
-                if (models.Count > 10_000 || cursor is not null && (!visited.Add(cursor) || visited.Count > 100)) throw new InvalidDataException("模型列表过大或分页重复。");
+                if (models.Count > 500 || cursor is not null && (!visited.Add(cursor) || visited.Count > 100)) throw new InvalidDataException("模型列表过大或分页重复。");
             } while (cursor is not null);
-            await _library.UpsertProviderAsync(provider with { Models = models.Values.ToList() }, _lifetime.Token);
-            await RefreshProvidersAsync(); ProviderFeedback.Text = $"已有 {models.Count} 个模型。";
+            var updated = await _library.UpsertProviderAsync(provider with { Models = models.Values.ToList() }, _lifetime.Token);
+            UpdateProviderEntry(updated); UpdateModelList(updated); ProviderFeedback.Text = $"已有 {models.Count} 个模型。";
         }
         catch { ProviderFeedback.Text = "获取失败，请检查地址、密钥和网络。"; }
-        finally { if (key is not null) CryptographicOperations.ZeroMemory(key); }
+        finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; if (key is not null) CryptographicOperations.ZeroMemory(key); }
     }
 
     private async void ExecutionModePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -464,7 +530,7 @@ public sealed partial class MainWindow
             var model = provider.Models.FirstOrDefault(m => provider.Id + ":" + m.Id == _settings.DefaultModel || m.Id == _settings.DefaultModel) ?? provider.Models[0];
             var availableModels = providers.SelectMany(p => p.Models.Select(m => (Provider: p, Model: m))).ToList();
             var choice = new ComboBox { MinWidth = 320 };
-            foreach (var available in availableModels) choice.Items.Add(available.Provider.Name + " / " + available.Model.Id);
+            foreach (var available in availableModels) choice.Items.Add(available.Provider.Name + " / " + available.Model.Label);
             choice.SelectedIndex = availableModels.FindIndex(p => p.Provider.Id == provider.Id && p.Model.Id == model.Id);
             var thinkingChoice = new ComboBox { Header = "思考", MinWidth = 320, SelectedIndex = 0 };
             thinkingChoice.Items.Add("默认"); foreach (var option in model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option));
@@ -611,6 +677,7 @@ public sealed partial class MainWindow
 
     private async Task<bool> SwitchLibraryAsync(string directory)
     {
+        if (_modelRequestRunning) throw new InvalidOperationException("请等待模型请求结束。");
         if (_jobs is not null && (await _jobs.ListAsync()).Any(j => !j.State.IsTerminal())) throw new InvalidOperationException("请先结束当前任务。");
         if (!await ConfirmDiscardEditsAsync(false)) return false;
         string previousDirectory = _libraryDirectory;
@@ -638,7 +705,7 @@ public sealed partial class MainWindow
         catch
         {
             try { await DisposeLibrarySessionAsync(); } catch { }
-            if (!_lifetime.IsCancellationRequested && await InitializeLibraryAsync(previousDirectory))
+            if (!_lifetime.IsCancellationRequested && File.Exists(LegacyLibraryLocation.DatabaseFile(previousDirectory)) && await InitializeLibraryAsync(previousDirectory))
             {
                 if (previousDocument is not null) try { await RefreshDocumentsAsync(previousDocument); } catch { }
                 ViewModel.StatusMessage = "切换失败，已重新打开原资料。";
@@ -649,12 +716,12 @@ public sealed partial class MainWindow
 
     private async Task<bool> ConfirmDiscardEditsAsync(bool exiting)
     {
-        if (!ViewModel.HasUnsavedChanges) return true;
+        if (!ViewModel.HasUnsavedChanges && !HasUnsavedSettingsChanges) return true;
         var dialog = new ContentDialog
         {
             XamlRoot = RootGrid.XamlRoot,
             Title = "有未保存的修改",
-            Content = exiting ? "退出后，未保存的修改会丢失。" : "切换资料库后，未保存的修改会丢失。",
+            Content = exiting ? "退出后，未保存的资料或设置修改会丢失。" : "切换资料库后，未保存的资料或设置修改会丢失。",
             PrimaryButtonText = exiting ? "退出" : "切换",
             CloseButtonText = "返回",
             DefaultButton = ContentDialogButton.Close

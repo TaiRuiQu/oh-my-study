@@ -8,7 +8,7 @@
 
 双击 MSI，选择安装位置和是否创建桌面快捷方式，安装后从开始菜单打开；portable ZIP 解压后直接运行 `OhMyStudy.App.exe`。旧 EXE 安装需先卸载旧版，再安装 MSI，资料会保留。升级保留资料，卸载保留资料和备份。首次导入旧资料前退出旧版并保留完整备份。
 
-默认资料目录为 `%LOCALAPPDATA%/OhMyStudy/Library`。AI 功能需要自行配置供应商、密钥和模型；离线包包含本地排版和计算依赖，无需开发 SDK 或系统 Python/Node/TeX。具体步骤和恢复方法见 [安装与卸载](docs/installation.zh-CN.md)。
+默认资料目录为 `%LOCALAPPDATA%/OhMyStudy/Library`，可在设置中更改。导入会保存原件副本，删除原文件后仍可查看；更改位置会复制现有资料并保留原库。AI 功能需要自行配置供应商、密钥和模型；离线包包含本地排版和计算依赖，无需开发 SDK 或系统 Python/Node/TeX。具体步骤和恢复方法见 [安装与卸载](docs/installation.zh-CN.md)。
 
 ## 开发与验证
 

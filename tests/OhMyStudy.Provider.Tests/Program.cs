@@ -19,12 +19,36 @@ await Run("native image capability checks", CapabilityChecks);
 await Run("incremental Unicode SSE for all protocols", Streams);
 await Run("invalid streaming states, limits and refusals", InvalidStreams);
 await Run("models preserve metadata and unknown capabilities", Models);
+await Run("catalog exact IDs, provider prices and unknown metadata", Catalog);
 await Run("native HTTP endpoints, headers and streaming bodies", HttpFraming);
 await Run("sanitized errors and bounded explicit retries", ErrorsAndRetries);
 await Run("cancellation and ambiguous failures never replay", Cancellation);
 await Run("response bounds and URL/header validation", Bounds);
 await Run("actual loopback HTTP, chunked SSE, pagination, redirects and cancellation", () => LoopbackRegression.RunAsync(fixtures));
 Console.WriteLine($"Provider protocol regression: {completed} scenarios passed (synthetic, no supplier network).");
+
+static Task Catalog()
+{
+    using var data = JsonDocument.Parse("""
+    {
+      "first": { "name": "First", "models": {
+        "exact": {"name":"Study","limit":{"context":200000},"cost":{"input":1.25,"output":0},"modalities":{"input":["text","image"]},"tool_call":true,"reasoning":true},
+        "exact-plus":{"cost":{"input":99}}
+      }},
+      "relay": { "name": "Relay", "models": {"exact":{"limit":{"context":"unknown"},"cost":{"input":-1,"output":null}}} }
+    }
+    """);
+    var matches = ModelCatalog.Find(data.RootElement, "exact");
+    Check(matches.Count == 2 && ModelCatalog.Find(data.RootElement, "exa").Count == 0, "exact match only");
+    var first = matches.Single(m => m.ProviderId == "first").Model;
+    Check(first.DisplayName == "Study" && first.ContextWindow == 200000 && first.PriceInput == 1.25 && first.PriceOutput == 0
+        && first.Capabilities.Vision == true && first.Capabilities.Tools == true, "documented catalog fields");
+    Check(first.Capabilities.Thinking.Count == 0, "reasoning boolean does not invent effort options");
+    var relay = matches.Single(m => m.ProviderId == "relay").Model;
+    Check(relay.PriceInput is null && relay.PriceOutput is null && relay.ContextWindow is null
+        && relay.Capabilities.Vision is null && relay.Capabilities.Tools is null, "missing metadata stays unknown, prices remain provider-specific");
+    return Task.CompletedTask;
+}
 
 async Task Run(string name, Func<Task> test)
 {
@@ -96,7 +120,9 @@ Task Thinking()
     foreach (var (protocol, thinking, field, expected) in new (Protocol, Thinking, string, string)[]
     {
         (Protocol.Responses, new ResponsesThinking { Effort = "medium" }, "reasoning", "medium"),
+        (Protocol.Responses, new ResponsesThinking { Effort = "max" }, "reasoning", "max"),
         (Protocol.Messages, new AdaptiveThinking { Effort = "high" }, "output_config", "high"),
+        (Protocol.Messages, new AdaptiveThinking { Effort = "max" }, "output_config", "max"),
         (Protocol.Messages, new BudgetThinking { Tokens = 2048 }, "thinking", "2048"),
         (Protocol.Gemini, new GeminiLevelThinking { Level = "HIGH" }, "generationConfig", "HIGH"),
         (Protocol.Gemini, new GeminiBudgetThinking { Tokens = -1 }, "generationConfig", "-1")

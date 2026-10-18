@@ -84,7 +84,7 @@ public sealed partial class LibraryRepository
                     if (manifest.Length > 8 * 1024 * 1024) throw new InvalidOperationException("备份清单超过当前恢复支持的大小");
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                Directory.Move(stage, destination);
+                PromoteBackupDirectory(stage, destination, cancellationToken);
                 return new BackupResult(destination, copied.Count);
             }
             catch { DeleteOwnedDirectory(stage); throw; }
@@ -131,7 +131,7 @@ public sealed partial class LibraryRepository
                     using var reader = command.ExecuteReader();
                     while (reader.Read()) if (!names.Contains(reader.GetString(0))) throw new InvalidDataException("备份缺少原件");
                 }
-                cancellationToken.ThrowIfCancellationRequested(); Directory.Move(stage, destination);
+                cancellationToken.ThrowIfCancellationRequested(); PromoteBackupDirectory(stage, destination, cancellationToken);
             }
             catch { DeleteOwnedDirectory(stage); throw; }
         }, cancellationToken).ConfigureAwait(false);
@@ -139,6 +139,24 @@ public sealed partial class LibraryRepository
 
     private static string HashFile(string path)
     { using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant(); }
+
+    internal static void PromoteBackupDirectory(string stage, string destination, CancellationToken cancellationToken)
+    {
+        // Newly written directories can be briefly held open by other Windows processes.
+        // Retry only access/sharing locks; never replace a destination or repeat the backup.
+        for (int attempt = 0; ; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            RejectLinks(stage); RejectLinks(Path.GetDirectoryName(destination)!);
+            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("目标位置已存在");
+            try { Directory.Move(stage, destination); return; }
+            catch (Exception error) when (attempt < 8 && (error is IOException or UnauthorizedAccessException)
+                && (error.HResult & 0xffff) is 5 or 32 or 33)
+            {
+                if (cancellationToken.WaitHandle.WaitOne(40 * (attempt + 1))) cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+    }
 
     private static void DeleteOwnedDirectory(string path)
     {

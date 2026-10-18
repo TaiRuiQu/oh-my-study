@@ -47,10 +47,10 @@
                 <Grid ColumnSpacing="20">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel Spacing="6">
-                        <TextBlock Text="{x:Bind ViewModel.SectionTitle, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" />
-                        <TextBlock Text="{x:Bind ViewModel.DocumentTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="SectionCaption" Text="{x:Bind ViewModel.SectionTitle, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" />
+                        <TextBlock x:Name="PageHeading" Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel x:Name="WorkspaceActions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <Button Click="OpenFiles_Click" AutomationProperties.Name="导入图片或 PDF">
                             <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock Text="导入资料" /></StackPanel>
                         </Button>
@@ -84,7 +84,7 @@
                         <Button x:Name="EditQuestionButton" Content="编辑题目" Click="EditQuestion_Click" IsEnabled="False" />
                         <Button Content="整理结果" Click="ViewResults_Click" />
                     </StackPanel>
-                    <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational"
+                    <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational" CloseButtonClick="WorkspaceNotice_CloseButtonClick"
                         Title="示例资料" Message="可查看和编辑，修改不会保存。" />
                 </StackPanel>
                 <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="16">
@@ -98,7 +98,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="3">
                                     <TextBlock Text="原件" Style="{StaticResource PanelHeadingStyle}" />
-                                    <TextBlock x:Name="OriginalCaption" Text="示例原件" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="OriginalCaption" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                     <Button Click="RotateLeft_Click" ToolTipService.ToolTip="向左旋转 90°" AutomationProperties.Name="原件向左旋转九十度"><FontIcon Glyph="&#xE7AD;" FontSize="16" /></Button>
@@ -198,32 +198,109 @@
                         </Grid>
                     </Border>
                 </Grid>
-                <ScrollViewer x:Name="TasksPanel" Grid.Row="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer x:Name="TasksPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="TaskCards" Spacing="12" MaxWidth="900" HorizontalAlignment="Stretch" />
                 </ScrollViewer>
-                <ScrollViewer x:Name="SettingsPanel" Grid.Row="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                    <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="20">
+                <ScrollViewer x:Name="SettingsPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="20" Padding="0,0,4,16">
                         <TextBlock Text="模型" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Grid x:Name="ProviderLayout" ColumnSpacing="20" RowSpacing="16" SizeChanged="ProviderLayout_SizeChanged">
+                            <Grid.ColumnDefinitions><ColumnDefinition x:Name="ProviderListColumn" Width="212" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Border x:Name="ProviderSidebar" Padding="12" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" VerticalAlignment="Top">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="供应商" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="8,4" />
+                                    <ListView x:Name="ProviderPicker" MinHeight="0" MaxHeight="420" Padding="0" Visibility="Collapsed" SelectionChanged="ProviderPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="供应商列表">
+                                        <ListView.ItemTemplate><DataTemplate x:DataType="domain:Provider"><TextBlock Text="{x:Bind Name}" ToolTipService.ToolTip="{x:Bind Name}" TextTrimming="CharacterEllipsis" Margin="4,8" /></DataTemplate></ListView.ItemTemplate>
+                                    </ListView>
+                                    <Button Content="添加供应商" Click="NewProvider_Click" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="ProviderDetails" Grid.Column="1" Spacing="16">
+                                <Border x:Name="ProviderSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="供应商设置" Style="{StaticResource PanelHeadingStyle}" />
+                                        <Grid x:Name="ProviderFields" ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                            <TextBox x:Name="ProviderName" Header="名称" PlaceholderText="供应商名称" />
+                                            <ComboBox x:Name="ProtocolPicker" Grid.Column="1" Header="接口" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                                <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" /><ComboBoxItem Content="Google Gemini" />
+                                            </ComboBox>
+                                            <TextBox x:Name="ProviderUrl" Grid.Row="1" Header="地址" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
+                                            <PasswordBox x:Name="ProviderKey" Grid.Row="1" Grid.Column="1" Header="密钥" PlaceholderText="留空保留已有密钥" />
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="保存" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
+                                            <Button x:Name="DeleteProviderButton" Content="删除供应商" Click="DeleteProvider_Click" IsEnabled="False" />
+                                        </StackPanel>
+                                        <TextBlock x:Name="ProviderFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="ModelSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="模型列表" Style="{StaticResource PanelHeadingStyle}" />
+                                        <StackPanel x:Name="ModelActionButtons" Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="FetchModelsButton" Content="获取模型" Click="RefreshModels_Click" HorizontalAlignment="Left" IsEnabled="False" />
+                                            <Button x:Name="AddModelButton" Content="添加模型" Click="NewModel_Click" HorizontalAlignment="Left" IsEnabled="False" />
+                                            <Button x:Name="TestModelButton" Content="测试连接" Click="TestProvider_Click" HorizontalAlignment="Left" IsEnabled="False" ToolTipService.ToolTip="向所选模型发送简短请求，可能产生少量费用。" />
+                                        </StackPanel>
+                                        <ListView x:Name="ModelPicker" MinHeight="0" MaxHeight="240" Padding="0" Visibility="Collapsed" SelectionChanged="ModelPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="模型列表">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate x:DataType="domain:ModelConfig">
+                                                    <StackPanel Spacing="3" Padding="4,8" ToolTipService.ToolTip="{x:Bind Id}">
+                                                        <TextBlock Text="{x:Bind Label}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind Id}" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                        <StackPanel x:Name="ModelEditor" Spacing="12" Visibility="Collapsed">
+                                            <Grid x:Name="ModelIdentityFields" ColumnSpacing="16">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                <TextBox x:Name="ModelDisplayName" Header="显示名" PlaceholderText="留空使用模型 ID" />
+                                                <TextBox x:Name="ModelId" Grid.Column="1" Header="模型 ID" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
+                                            </Grid>
+                                            <TextBox x:Name="ModelContextWindow" Header="上下文窗口" PlaceholderText="未确认" />
+                                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                                <CheckBox x:Name="ModelVision" Content="支持图片" IsThreeState="True" MinWidth="0" />
+                                                <CheckBox x:Name="ModelTools" Content="支持工具" IsThreeState="True" MinWidth="0" />
+                                            </StackPanel>
+                                            <TextBlock Text="可选思考强度" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                            <VariableSizedWrapGrid x:Name="ModelThinkingOptions" Orientation="Horizontal" MaximumRowsOrColumns="7" />
+                                            <TextBox x:Name="ModelThinkingBudget" Header="思考预算" PlaceholderText="留空不设置" />
+                                            <TextBlock Text="仅选择此模型支持的强度；图片和工具能力未确认时保留横线。" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                            <Grid x:Name="ModelPriceFields" ColumnSpacing="16">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="96" /></Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                <TextBox x:Name="ModelPriceInput" Header="输入价格 / 百万 token" PlaceholderText="未设置" />
+                                                <TextBox x:Name="ModelPriceOutput" Grid.Column="1" Header="输出价格 / 百万 token" PlaceholderText="未设置" />
+                                                <TextBox x:Name="ModelCurrency" Grid.Column="2" Header="货币" Text="USD" />
+                                            </Grid>
+                                            <Button Content="从 models.dev 填充" Click="FillModelCatalog_Click" HorizontalAlignment="Left" />
+                                            <TextBlock x:Name="ModelCatalogFeedback" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button Content="保存模型" Click="SaveModel_Click" Style="{StaticResource AccentButtonStyle}" />
+                                                <Button x:Name="DeleteModelButton" Content="删除模型" Click="DeleteModel_Click" IsEnabled="False" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ModelFeedback" Text="先保存供应商，再添加模型。" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="LibrarySectionTitle" Text="资料库" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
-                                <ComboBox x:Name="ProviderPicker" Header="供应商" PlaceholderText="选择或添加" MinWidth="280" SelectionChanged="ProviderPicker_SelectionChanged">
-                                    <ComboBox.ItemTemplate><DataTemplate x:DataType="domain:Provider"><TextBlock Text="{x:Bind Name}" /></DataTemplate></ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <TextBox x:Name="ProviderName" Header="名称" PlaceholderText="例如：我的模型" />
-                                <ComboBox x:Name="ProtocolPicker" Header="接口" SelectedIndex="0" MinWidth="280">
-                                    <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" /><ComboBoxItem Content="Google Gemini" />
-                                </ComboBox>
-                                <TextBox x:Name="ProviderUrl" Header="地址" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
-                                <PasswordBox x:Name="ProviderKey" Header="密钥" PlaceholderText="留空保留已有密钥" />
-                                <TextBox x:Name="ModelId" Header="模型" PlaceholderText="填写模型名称" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Content="保存" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
-                                    <Button Content="添加" Click="NewProvider_Click" />
-                                    <Button Content="删除" Click="DeleteProvider_Click" />
-                                    <Button Content="获取模型" Click="RefreshModels_Click" />
-                                    <Button Content="模型设置" Click="ModelSettings_Click" />
+                                <TextBox x:Name="LibraryPath" Header="保存位置" IsReadOnly="True" TextWrapping="Wrap" />
+                                <TextBlock Text="导入的原件会复制到资料库，删除原文件后仍可查看。" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
+                                <StackPanel x:Name="LibraryActionButtons" Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="ChangeLibraryButton" Content="更改位置" Click="ChangeLibrary_Click" HorizontalAlignment="Left" />
+                                    <Button Content="选择已有资料库" Click="SelectLibrary_Click" HorizontalAlignment="Left" />
+                                    <Button Content="打开文件夹" Click="OpenLibraryFolder_Click" HorizontalAlignment="Left" />
                                 </StackPanel>
-                                <TextBlock x:Name="ProviderFeedback" TextWrapping="Wrap" />
+                                <TextBlock x:Name="LibraryFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                             </StackPanel>
                         </Border>
                         <TextBlock Text="执行" Style="{StaticResource SubtitleTextBlockStyle}" />
@@ -239,19 +316,12 @@
                         <TextBlock Text="外观" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="应用主题" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                 <ComboBox x:Name="ThemePicker" Header="主题" SelectedIndex="0" SelectionChanged="ThemePicker_SelectionChanged" MinWidth="220">
                                     <ComboBoxItem Content="跟随 Windows" Tag="system" /><ComboBoxItem Content="浅色" Tag="light" /><ComboBoxItem Content="深色" Tag="dark" />
                                 </ComboBox>
                             </StackPanel>
                         </Border>
-                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                            <StackPanel Spacing="12">
-                                <TextBlock Text="Oh My Study" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock Text="整理资料，梳理错题，轻松复习。" TextWrapping="Wrap" />
-                                <Button Content="关于" Click="About_Click" HorizontalAlignment="Left" />
-                            </StackPanel>
-                        </Border>
+                        <Button Content="关于" Click="About_Click" HorizontalAlignment="Left" />
                     </StackPanel>
                 </ScrollViewer>
                 <Grid Grid.Row="3" ColumnSpacing="20" Padding="0,0,0,2">

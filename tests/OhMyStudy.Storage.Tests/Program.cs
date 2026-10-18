@@ -33,6 +33,8 @@ internal static class Program
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
             await LegacyMigration();
             await ImportRecovery();
+            await ManagedLibraryLocation();
+            await DirectoryPromotionLocks();
             await PdfRelationships();
             await GradingAndJobs();
             await CredentialAtomicity();
@@ -258,6 +260,64 @@ internal static class Program
             result.Add(table, rows);
         }
         return result;
+    }
+
+    private static async Task DirectoryPromotionLocks()
+    {
+        var stage = Unique("locked-stage"); Directory.CreateDirectory(stage);
+        await File.WriteAllTextAsync(Path.Combine(stage, "original.txt"), "retained bytes");
+        var destination = Unique("promoted-stage");
+        using var held = new FileStream(Path.Combine(stage, "original.txt"), FileMode.Open, FileAccess.Read, FileShare.Read);
+        Check(held.CanRead, "test holds Windows file handle without delete sharing");
+        bool initiallyLocked = false;
+        try { Directory.Move(stage, destination); } catch (IOException) { initiallyLocked = true; }
+        Check(initiallyLocked && Directory.Exists(stage), "Windows blocks promotion while directory is held");
+        var release = Task.Run(async () => { await Task.Delay(150); held.Dispose(); });
+        LibraryRepository.PromoteBackupDirectory(stage, destination, CancellationToken.None);
+        await release;
+        Check(await File.ReadAllTextAsync(Path.Combine(destination, "original.txt")) == "retained bytes", "promotion recovers after temporary directory lock releases");
+        var cancelledStage = Unique("cancelled-stage"); Directory.CreateDirectory(cancelledStage);
+        string lockedFile = Path.Combine(cancelledStage, "held.txt"); await File.WriteAllTextAsync(lockedFile, "retained bytes");
+        using var locked = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var cancellation = new CancellationTokenSource(80);
+        bool cancelled = false;
+        try { LibraryRepository.PromoteBackupDirectory(cancelledStage, Unique("cancelled-destination"), cancellation.Token); }
+        catch (OperationCanceledException) { cancelled = true; }
+        Check(cancelled && Directory.Exists(cancelledStage), "cancelled promotion preserves staged data");
+    }
+
+    private static async Task ManagedLibraryLocation()
+    {
+        var path = Unique("managed-library"); var copy = Unique("relocated-library");
+        string source = Path.Combine(Root, "source-to-delete.png");
+        await File.WriteAllBytesAsync(source, png);
+        string documentId, assetId;
+        var provider = Fixture<Provider>("provider");
+        var model = provider.Models[0] with { DisplayName = "复习助手", ContextWindow = 200000 };
+        provider = provider with { Models = [model] };
+        await using (var library = await LibraryRepository.OpenAsync(NewOptions(path)))
+        {
+            var document = await library.ImportDocumentAsync("保留原件", ImportMode.Blank, [new(source, await File.ReadAllBytesAsync(source))]);
+            documentId = document.Id; assetId = document.Pages[0].AssetId;
+            File.Delete(source);
+            Check((await library.ReadAssetAsync(assetId)).Bytes.SequenceEqual(png), "managed original survives deletion of source file");
+            await library.UpsertProviderAsync(provider);
+            await library.SaveSettingsAsync(AppSettings.Default with { LegacyNoticeDismissed = true });
+            await library.BackupAsync(copy);
+            await Fails(() => library.BackupAsync(copy), "relocation never overwrites an existing destination");
+            await Fails(() => library.BackupAsync(Path.Combine(path, "nested")), "relocation rejects copying inside active library");
+        }
+        await using (var relocated = await LibraryRepository.OpenAsync(new(copy, LibraryOpenMode.ReadWrite)))
+        {
+            Check((await relocated.GetDocumentAsync(documentId)).Pages[0].AssetId == assetId
+                && (await relocated.ReadAssetAsync(assetId)).Bytes.SequenceEqual(png), "relocated library retains document and original bytes");
+            var saved = (await relocated.ListProvidersAsync()).Single();
+            Check(saved.Models.Single().DisplayName == "复习助手" && saved.Models.Single().ContextWindow == 200000
+                && saved.KeyRef == provider.KeyRef, "model metadata and credential references survive relocation");
+            Check((await relocated.GetSettingsAsync()).LegacyNoticeDismissed, "legacy notice dismissal survives copy and reopen");
+        }
+        await using var original = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite));
+        Check((await original.ReadAssetAsync(assetId)).Bytes.SequenceEqual(png), "original library remains available after relocation");
     }
 
     private static async Task ImportRecovery()

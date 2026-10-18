@@ -21,6 +21,8 @@ public static class ConfigurationValidation
         HashSet<string> ids = new(StringComparer.Ordinal);
         foreach (var model in provider.Models)
             DomainValidationException.Require(!string.IsNullOrWhiteSpace(model.Id) && Encoding.UTF8.GetByteCount(model.Id) <= 512 && ids.Add(model.Id)
+                && (model.DisplayName is null || Encoding.UTF8.GetByteCount(model.DisplayName) <= 200)
+                && model.ContextWindow is not 0
                 && !string.IsNullOrWhiteSpace(model.Currency) && Encoding.UTF8.GetByteCount(model.Currency) <= 16
                 && (model.PriceInput is not { } input || double.IsFinite(input) && input >= 0)
                 && (model.PriceOutput is not { } output || double.IsFinite(output) && output >= 0), "invalid model ID, currency or price");

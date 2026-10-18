@@ -247,6 +247,99 @@ public sealed partial class MainWindow
                 && await File.ReadAllTextAsync(_libraryPointerOverride) == previousPointer;
             await using (var released = await LibraryRepository.OpenAsync(new(failedDirectory, LibraryOpenMode.ReadWrite)))
                 checks["failed-initialization-releases-writer"] = released is not null;
+            Navigation.SelectedItem = Navigation.SettingsItem;
+            await Task.Delay(60);
+            ViewModel.StatusMessage = "";
+            checks["settings-has-own-heading-and-actions"] = PageHeading.Text == "设置"
+                && WorkspaceActions.Visibility == Visibility.Collapsed && WorkspaceNotice.Visibility == Visibility.Collapsed;
+            var settingsProvider = provider with
+            {
+                Name = "示例供应商",
+                Models = [model with { DisplayName = "复习助手", ContextWindow = 200000 }]
+            };
+            await _library!.UpsertProviderAsync(settingsProvider);
+            _selectedProviderId = settingsProvider.Id; await RefreshProvidersAsync();
+            checks["provider-model-editor-populates"] = ProviderPicker.SelectedItem is Provider selectedProvider
+                && selectedProvider.Id == provider.Id && ModelDisplayName.Text == "复习助手" && ModelContextWindow.Text == "200000";
+            ModelDisplayName.Text = "阅读助手"; ModelContextWindow.Text = "128000"; ModelPriceInput.Text = "1.25"; ModelPriceOutput.Text = "5";
+            ModelVision.IsChecked = true; ModelTools.IsChecked = true;
+            var maxThinking = ModelThinkingOptions.Children.OfType<CheckBox>().SingleOrDefault(c => Equals(c.Content, "max"));
+            checks["model-editor-offers-max"] = maxThinking is not null;
+            if (maxThinking is not null) maxThinking.IsChecked = true;
+            await SaveModelAsync();
+            var configured = (await _library.ListProvidersAsync()).Single(p => p.Id == provider.Id).Models.Single();
+            checks["model-editor-saves-metadata"] = configured.DisplayName == "阅读助手" && configured.ContextWindow == 128000
+                && configured.PriceInput == 1.25 && configured.PriceOutput == 5 && configured.Capabilities.Vision == true;
+            ModelPriceInput.Text = "-1"; await SaveModelAsync();
+            checks["model-editor-rejects-invalid-price"] = (await _library.ListProvidersAsync()).Single(p => p.Id == provider.Id).Models.Single().PriceInput == 1.25
+                && ModelEditor.Visibility == Visibility.Visible && ModelPriceInput.Text == "-1";
+            SettingsPanel.ChangeView(null, ModelPriceFields.TransformToVisual(SettingsPanel.Content as UIElement).TransformPoint(new(0, 0)).Y - 16, null, true);
+            await Task.Delay(80);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-feedback.png"));
+            SettingsPanel.ChangeView(null, 0, null, true);
+            PopulateModelEditor(configured);
+            checks["model-editor-saves-and-reloads-max"] = configured.Capabilities.Thinking.Contains(new ResponsesThinking { Effort = "max" })
+                && ModelThinkingOptions.Children.OfType<CheckBox>().Any(c => Equals(c.Content, "max") && c.IsChecked == true);
+            ModelDisplayName.Text = "未保存的名称";
+            ProviderName.Text = "学习助手";
+            checks["settings-detects-unsaved-model"] = HasModelDraft && HasUnsavedSettingsChanges;
+            await SaveProviderAsync();
+            checks["saving-provider-keeps-model-draft"] = ModelDisplayName.Text == "未保存的名称" && HasModelDraft
+                && (await _library.ListProvidersAsync()).Single(p => p.Id == provider.Id).Name == "学习助手";
+            PopulateModelEditor(configured);
+            ProviderName.Text = "尚未保存的供应商";
+            await SaveModelAsync();
+            checks["saving-model-keeps-provider-draft"] = ProviderName.Text == "尚未保存的供应商" && HasUnsavedSettingsChanges && !HasModelDraft;
+            DiscardSettingsForm();
+            WorkspaceNotice.Title = "发现旧版资料";
+            WorkspaceNotice_CloseButtonClick(WorkspaceNotice, new object());
+            await _settingsGate.WaitAsync(); _settingsGate.Release();
+            checks["legacy-notice-dismissal-saved"] = (await _library.GetSettingsAsync()).LegacyNoticeDismissed;
+            string beforeCopy = _libraryDirectory;
+            string relocated = Path.Combine(root, "自选位置");
+            await CopyAndSwitchLibraryAsync(relocated);
+            checks["library-settings-copy-and-switch"] = _libraryDirectory == relocated && LibraryPath.Text == relocated
+                && await File.ReadAllTextAsync(_libraryPointerOverride) == relocated
+                && (await _library!.ReadAssetAsync(document.Pages[0].AssetId)).Bytes.SequenceEqual(bytes);
+            await using (var originalCopy = await LibraryRepository.OpenAsync(new(beforeCopy, LibraryOpenMode.ReadWrite)))
+                checks["library-settings-keeps-original"] = (await originalCopy.GetDocumentAsync(document.Id)).Id == document.Id;
+            checks["library-settings-keeps-models"] = (await _library!.ListProvidersAsync()).Single(p => p.Id == provider.Id).Models.Single().DisplayName == "阅读助手";
+            checks["existing-library-selection-rejects-unopened-backup"] = await CanOpenExistingLibraryAsync(relocated)
+                && !await CanOpenExistingLibraryAsync(backup);
+            await DisposeLibrarySessionAsync();
+            checks["library-path-and-notice-survive-restart"] = await InitializeLibraryAsync() && _libraryDirectory == relocated
+                && _settings.LegacyNoticeDismissed && (await _library!.GetDocumentAsync(document.Id)).Id == document.Id;
+            await DisposeLibrarySessionAsync();
+            string unavailable = Path.Combine(root, "missing-library");
+            await File.WriteAllTextAsync(_libraryPointerOverride, unavailable);
+            checks["unavailable-library-does-not-create-empty-replacement"] = !await InitializeLibraryAsync()
+                && !Directory.Exists(unavailable) && await File.ReadAllTextAsync(_libraryPointerOverride) == unavailable;
+            await File.WriteAllTextAsync(_libraryPointerOverride, relocated); await InitializeLibraryAsync();
+            checks["library-recovery-clears-error"] = ViewModel.StatusMessage.Length == 0;
+            Navigation.SelectedItem = Navigation.SettingsItem; await Task.Delay(80);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings.png"));
+            await CaptureLongSettingsPreviewAsync(reportPath);
+            SettingsPanel.ChangeView(null, ModelSettingsCard.TransformToVisual(SettingsPanel.Content as UIElement).TransformPoint(new(0, 0)).Y, null, true);
+            await Task.Delay(80);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model.png"));
+            SettingsPanel.ChangeView(null, LibrarySectionTitle.TransformToVisual(SettingsPanel.Content as UIElement).TransformPoint(new(0, 0)).Y - 8, null, true);
+            await Task.Delay(80);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".library.png"));
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(720, 960));
+            SettingsPanel.ChangeView(null, 0, null, true); await Task.Delay(100);
+            checks["settings-narrow-layout"] = Grid.GetRow(ProviderDetails) == 1 && ProviderDetails.ActualWidth >= ProviderLayout.ActualWidth - 1;
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-narrow.png"));
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Task.Delay(100);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-compact.png"));
+            SettingsPanel.ChangeView(null, ModelSettingsCard.TransformToVisual(SettingsPanel.Content as UIElement).TransformPoint(new(0, 0)).Y, null, true);
+            await Task.Delay(80);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model-compact.png"));
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Task.Delay(100);
+            SettingsPanel.ChangeView(null, 0, null, true);
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(80);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-dark.png"));
+            RootGrid.RequestedTheme = ElementTheme.Light;
+            ShowMaterialsNavigation(); await RefreshDocumentsAsync(document.Id);
             ViewModel.StatusMessage = "已保存。";
             await ShowSourcePageAsync(0);
             RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(100);
@@ -274,6 +367,37 @@ public sealed partial class MainWindow
             Microsoft.UI.Xaml.Application.Current.Exit();
             Environment.Exit(exitCode);
         }
+    }
+
+    private async Task CaptureLongSettingsPreviewAsync(string reportPath)
+    {
+        var original = (Provider)ProviderPicker.SelectedItem;
+        var originalProviders = _providers.ToArray();
+        _refreshingProviders = true;
+        try { _providers.Clear(); }
+        finally { _refreshingProviders = false; }
+        ClearProviderEditor();
+        await Task.Delay(80);
+        await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-empty.png"));
+        _refreshingProviders = true;
+        try { foreach (var entry in originalProviders) _providers.Add(entry); }
+        finally { _refreshingProviders = false; }
+        UpdateProviderEntry(original); PopulateProviderEditor(original);
+        var extra = original with { Id = Guid.NewGuid().ToString(), Name = "备用供应商", Models = [] };
+        var preview = original with
+        {
+            Name = "学校共享的阅读与复习供应商配置",
+            Models = original.Models.Select(model => model with { DisplayName = "阅读与复习助手 · 支持较长资料和详细答案" })
+                .Concat(new[] { new ModelConfig { Id = "example-with-a-long-model-id-for-document-review", DisplayName = "资料阅读", Capabilities = Capabilities.Unknown, Currency = "USD" } }).ToList()
+        };
+        UpdateProviderEntry(extra); UpdateProviderEntry(preview); PopulateProviderEditor(preview);
+        await Task.Delay(80);
+        await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-long.png"));
+        _refreshingProviders = true;
+        try { _providers.Remove(extra); }
+        finally { _refreshingProviders = false; }
+        UpdateProviderEntry(original); PopulateProviderEditor(original);
+        await Task.Delay(80);
     }
 
     private static bool SetEditorText(FrameworkElement element, string header, string text)

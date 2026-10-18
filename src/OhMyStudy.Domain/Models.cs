@@ -28,6 +28,10 @@ public sealed record Provider : IJsonOnDeserialized
 public sealed record ModelConfig
 {
     public required string Id { get; init; }
+    public string? DisplayName { get; init; }
+    public ulong? ContextWindow { get; init; }
+    [JsonIgnore]
+    public string Label => string.IsNullOrWhiteSpace(DisplayName) ? Id : DisplayName;
     public required Capabilities Capabilities { get; init; }
     public double? PriceInput { get; init; }
     public double? PriceOutput { get; init; }
@@ -75,6 +79,7 @@ public sealed record PageEdit
 
 public sealed record AppSettings
 {
+    public bool LegacyNoticeDismissed { get; init; }
     public string? DefaultModel { get; init; }
     public required string ExecutionMode { get; init; }
     public required bool SandboxNetworking { get; init; }

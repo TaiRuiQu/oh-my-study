@@ -10,12 +10,36 @@ namespace OhMyStudy.App;
 public sealed partial class MainWindow
 {
     private readonly UISettings _uiSettings = new();
+    private NavigationViewItem? _localizedSettingsItem;
+    private long _settingsContentCallback;
+
+    private void LocalizeNavigationSettings()
+    {
+        if (Navigation.SettingsItem is not { } settings) return;
+        var item = WinRT.CastExtensions.As<NavigationViewItem>(settings);
+        if (!ReferenceEquals(item, _localizedSettingsItem))
+        {
+            _localizedSettingsItem?.UnregisterPropertyChangedCallback(ContentControl.ContentProperty, _settingsContentCallback);
+            _localizedSettingsItem = item;
+            _settingsContentCallback = item.RegisterPropertyChangedCallback(ContentControl.ContentProperty, static (sender, _) =>
+            {
+                var entry = (NavigationViewItem)sender;
+                if (entry.Content is not string text || text != "设置") entry.Content = "设置";
+            });
+        }
+        item.Content = "设置";
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, "设置");
+    }
 
     private void InitializeWorkspaceAccessibility()
     {
         RootGrid.SizeChanged += (_, _) => ApplyWorkspaceLayout();
         AddAccelerator(VirtualKey.O, VirtualKeyModifiers.Control, () => OpenFiles_Click(this, new RoutedEventArgs()));
-        AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, () => ViewModel.FinishEditCommand.Execute(null));
+        AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, async () =>
+        {
+            if (SettingsPanel.Visibility == Visibility.Visible) await SaveSettingsFormsAsync();
+            else ViewModel.FinishEditCommand.Execute(null);
+        });
         AddAccelerator(VirtualKey.E, VirtualKeyModifiers.Control, () => EditQuestion_Click(this, new RoutedEventArgs()));
         AddAccelerator(VirtualKey.Number0, VirtualKeyModifiers.Control, FitPage);
         AddAccelerator(VirtualKey.Number1, VirtualKeyModifiers.Control, () => SelectSection(0));
@@ -51,5 +75,6 @@ public sealed partial class MainWindow
         Grid.SetRow(QuestionPane, compact ? 1 : 0);
         WorkspaceGrid.RowSpacing = compact ? 12 : 0;
         Navigation.PaneDisplayMode = compact ? NavigationViewPaneDisplayMode.LeftMinimal : NavigationViewPaneDisplayMode.Left;
+        LocalizeNavigationSettings();
     }
 }

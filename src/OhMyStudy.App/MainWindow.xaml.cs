@@ -59,6 +59,7 @@ public sealed partial class MainWindow : Window
         _performanceReportPath = performanceReport;
         ViewModel = new WorkspaceViewModel(sample: smokeReportPath is not null);
         InitializeComponent();
+        InitializeSettingsLayout();
         InitializeWorkspaceAccessibility();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
@@ -90,7 +91,11 @@ public sealed partial class MainWindow : Window
 
     private void RootGrid_ActualThemeChanged(FrameworkElement sender, object args)
     {
-        if (_initialized) DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => { if (!_closed) ApplyCaptionColors(); });
+        if (_initialized) DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            if (_closed) return;
+            ApplyCaptionColors(); LocalizeNavigationSettings();
+        });
     }
 
     private void ThemeSettings_Changed(ThemeSettings sender, object args)
@@ -117,12 +122,8 @@ public sealed partial class MainWindow : Window
     private async void RootGrid_Loaded(object sender, RoutedEventArgs e)
     {
         // NavigationView creates its built-in SettingsItem when its template is applied.
-        if (Navigation.SettingsItem is { } settings)
-        {
-            var settingsItem = WinRT.CastExtensions.As<NavigationViewItem>(settings);
-            settingsItem.Content = "设置";
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(settingsItem, "设置");
-        }
+        LocalizeNavigationSettings();
+        DispatcherQueue.TryEnqueue(() => { if (!_closed) LocalizeNavigationSettings(); });
         FitPage();
         if (_smokeReportPath is not null)
         {
@@ -160,7 +161,22 @@ public sealed partial class MainWindow : Window
         int index = args.SelectedItem is null ? -1 : sender.MenuItems.IndexOf(args.SelectedItem);
         string tag = args.IsSettingsSelected ? "settings" : index switch { 1 => "library", 2 => "mistakes", 3 => "tasks", _ => "materials" };
         bool settings = tag == "settings";
+        if (SettingsPanel.Visibility == Visibility.Visible && !settings && HasUnsavedSettingsChanges)
+        {
+            var requested = args.SelectedItem;
+            _suppressNavigation = true;
+            try { Navigation.SelectedItem = Navigation.SettingsItem; }
+            finally { _suppressNavigation = false; }
+            if (!await ConfirmDiscardSettingsAsync()) return;
+            DiscardSettingsForm();
+            _suppressNavigation = true;
+            try { Navigation.SelectedItem = requested; }
+            finally { _suppressNavigation = false; }
+        }
+        SectionCaption.Visibility = settings || tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
         SettingsPanel.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
+        WorkspaceActions.Visibility = settings || tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
+        WorkspaceNotice.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceGrid.Visibility = settings || tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
         TasksPanel.Visibility = tag == "tasks" ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = !settings && tag == "materials" && !ViewModel.IsSample ? Visibility.Visible : Visibility.Collapsed;
@@ -325,6 +341,11 @@ public sealed partial class MainWindow : Window
     private async void OpenFiles_Click(object sender, RoutedEventArgs e)
     {
         if (_openingFile) return;
+        if (_library is null && !ViewModel.IsSample)
+        {
+            ViewModel.StatusMessage = "请先在设置中选择可用的资料库，再导入文件。";
+            Navigation.SelectedItem = Navigation.SettingsItem; return;
+        }
         _openingFile = true;
         try
         {
@@ -355,6 +376,11 @@ public sealed partial class MainWindow : Window
     private async void Source_Drop(object sender, DragEventArgs e)
     {
         if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+        if (_library is null && !ViewModel.IsSample)
+        {
+            ViewModel.StatusMessage = "请先在设置中选择可用的资料库，再导入文件。";
+            Navigation.SelectedItem = Navigation.SettingsItem; return;
+        }
         var deferral = e.GetDeferral();
         try
         {
@@ -580,7 +606,8 @@ public sealed partial class MainWindow : Window
 
     private void RestoreSample_Click(object sender, RoutedEventArgs e)
     {
-        RememberViewport(); ViewModel.LoadSample(); WorkspaceNotice.IsOpen = true;
+        RememberViewport(); ViewModel.LoadSample();
+        WorkspaceNotice.Title = "示例资料"; WorkspaceNotice.Message = "可查看和编辑，修改不会保存。"; WorkspaceNotice.IsOpen = true;
         _rotation = 0;
         GradeButton.IsEnabled = false; DocumentToolbar.Visibility = Visibility.Collapsed;
         CancelPreviewLoad();
@@ -592,7 +619,7 @@ public sealed partial class MainWindow : Window
         _pdfPageCount = 0;
         PdfPageControls.Visibility = Visibility.Collapsed;
         SetPageDimensions(PageWidth, PageHeight);
-        OriginalCaption.Text = "示例原件";
+        OriginalCaption.Text = "";
         WorkspaceNotice.Title = "示例资料";
         WorkspaceNotice.Message = "可查看和编辑，修改不会保存。";
         UpdateSourceHighlight();

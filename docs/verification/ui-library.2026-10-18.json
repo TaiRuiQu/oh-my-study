@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "timestampUtc": "2026-10-18T12:48:44.9689880+00:00",
+  "status": "local-validation-passed-not-released",
+  "baseCommit": "9c832f6c7ff3c36e6b2e96df2c214f0fdf8a818d",
+  "workingTreeContainsUncommittedChanges": true,
+  "app": {
+    "profile": "aot",
+    "executable": "output/ui-validation/app-final/OhMyStudy.App.exe",
+    "bytes": 18168320,
+    "sha256": "0b368589822a3ddf991ac1dc0bd35d584c899a65c15922b4cfc0894f35881266",
+    "nativeAot": true,
+    "buildLog": "output/ui-app-final-build.log"
+  },
+  "checks": {
+    "domain": 107,
+    "storage": 104,
+    "providerScenarios": 12,
+    "nativeWorkflow": 46,
+    "nativeWorkflowPassed": true,
+    "desktopPassed": true,
+    "workflowAssertions": {
+      "empty-start": true,
+      "sandbox-network-setting-saved": true,
+      "sandbox-network-default-restored": true,
+      "import-twelve-pages": true,
+      "original-bytes": true,
+      "all-pages-displayed": true,
+      "rotation-persisted": true,
+      "question-loaded": true,
+      "edit-saved": true,
+      "complex-editor-roundtrip": true,
+      "complex-editor-preserves-structure": true,
+      "invalid-edit-keeps-saved-content": true,
+      "save-keeps-newer-typing": true,
+      "source-highlight": true,
+      "library-native-navigation": true,
+      "blank-no-false-mistake": true,
+      "per-page-viewport": true,
+      "resolution-upgrade-does-not-regress": true,
+      "reading-context-roundtrip": true,
+      "rapid-navigation-keeps-latest": true,
+      "cache-byte-budget": true,
+      "backup-reopen-edit": true,
+      "dirty-refresh-keeps-edit": true,
+      "manual-edit-keeps-answer-evidence-separate": true,
+      "failed-initialization-keeps-active-library": true,
+      "failed-initialization-releases-writer": true,
+      "settings-has-own-heading-and-actions": true,
+      "provider-model-editor-populates": true,
+      "model-editor-saves-metadata": true,
+      "model-editor-rejects-invalid-price": true,
+      "settings-detects-unsaved-model": true,
+      "saving-provider-keeps-model-draft": true,
+      "saving-model-keeps-provider-draft": true,
+      "legacy-notice-dismissal-saved": true,
+      "library-settings-copy-and-switch": true,
+      "library-settings-keeps-original": true,
+      "library-settings-keeps-models": true,
+      "existing-library-selection-rejects-unopened-backup": true,
+      "library-path-and-notice-survive-restart": true,
+      "unavailable-library-does-not-create-empty-replacement": true,
+      "library-recovery-clears-error": true,
+      "settings-narrow-layout": true,
+      "dark-caption": true,
+      "light-caption": true,
+      "keyboard-editor-focus": true,
+      "native-aot": true
+    },
+    "storageLog": "output/ui-storage-tests.log",
+    "providerLog": "output/ui-provider-tests.log",
+    "domainLog": "output/ui-domain-tests.log",
+    "workflowReport": "output/ui-validation/final-aot-workflow.json",
+    "desktopReport": "output/ui-validation/final-aot-desktop.json"
+  },
+  "screenshots": [
+    "output/ui-validation/final-aot-workflow.settings.png",
+    "output/ui-validation/final-aot-workflow.model.png",
+    "output/ui-validation/final-aot-workflow.library.png",
+    "output/ui-validation/final-aot-workflow.settings-narrow.png"
+  ],
+  "sourceFiles": [
+    {
+      "path": "src/OhMyStudy.App/MainWindow.Accessibility.cs",
+      "sha256": "a7a4e8a087428fa0853e6522c77ec66894535b6816c2df8d94beba6c9c9912ee"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.Context.cs",
+      "sha256": "c22353d65ff10695ba260d1109b7afca8b6a03143286deaa54b06e30d5480a7b"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.Library.cs",
+      "sha256": "83df8bb61d36f04525e2b1d20612dce8705a2ca690d954a5b7c3fb30e78309f1"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.LibrarySettings.cs",
+      "sha256": "1419b453f4347dd6c3b9e91f90107da1354069b4003c62aa708988211d466970"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.Models.cs",
+      "sha256": "c71dcdafb5b61fa77d000bb10c84fd47098de0f414adb04c73d57b1015a90871"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.SettingsDrafts.cs",
+      "sha256": "58b530aab4a9ff90dd7705882e3262b1afe6b6204090d2d05c5dfc014258860a"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.WorkflowSmoke.cs",
+      "sha256": "9541cb3d37553d6b5f09df0224039ff766709da29c1ba3a704b6850c9b2ff10c"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.xaml",
+      "sha256": "5809431d340ecdc79a3f7ac87ebacb92df6c44b1376a93815e26bf06d873052e"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.xaml.cs",
+      "sha256": "27c7bd2f07577cb1ae1ddb09ec62809ca168c7a5509abd6a4bd208104456bdfe"
+    },
+    {
+      "path": "src/OhMyStudy.App/ViewModels/WorkspaceViewModel.cs",
+      "sha256": "38049d697827074d6ff8e86cb33fdd190bdb7c7d1291e71092b9d08d1a92e9f9"
+    },
+    {
+      "path": "src/OhMyStudy.Domain/ConfigurationValidation.cs",
+      "sha256": "250e186bc208795e48b5a4bbab9378e2f17074760aab9f4dbf9747072145098a"
+    },
+    {
+      "path": "src/OhMyStudy.Domain/Models.cs",
+      "sha256": "40c59b0920a2880dcc09f2062e001a481ce049f25a9d10cabd679d067e79a2ed"
+    },
+    {
+      "path": "src/OhMyStudy.Infrastructure/AssemblyInfo.cs",
+      "sha256": "519596b0b18d97a05656b6eb23736d758155ce4b4c8be7c8af2ef5c72b9f6252"
+    },
+    {
+      "path": "src/OhMyStudy.Infrastructure/Providers/ModelCatalog.cs",
+      "sha256": "38f5469ca87e0ca2c1cb6e1dd9d67639fb274d97c315278e602f940c4a7a1d9a"
+    },
+    {
+      "path": "src/OhMyStudy.Infrastructure/Storage/LibraryBackup.cs",
+      "sha256": "b990f7eb08c6ffa105bb8a039faf0a25c1d32d332c3cbbeb2d4d4580415e170f"
+    },
+    {
+      "path": "tests/OhMyStudy.Provider.Tests/Program.cs",
+      "sha256": "0260d0a8c1bfb1da16f1a62d2f17b99d18074c23cf3955a518d305e9c8ad66ab"
+    },
+    {
+      "path": "tests/OhMyStudy.Storage.Tests/Program.cs",
+      "sha256": "d207f83e908006dfd260ed88872d414b83e7386092696fcc018cb98f730bdcd0"
+    }
+  ],
+  "buildEnvironmentNotes": [
+    "NuGet vulnerability service failed TLS/network access; local restores used NuGetAudit=false with locked dependency versions. No vulnerability-audit pass is claimed.",
+    "The pre-existing App packages.lock.json change was retained. AOT validation used a HEAD lock-file copy via output/ui-validation/aot-validation.targets.",
+    "Earlier native workflow attempts exposed intermittent access-denied errors during backup directory promotion. Bounded cancellation-aware retries were added and validated with actual held Windows file handles. Final workflow passed after the fix."
+  ],
+  "notRun": [
+    "real-provider-credentials-and-billing",
+    "live-models.dev-HTTP-fetch-on-this-host",
+    "clean-Windows-and-installer-matrix",
+    "physical-printing-and-real-Sandbox",
+    "DPI-IME-screen-reader-and-performance-acceptance",
+    "release-package-and-installed-application-update"
+  ]
+}

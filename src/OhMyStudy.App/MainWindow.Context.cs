@@ -21,6 +21,8 @@ public sealed partial class MainWindow
         try { Navigation.SelectedItem = Navigation.MenuItems[0]; }
         finally { _suppressNavigation = false; }
         SettingsPanel.Visibility = Visibility.Collapsed; TasksPanel.Visibility = Visibility.Collapsed;
+        WorkspaceActions.Visibility = Visibility.Visible; WorkspaceNotice.Visibility = Visibility.Visible;
+        SectionCaption.Visibility = Visibility.Visible;
         WorkspaceGrid.Visibility = Visibility.Visible; DocumentToolbar.Visibility = Visibility.Visible;
         ViewModel.ShowSection("materials");
     }
