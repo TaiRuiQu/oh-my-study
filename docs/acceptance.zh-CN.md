@@ -1,14 +1,14 @@
-# 用户接手验收
+# 用户验收清单
 
 日期：2026-10-18。以下项目由用户执行，本轮均未执行，不能据本机合成回归填写“通过”。每项可填写“通过／失败／未执行／不适用”，保留本地证据位置；缺少设备或账户时填“未执行”和原因。不要把模型密钥、完整凭据或私密试卷写入验收记录，也无需上传这些资料。
 
-本次验收使用最终候选包和其SHA-256。实际入口是解压后的`portable/OhMyStudy.Setup.exe`，安装后从开始菜单打开。若包缺少该文件，停止安装并记录包不完整，不用开发机上的旧程序代替。
+验收使用的候选包及 SHA-256 见 [维护进度](../migration-progress.md)。每次验收须记录实际使用的包。实际入口是解压后的`portable/OhMyStudy.Setup.exe`，安装后从开始菜单打开。若包缺少该文件，停止安装并记录包不完整，不用开发机上的旧程序代替。
 
 ## 记录环境
 
 填写：`日期=____；包名/ZIP SHA-256=____；Windows版本/版本号/内部版本/x64=____；账户类型=____；CPU/内存/GPU/显示器刷新率=____；缩放=____；安装/资料/证据目录=____`。
 
-工程当前以`.NET SDK 10.0.402`、`Microsoft.WindowsAppSDK.WinUI 2.3.9`锁定构建；App使用`net10.0-windows10.0.26100.0`编译，声明的`TargetPlatformMinVersion`为`10.0.19041.0`。这些来自[工程](../../src/OhMyStudy.App/OhMyStudy.App.csproj)、[集中依赖](../../Directory.Packages.props)和[平台记录](p1-platform.zh-CN.md)，不等于以下系统已经实测兼容。实际包组件以包内`components.json`和`package-manifest.json`为准。
+工程当前以`.NET SDK 10.0.402`、`Microsoft.WindowsAppSDK.WinUI 2.3.9`锁定构建；App使用`net10.0-windows10.0.26100.0`编译，声明的`TargetPlatformMinVersion`为`10.0.19041.0`。这些来自[工程](../src/OhMyStudy.App/OhMyStudy.App.csproj)、[集中依赖](../Directory.Packages.props)，不等于以下系统已经实测兼容。实际包组件以包内`components.json`和`package-manifest.json`为准。
 
 ## 安装、本地操作与升级
 

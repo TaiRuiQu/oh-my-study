@@ -47,7 +47,7 @@ dotnet publish src/OhMyStudy.App/OhMyStudy.App.csproj -c Release --no-restore -o
 
 普通用户解压完整包后运行`OhMyStudy.Setup.exe`，默认安装到`%LOCALAPPDATA%/Programs/OhMyStudy`，再从开始菜单打开。升级使用独立版本目录、清单校验和原子活动指针，失败回退旧版本；系统设置或开始菜单可卸载，资料保留。也可使用完整portable目录。两者均不需要开发SDK或系统Python/Node/TeX。本轮不签名，Setup的40项隔离回归不替代干净系统真实安装验收。
 
-公式、PDF、预览、导出及打印没有浏览器控件路径；WinUI 传递发布的可选 WebView2 interop 文件单列在包检查报告，不等同于浏览器进程。候选包的目标系统兼容性及完整离线矩阵尚未关闭，见 [P9](../../docs/migration/p9-release.zh-CN.md)。
+公式、PDF、预览、导出及打印没有浏览器控件路径；WinUI 传递发布的可选 WebView2 interop 文件单列在包检查报告，不等同于浏览器进程。候选包的目标系统兼容性及完整离线矩阵尚未关闭，见 [安装说明](../../docs/installation.zh-CN.md)。
 
 ## 诊断入口
 
@@ -69,10 +69,10 @@ OhMyStudy.App.exe --workflow-smoke C:\absolute\evidence\workflow.json
 
 `--smoke-test` 明确加载合成表示数据，验证窗口、编译绑定、虚拟化、主题、旋转/来源及任务取消演示，并输出当前 App 自身 XAML 树截图。可选 PDF 输入请使用合成资料。`IsNativeAot` 来自 `!RuntimeFeature.IsDynamicCodeSupported`；JIT 运行不能冒充 AOT 通过。启动失败会尽力写出同目录 `.startup-error.txt`，调用方应将超时或缺少报告视为失败。
 
-`--workflow-smoke`使用报告旁唯一`synthetic-workflow-*`目录及专用默认路径文件，不读取真实库、不请求供应商、不访问真实凭据。最新Native AOT工作流28项通过，涵盖12页导入、复杂编辑与小问、答案/教师证据隔离、来源、题库、草稿与保存竞争、切库初始化失败恢复、页面/分辨率与阅读状态等。后续修复以新报告确认，旧截图不作为新构建证据。
+`--workflow-smoke`使用报告旁唯一`synthetic-workflow-*`目录及专用默认路径文件，不读取真实库、不请求供应商、不访问真实凭据。最新已记录的 Native AOT 工作流30项通过，涵盖12页导入、复杂编辑与小问、答案/教师证据隔离、来源、题库、草稿与保存竞争、切库初始化失败恢复、页面/分辨率与阅读状态等。后续修复以新报告确认，旧截图不作为新构建证据。
 
 `--performance-smoke <报告路径>`在空库初始化及分发器响应后写同名`.ready`，随后采样12页三种分辨率、500题连续滚动缩放、Rendering间隔、后台UI排队延迟及自然内存回收曲线；外层脚本只管理自身启动的PID。本轮三次顺序启动P95为636.3232ms，空库自然空闲约104–106MiB，释放资源后约201–202MiB，略超200MiB，不能声称该预算通过。没有强制GC；Rendering回调不等于GPU呈现/ETW，三次顺序样本不等于冷/热启动分布。
 
 真实文件选择/拖放、输入法、读屏、高对比、DPI/多屏、干净Win10/11、真实资料与凭据、供应商、Sandbox、物理打印、GPU/ETW和参考设备性能均由用户负责，当前未标记通过。最新各层数量为Storage93、Provider11、Execution17、Grading211、Media26、Documents8份45页及Setup40；原始结果以根进度与对应报告为准。
 
-维护细节见[架构](../../docs/architecture.zh-CN.md)、[设计原则](../../docs/design-principles.zh-CN.md)、[存储](../../docs/migration/p3-storage.zh-CN.md)与[媒体](../../docs/migration/p6-media.zh-CN.md)。
+维护细节见[架构](../../docs/architecture.zh-CN.md)、[设计原则](../../docs/design-principles.zh-CN.md)、[验收清单](../../docs/acceptance.zh-CN.md)。

@@ -157,7 +157,7 @@ Redistribution/license review and clean-system installation acceptance remain un
             }
         }
     }
-    foreach ($name in @('LICENSE','README.md','AGENTS.md','OhMyStudy.slnx','Directory.Build.props','Directory.Packages.props','NuGet.Config','global.json','migration.md','migration-progress.md','.editorconfig','.gitattributes','.gitignore')) {
+    foreach ($name in @('LICENSE','README.md','AGENTS.md','OhMyStudy.slnx','Directory.Build.props','Directory.Packages.props','NuGet.Config','global.json','migration-progress.md','.editorconfig','.gitattributes','.gitignore')) {
         $file=Join-Path $workspace $name; if (Test-Path -LiteralPath $file -PathType Leaf) { Copy-Item -LiteralPath $file -Destination $sourceStage }
     }
     $sourceDirectory=Join-Path $package 'source'; New-Item -ItemType Directory -Path $sourceDirectory -Force | Out-Null

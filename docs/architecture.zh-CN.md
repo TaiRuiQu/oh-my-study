@@ -1,6 +1,6 @@
 # Oh My Study 原生架构
 
-更新：2026-10-18。正式工程为 C#，旧实现仅归档于忽略的 `.reference/`，不作为后端或构建输入。业务兼容与验收门槛见 [migration.md](../migration.md)，逐轮证据见 [migration-progress.md](../migration-progress.md)。以下区分当前实现与仍需验证的边界，不表示迁移验收已经关闭。
+更新：2026-10-18。正式工程为 C#，旧实现仅归档于忽略的 `.reference/`，不作为后端或构建输入。当前状态与验证证据见 [维护进度](../migration-progress.md)，待验步骤见 [验收清单](acceptance.zh-CN.md)。
 
 ## 分层与组合
 
@@ -50,7 +50,7 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 
 备份使用 SQLite online backup 包含 WAL，连同引用资产与 SHA-256 清单生成完整新目录；恢复校验后只落到不存在的新目录。可写连接用写事务冻结其他数据库写入；只读路径固定读快照，不改变源 schema。新版文件 lease 只约束合作实例，另有已知旧进程检查；它不能阻止改名旧程序、检查后启动或外部文件操作，不能被描述为旧新版可靠互斥。
 
-凭据替换先写新目标，数据库失败则清理新目标，成功后再清理旧目标。Credential Manager 与 SQLite 没有跨系统事务；崩溃或清理失败可能遗留未引用凭据。自动测试使用合成 vault，不触碰真实密钥。详细恢复边界见 [P3](migration/p3-storage.zh-CN.md)。
+凭据替换先写新目标，数据库失败则清理新目标，成功后再清理旧目标。Credential Manager 与 SQLite 没有跨系统事务；崩溃或清理失败可能遗留未引用凭据。自动测试使用合成 vault，不触碰真实密钥。恢复与回退步骤见 [验收清单](acceptance.zh-CN.md#真实资料旧凭据与回退)。
 
 ## 阅读、导出与原生依赖
 
@@ -60,14 +60,12 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 
 PDFium、Typst、SQLite、dwebp、字体和私有 Python 均有固定来源与哈希。WinUI传递的可选WebView2 interop文件单列记录，文件存在不等于浏览器进程被调用；当前产品没有浏览器控件或固定浏览器启动路径。离线候选包包含Native AOT安装器、完整portable目录、运行时、两个计算worker、依赖许可证、源码快照及逐文件清单，状态为`release-candidate-user-acceptance-pending`。
 
-`OhMyStudy.Setup`按用户安装到`%LOCALAPPDATA%/Programs/OhMyStudy`，验证清单后写入独立版本目录，以原子活动指针升级；失败回退旧版本，提供开始菜单与卸载入口，卸载保留资料。安装器自身不依赖开发环境，本轮不执行签名；干净系统安装、升级、卸载与来源信任由用户验收，见[P9](migration/p9-release.zh-CN.md)。
+`OhMyStudy.Setup`按用户安装到`%LOCALAPPDATA%/Programs/OhMyStudy`，验证清单后写入独立版本目录，以原子活动指针升级；失败回退旧版本，提供开始菜单与卸载入口，卸载保留资料。安装器自身不依赖开发环境，本轮不执行签名；干净系统安装、升级、卸载与来源信任由用户验收，见[安装说明](installation.zh-CN.md)。
 
 ## 原生编辑与状态
 
 复杂编辑使用原生字段处理正文、公式、选项、表格、配图、来源和最多八层小问，标准答案、学生作答及教师批注保持独立。保存失败保留窗口与输入，保存期间新输入不会被较早的返回值覆盖；退出或切库对未保存草稿说明后果。视图按资料、页面和题库记录选择、滚动、缩放、焦点与光标，迟到的导航、题目呈现和任务刷新有代次检查；相同内容复用列表行。
 
-## 证据与剩余门槛
+## 验证与待办
 
-本轮实际AOT回归包括Domain 107、Storage 93、Grading 211个断言，Provider 11个协议场景、Execution 17组、Media 26个检查和Setup 40项。App隔离库工作流28项通过，覆盖复杂编辑、保存竞争、资料切换失败恢复和阅读状态；Documents生成8份、合计45页PDF。样板桌面自检继续独立保留，不替代正式仓储流程或真实用户验收。
-
-`output/migration/evidence/performance-final/summary.json`记录三次顺序启动P95为636.3232ms，空库自然空闲约104–106MiB，释放后约201–202MiB，略超200MiB；不能把采集完成算作预算通过。原始报告保留页面加载、Rendering回调、后台UI排队延迟、内存和GC计数曲线，全程不强制GC。Rendering并非GPU呈现或ETW；样本也不能直接命名为冷/热启动。干净Windows、安装升级/卸载、真实库与凭据、供应商语义、真实Sandbox、物理打印、DPI/读屏/输入法和参考设备性能均由用户负责，未标记通过。
+最新验证、产物对应关系、性能问题与未通过事项统一维护在 [维护进度](../migration-progress.md)，人工验证步骤见 [验收清单](acceptance.zh-CN.md)。
