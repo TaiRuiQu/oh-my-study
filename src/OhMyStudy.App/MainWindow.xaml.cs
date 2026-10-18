@@ -44,18 +44,22 @@ public sealed partial class MainWindow : Window
     private int _rasterWidth;
     private int _rasterHeight;
     private bool _closed;
+    private readonly string? _performanceReportPath;
+    private CancellationTokenSource? _questionPresentationCancellation;
     private readonly ThemeSettings _themeSettings;
     private sealed class PreviewInputException(string message) : Exception(message);
 
     public WorkspaceViewModel ViewModel { get; }
 
-    public MainWindow(string? smokeReportPath = null, string? previewPdfPath = null, string? workflowReport = null)
+    public MainWindow(string? smokeReportPath = null, string? previewPdfPath = null, string? workflowReport = null, string? performanceReport = null)
     {
         _smokeReportPath = smokeReportPath;
         _smokePreviewPdfPath = previewPdfPath;
         _workflowReportPath = workflowReport;
+        _performanceReportPath = performanceReport;
         ViewModel = new WorkspaceViewModel(sample: smokeReportPath is not null);
         InitializeComponent();
+        InitializeWorkspaceAccessibility();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
@@ -71,8 +75,11 @@ public sealed partial class MainWindow : Window
         Closed += (_, _) =>
         {
             _closed = true;
+            _questionPresentationCancellation?.Cancel();
+            _questionPresentationCancellation?.Dispose();
             _themeSettings.Changed -= ThemeSettings_Changed;
             CancelPreviewLoad();
+            ReleaseReadingResources();
             _lifetime.Cancel();
             ViewModel.Dispose();
         };
@@ -123,6 +130,11 @@ public sealed partial class MainWindow : Window
             WorkspaceNotice.IsOpen = true;
             DocumentToolbar.Visibility = Visibility.Collapsed;
         }
+        else if (_performanceReportPath is not null)
+        {
+            await RunPerformanceSmokeAsync(_performanceReportPath);
+            return;
+        }
         else if (_workflowReportPath is not null)
         {
             await RunWorkflowSmokeAsync(_workflowReportPath);
@@ -140,7 +152,7 @@ public sealed partial class MainWindow : Window
 
     private async void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (!_initialized) return;
+        if (!_initialized || _suppressNavigation) return;
         RememberViewport();
         long generation = ++_documentGeneration;
         CancelPreviewLoad();
@@ -162,6 +174,7 @@ public sealed partial class MainWindow : Window
                     var questions = await _library.ListQuestionsAsync(_lifetime.Token);
                     if (_closed || generation != _documentGeneration) return;
                     ViewModel.LoadLibrary(questions, tag == "mistakes");
+                    await RestoreWorkspaceContextAsync(tag, generation);
                     EditQuestionButton.IsEnabled = ViewModel.SelectedQuestion.Saved is not null;
                 }
                 else if (tag == "materials" && DocumentPicker.SelectedItem is OhMyStudy.Domain.Document document) await LoadDocumentAsync(document);
@@ -174,6 +187,12 @@ public sealed partial class MainWindow : Window
     private async void QuestionList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized) return;
+        long generation = ++_questionPresentationGeneration;
+        _questionPresentationCancellation?.Cancel();
+        _questionPresentationCancellation?.Dispose();
+        _questionPresentationCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        var cancellation = _questionPresentationCancellation.Token;
+        _reviewSourceRegion = null;
         if (QuestionList.SelectedItem is QuestionViewModel selected) ViewModel.SelectedQuestion = selected;
         EditQuestionButton.IsEnabled = ViewModel.SelectedQuestion.Saved is not null;
         UpdateSourceHighlight();
@@ -181,16 +200,27 @@ public sealed partial class MainWindow : Window
         if (question is null || _library is null) { QuestionContentHost.Content = null; return; }
         try
         {
-            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, _lifetime.Token);
-            if (!_closed && ViewModel.SelectedQuestion.Saved?.Id == question.Id) QuestionContentHost.Content = content;
+            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation);
+            if (!_closed && generation == _questionPresentationGeneration && ReferenceEquals(ViewModel.SelectedQuestion.Saved, question))
+            {
+                QuestionContentHost.Content = content;
+                RestoreQuestionContentOffset();
+            }
         }
         catch (OperationCanceledException) { }
-        catch { if (!_closed) QuestionContentHost.Content = new TextBlock { Text = "题目内容暂时无法显示。" }; }
+        catch { if (!_closed && generation == _questionPresentationGeneration) QuestionContentHost.Content = new TextBlock { Text = "题目内容暂时无法显示。" }; }
     }
 
     private void UpdateSourceHighlight()
     {
         if (SourceHighlight is null) return;
+        if (_reviewSourceRegion is { } review && review.PageId == _sourcePageId)
+        {
+            SourceOverlay.Visibility = Visibility.Visible;
+            Canvas.SetLeft(SourceHighlight, review.X * _pageWidth); Canvas.SetTop(SourceHighlight, review.Y * _pageHeight);
+            SourceHighlight.Width = review.Width * _pageWidth; SourceHighlight.Height = review.Height * _pageHeight;
+            return;
+        }
         if (ViewModel.SelectedQuestion.Saved is { } saved)
         {
             var source = saved.Question.Sources.FirstOrDefault(r => r.PageId == _sourcePageId);
@@ -277,6 +307,11 @@ public sealed partial class MainWindow : Window
     private void SourceViewer_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
     {
         if (_initialized) SetZoomControls(SourceViewer.ZoomFactor);
+        if (_initialized && !e.IsIntermediate && !_settingRaster)
+        {
+            RememberPageViewport();
+            ImproveReadingResolutionAsync();
+        }
     }
 
     private void SetZoomControls(float factor)
@@ -410,6 +445,8 @@ public sealed partial class MainWindow : Window
     {
         _previewGeneration++;
         _previewCancellation?.Cancel();
+        CancelPrefetch();
+        CancelResolutionUpgrade();
     }
 
     private void CancelPreview_Click(object sender, RoutedEventArgs e)

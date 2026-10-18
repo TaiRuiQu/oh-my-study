@@ -25,11 +25,13 @@ public sealed partial class MainWindow
     private async void ExportQuestions_Click(object sender, RoutedEventArgs e)
     {
         if (_exportingQuestions || _closed) return;
+        if (ViewModel.Questions.Any(item => item.IsDirty))
+        { ViewModel.StatusMessage = "请先保存修改后导出。"; return; }
         var saved = ViewModel.Questions.Where(item => item.Saved is not null).Select(item => item.Saved!).ToList();
         string title = ViewModel.CurrentDocument?.Name ?? "题目";
         if (saved.Count == 0) { ViewModel.StatusMessage = "请先整理并保存题目。"; return; }
-        if (saved.Any(item => !CanExportQuestion(item.Question)))
-        { ViewModel.StatusMessage = "部分题目含图片、表格、多层小问或暂不支持的公式，暂不能完整导出。请保留原资料。"; return; }
+        var library = _library;
+        if (library is null) { ViewModel.StatusMessage = "请先打开资料库。"; return; }
         _exportingQuestions = true;
         try
         {
@@ -40,23 +42,39 @@ public sealed partial class MainWindow
             content.Children.Add(paper); content.Children.Add(edition);
             var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = "导出题目", Content = content, PrimaryButtonText = "继续", CloseButtonText = "取消", DefaultButton = ContentDialogButton.Primary };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+            var size = paper.SelectedIndex == 1 ? ExamPaper.A3Landscape : ExamPaper.A4Portrait;
+            var version = edition.SelectedIndex == 1 ? ExamEdition.Answers : ExamEdition.Questions;
+            if (version == ExamEdition.Questions && saved.Any(item => ContainsHandwrittenImage(item.Question)))
+            { ViewModel.StatusMessage = "题图中含有手写内容，请更换干净题图后导出题目卷。"; return; }
             var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = "题目" };
             picker.FileTypeChoices.Add("PDF", new List<string> { ".pdf" });
             WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
             var file = await picker.PickSaveFileAsync();
             if (file is null) return;
-            var document = new ExamDocument(title, saved.Select((item, index) => ExportQuestion(item.Question, index + 1)).ToList());
-            var size = paper.SelectedIndex == 1 ? ExamPaper.A3Landscape : ExamPaper.A4Portrait;
-            var version = edition.SelectedIndex == 1 ? ExamEdition.Answers : ExamEdition.Questions;
             ViewModel.StatusMessage = "正在导出…";
+            int fallbackCount = 0;
             var bytes = await Task.Run(async () =>
             {
+                var pages = (await library.ListDocumentsAsync(_lifetime.Token).ConfigureAwait(false))
+                    .SelectMany(document => document.Pages).ToDictionary(page => page.Id, StringComparer.Ordinal);
+                var reader = new NativePageImages();
+                var imageBudget = new ExportImageBudget();
+                var questions = new List<ExamQuestion>();
+                for (int index = 0; index < saved.Count; index++)
+                {
+                    var item = saved[index].Question;
+                    var body = await ExportSegmentsAsync(item, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false);
+                    body.Insert(0, new ExamSegment($"原题号：{item.Number}" + (item.Points is { } points ? $"　（{points:g} 分）" : "")));
+                    questions.Add(new ExamQuestion(index + 1, body, item.StandardAnswer, item.Explanation, Options: item.Options,
+                        Parts: await ExportPartsAsync(item.Parts, library, pages, reader, imageBudget, 0, _lifetime.Token).ConfigureAwait(false)));
+                }
+                var document = new ExamDocument(title, questions);
                 var service = new TypstDocumentService(new(Path.Combine(AppContext.BaseDirectory, "native", "typst", "typst.exe"), Path.Combine(AppContext.BaseDirectory, "native", "fonts")));
                 var directory = Directory.CreateTempSubdirectory("OhMyStudy-Export-").FullName;
                 try
                 {
                     var result = await service.ExportExamAsync(document, size, version, directory, _lifetime.Token).ConfigureAwait(false);
-                    if (result.Diagnostics.Count != 0) throw new InvalidDataException("Incomplete export");
+                    fallbackCount = result.Diagnostics.Count;
                     return await File.ReadAllBytesAsync(result.PdfPath, _lifetime.Token).ConfigureAwait(false);
                 }
                 finally { DeleteExportFiles(directory); }
@@ -64,31 +82,77 @@ public sealed partial class MainWindow
             _lifetime.Token.ThrowIfCancellationRequested();
             // The picker owns the destination; this is the first write of the complete verified PDF.
             await FileIO.WriteBytesAsync(file, bytes).AsTask(_lifetime.Token);
-            ViewModel.StatusMessage = "PDF 已保存。";
+            ViewModel.StatusMessage = fallbackCount == 0 ? "PDF 已保存。" : "PDF 已保存，部分公式已保留原文，请检查。";
         }
         catch (OperationCanceledException) { if (!_closed) ViewModel.StatusMessage = "已取消导出。"; }
+        catch (InvalidDataException error) when (error.Message.StartsWith("题图", StringComparison.Ordinal))
+        { if (!_closed) ViewModel.StatusMessage = error.Message; }
+        catch (ArgumentException) { if (!_closed) ViewModel.StatusMessage = "题目内容或图片范围超过导出限制，请检查后分批导出。"; }
         catch { if (!_closed) ViewModel.StatusMessage = "导出未完成，请检查保存位置或重新安装应用后重试。"; }
         finally { _exportingQuestions = false; }
     }
 
-    private static bool CanExportQuestion(Question question) => question.Content.All(CanExportContent)
-        && question.Parts.All(part => part.Parts.Count == 0 && part.Content.All(CanExportContent));
-    private static bool CanExportContent(Content content) => content is TextContent || content is FormulaContent formula && LatexFormulaConverter.Convert(formula.Latex).IsSupported;
-    private static List<ExamSegment> ExportSegments(Question question) => question.Content.Select(content => content switch
-    { TextContent text => new ExamSegment(text.Text), FormulaContent formula => new ExamSegment(formula.Latex, true), _ => throw new InvalidOperationException() }).ToList();
-    private static ExamQuestion ExportQuestion(Question question, int ordinal)
+    private static bool ContainsHandwrittenImage(Question question) => question.Content.OfType<ImageContent>().Any(image => image.ContainsHandwriting)
+        || question.Parts.Any(ContainsHandwrittenImage);
+
+    private static async Task<List<ExamSegment>> ExportSegmentsAsync(Question question, OhMyStudy.Infrastructure.Storage.LibraryRepository library,
+        IReadOnlyDictionary<string, SourcePage> pages, NativePageImages reader, ExportImageBudget imageBudget, CancellationToken cancellationToken)
     {
-        var body = ExportSegments(question);
-        body.Insert(0, new ExamSegment($"原题号：{question.Number}"));
-        var parts = question.Parts.Select(part => new ExamPart(part.Number, ExportSegments(part).Concat(part.Options.Select(option => new ExamSegment(option))).ToList(), string.IsNullOrWhiteSpace(part.Explanation) ? part.StandardAnswer : part.StandardAnswer + "\n解析：" + part.Explanation)).ToList();
-        return new ExamQuestion(ordinal, body, question.StandardAnswer, question.Explanation, Options: question.Options, Parts: parts);
+        var segments = new List<ExamSegment>();
+        foreach (var content in question.Content)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            switch (content)
+            {
+                case TextContent text: segments.Add(new(text.Text)); break;
+                case FormulaContent formula: segments.Add(new(formula.Latex, true)); break;
+                case TableContent table: segments.Add(new("", Rows: table.Rows.Select(row => (IReadOnlyList<string>)row.ToArray()).ToArray())); break;
+                case ImageContent image:
+                    if (!pages.TryGetValue(image.Region.PageId, out var page)) throw new InvalidDataException("题图来源已不存在。");
+                    var asset = await library.ReadAssetAsync(page.AssetId, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    var result = await reader.ReadAsync(asset.Bytes, image.Region, page.Rotation, cancellationToken).ConfigureAwait(false);
+                    segments.Add(new("", Image: new ExamImage(imageBudget.Intern(Convert.FromBase64String(result.Image.Base64)), image.Caption, image.ContainsHandwriting)));
+                    break;
+                default: throw new InvalidDataException("无法完整读取题目内容。");
+            }
+        }
+        return segments;
     }
+
+    private static async Task<List<ExamPart>> ExportPartsAsync(IReadOnlyList<Question> parts, OhMyStudy.Infrastructure.Storage.LibraryRepository library,
+        IReadOnlyDictionary<string, SourcePage> pages, NativePageImages reader, ExportImageBudget imageBudget, int depth, CancellationToken cancellationToken)
+    {
+        if (parts.Count == 0) return [];
+        if (depth >= 32) throw new InvalidDataException("小问层级过多。");
+        var result = new List<ExamPart>();
+        foreach (var part in parts)
+            result.Add(new ExamPart(part.Number, await ExportSegmentsAsync(part, library, pages, reader, imageBudget, cancellationToken).ConfigureAwait(false), part.StandardAnswer,
+                Explanation: part.Explanation, Options: part.Options,
+                Parts: await ExportPartsAsync(part.Parts, library, pages, reader, imageBudget, depth + 1, cancellationToken).ConfigureAwait(false)));
+        return result;
+    }
+    private sealed class ExportImageBudget
+    {
+        private readonly Dictionary<string, byte[]> _images = new(StringComparer.Ordinal);
+        private long _bytes;
+        public byte[] Intern(byte[] bytes)
+        {
+            string hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes));
+            if (_images.TryGetValue(hash, out var existing)) return existing;
+            if (bytes.Length > 64 * 1024 * 1024 || _images.Count >= 512 || _bytes + bytes.LongLength > 128L * 1024 * 1024)
+                throw new InvalidDataException("题图总量超过限制，请分批导出。");
+            _images.Add(hash, bytes); _bytes += bytes.LongLength;
+            return bytes;
+        }
+    }
+
     private static void DeleteExportFiles(string directory)
     {
         try
         {
             foreach (var name in new[] { "a4-questions", "a4-answers", "a3-questions", "a3-answers" })
                 foreach (var extension in new[] { ".typ", ".pdf" }) File.Delete(Path.Combine(directory, name + extension));
+            foreach (var asset in Directory.EnumerateFiles(directory, "asset-*")) File.Delete(asset);
             var packages = Path.Combine(directory, "empty-packages");
             if (Directory.Exists(packages)) Directory.Delete(packages, recursive: false);
             Directory.Delete(directory, recursive: false);

@@ -30,6 +30,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         string? reportPath = null;
         string? previewPdfPath = null;
         string? workflowReport = null;
+        string? performanceReport = null;
         for (int index = 1; index < arguments.Length; index++)
         {
             if (arguments[index] == "--smoke-test" && index + 1 < arguments.Length)
@@ -38,11 +39,13 @@ public partial class App : Microsoft.UI.Xaml.Application
                 previewPdfPath = Path.GetFullPath(arguments[++index]);
             else if (arguments[index] == "--workflow-smoke" && index + 1 < arguments.Length)
                 workflowReport = Path.GetFullPath(arguments[++index]);
+            else if (arguments[index] == "--performance-smoke" && index + 1 < arguments.Length)
+                performanceReport = Path.GetFullPath(arguments[++index]);
         }
 
         try
         {
-            _window = new MainWindow(reportPath, previewPdfPath, workflowReport);
+            _window = new MainWindow(reportPath, previewPdfPath, workflowReport, performanceReport);
             _window.Activate();
         }
         catch (Exception exception)

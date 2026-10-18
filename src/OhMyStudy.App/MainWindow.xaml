@@ -82,12 +82,14 @@
                             <ComboBox.ItemTemplate><DataTemplate x:DataType="domain:Document"><TextBlock Text="{x:Bind Name}" /></DataTemplate></ComboBox.ItemTemplate>
                         </ComboBox>
                         <Button x:Name="EditQuestionButton" Content="编辑题目" Click="EditQuestion_Click" IsEnabled="False" />
+                        <Button Content="整理结果" Click="ViewResults_Click" />
                     </StackPanel>
                     <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational"
                         Title="示例资料" Message="可查看和编辑，修改不会保存。" />
                 </StackPanel>
                 <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="16">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="424" /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="WorkspaceColumnsRight" Width="424" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition x:Name="WorkspaceQuestionsRow" Height="0" /></Grid.RowDefinitions>
                     <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12"
                         Background="{ThemeResource WorkspaceSurfaceBrush}" AllowDrop="True" DragOver="Source_DragOver" Drop="Source_Drop">
                         <Grid RowSpacing="0">
@@ -139,9 +141,9 @@
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel x:Name="PdfPageControls" Grid.ColumnSpan="3" Visibility="Collapsed" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8" HorizontalAlignment="Center">
-                                    <Button x:Name="PreviousPdfPage" Content="上一页" Click="PreviousPdfPage_Click" AutomationProperties.Name="显示 PDF 上一页" />
+                                    <Button x:Name="PreviousPdfPage" Content="上一页" Click="PreviousPdfPage_Click" AutomationProperties.Name="显示上一页" />
                                     <TextBlock x:Name="PdfPageLabel" Text="第 1 / 1 页" VerticalAlignment="Center" />
-                                    <Button x:Name="NextPdfPage" Content="下一页" Click="NextPdfPage_Click" AutomationProperties.Name="显示 PDF 下一页" />
+                                    <Button x:Name="NextPdfPage" Content="下一页" Click="NextPdfPage_Click" AutomationProperties.Name="显示下一页" />
                                     <Button x:Name="CancelPreview" Content="取消加载" Click="CancelPreview_Click" IsEnabled="False" />
                                 </StackPanel>
                                 <Button Grid.Row="1" Click="FitPage_Click" Content="适合页面" ToolTipService.ToolTip="恢复适合视口的缩放" />
@@ -151,7 +153,7 @@
                             </Grid>
                         </Grid>
                     </Border>
-                    <Border Grid.Column="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <Border x:Name="QuestionPane" Grid.Column="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid Padding="20,14" ColumnSpacing="8">
@@ -179,7 +181,7 @@
                             </ListView>
                             <Border Grid.Row="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="20,16">
                                 <StackPanel Spacing="10">
-                                    <ScrollViewer x:Name="QuestionContentHost" MaxHeight="180" VerticalScrollBarVisibility="Auto" />
+                                    <ScrollViewer x:Name="QuestionContentHost" MaxHeight="180" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="题目内容" IsTabStop="True" />
                                     <Grid ColumnSpacing="10">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <TextBlock Text="{x:Bind ViewModel.SelectedQuestion.Label, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
@@ -188,7 +190,7 @@
                                     <TextBox x:Name="AnswerEditor" Header="答案" AcceptsReturn="True" TextWrapping="Wrap"
                                         MinHeight="82" MaxHeight="125" ScrollViewer.VerticalScrollBarVisibility="Auto"
                                         Text="{x:Bind ViewModel.SelectedQuestion.Answer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBox Header="备注" PlaceholderText="记录你的理解、标签或复习提示"
+                                    <TextBox Header="备注" PlaceholderText="记录你的理解或复习提示"
                                         Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     <Button Content="保存" Command="{x:Bind ViewModel.FinishEditCommand}" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" />
                                 </StackPanel>
@@ -211,9 +213,9 @@
                                 <ComboBox x:Name="ProtocolPicker" Header="接口" SelectedIndex="0" MinWidth="280">
                                     <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" /><ComboBoxItem Content="Google Gemini" />
                                 </ComboBox>
-                                <TextBox x:Name="ProviderUrl" Header="地址" PlaceholderText="https://…" />
+                                <TextBox x:Name="ProviderUrl" Header="地址" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
                                 <PasswordBox x:Name="ProviderKey" Header="密钥" PlaceholderText="留空保留已有密钥" />
-                                <TextBox x:Name="ModelId" Header="模型" PlaceholderText="填写模型名称" />
+                                <TextBox x:Name="ModelId" Header="模型" PlaceholderText="填写模型名称" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Button Content="保存" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
                                     <Button Content="添加" Click="NewProvider_Click" />

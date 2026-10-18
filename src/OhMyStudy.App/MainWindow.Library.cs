@@ -30,6 +30,7 @@ public sealed partial class MainWindow
     private readonly SemaphoreSlim _importGate = new(1, 1);
     private bool _loadingLibrary;
     private string _libraryDirectory = "";
+    private string? _libraryPointerOverride;
     private string? _activeJob;
     private long _documentGeneration;
     private int _sourcePageIndex;
@@ -38,6 +39,8 @@ public sealed partial class MainWindow
     private bool _programmaticSelection;
     private bool _shutdownStarted;
     private bool _shutdownFinished;
+    private bool _closeReviewOpen;
+    private long _taskRefreshGeneration;
     private AppSettings _settings = AppSettings.Default;
     private string? _selectedProviderId;
     private readonly BoundedRasterPageCache _pageCache = new(64L * 1024 * 1024, 16);
@@ -47,7 +50,12 @@ public sealed partial class MainWindow
     {
         if (_shutdownFinished || _library is null && _jobs is null) return;
         args.Cancel = true;
-        if (_shutdownStarted) return;
+        if (_shutdownStarted || _closeReviewOpen) return;
+        if (_questionEditorOpen) { ViewModel.StatusMessage = "请先保存或关闭编辑窗口。"; return; }
+        _closeReviewOpen = true;
+        try { if (!await ConfirmDiscardEditsAsync(true)) return; }
+        catch { ViewModel.StatusMessage = "请先关闭当前窗口，再退出应用。"; return; }
+        finally { _closeReviewOpen = false; }
         _shutdownStarted = true;
         _lifetime.Cancel();
         ViewModel.StatusMessage = "正在结束任务…";
@@ -80,24 +88,29 @@ public sealed partial class MainWindow
         catch { if (!_closed && generation == _documentGeneration && _sourcePageId == sourceId) { _rotation = oldRotation; Rotate(0); ViewModel.StatusMessage = "方向未能保存，请等待任务结束后重试。"; } }
     }
 
-    private async Task InitializeLibraryAsync(string? directory = null)
+    private async Task<bool> InitializeLibraryAsync(string? directory = null)
     {
-        if (_loadingLibrary) return;
+        if (_loadingLibrary) return false;
         _loadingLibrary = true;
+        bool complete = false;
         try
         {
             string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy");
-            var pointer = Path.Combine(appData, "active-library.txt");
-            var selected = File.Exists(pointer) ? (await File.ReadAllTextAsync(pointer, _lifetime.Token)).Trim() : null;
+            var pointer = _libraryPointerOverride ?? Path.Combine(appData, "active-library.txt");
+            var selected = directory is null && File.Exists(pointer) ? (await File.ReadAllTextAsync(pointer, _lifetime.Token)).Trim() : null;
             _libraryDirectory = directory ?? (selected is not null && Path.IsPathFullyQualified(selected) && File.Exists(LegacyLibraryLocation.DatabaseFile(selected)) ? selected : Path.Combine(appData, "Library"));
             var mode = File.Exists(LegacyLibraryLocation.DatabaseFile(_libraryDirectory)) ? LibraryOpenMode.ReadWrite : LibraryOpenMode.CreateNew;
             _library = await LibraryRepository.OpenAsync(new(_libraryDirectory, mode) { MediaProcessor = new NativeMediaProcessor() }, _lifetime.Token);
+            string privateRuntime = Path.Combine(AppContext.BaseDirectory, "runtime", "python");
+            var activeLibrary = _library;
             _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new GradingRunner(_library, new NativePageImages()),
-                new HostToolExecutor(Path.Combine(AppContext.BaseDirectory, "runtime", "python")), Path.Combine(_libraryDirectory, "task-results"), _lifetime.Token);
+                new PolicyToolExecutor(new HostToolExecutor(privateRuntime), new SandboxToolExecutor(privateRuntime)), Path.Combine(_libraryDirectory, "task-results"), _lifetime.Token);
             ViewModel.SaveQuestionAsync = async question =>
             {
-                question.AcceptSaved(await _library.EditQuestionAsync(question.Saved!.Id, question.EditedQuestion, _lifetime.Token));
-                await ReloadQuestionsAsync();
+                var submitted = question.EditedQuestion;
+                question.AcceptSaved(await activeLibrary.EditQuestionAsync(question.Saved!.Id, submitted, _lifetime.Token), submitted);
+                // A later read failure cannot turn a committed save into an unsaved draft.
+                try { await ReloadQuestionsAsync(); } catch { }
             };
             ViewModel.CancelCurrentJob = async () =>
             {
@@ -123,17 +136,40 @@ public sealed partial class MainWindow
                 WorkspaceNotice.Title = "发现旧版资料";
                 WorkspaceNotice.Message = "可从更多菜单导入，原资料会保留。"; WorkspaceNotice.IsOpen = true;
             }
+            complete = true;
+            return true;
         }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
-        catch { ViewModel.StatusMessage = "资料库无法打开，请关闭其他窗口后重新打开。"; GradeButton.IsEnabled = false; }
-        finally { _loadingLibrary = false; }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { return false; }
+        catch { ViewModel.StatusMessage = "资料库无法打开，请关闭其他窗口后重新打开。"; GradeButton.IsEnabled = false; return false; }
+        finally
+        {
+            if (!complete)
+            {
+                try { await DisposeLibrarySessionAsync(); } catch { }
+                ViewModel.SaveQuestionAsync = null; ViewModel.CancelCurrentJob = null;
+                _programmaticSelection = true;
+                try { _documents.Clear(); _providers.Clear(); }
+                finally { _programmaticSelection = false; }
+                ViewModel.ClearLibrary(); ReleaseReadingResources();
+            }
+            _loadingLibrary = false;
+        }
+    }
+
+    private async Task DisposeLibrarySessionAsync()
+    {
+        var jobs = _jobs; var library = _library;
+        _jobs = null; _library = null;
+        try { if (jobs is not null) await jobs.DisposeAsync(); }
+        finally { if (library is not null) await library.DisposeAsync(); }
     }
 
     private async Task RefreshDocumentsAsync(string? selectId = null)
     {
         if (_library is null) return;
+        long generation = ++_documentListGeneration;
         var documents = await _library.ListDocumentsAsync(_lifetime.Token);
-        if (_closed) return;
+        if (_closed || generation != _documentListGeneration) return;
         _programmaticSelection = true;
         _documents.Clear(); foreach (var document in documents) _documents.Add(document);
         DocumentPicker.SelectedItem = _documents.FirstOrDefault(d => d.Id == (selectId ?? ViewModel.CurrentDocument?.Id)) ?? _documents.FirstOrDefault();
@@ -152,11 +188,15 @@ public sealed partial class MainWindow
     {
         if (_library is null) return;
         RememberViewport();
+        ShowMaterialsNavigation();
         long generation = ++_documentGeneration;
         var current = await _library.GetDocumentAsync(document.Id, _lifetime.Token);
         var result = await _library.GradingResultAsync(document.Id, _lifetime.Token);
         if (_closed || generation != _documentGeneration) return;
         ViewModel.LoadDocument(current, result.Questions);
+        _programmaticSelection = true;
+        try { DocumentPicker.SelectedItem = _documents.FirstOrDefault(item => item.Id == current.Id); }
+        finally { _programmaticSelection = false; }
         GradeButton.IsEnabled = current.Pages.Count > 0 && !current.PendingPdfPages;
         WorkspaceNotice.IsOpen = current.PendingPdfPages;
         WorkspaceNotice.Title = "资料尚未准备完成";
@@ -164,12 +204,15 @@ public sealed partial class MainWindow
         var view = _viewports.GetValueOrDefault(current.Id);
         _sourcePageIndex = Math.Clamp(view.Page, 0, Math.Max(0, current.Pages.Count - 1));
         await ShowSourcePageAsync(_sourcePageIndex);
+        if (_closed || generation != _documentGeneration || ViewModel.CurrentDocument?.Id != current.Id) return;
         if (view.Zoom > 0) SourceViewer.ChangeView(view.X, view.Y, view.Zoom, true);
+        await RestoreWorkspaceContextAsync("materials:" + current.Id, generation);
         UpdateSourceHighlight();
     }
 
     private void RememberViewport()
     {
+        RememberWorkspaceContext();
         if (ViewModel.CurrentDocument is { } current)
             _viewports[current.Id] = (_sourcePageIndex, _rotation, SourceViewer.ZoomFactor, SourceViewer.HorizontalOffset, SourceViewer.VerticalOffset);
     }
@@ -178,45 +221,63 @@ public sealed partial class MainWindow
     {
         if (_library is null || _closed) return;
         long generation = _documentGeneration;
+        long reload = ++_questionReloadGeneration;
+        RememberWorkspaceContext();
+        string contextKey = _workspaceContextKey;
         if (ViewModel.CurrentDocument is { } document)
         {
             var result = await _library.GradingResultAsync(document.Id, _lifetime.Token);
-            if (!_closed && generation == _documentGeneration && ViewModel.CurrentDocument?.Id == document.Id) ViewModel.LoadDocument(document, result.Questions);
+            if (_closed || generation != _documentGeneration || reload != _questionReloadGeneration || ViewModel.CurrentDocument?.Id != document.Id) return;
+            ViewModel.LoadDocument(document, result.Questions);
         }
         else if (!ViewModel.IsSample)
         {
             var questions = await _library.ListQuestionsAsync(_lifetime.Token);
-            if (!_closed && generation == _documentGeneration) ViewModel.LoadLibrary(questions, ViewModel.SectionTitle == "错题");
+            if (_closed || generation != _documentGeneration || reload != _questionReloadGeneration) return;
+            ViewModel.LoadLibrary(questions, ViewModel.SectionTitle == "错题");
         }
+        await RestoreWorkspaceContextAsync(contextKey, generation);
     }
 
     private async Task ShowSourcePageAsync(int index)
     {
         if (_library is null || ViewModel.CurrentDocument is not { } document || index < 0 || index >= document.Pages.Count) return;
-        CancelPreviewLoad(); long generation = _previewGeneration;
+        var library = _library;
+        RememberPageViewport();
+        var ct = BeginReadingLoad(); long generation = _previewGeneration;
         var page = document.Pages[index];
-        var key = new PageCacheKey(page.AssetId, 1600, 0);
-        if (!_pageCache.TryGet(key, out var raster))
+        try
         {
-            var asset = await _library.ReadAssetAsync(page.AssetId, cancellationToken: _lifetime.Token);
+            int level = _pageViewports.TryGetValue(page.Id, out var savedView) && savedView.Zoom > 1 ? 2400 : 1024;
+            var raster = await GetReadingRasterAsync(library, page, level, ct);
             if (_closed || generation != _previewGeneration) return;
-            if (asset.Mime == "application/pdf") { ViewModel.StatusMessage = "这份资料尚未准备完成。"; return; }
-            raster = await new NativePageImages().RasterForUiAsync(asset.Bytes, 1600, _lifetime.Token);
-            _pageCache.Set(key, raster);
+            var bitmap = await CreateRasterImageAsync(raster);
+            if (_closed || generation != _previewGeneration) return;
+            _settingRaster = true;
+            try
+            {
+                ImportedImage.Source = bitmap; ImportedImage.Visibility = Visibility.Visible; SamplePaper.Visibility = Visibility.Collapsed;
+                _currentRasterLevel = level;
+                _hasImportedImage = true; _pdfPath = null; _sourcePageIndex = index; _sourcePageId = page.Id;
+                _restoringRotation = true; _rotation = page.Rotation;
+                // Keep one geometry at every resolution so zoom upgrades preserve the source overlay.
+                SetPageDimensions(page.Width ?? (uint)raster.Width, page.Height ?? (uint)raster.Height); _restoringRotation = false;
+                OriginalCaption.Text = page.Role == "reference" ? "参考答案" : "原件";
+                PdfPageControls.Visibility = document.Pages.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+                PdfPageLabel.Text = $"第 {index + 1} / {document.Pages.Count} 页";
+                PreviousPdfPage.IsEnabled = index > 0; NextPdfPage.IsEnabled = index + 1 < document.Pages.Count;
+                CancelPreview.Visibility = Visibility.Collapsed;
+                if (_pageViewports.TryGetValue(page.Id, out savedView)) SourceViewer.ChangeView(savedView.X, savedView.Y, savedView.Zoom, true);
+                else FitPage();
+                UpdateSourceHighlight();
+            }
+            finally { _settingRaster = false; }
+            StartReadingPrefetch(document, index);
+            ImproveReadingResolutionAsync();
         }
-        if (_closed || generation != _previewGeneration) return;
-        var bitmap = await CreateRasterImageAsync(raster!);
-        if (_closed || generation != _previewGeneration) return;
-        ImportedImage.Source = bitmap; ImportedImage.Visibility = Visibility.Visible; SamplePaper.Visibility = Visibility.Collapsed;
-        _hasImportedImage = true; _pdfPath = null; _sourcePageIndex = index; _sourcePageId = page.Id;
-        _restoringRotation = true; _rotation = page.Rotation;
-        SetPageDimensions(raster!.Width, raster.Height); _restoringRotation = false;
-        OriginalCaption.Text = page.Role == "reference" ? "参考答案" : "原件";
-        PdfPageControls.Visibility = document.Pages.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        PdfPageLabel.Text = $"第 {index + 1} / {document.Pages.Count} 页";
-        PreviousPdfPage.IsEnabled = index > 0; NextPdfPage.IsEnabled = index + 1 < document.Pages.Count;
-        CancelPreview.Visibility = Visibility.Collapsed;
-        FitPage(); UpdateSourceHighlight();
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch { if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = "页面无法打开，请重新选择或导入。"; }
     }
 
     private async Task ImportFilesAsync(IReadOnlyList<StorageFile> files, bool reference = false, string? referenceDocumentId = null)
@@ -382,7 +443,7 @@ public sealed partial class MainWindow
             var unknown = new CheckBox { Content = "允许尝试尚未确认能力的模型" };
             choice.SelectionChanged += (_, _) => { thinkingChoice.Items.Clear(); thinkingChoice.Items.Add("默认"); if (choice.SelectedIndex >= 0) foreach (var option in availableModels[choice.SelectedIndex].Model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option)); thinkingChoice.SelectedIndex = 0; };
             var preferred = _settings.ExecutionMode switch { "sandbox" => ExecutionMode.Sandbox, "bypass_permission" => ExecutionMode.BypassPermission, _ => ExecutionMode.RequestPermission };
-            var capability = await Task.Run(SandboxCapability.Detect);
+            var capability = await SandboxCapability.ProbeAsync(Path.Combine(AppContext.BaseDirectory, "runtime", "python"), _lifetime.Token);
             var policy = ExecutionPolicy.Freeze(preferred, capability, _settings.SandboxNetworking);
             var content = new StackPanel { Spacing = 14 }; content.Children.Add(choice); content.Children.Add(thinkingChoice); content.Children.Add(unknown);
             if (policy.Warning is not null) content.Children.Add(new TextBlock { Text = "沙箱暂不可用。本次代码与命令将在本机运行，可访问当前账户的文件和网络。", TextWrapping = TextWrapping.Wrap });
@@ -410,30 +471,31 @@ public sealed partial class MainWindow
 
     private async Task ObserveJobsAsync()
     {
-        if (_jobs is null) return;
+        if (_jobs is not { } observedJobs) return;
         try
         {
-            await foreach (var change in _jobs.WatchAsync(_lifetime.Token))
+            await foreach (var change in observedJobs.WatchAsync(_lifetime.Token))
                 DispatcherQueue.TryEnqueue(async () =>
                 {
-                    if (_closed || _lifetime.IsCancellationRequested) return;
+                    if (_closed || _lifetime.IsCancellationRequested || !ReferenceEquals(_jobs, observedJobs)) return;
                     try { await RefreshTasksAsync(); if (change.Kind is "completed" or "failed" or "cancelled") await ReloadQuestionsAsync(); }
                     catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
                     catch { if (!_closed) ViewModel.StatusMessage = "任务状态暂时无法更新，请重新打开任务页。"; }
                 });
         }
         catch (OperationCanceledException) { }
-        catch { if (!_closed) DispatcherQueue.TryEnqueue(() => ViewModel.StatusMessage = "任务状态暂时无法更新。"); }
+        catch { if (!_closed && ReferenceEquals(_jobs, observedJobs)) DispatcherQueue.TryEnqueue(() => ViewModel.StatusMessage = "任务状态暂时无法更新。"); }
     }
     private async Task RefreshTasksAsync()
     {
         if (_jobs is null || _closed) return;
+        long generation = ++_taskRefreshGeneration;
         var jobs = await _jobs.ListAsync(_lifetime.Token);
-        if (_closed) return;
+        if (_closed || generation != _taskRefreshGeneration) return;
         var active = jobs.FirstOrDefault(j => !j.State.IsTerminal());
         _activeJob = active?.Id; ViewModel.UpdateJob(active);
-        TaskCards.Children.Clear();
-        if (jobs.Count == 0) TaskCards.Children.Add(new TextBlock { Text = "暂无任务。", Margin = new Thickness(0, 12, 0, 0) });
+        var cards = new List<UIElement>();
+        if (jobs.Count == 0) cards.Add(new TextBlock { Text = "暂无任务。", Margin = new Thickness(0, 12, 0, 0) });
         foreach (var job in jobs)
         {
             var panel = new StackPanel { Spacing = 10 };
@@ -443,6 +505,7 @@ public sealed partial class MainWindow
             if (job.Input is not null && _library is not null)
             {
                 var details = await _library.ListJobModelCallsAsync(job.Id, _lifetime.Token);
+                if (_closed || generation != _taskRefreshGeneration) return;
                 var costs = details.Where(c => c.TryGetProperty("estimated_cost", out var cost) && cost.ValueKind == System.Text.Json.JsonValueKind.Number)
                     .Select(c => c.GetProperty("estimated_cost").GetDouble()).ToArray();
                 ulong inputTokens = 0, outputTokens = 0;
@@ -462,7 +525,7 @@ public sealed partial class MainWindow
                 var button = new Button { Content = "查看执行请求", Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"] };
                 button.Click += async (_, _) => await ReviewPermissionAsync(job.Id, review); panel.Children.Add(button);
             }
-            TaskCards.Children.Add(new Border
+            cards.Add(new Border
             {
                 Child = panel,
                 Padding = new Thickness(20),
@@ -470,6 +533,8 @@ public sealed partial class MainWindow
                 Background = (Brush)Microsoft.UI.Xaml.Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]
             });
         }
+        if (_closed || generation != _taskRefreshGeneration) return;
+        TaskCards.Children.Clear(); foreach (var card in cards) TaskCards.Children.Add(card);
     }
     private async Task ReviewPermissionAsync(string id, PermissionReview review)
     {
@@ -499,8 +564,8 @@ public sealed partial class MainWindow
     }
     private async void RestoreBackup_Click(object sender, RoutedEventArgs e)
     {
-        try { var folder = await PickFolderAsync(); if (folder is null) return; var destination = Path.Combine(Path.GetDirectoryName(_libraryDirectory)!, "Restored-" + DateTime.Now.ToString("yyyyMMdd-HHmmss")); await LibraryRepository.RestoreBackupAsync(folder.Path, destination, _lifetime.Token); await SwitchLibraryAsync(destination); ViewModel.StatusMessage = "已恢复备份。"; }
-        catch { ViewModel.StatusMessage = "恢复失败，请选择完整的备份文件夹。"; }
+        try { var folder = await PickFolderAsync(); if (folder is null) return; var destination = Path.Combine(Path.GetDirectoryName(_libraryDirectory)!, "Restored-" + DateTime.Now.ToString("yyyyMMdd-HHmmss")); await LibraryRepository.RestoreBackupAsync(folder.Path, destination, _lifetime.Token); if (!await SwitchLibraryAsync(destination)) return; ViewModel.StatusMessage = "已恢复备份。"; }
+        catch { ViewModel.StatusMessage = _library is null ? "恢复失败，请选择完整的备份文件夹。" : "恢复失败，当前资料仍可使用。请检查备份文件夹。"; }
     }
     private async void MigrateLegacy_Click(object sender, RoutedEventArgs e)
     {
@@ -508,63 +573,63 @@ public sealed partial class MainWindow
         {
             var folder = await PickFolderAsync(); if (folder is null) return;
             var target = Path.Combine(Path.GetDirectoryName(_libraryDirectory)!, "LegacyBackup-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"));
-            await using (var legacy = await LibraryRepository.OpenAsync(new(folder.Path), _lifetime.Token)) await legacy.BackupAsync(target, _lifetime.Token);
             var destination = Path.Combine(Path.GetDirectoryName(_libraryDirectory)!, "Imported-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"));
-            await LibraryRepository.RestoreBackupAsync(target, destination, _lifetime.Token);
-            await SwitchLibraryAsync(destination);
+            await LibraryMigrationService.CopyAndUpgradeAsync(folder.Path, target, destination, _lifetime.Token);
+            if (!await SwitchLibraryAsync(destination)) return;
             ViewModel.StatusMessage = "已导入旧版资料，原资料保持完整。";
         }
-        catch { ViewModel.StatusMessage = "无法导入，请先退出旧版应用并选择资料文件夹。"; }
+        catch { ViewModel.StatusMessage = _library is null ? "无法导入，请先退出旧版应用并选择资料文件夹。" : "无法导入，当前资料仍可使用。请先退出旧版应用并检查资料文件夹。"; }
     }
 
-    private async Task SwitchLibraryAsync(string directory)
+    private async Task<bool> SwitchLibraryAsync(string directory)
     {
         if (_jobs is not null && (await _jobs.ListAsync()).Any(j => !j.State.IsTerminal())) throw new InvalidOperationException("请先结束当前任务。");
-        if (_jobs is not null) await _jobs.DisposeAsync();
-        if (_library is not null) await _library.DisposeAsync();
-        _jobs = null; _library = null; _pageCache.Clear(); _viewports.Clear();
-        ViewModel.ClearLibrary();
-        await InitializeLibraryAsync(directory);
-        if (_library is null) throw new IOException("资料库无法打开。");
-        string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy");
-        Directory.CreateDirectory(appData);
-        var temporary = Path.Combine(appData, "active-library-" + Guid.NewGuid().ToString("N"));
-        await File.WriteAllTextAsync(temporary, directory, new UTF8Encoding(false), _lifetime.Token);
-        File.Move(temporary, Path.Combine(appData, "active-library.txt"), true);
-    }
-
-    private async void EditQuestion_Click(object sender, RoutedEventArgs e)
-    {
-        if (_library is null || ViewModel.SelectedQuestion.Saved is not { } saved) return;
-        var question = saved.Question;
-        var content = new TextBox { Header = "题目", Text = QuestionViewModel.PlainText(question), AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 80, MaxHeight = 160 };
-        var answer = new TextBox { Header = "答案", Text = question.StandardAnswer, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
-        var explanation = new TextBox { Header = "解析", Text = question.Explanation, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
-        var knowledge = new TextBox { Header = "知识点", Text = string.Join("、", question.KnowledgePoints) };
-        var student = new TextBox { Header = "作答", Text = question.Attempt?.StudentAnswer ?? "", IsEnabled = question.Attempt is not null };
-        var verdict = new ComboBox { Header = "判定", SelectedIndex = question.Attempt is null ? -1 : (int)question.Attempt.Grade.Verdict, IsEnabled = question.Attempt is not null };
-        foreach (string label in new[] { "正确", "部分正确", "错误", "未作答", "待确认" }) verdict.Items.Add(label);
-        var earned = new TextBox { Header = "得分", Text = question.Attempt?.Grade.Earned?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "" };
-        var possible = new TextBox { Header = "满分", Text = question.Points?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "" };
-        var fields = new StackPanel { Spacing = 12 };
-        foreach (var field in new FrameworkElement[] { content, answer, explanation, knowledge, student, verdict, earned, possible }) fields.Children.Add(field);
-        var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = "编辑题目", Content = new ScrollViewer { Content = fields, MaxHeight = 620 }, PrimaryButtonText = "保存", CloseButtonText = "取消" };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        if (!await ConfirmDiscardEditsAsync(false)) return false;
+        string previousDirectory = _libraryDirectory;
+        string? previousDocument = ViewModel.CurrentDocument?.Id;
+        ++_documentGeneration; ++_questionReloadGeneration; ++_documentListGeneration; ++_taskRefreshGeneration;
+        CancelPreviewLoad(); _reviewSourceRegion = null; _sourcePageId = null;
         try
         {
-            static double? Score(string text) => string.IsNullOrWhiteSpace(text) ? null : double.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
-            var attempt = question.Attempt is { } old ? old with { StudentAnswer = student.Text, Grade = old.Grade with { Verdict = (Verdict)verdict.SelectedIndex, Earned = Score(earned.Text), Possible = Score(possible.Text), Source = GradeSource.Manual, Reason = "手动修改" } } : null;
-            var updated = question with
+            await DisposeLibrarySessionAsync();
+            ReleaseReadingResources(); _viewports.Clear(); _workspaceContexts.Clear();
+            ViewModel.ClearLibrary();
+            if (!await InitializeLibraryAsync(directory)) throw new IOException("资料库无法打开。");
+            string pointer = _libraryPointerOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "active-library.txt");
+            string pointerDirectory = Path.GetDirectoryName(pointer)!;
+            Directory.CreateDirectory(pointerDirectory);
+            var temporary = Path.Combine(pointerDirectory, "active-library-" + Guid.NewGuid().ToString("N"));
+            try
             {
-                Content = content.Text == QuestionViewModel.PlainText(question) ? question.Content : [new TextContent { Text = content.Text }],
-                StandardAnswer = answer.Text,
-                Explanation = explanation.Text,
-                KnowledgePoints = knowledge.Text.Split(['、', ',', '，'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-                Points = Score(possible.Text),
-                Attempt = attempt
-            };
-            await _library.EditQuestionAsync(saved.Id, updated, _lifetime.Token); await ReloadQuestionsAsync(); ViewModel.StatusMessage = "已保存。";
+                await File.WriteAllTextAsync(temporary, directory, new UTF8Encoding(false), _lifetime.Token);
+                File.Move(temporary, pointer, true);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            return true;
         }
-        catch { ViewModel.StatusMessage = "未能保存，请检查分数、判定与小问合计。"; }
+        catch
+        {
+            try { await DisposeLibrarySessionAsync(); } catch { }
+            if (!_lifetime.IsCancellationRequested && await InitializeLibraryAsync(previousDirectory))
+            {
+                if (previousDocument is not null) try { await RefreshDocumentsAsync(previousDocument); } catch { }
+                ViewModel.StatusMessage = "切换失败，已重新打开原资料。";
+            }
+            throw;
+        }
     }
+
+    private async Task<bool> ConfirmDiscardEditsAsync(bool exiting)
+    {
+        if (!ViewModel.HasUnsavedChanges) return true;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot, Title = "有未保存的修改",
+            Content = exiting ? "退出后，未保存的修改会丢失。" : "切换资料库后，未保存的修改会丢失。",
+            PrimaryButtonText = exiting ? "退出" : "切换", CloseButtonText = "返回", DefaultButton = ContentDialogButton.Close
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private async void EditQuestion_Click(object sender, RoutedEventArgs e) => await EditSelectedQuestionAsync();
 }

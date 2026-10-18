@@ -16,15 +16,17 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private string _sectionTitle = "资料";
     private string _documentTitle = "我的资料";
     private string _section = "materials";
+    private bool _saving;
     public WorkspaceViewModel(bool sample = false)
     {
         CancelTaskCommand = new ActionCommand(CancelTask, () => IsTaskRunning);
-        FinishEditCommand = new ActionCommand(async () => await SaveAsync());
+        FinishEditCommand = new ActionCommand(async () => await SaveAsync(), () => !_saving);
         ResetAnswerCommand = new ActionCommand(() => SelectedQuestion.Answer = "最大值为 2，最小值为 −2。");
         if (sample) LoadSample();
     }
 
     public bool IsSample { get; private set; }
+    public bool HasUnsavedChanges => _editing.Values.Any(question => question.IsDirty);
     public Document? CurrentDocument { get; private set; }
     public ObservableCollection<QuestionViewModel> Questions { get; } = [];
     public ActionCommand CancelTaskCommand { get; }
@@ -84,7 +86,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             var item = incoming;
             if (incoming.Saved is { } saved)
             {
-                if (_editing.TryGetValue(saved.Id, out var old) && old.IsDirty) item = old;
+                if (_editing.TryGetValue(saved.Id, out var old) && (old.IsDirty || old.Page == incoming.Page && old.Matches(saved))) item = old;
                 _editing[saved.Id] = item;
             }
             _allQuestions.Add(item);
@@ -94,8 +96,16 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private void RefreshQuestions()
     {
         string? selected = SelectedQuestion.Saved?.Id;
-        var source = _section == "mistakes" ? _allQuestions.Where(q => q.IsIncorrect) : _allQuestions;
-        Questions.Clear(); foreach (var question in source) Questions.Add(question);
+        var source = (_section == "mistakes" ? _allQuestions.Where(q => q.IsIncorrect) : _allQuestions).ToList();
+        // Retain realized rows, selection and input focus when a task updates another question.
+        for (int i = 0; i < source.Count; i++)
+        {
+            if (i < Questions.Count && ReferenceEquals(Questions[i], source[i])) continue;
+            int existing = Questions.IndexOf(source[i]);
+            if (existing >= 0) Questions.Move(existing, i);
+            else Questions.Insert(i, source[i]);
+        }
+        while (Questions.Count > source.Count) Questions.RemoveAt(Questions.Count - 1);
         SelectedQuestion = Questions.FirstOrDefault(q => q.Saved?.Id == selected) ?? Questions.FirstOrDefault() ?? QuestionViewModel.Empty();
         Raise(nameof(CountLabel));
     }
@@ -109,8 +119,11 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     {
         if (IsSample) { StatusMessage = "已修改，尚未保存。"; return; }
         if (SelectedQuestion.Saved is null || SaveQuestionAsync is null) return;
-        try { await SaveQuestionAsync(SelectedQuestion); StatusMessage = "已保存。"; }
+        if (_saving) return;
+        _saving = true; FinishEditCommand.NotifyCanExecuteChanged();
+        try { await SaveQuestionAsync(SelectedQuestion); StatusMessage = HasUnsavedChanges ? "有未保存的修改。" : "已保存。"; }
         catch { StatusMessage = "无法保存，请等待任务结束后重试。"; }
+        finally { _saving = false; FinishEditCommand.NotifyCanExecuteChanged(); }
     }
     public void UpdateJob(Job? job)
     {

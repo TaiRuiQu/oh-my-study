@@ -6,6 +6,7 @@ public sealed partial class QuestionViewModel : ObservableObject
 {
     private string _answer;
     private string _notes = "";
+    private readonly string? _presentationJson;
 
     public QuestionViewModel(int number, string statement, string answer, bool incorrect, int page)
     {
@@ -19,6 +20,7 @@ public sealed partial class QuestionViewModel : ObservableObject
     public QuestionViewModel(SavedQuestion saved, Document? document = null)
     {
         Saved = saved;
+        _presentationJson = DomainJson.Serialize(saved.Question);
         Number = int.TryParse(saved.Question.Number, out int n) ? n : 0;
         Statement = PlainText(saved.Question);
         _answer = saved.Question.StandardAnswer;
@@ -41,8 +43,18 @@ public sealed partial class QuestionViewModel : ObservableObject
     public string Answer { get => _answer; set => Set(ref _answer, value); }
     public string Notes { get => _notes; set => Set(ref _notes, value); }
     public bool IsDirty => Saved is { } saved && (Answer != saved.Question.StandardAnswer || Notes != saved.Question.Explanation);
-    public void AcceptSaved(SavedQuestion saved)
-    { Saved = saved; _answer = saved.Question.StandardAnswer; _notes = saved.Question.Explanation; Raise(nameof(Answer)); Raise(nameof(Notes)); }
+    public bool Matches(SavedQuestion saved) => Saved is { } current && current.Id == saved.Id
+        && current.UpdatedAt == saved.UpdatedAt && _presentationJson == DomainJson.Serialize(saved.Question);
+    public void AcceptSaved(SavedQuestion saved, Question? submitted = null)
+    {
+        // A save can finish while the user is already typing the next change.
+        bool retainAnswer = submitted is not null && _answer != submitted.StandardAnswer;
+        bool retainNotes = submitted is not null && _notes != submitted.Explanation;
+        Saved = saved;
+        if (!retainAnswer) _answer = saved.Question.StandardAnswer;
+        if (!retainNotes) _notes = saved.Question.Explanation;
+        Raise(nameof(Answer)); Raise(nameof(Notes)); Raise(nameof(IsDirty));
+    }
     public double SourceY => 228 + ((Number - 1) % 3) * 206;
     public Question EditedQuestion => (Saved ?? throw new InvalidOperationException("示例无法保存。")).Question with { StandardAnswer = Answer, Explanation = Notes };
     public static QuestionViewModel Empty() => new(0, "", "", false, 1);
