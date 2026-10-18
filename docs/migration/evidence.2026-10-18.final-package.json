@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-18",
+  "sourceCommit": "06665ead878cd5ebb6830474234dff9f216604a7",
+  "sourceTreeCleanAtPackaging": true,
+  "snapshotFilesMatched": 199,
+  "candidate": "OhMyStudy-win-x64-rc-20261018-170306-ed27d9ee",
+  "zip": "OhMyStudy-win-x64-rc-20261018-170306-ed27d9ee.zip",
+  "zipSha256": "90ff04d3c7c8f3ce5ca5b14741295aa94a5885029e0e543eb70c1876dd1e26cd",
+  "zipBytes": 150542938,
+  "packageFileCount": 4822,
+  "privateRuntimeFiles": 4480,
+  "appSha256": "819951623c6940b16b6c3c4f3f78da68f7cc2b8d734ccc88a68a5843baee00a0",
+  "setupSha256": "02532e62a7592d5a6ff0dff5e1344983afb6d25109888778f28d25753c656c63",
+  "localChecks": [
+    "all-manifest-file-sizes-and-sha256",
+    "native-x64-app-PRI-XBF-and-private-runtime-present",
+    "pinned-native-document-tools-and-font",
+    "private-runtime-manifest-hashes",
+    "no-bundled-Node-Rust-browser-executable-or-CoreCLR",
+    "App-source-no-fixed-browser-control-or-legacy-launch",
+    "portable-native-desktop-smoke",
+    "no-forbidden-child-observed-during-desktop-smoke",
+    "portable-persisted-twelve-page-workflow",
+    "actual-package-install-run-uninstall-preserves-data"
+  ],
+  "installedWorkflowChecks": 30,
+  "appArchitecture": "x64 Native AOT",
+  "userValidationStatus": "user-owned-not-performed",
+  "rawReport": "output/migration/evidence/p9-final-delivery.json",
+  "sourceCorrespondence": "199 snapshot files matched clean checked-out tree at verification; later handoff-only documentation commits do not rebuild these binaries"
+}

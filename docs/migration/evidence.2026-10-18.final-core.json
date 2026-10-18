@@ -95,5 +95,12 @@
     "real-credential-store-migration"
   ],
   "nativeExeValidation": "x64 PE, no CLR header, no same-name managed DLL/deps/runtimeconfig; runtime checks in executable suites",
-  "rawDirectory": "output/migration/runs/migration-20261018-165025-f15e94a5"
+  "rawDirectory": "output/migration/runs/migration-20261018-165025-f15e94a5",
+  "finalAppIncrement": {
+    "sha256": "819951623c6940b16b6c3c4f3f78da68f7cc2b8d734ccc88a68a5843baee00a0",
+    "workflowChecks": 30,
+    "desktopPassed": true,
+    "report": "output/migration/evidence/app-delivery/workflow-smoke.json",
+    "change": "model pagination, sandbox networking preference, serialized settings mutations"
+  }
 }

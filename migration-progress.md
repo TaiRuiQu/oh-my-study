@@ -24,7 +24,7 @@
 | P6 文档与公式 | 图片/PDF/四向坐标、公式回退、递归题/表格/图像、统一A3/A4题答模板 | `b7b39d5`；媒体26项、8份45页PDF，实际打印交用户 |
 | P7 原生工作流 | 复杂原生编辑、参考匹配与覆盖、分级缓存/受限预取、每页视口/焦点、导航/切库失败恢复 | `3e7b66e`+`7ca2f96`；最终30项AOT流程及独立桌面通过 |
 | P8 体验与性能 | 原生快捷键/窄窗口/主题/辅助名称、3次独立启动与阅读/分发/Rendering/GC/内存曲线 | `759075f`；参考机/DPI/IME/读屏/GPU交用户 |
-| P9 发布与退役 | C# AOT离线安装器、原子升级/失败回退、可恢复卸载、资料保留、源码/许可证/哈希、CI | 40项AOT及候选ZIP解压/安装运行卸载通过，已完成；系统集成身份交用户 |
+| P9 发布与退役 | C# AOT离线安装器、原子升级/失败回退、可恢复卸载、资料保留、源码/许可证/哈希、CI | `06665ea`；40项AOT与最终ZIP解压/安装后30项流程/卸载保留数据通过 |
 
 迁移不包含原先未实现的完整标签、高级筛选、按日期选错题、M4复习卷生成/独立校验和手机传图。这些仍是独立产品计划，不是本轮遗留Rust业务。
 
@@ -57,13 +57,14 @@
 - P7最后补齐：`output/migration/publish/app-release-final/OhMyStudy.App.exe`，SHA-256 `819951623c6940b16b6c3c4f3f78da68f7cc2b8d734ccc88a68a5843baee00a0`；`output/migration/evidence/app-delivery/{desktop,workflow}-smoke.json`均通过，工作流现为30项。增加沙箱联网开关、设置串行修改避免快速操作丢字段、完整模型分页及重复/超限边界。变化仅App层，已针对新产物复验桌面和工作流，不重复未变化的核心套件。
 - P8：`output/migration/evidence/performance-final/summary.json`，3次独立实际AOT采集成功；摘要已提交为`docs/migration/evidence.2026-10-18.performance.json`。顺序启动P95=636.3232ms；空库自然空闲约104–106MiB；阅读P95=20.65–23.98ms；UI分发P95=1.59–1.90ms。释放缓存后自然空闲约201–202MiB略高于200MiB门槛。没有强制GC/清系统缓存；Rendering回调不是GPU呈现帧，预算未替用户验收。
 - P9：`output/migration/setup-aot-tests.json`，40项实际AOT通过。两版本安装、四点升级失败回退、半复制清理/重试、七处卸载中断恢复、篡改/链接/并发/占用拒绝、用户文件保留、原生ShellLink、实际CLI安装与自卸载助手。没有修改真实开始菜单/HKCU入口。完整包仍将单独做安装/运行/卸载验证。
-- P9完整包首轮：`output/migration/evidence/p9-complete-package.json`为`selected-local-checks-passed`，4822文件逐项哈希、私有运行时、ZIP重解压、包内桌面、隔离安装→安装路径真实工作流→卸载→合成用户文件保留全部通过。最终源码提交后会重打包含最后30项App的候选，稳定入口`output/migration/latest-package.json`记录准确ZIP/可运行目录/哈希及对应源码提交，不复用首轮旧App作为最后产物。
+- **最终离线包**：`output/releases/OhMyStudy-win-x64-rc-20261018-170306-ed27d9ee/portable/OhMyStudy.Setup.exe`为安装入口；同目录`OhMyStudy.App.exe`可直接运行。ZIP为上层同名`.zip`，150542938字节（约143.6MiB），SHA-256 `90ff04d3c7c8f3ce5ca5b14741295aa94a5885029e0e543eb70c1876dd1e26cd`。源码提交`06665ea`，打包时工作树干净，源码快照199文件逐一与当时工作树一致；之后只追加交接证据，不声称EXE由后续文档提交重新编译。
+- **最终包实际验证**：`output/migration/evidence/p9-final-delivery.json`为`selected-local-checks-passed`。4822个包文件及4480个私有运行时文件逐项校验，ZIP重新解压、包内桌面/30项流程、隔离安装→从安装路径运行30项流程→卸载→合成用户文件保留全部通过。CIM观察可用、未观察到禁止子进程；100ms采样可能漏掉短进程，不是完整进程调用图。稳定入口`output/migration/latest-package.json`和[可提交包证据](docs/migration/evidence.2026-10-18.final-package.json)保存准确路径/哈希/检查。首轮旧App包只保留历史，不是当前入口。
 
 历史更正：此前Provider工程缺AOT属性，旧检查仅看PE的CLR头，误把普通apphost当成AOT。`eddcbd3`已补发布属性、运行时dynamic-code断言与同名DLL/deps/runtimeconfig拒绝。旧“八组全部实际AOT”仅Provider分项无效，不能沿用；本轮已实跑纠正。
 
 ## 发布和资料保护
 
-`origin`为`https://github.com/TaiRuiQu/oh-my-study.git`。已有`f419ba6`配置main/PR的lint、checks、test→构建artifacts，tag走同链后发布Release。官方Actions固定SHA；本轮新增安装器回归和guest worker缓存键/清单。用户本轮仅要求提交，尚未自动创建tag或Release。
+`origin`为`https://github.com/TaiRuiQu/oh-my-study.git`。已有`f419ba6`配置main/PR的lint、checks、test→构建artifacts，tag走同链后发布Release。官方Actions固定SHA；本轮新增安装器回归和guest worker缓存键/清单。代码阶段提交已推送`main`，服务端CI运行`39113860502`；精确结果从Actions检查，不以本机通过替代服务端结论。本轮未创建tag或Release。
 
 默认新库`%LOCALAPPDATA%/OhMyStudy/Library`；旧目录`%APPDATA%/io.ohmystudy.desktop`只读检查。显式导入：一致备份→新目录恢复/仅副本升级→原始字段/实体/资产校验→完整初始化成功→原子更新`active-library.txt`。失败重新打开原库且不改指针。凭据只保留旧引用，不导出密钥；换Windows账户需重新配置。
 
