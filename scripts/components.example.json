@@ -1,0 +1,7 @@
+[
+  { "name": "application", "path": "../output/distribution/application" },
+  { "name": "private-python", "path": "../runtime/staging" },
+  { "name": "fonts", "path": "../output/distribution/fonts" },
+  { "name": "pdf-engine", "path": "../output/distribution/pdf-engine" },
+  { "name": "webview2-offline-installer", "path": "../output/distribution/webview2" }
+]

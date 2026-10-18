@@ -1,0 +1,15 @@
+{
+  "provenance": "SYNTHETIC: authored from official schemas; not recorded API traffic. Fake opaque signatures must never be used for a real call.",
+  "responses": {
+    "tool": {"id":"resp_synthetic_tool","status":"completed","output":[{"id":"rs_synthetic","type":"reasoning","summary":[],"encrypted_content":"SYNTHETIC_OPAQUE_REASONING"},{"type":"function_call","id":"fc_synthetic","call_id":"call_synthetic","name":"read_image","arguments":"{\"page\":1}"}],"usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":20},"output_tokens":30,"output_tokens_details":{"reasoning_tokens":10},"total_tokens":130}},
+    "final": {"id":"resp_synthetic_final","status":"completed","output":[{"id":"msg_synthetic","role":"assistant","type":"message","content":[{"type":"output_text","text":"完成。","annotations":[]}]}],"usage":{"input_tokens":130,"output_tokens":20,"total_tokens":150}}
+  },
+  "messages": {
+    "tool": {"id":"msg_synthetic_tool","type":"message","role":"assistant","content":[{"type":"thinking","thinking":"Synthetic public summary.","signature":"SYNTHETIC_SIGNATURE"},{"type":"redacted_thinking","data":"SYNTHETIC_REDACTED"},{"type":"tool_use","id":"toolu_synthetic","name":"read_image","input":{"page":1}}],"stop_reason":"tool_use","usage":{"input_tokens":80,"cache_read_input_tokens":15,"cache_creation_input_tokens":5,"output_tokens":30}},
+    "final": {"id":"msg_synthetic_final","type":"message","role":"assistant","content":[{"type":"text","text":"完成。"}],"stop_reason":"end_turn","usage":{"input_tokens":100,"output_tokens":20}}
+  },
+  "gemini": {
+    "tool": {"candidates":[{"index":0,"content":{"role":"model","parts":[{"functionCall":{"id":"call_synthetic","name":"read_image","args":{"page":1}},"thoughtSignature":"U1lOVEhFVElDX1NJR05BVFVSRQ=="}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":100,"cachedContentTokenCount":20,"candidatesTokenCount":20,"thoughtsTokenCount":10,"totalTokenCount":130}},
+    "final": {"candidates":[{"index":0,"content":{"role":"model","parts":[{"text":"完成。"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":130,"candidatesTokenCount":15,"thoughtsTokenCount":5,"totalTokenCount":150}}
+  }
+}
