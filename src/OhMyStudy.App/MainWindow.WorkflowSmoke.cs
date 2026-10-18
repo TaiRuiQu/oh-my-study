@@ -31,6 +31,11 @@ public sealed partial class MainWindow
             await InitializeLibraryAsync(Path.Combine(root, "library"));
             checks["empty-start"] = _library is not null && !ViewModel.IsSample && ViewModel.Questions.Count == 0;
             if (_library is null) throw new InvalidOperationException("Synthetic library did not initialize");
+            ExecutionModePicker.SelectedIndex = 0; SandboxNetworkToggle.IsChecked = true; await Task.Delay(50);
+            var executionSettings = await _library.GetSettingsAsync();
+            checks["sandbox-network-setting-saved"] = executionSettings.SandboxNetworking && executionSettings.ExecutionMode == "request_permission";
+            SandboxNetworkToggle.IsChecked = false; await Task.Delay(50);
+            checks["sandbox-network-default-restored"] = !(await _library.GetSettingsAsync()).SandboxNetworking;
             await File.WriteAllTextAsync(_libraryPointerOverride, _libraryDirectory);
             var bytes = await MakeSyntheticPngAsync();
             var sources = Enumerable.Range(0, 12).Select(n => new ImportSource($"第{n + 1}页.png", bytes)).ToArray();
@@ -196,11 +201,17 @@ public sealed partial class MainWindow
             var teacherGrade = new Grade { Verdict = Verdict.Incorrect, Earned = 0, Possible = 2, Source = GradeSource.Teacher, Reason = "教师判错" };
             var teacherQuestion = question with
             {
-                DraftKey = "workflow-teacher", Points = 2, Sources = [teacherRegion],
+                DraftKey = "workflow-teacher",
+                Points = 2,
+                Sources = [teacherRegion],
                 Attempt = new Attempt
                 {
-                    StudentAnswer = "原作答", StudentRegions = [teacherRegion], AiSolution = "原解题过程", Conflict = "保留判断差异",
-                    Grade = teacherGrade, Teacher = new TeacherMark { Raw = "× 0/2", Regions = [teacherRegion], Grade = teacherGrade }
+                    StudentAnswer = "原作答",
+                    StudentRegions = [teacherRegion],
+                    AiSolution = "原解题过程",
+                    Conflict = "保留判断差异",
+                    Grade = teacherGrade,
+                    Teacher = new TeacherMark { Raw = "× 0/2", Regions = [teacherRegion], Grade = teacherGrade }
                 }
             };
             var teacherJob = job with { Id = Guid.NewGuid().ToString(), State = JobState.Running, Sequence = 1, Input = job.Input! with { Document = teacherDocument } };

@@ -233,6 +233,7 @@
                                     <ComboBoxItem Content="每次询问" /><ComboBoxItem Content="沙箱运行" /><ComboBoxItem Content="直接在本机运行" />
                                 </ComboBox>
                                 <TextBlock x:Name="ExecutionDescription" TextWrapping="Wrap" />
+                                <CheckBox x:Name="SandboxNetworkToggle" Content="允许沙箱访问网络" Checked="SandboxNetworkToggle_Changed" Unchecked="SandboxNetworkToggle_Changed" />
                             </StackPanel>
                         </Border>
                         <TextBlock Text="外观" Style="{StaticResource SubtitleTextBlockStyle}" />

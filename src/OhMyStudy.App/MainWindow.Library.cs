@@ -28,6 +28,7 @@ public sealed partial class MainWindow
     private readonly ObservableCollection<Document> _documents = [];
     private readonly ObservableCollection<Provider> _providers = [];
     private readonly SemaphoreSlim _importGate = new(1, 1);
+    private readonly SemaphoreSlim _settingsGate = new(1, 1);
     private bool _loadingLibrary;
     private string _libraryDirectory = "";
     private string? _libraryPointerOverride;
@@ -121,6 +122,7 @@ public sealed partial class MainWindow
             ProviderPicker.ItemsSource = _providers;
             _settings = await _library.GetSettingsAsync(_lifetime.Token);
             ExecutionModePicker.SelectedIndex = _settings.ExecutionMode switch { "sandbox" => 1, "bypass_permission" => 2, _ => 0 };
+            SandboxNetworkToggle.IsChecked = _settings.SandboxNetworking;
             await RefreshProvidersAsync();
             await RefreshDocumentsAsync();
             _ = ObserveJobsAsync();
@@ -380,7 +382,7 @@ public sealed partial class MainWindow
             if (!string.IsNullOrEmpty(ProviderKey.Password)) key = Encoding.UTF8.GetBytes(ProviderKey.Password);
             var saved = await new ProviderCredentialService(_library, new WindowsCredentialVault()).SaveAsync(provider, key is null ? null : key.AsMemory(), _lifetime.Token);
             _selectedProviderId = saved.Provider.Id; ProviderKey.Password = "";
-            if (models.Count > 0) _settings = await _library.SaveSettingsAsync(_settings with { DefaultModel = saved.Provider.Id + ":" + models[^1].Id }, _lifetime.Token);
+            if (models.Count > 0) await ChangeSettingsAsync(current => current with { DefaultModel = saved.Provider.Id + ":" + models[^1].Id });
             await RefreshProvidersAsync(); ProviderFeedback.Text = "已保存。";
         }
         catch { ProviderFeedback.Text = "无法保存，请检查名称、地址和密钥。"; }
@@ -403,9 +405,16 @@ public sealed partial class MainWindow
             key = WindowsCredentialStore.Read(provider.KeyRef ?? "");
             if (key is null) { ProviderFeedback.Text = "请先保存密钥。"; return; }
             using var client = new ProviderClient(provider.Protocol, provider.BaseUrl);
-            var page = await client.ListModelsAsync(new(Encoding.UTF8.GetString(key)), cancellationToken: _lifetime.Token);
             var models = provider.Models.ToDictionary(m => m.Id, StringComparer.Ordinal);
-            foreach (var model in page.Models) if (!models.ContainsKey(model.Id)) models[model.Id] = new() { Id = model.Id, Capabilities = model.Capabilities, Currency = "USD" };
+            string? cursor = null;
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            do
+            {
+                var page = await client.ListModelsAsync(new(Encoding.UTF8.GetString(key)), cursor, _lifetime.Token);
+                foreach (var model in page.Models) if (!models.ContainsKey(model.Id)) models[model.Id] = new() { Id = model.Id, Capabilities = model.Capabilities, Currency = "USD" };
+                cursor = page.Next;
+                if (models.Count > 10_000 || cursor is not null && (!visited.Add(cursor) || visited.Count > 100)) throw new InvalidDataException("模型列表过大或分页重复。");
+            } while (cursor is not null);
             await _library.UpsertProviderAsync(provider with { Models = models.Values.ToList() }, _lifetime.Token);
             await RefreshProvidersAsync(); ProviderFeedback.Text = $"已有 {models.Count} 个模型。";
         }
@@ -419,9 +428,28 @@ public sealed partial class MainWindow
         var mode = ExecutionModePicker.SelectedIndex switch { 1 => "sandbox", 2 => "bypass_permission", _ => "request_permission" };
         ExecutionDescription.Text = mode == "sandbox" ? "沙箱未就绪时会在开始前说明。" : mode == "request_permission" ? "执行代码或命令前，由你决定是否允许。" : "代码与命令可访问当前账户的文件和网络。";
         if (_loadingLibrary || _library is null) return;
-        try { _settings = await _library.SaveSettingsAsync(_settings with { ExecutionMode = mode }, _lifetime.Token); } catch { ViewModel.StatusMessage = "设置未能保存。"; }
+        try { await ChangeSettingsAsync(current => current with { ExecutionMode = mode }); } catch { ViewModel.StatusMessage = "设置未能保存。"; }
     }
     private async void Grade_Click(object sender, RoutedEventArgs e) => await StartGradingAsync(false);
+    private async void SandboxNetworkToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_initialized || _loadingLibrary || _library is null) return;
+        bool enabled = SandboxNetworkToggle.IsChecked == true;
+        try { await ChangeSettingsAsync(current => current with { SandboxNetworking = enabled }); }
+        catch { ViewModel.StatusMessage = "设置未能保存，请重试。"; }
+    }
+    private async Task ChangeSettingsAsync(Func<AppSettings, AppSettings> change)
+    {
+        var library = _library ?? throw new IOException("请先打开资料库。");
+        await _settingsGate.WaitAsync(_lifetime.Token);
+        try
+        {
+            if (!ReferenceEquals(library, _library)) throw new OperationCanceledException();
+            var saved = await library.SaveSettingsAsync(change(_settings), _lifetime.Token);
+            if (ReferenceEquals(library, _library)) _settings = saved;
+        }
+        finally { _settingsGate.Release(); }
+    }
     private async void ReadReferences_Click(object sender, RoutedEventArgs e) => await StartGradingAsync(true);
 
     private async Task StartGradingAsync(bool references)
@@ -624,9 +652,12 @@ public sealed partial class MainWindow
         if (!ViewModel.HasUnsavedChanges) return true;
         var dialog = new ContentDialog
         {
-            XamlRoot = RootGrid.XamlRoot, Title = "有未保存的修改",
+            XamlRoot = RootGrid.XamlRoot,
+            Title = "有未保存的修改",
             Content = exiting ? "退出后，未保存的修改会丢失。" : "切换资料库后，未保存的修改会丢失。",
-            PrimaryButtonText = exiting ? "退出" : "切换", CloseButtonText = "返回", DefaultButton = ContentDialogButton.Close
+            PrimaryButtonText = exiting ? "退出" : "切换",
+            CloseButtonText = "返回",
+            DefaultButton = ContentDialogButton.Close
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
