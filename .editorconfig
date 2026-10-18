@@ -11,5 +11,5 @@ indent_size = 4
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = true
 
-[*.{csproj,props,targets,slnx,json}]
+[*.{csproj,props,targets,slnx,json,yml,yaml}]
 indent_size = 2

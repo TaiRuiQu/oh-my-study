@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false'
+  DOTNET_CLI_HOME: ${{ github.workspace }}/output/migration/dotnet-home
+  NUGET_PACKAGES: ${{ github.workspace }}/output/migration/nuget
+
+jobs:
+  quality:
+    name: Lint, checks and tests
+    if: github.event_name != 'push' || !github.event.deleted
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up native build environment
+        uses: ./.github/actions/setup-native
+      - name: Restore locked solution
+        run: |
+          dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Lint
+        run: ./packaging/Invoke-CI.ps1 -Phase Lint
+      - name: Checks
+        run: ./packaging/Invoke-CI.ps1 -Phase Checks
+      - name: Prepare pinned native dependencies
+        run: |
+          ./probes/prepare-documents.ps1
+          ./packaging/prepare-webp.ps1
+          ./packaging/prepare-runtime.ps1
+      - name: Test actual Native AOT executables
+        run: ./packaging/Invoke-CI.ps1 -Phase Test
+      - name: Upload check reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: checks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/migration/runs/**
+            !output/migration/runs/**/publish/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+  build:
+    name: Build offline Windows artifact
+    needs: quality
+    runs-on: windows-2025
+    timeout-minutes: 30
+    outputs:
+      artifact-name: ${{ steps.package.outputs.artifact-name }}
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up native build environment
+        uses: ./.github/actions/setup-native
+      - name: Prepare pinned native dependencies
+        run: |
+          ./probes/prepare-documents.ps1
+          ./packaging/prepare-webp.ps1
+          ./packaging/prepare-runtime.ps1
+      - name: Publish and package
+        id: package
+        run: ./packaging/Invoke-CI.ps1 -Phase Build
+      - name: Upload offline application
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.package.outputs.artifact-name }}
+          path: output/ci/artifacts/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  release:
+    name: Publish tagged release
+    if: github.event_name == 'push' && github.ref_type == 'tag' && !github.event.deleted
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout release script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download tested package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+          path: output/ci/artifacts
+      - name: Publish release with ZIP and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Repository $env:GITHUB_REPOSITORY -AssetDirectory output/ci/artifacts

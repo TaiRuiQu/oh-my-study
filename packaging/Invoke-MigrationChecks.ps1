@@ -27,6 +27,7 @@ $projects = @(
     @{name='execution'; project='tests/OhMyStudy.Execution.Tests/OhMyStudy.Execution.Tests.csproj'; executable='OhMyStudy.Execution.Tests.exe'},
     @{name='grading'; project='tests/OhMyStudy.Grading.Tests/OhMyStudy.Grading.Tests.csproj'; executable='OhMyStudy.Grading.Tests.exe'},
     @{name='media'; project='tests/OhMyStudy.Media.Tests/OhMyStudy.Media.Tests.csproj'; executable='OhMyStudy.Media.Tests.exe'},
+    @{name='infrastructure'; project='tests/OhMyStudy.IntegrationTests/OhMyStudy.IntegrationTests.csproj'; executable='OhMyStudy.IntegrationTests.exe'},
     @{name='documents'; project='probes/OhMyStudy.Documents.Probe/OhMyStudy.Documents.Probe.csproj'; executable='OhMyStudy.Documents.Probe.exe'},
     @{name='app'; project='src/OhMyStudy.App/OhMyStudy.App.csproj'; executable='OhMyStudy.App.exe'}
 )
@@ -109,6 +110,8 @@ try {
             } else {
                 $arguments = @()
                 if ($entry.name -eq 'documents') { $arguments=@($workspace,(Join-Path $run 'documents')) }
+                elseif ($entry.name -eq 'domain') { $arguments=@((Join-Path $run 'domain.json')) }
+                elseif ($entry.name -eq 'infrastructure') { $arguments=@((Join-Path $run 'infrastructure')) }
                 elseif ($entry.name -eq 'execution') {
                     $arguments=@((Join-Path $run 'execution'))
                     if (Test-Path -LiteralPath (Join-Path $RuntimeDirectory 'python.exe') -PathType Leaf) { $arguments+=@('--runtime',[IO.Path]::GetFullPath($RuntimeDirectory)) }

@@ -47,6 +47,8 @@ docs/                       # 架构、约定和验证证据
 
 ## 文档
 
+GitHub会在推送`main`时自动检查、测试并上传构建产物；推送tag时自动发布Release，操作和本机复现见[CI与版本发布](docs/ci.zh-CN.md)。
+
 - [架构](docs/architecture.zh-CN.md)、[实施与待验事项](docs/implementation-plan.zh-CN.md)、[应用使用与诊断](src/OhMyStudy.App/README.md)
 - [设计原则](docs/design-principles.zh-CN.md)：产品界面保持简洁，技术细节与证据留在维护文档。
 - [领域](docs/migration/p2-domain.zh-CN.md)、[存储](docs/migration/p3-storage.zh-CN.md)、[协议](docs/migration/p5-protocols.zh-CN.md)、[整卷](docs/migration/p5-grading.zh-CN.md)、[媒体](docs/migration/p6-media.zh-CN.md)

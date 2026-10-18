@@ -4,6 +4,16 @@
 
 ## 最新统一验证与接续入口
 
+### GitHub交接（2026-10-18）
+
+用户要求保存当前更改、切换GitHub并配置CI。现有迁移已提交为`3a5bb2c`，`origin`已改为`https://github.com/TaiRuiQu/oh-my-study.git`（fetch/push）。GitHub仓库初次检查为空；未覆盖任何远端历史。
+
+新增`.github/workflows/ci.yml`：`main`推送/PR/手动运行检查后构建并上传离线ZIP；tag推送通过同一链后发布对应Release和校验文件，删除tag不发布。只给发布job写权限，不使用真实模型密钥；官方Actions固定SHA，原生工具与actionlint固定版本/哈希。服务器CI不运行桌面/物理打印，把这些验收继续单列。详细复现见[CI说明](docs/ci.zh-CN.md)。
+
+CI四阶段已在本机逐一执行通过：格式/actionlint、结构/语法/发布输入回归、0警告/0错误的解决方案构建；8组实际AOT套件全部通过（运行`migration-20261018-155333-e28e4650`），另生成并校验`output/ci/artifacts/`内的ZIP、SHA256SUMS与构建清单。新增基础设施6项为不访问真实凭据的检查，Windows凭据真实读写仍是此前独立证据。
+
+推送后的服务端结果从仓库Actions中的`CI`查看，主工作流按提交固定源码构建，不能将本机成功当成服务端已通过。未创建版本tag或额外Release；后续由维护者选择实际版本号后推送tag。原生迁移的未关闭验收门槛保持不变。
+
 **可运行候选包已生成并复验**：`output/releases/OhMyStudy-win-x64-rc-20261018-153255-d5509074/portable/OhMyStudy.App.exe`；同目录上层ZIP为`OhMyStudy-win-x64-rc-20261018-153255-d5509074.zip`，大小146,267,047字节（139.49MiB），SHA-256 `cbe4b538c1f2e035b3e23f5ccecdf2c5589151d6975203930998aa55acdd5e56`。4820个包文件及4479个私有运行时文件校验通过，ZIP重新解压后桌面与17项隔离资料流程再次通过。可提交摘要：[发布证据](docs/migration/evidence.2026-10-18.package.json)；完整普通用户验证：`output/migration/evidence/p9-final-zip-user-2026-10-18.json`。CIM采样可用，未观察到禁止的子进程；100ms采样可能漏掉短进程，不能当完整调用图或执行沙箱证明。
 
 包内保存发布时的源码快照、许可证、组件与哈希清单。其后仅修正`NativeQuestionPresenter`一处初始化器的两处换行，并更新文档/证据；没有行为变化，不声称当前所有工作树字节已可直接重现该EXE。最终整解决方案Release构建0警告/0错误，空格格式核对通过（工作区加载有设计时警告，格式检查退出0），PowerShell语法与Git差异检查通过。未提交或推送Git变更。

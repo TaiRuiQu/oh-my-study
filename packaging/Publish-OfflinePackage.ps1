@@ -135,7 +135,7 @@ Redistribution/license review and clean-system installation acceptance remain un
     # Include the actual working-tree sources, including uncommitted C# work. Never use the
     # archived Rust tree, caches, user data, credentials, or a stale commit as corresponding source.
     $sourceStage=Join-Path $run 'source-snapshot'; New-Item -ItemType Directory -Path $sourceStage -Force | Out-Null
-    foreach ($sourceRoot in @('src','tests','probes','packaging','docs','runtime')) {
+    foreach ($sourceRoot in @('src','tests','probes','packaging','docs','runtime','.github')) {
         $queue=[Collections.Generic.Queue[string]]::new(); $queue.Enqueue((Join-Path $workspace $sourceRoot))
         while ($queue.Count -gt 0) {
             foreach ($entry in Get-ChildItem -LiteralPath $queue.Dequeue() -Force) {
