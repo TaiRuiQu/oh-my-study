@@ -58,9 +58,9 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 
 公式链路为 C# 有界 LaTeX/mhchem 转换 → 私有 Typst → PDF/SVG → PDFium。原生内容视图覆盖文字、公式、表格和来源图像；不支持的公式保留完整可读原式。A3/A4 PDF导出支持图像裁片、表格、选项和递归小问，题目与答案分开排版；缺图、无效内容或资源超限明确拒绝。文档回归生成8份45页PDF，包含分页、字体与复杂内容检查；这不等于M4复习卷或物理打印通过。原件打印只在用户点击后启动系统流程，物理打印由用户验收。
 
-PDFium、Typst、SQLite、dwebp、字体和私有 Python 均有固定来源与哈希。WinUI传递的可选WebView2 interop文件单列记录，文件存在不等于浏览器进程被调用；当前产品没有浏览器控件或固定浏览器启动路径。离线候选包包含Native AOT安装器、完整portable目录、运行时、两个计算worker、依赖许可证、源码快照及逐文件清单，状态为`release-candidate-user-acceptance-pending`。
+PDFium、Typst、SQLite、dwebp、字体和私有 Python 均有固定来源与哈希。WinUI传递的可选WebView2 interop文件单列记录，文件存在不等于浏览器进程被调用；当前产品没有浏览器控件或固定浏览器启动路径。离线候选包提供MSI安装包及完整portable ZIP、运行时、两个计算worker、依赖许可证、源码快照及逐文件清单，状态为`release-candidate-user-acceptance-pending`。
 
-`OhMyStudy.Setup`按用户安装到`%LOCALAPPDATA%/Programs/OhMyStudy`，验证清单后写入独立版本目录，以原子活动指针升级；失败回退旧版本，提供开始菜单与卸载入口，卸载保留资料。安装器自身不依赖开发环境，本轮不执行签名；干净系统安装、升级、卸载与来源信任由用户验收，见[安装说明](installation.zh-CN.md)。
+MSI 默认按所有用户安装到`%ProgramFiles%/OhMyStudy`，标准向导允许更改目录和桌面快捷方式选项，并显示实际安装进度。Windows Installer 管理文件、开始菜单、事务升级、修复与卸载；四种构建共用升级标识。学习资料和凭据不进入 MSI 删除集合。旧 EXE 安装需先卸载；安装器源码仅用于兼容维护，不参与当前发布。干净系统与真实资料验收仍待完成，见[安装说明](installation.zh-CN.md)。
 
 ## 原生编辑与状态
 

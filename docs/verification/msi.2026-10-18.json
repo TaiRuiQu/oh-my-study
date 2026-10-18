@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-18",
+  "status": "local-checks-passed-user-acceptance-pending",
+  "installerType": "msi",
+  "scope": "perMachine",
+  "wixVersion": "5.0.2",
+  "artifact": {
+    "path": "output/msi-preview/OhMyStudy-win-x64-aot-rc-20261018-195451-a7a2843d/OhMyStudy-win-x64-aot-rc-20261018-195451-a7a2843d-installer.msi",
+    "bytes": 112394361,
+    "sha256": "7a9077d322758777ba8aa9ba3ec133305d214dcee076d5e24b6d0c605c75c122",
+    "productCode": "{CF4FE6B3-1A1B-4036-8FFD-9E8C4579F5CA}",
+    "version": "0.1.0",
+    "variant": "aot",
+    "payloadFiles": 4799,
+    "published": false
+  },
+  "appProvenance": {
+    "source": "v0.1.0 published AOT portable",
+    "sourceCommit": "b431f6f91b8078ba99f5abc645d8faf58a6976ed",
+    "archiveSha256": "561946381f2e4b960391365ad7a785f326b777e5974f3dc78b40fcff6bb817e3",
+    "currentSourceCommit": "9c3221cd28746bcb0a1fc51764e8d8e0fdbbae12",
+    "srcChangesSincePublished": []
+  },
+  "regression": {
+    "report": "output/ci/msi-regression-machine.json",
+    "checks": [
+      "standard wizard, custom directory, desktop and start menu, uninstall and unrelated file preservation",
+      "unchecked desktop choice is respected",
+      "unchecked preference is saved as zero",
+      "upgrade remembers the custom location and replaces program files",
+      "upgrade preserves desktop opt-out",
+      "downgrade refusal preserves the installed version",
+      "failed major upgrade restores the old program files",
+      "failed upgrade restores saved options",
+      "same-version package replacement supports changing variants",
+      "desktop opt-in creates the shortcut",
+      "uninstall removes program files and preserves unrelated files",
+      "uninstall removes MSI settings and owned shortcuts"
+    ],
+    "count": 12
+  },
+  "completePackageChecks": [
+    "standard-MSI-dialogs-directory-checkbox-progress-shortcuts-per-machine",
+    "actual-MSI-custom-location-shortcuts-install-uninstall-preserves-unlisted-data"
+  ],
+  "wizardChecks": [
+    "Chinese welcome and license pages",
+    "Program Files default directory",
+    "folder browser opens and cancels",
+    "desktop shortcut checkbox can be unchecked",
+    "native path validation reaches VerifyReadyDlg",
+    "administrator shield on Install",
+    "preview cancelled before installation"
+  ],
+  "otherChecks": [
+    "PowerShell syntax",
+    "WiX XML parse",
+    "actionlint",
+    "repository boundaries",
+    "four-variant ZIP+MSI release dry run and rejection of legacy EXE",
+    "git diff --check"
+  ],
+  "retiredPerUserExperiment": {
+    "result": "rollback registration/removal failed; not shipped",
+    "recovery": "full component reinstall then uninstall",
+    "cleanup": "passed"
+  },
+  "notRun": [
+    "four actual variant MSI builds in GitHub Actions",
+    "clean Windows 10/11 acceptance",
+    "real data and credentials",
+    "real Sandbox and printing",
+    "binary code signing"
+  ]
+}

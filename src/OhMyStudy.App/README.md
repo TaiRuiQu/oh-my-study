@@ -43,9 +43,9 @@ dotnet publish src/OhMyStudy.App/OhMyStudy.App.csproj -c Release --no-restore -o
 ./packaging/Publish-OfflinePackage.ps1 -AppPublishDirectory ./output/migration/app-local -DesktopSmoke -WorkflowSmoke
 ```
 
-完整目录属于部署产物，不能只复制EXE。发布目标包含PRI/XBF和图标；打包脚本加入SQLite、PDFium/notices、Typst、字体、dwebp、两个计算worker及`runtime/python`。`OhMyStudy.Setup`也是Native AOT工程，打包脚本发布其EXE并纳入离线包。
+完整目录属于部署产物，不能只复制EXE。发布目标包含PRI/XBF和图标；打包脚本加入SQLite、PDFium/notices、Typst、字体、dwebp、两个计算worker及`runtime/python`。安装格式改为 MSI，打包脚本通过 WiX 生成标准向导；旧自写安装器不纳入 portable 或 MSI。
 
-普通用户解压完整包后运行`OhMyStudy.Setup.exe`，默认安装到`%LOCALAPPDATA%/Programs/OhMyStudy`，再从开始菜单打开。升级使用独立版本目录、清单校验和原子活动指针，失败回退旧版本；系统设置或开始菜单可卸载，资料保留。也可使用完整portable目录。两者均不需要开发SDK或系统Python/Node/TeX。本轮不签名，Setup的40项隔离回归不替代干净系统真实安装验收。
+普通用户双击 MSI，在标准向导选择安装位置和桌面快捷方式；默认位置为`%ProgramFiles%/OhMyStudy`。升级、进度、回滚、修复和卸载由 Windows Installer 管理，学习资料保留。旧 EXE 安装需先卸载，再安装 MSI。portable ZIP 直接运行应用，不含旧安装器。具体构建、验证与兼容边界见[安装说明](../../docs/installation.zh-CN.md)。
 
 公式、PDF、预览、导出及打印没有浏览器控件路径；WinUI 传递发布的可选 WebView2 interop 文件单列在包检查报告，不等同于浏览器进程。候选包的目标系统兼容性及完整离线矩阵尚未关闭，见 [安装说明](../../docs/installation.zh-CN.md)。
 

@@ -30,7 +30,7 @@ foreach ($file in $manifests) {
         if ($package.variant -cne $manifest.variant -or $package.kind -cnotin @('portable','installer') -or
             -not $kinds.Add($package.kind) -or $package.name -notmatch '^[A-Za-z0-9._-]+$' -or
             -not $names.Add($package.name) -or $package.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Invalid package identity' }
-        $suffix=if ($package.kind -eq 'portable') { '-portable.zip' } else { '-installer.exe' }
+        $suffix=if ($package.kind -eq 'portable') { '-portable.zip' } else { '-installer.msi' }
         if (-not $package.name.EndsWith('-'+$manifest.variant+$suffix, [StringComparison]::Ordinal)) { throw 'Package name does not match profile' }
         $path=Join-Path $file.DirectoryName $package.name
         if ((Get-Item -LiteralPath $path).Length -ne $package.bytes -or
@@ -69,7 +69,7 @@ $body
 $marker
 ## 下载版本
 
-每种版本均提供 portable ZIP 和独立 installer EXE。通常选择 **aot**；不确定处理器是否支持 AVX-512 时请选择普通 AOT 版。
+每种版本均提供 portable ZIP 和MSI 安装包。通常选择 **aot**；不确定处理器是否支持 AVX-512 时请选择普通 AOT 版。
 
 | 文件标识 | 运行要求 |
 | --- | --- |

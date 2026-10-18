@@ -62,6 +62,7 @@ try {
                 if (-not @($report.checks | Where-Object { $_.name -eq $name -and $_.status -eq 'passed' }).Count) { throw "Required test suite did not pass: $name" }
             }
             if (@($report.notRun | Where-Object { $_ -like 'execution:*' }).Count) { throw 'Private computation runtime test was skipped' }
+            & (Join-Path $PSScriptRoot 'tests/Test-MsiInstaller.ps1') -ReportFile (Join-Path $workspace 'output/ci/msi-regression.json')
         }
         'Build' {
             $releaseOutput=Join-Path $workspace ('output/releases/'+$Variant)
@@ -80,7 +81,7 @@ try {
             if (@(Get-ChildItem -LiteralPath $assets -Force).Count) { throw 'CI artifact directory must be empty' }
             $packages=@()
             foreach ($kind in @('portable','installer')) {
-                $name = "OhMyStudy-$slug-win-x64-$Variant-$kind" + $(if ($kind -eq 'portable') { '.zip' } else { '.exe' })
+                $name = "OhMyStudy-$slug-win-x64-$Variant-$kind" + $(if ($kind -eq 'portable') { '.zip' } else { '.msi' })
                 $source=if ($kind -eq 'portable') { $report.zip } else { $report.installer }
                 $expected=if ($kind -eq 'portable') { $report.zipSha256 } else { $report.installerSha256 }
                 Copy-Item -LiteralPath $source -Destination (Join-Path $assets $name)

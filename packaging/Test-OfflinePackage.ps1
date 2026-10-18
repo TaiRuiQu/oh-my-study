@@ -6,6 +6,7 @@ param(
     [string]$ReportFile,
     [switch]$DesktopSmoke,
     [switch]$WorkflowSmoke,
+    [string]$InstallerMsi,
     [switch]$InstallSmoke
 )
 $ErrorActionPreference='Stop'
@@ -86,9 +87,8 @@ try {
             if (-not @(@($config.runtimeOptions.framework) + @($config.runtimeOptions.frameworks) | Where-Object { $_ } | Where-Object { $_.name -eq 'Microsoft.NETCore.App' -and $_.version -like '10.*' }).Count) { throw 'Expected .NET 10 framework requirement' }
         }
     }
-    $null=Assert-Path $root 'OhMyStudy.Setup.exe'
     $null=Assert-Path $root 'runtime/python/sandbox-worker.py'
-    Assert-NativeApp (Join-Path $root 'OhMyStudy.Setup.exe')
+    if (Test-Path -LiteralPath (Join-Path $root 'OhMyStudy.Setup.exe')) { throw 'New portable packages must not ship the legacy custom installer' }
     $report.checks+='native-x64-app-PRI-XBF-and-private-runtime-present'
     $documentLock=Get-Content -LiteralPath (Join-Path $root 'licenses/native-documents.lock.json') -Raw | ConvertFrom-Json
     Assert-FileHash (Join-Path $root 'native/pdfium.dll') $documentLock.pdfium.librarySha256
@@ -168,32 +168,10 @@ try {
         $report.workflowReport=$workflow
     } else { $report.notRun+='portable-persisted-workflow: not requested' }
     if ($InstallSmoke) {
-        # Exercise the actual delivered installer and application in a newly owned folder.
-        # --no-shortcuts deliberately keeps the user's registry and Start menu unchanged.
-        $installRoot=Join-Path $evidence 'installed-app'
-        $setup=Join-Path $root 'OhMyStudy.Setup.exe'
-        $installedReport=Join-Path $evidence 'installation.json'
-        $installer=Start-Process -FilePath $setup -ArgumentList @('--install','--source',('"'+$root+'"'),'--root',('"'+$installRoot+'"'),'--no-shortcuts','--quiet','--report',('"'+$installedReport+'"')) -WindowStyle Hidden -PassThru
-        if(-not $installer.WaitForExit(120000)){$installer.Kill();throw 'Owned installer exceeded two minutes'}
-        if($installer.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $installedReport -Raw|ConvertFrom-Json).success){throw 'Actual package installation failed'}
-        $active=Get-Content -LiteralPath (Join-Path $installRoot 'active.json') -Raw|ConvertFrom-Json
-        if($active.version -notmatch '^[a-f0-9]{64}$' -or $active.entryPoint -ne 'OhMyStudy.App.exe'){throw 'Installed pointer is invalid'}
-        $installedApp=Join-Path $installRoot ('versions/'+$active.version+'/OhMyStudy.App.exe')
-        if ($profile.nativeAot) { Assert-NativeApp $installedApp }
-        $installedWorkflow=Join-Path $evidence 'installed-workflow.json'
-        $appProcess=Start-Process -FilePath $installedApp -ArgumentList @('--workflow-smoke',('"'+$installedWorkflow+'"')) -WindowStyle Hidden -PassThru
-        if(-not $appProcess.WaitForExit(90000)){$appProcess.Kill();throw 'Owned installed application exceeded 90 seconds'}
-        if($appProcess.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $installedWorkflow -Raw|ConvertFrom-Json).Passed){throw 'Installed application workflow failed'}
-        $keep=Join-Path $installRoot 'user-keep.txt'
-        [IO.File]::WriteAllText($keep,'SYNTHETIC-USER-DATA')
-        $uninstallReport=Join-Path $evidence 'uninstallation.json'
-        $uninstaller=Start-Process -FilePath $setup -ArgumentList @('--uninstall','--root',('"'+$installRoot+'"'),'--quiet','--report',('"'+$uninstallReport+'"')) -WindowStyle Hidden -PassThru
-        if(-not $uninstaller.WaitForExit(120000)){$uninstaller.Kill();throw 'Owned uninstaller exceeded two minutes'}
-        if($uninstaller.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $uninstallReport -Raw|ConvertFrom-Json).success){throw 'Actual package uninstallation failed'}
-        if([IO.File]::ReadAllText($keep) -ne 'SYNTHETIC-USER-DATA' -or (Test-Path -LiteralPath (Join-Path $installRoot 'active.json'))){throw 'Uninstallation failed to preserve user data or remove active pointer'}
-        $report.checks+='actual-package-install-run-uninstall-preserves-data'
-        $report.installedWorkflowReport=$installedWorkflow
-    } else { $report.notRun+='actual-package-isolated-install-run-uninstall: not requested' }
+        if (-not $InstallerMsi) { throw 'Provide -InstallerMsi for the MSI install smoke check' }
+        & (Join-Path $PSScriptRoot 'Test-MsiPackage.ps1') -InstallerMsi $InstallerMsi -ReportFile (Join-Path $evidence 'msi-verification.json') -InstallSmoke -VerifyPayload -WorkflowSmoke
+        $report.checks += 'actual-MSI-install-run-uninstall-preserves-data'
+    } else { $report.notRun += 'actual-MSI-install-run-uninstall: not requested' }
     # The portable tree is immutable. A diagnostic run must keep reports, libraries and caches
     # outside it, and must not quietly invalidate the package that will be archived next.
     foreach ($file in $manifest.files) { Assert-FileHash (Assert-Path $root $file.path) $file.sha256 }

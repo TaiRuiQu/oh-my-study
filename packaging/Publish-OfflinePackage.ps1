@@ -3,7 +3,6 @@
 param(
     [ValidateSet('aot','aot-avx512','self-contained','framework-dependent')][string]$Variant = 'aot',
     [string]$AppPublishDirectory,
-    [string]$SetupPublishDirectory,
     [string]$RuntimeDirectory,
     [string]$OutputDirectory,
     [switch]$DesktopSmoke,
@@ -62,16 +61,6 @@ try {
     $report.appSourceProvenance='Working-tree snapshot included; when supplying an existing publish, its exact source correspondence is a caller responsibility.'
     if ($profile.nativeAot -and (Test-Path -LiteralPath (Join-Path $appSource 'coreclr.dll'))) { throw 'CoreCLR runtime found; provide a fresh Native AOT publish' }
     Copy-Tree $appSource $package
-    if (-not $SetupPublishDirectory) {
-        $setupProject=Join-Path $workspace 'src/OhMyStudy.Setup/OhMyStudy.Setup.csproj'
-        Invoke-Dotnet @('restore',$setupProject,'-p:Configuration=Release','--locked-mode','--disable-parallel','-p:IlcInstructionSet=x86-64') (Join-Path $run 'setup-restore.log')
-        $SetupPublishDirectory=Join-Path $run 'setup-publish'
-        Invoke-Dotnet @('publish',$setupProject,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$SetupPublishDirectory,'-p:IlcInstructionSet=x86-64') (Join-Path $run 'setup-publish.log')
-    }
-    $setupSource=(Resolve-Path -LiteralPath $SetupPublishDirectory).Path
-    if (Test-Path -LiteralPath (Join-Path $setupSource 'OhMyStudy.Setup.dll')) { throw 'Setup must be an actual Native AOT publish' }
-    Copy-Item -LiteralPath (Join-Path $setupSource 'OhMyStudy.Setup.exe') -Destination (Join-Path $package 'OhMyStudy.Setup.exe')
-    $report.setupPublishDirectory=$setupSource
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','e_sqlite3.dll','Microsoft.ui.xaml.dll','Assets/App.ico')) {
         if (-not (Test-Path -LiteralPath (Join-Path $package $required) -PathType Leaf)) { throw "Required native app output missing: $required" }
     }
@@ -104,6 +93,7 @@ try {
     Copy-Tree $RuntimeDirectory (Join-Path $package 'runtime')
     Copy-Item -LiteralPath (Join-Path $workspace 'LICENSE') -Destination (Join-Path $package 'LICENSE')
     $notices=Join-Path $package 'licenses'; New-Item -ItemType Directory -Path $notices -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'msi/LICENSE.WiX.txt') -Destination (Join-Path $notices 'WiX-MS-RL.txt')
     Copy-Item -LiteralPath (Join-Path $workspace 'probes/native-documents.lock.json') -Destination (Join-Path $notices 'native-documents.lock.json')
     if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'runtime.lock.json'))) { throw 'Private runtime lock is missing' }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime.lock.json') -Destination (Join-Path $notices 'runtime.lock.json')
@@ -165,8 +155,8 @@ Redistribution/license review and clean-system installation acceptance remain un
     $sourceDirectory=Join-Path $package 'source'; New-Item -ItemType Directory -Path $sourceDirectory -Force | Out-Null
     [IO.Compression.ZipFile]::CreateFromDirectory($sourceStage,(Join-Path $sourceDirectory 'source-snapshot.zip'),[IO.Compression.CompressionLevel]::Optimal,$false)
     @'
-解压后双击 OhMyStudy.Setup.exe 安装，然后从开始菜单打开 Oh My Study。
-也可直接运行 OhMyStudy.App.exe。资料和备份会保留，卸载应用不会删除。
+此 ZIP 为便携版，解压后直接运行 OhMyStudy.App.exe；需要安装向导请选择同版本的 MSI。
+资料与备份存放在用户资料目录，更新或卸载程序时会保留。
 首次导入旧资料前请退出旧版；导入会保留原资料并创建独立副本。
 本候选包的系统兼容、真实资料与打印验收由维护者继续完成。
 '@ | Set-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Encoding utf8
@@ -179,32 +169,18 @@ Redistribution/license review and clean-system installation acceptance remain un
     $files=@(Get-ChildItem -LiteralPath $package -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{ path=[IO.Path]::GetRelativePath($package,$_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
     $sourceCommit=(& git -C $workspace rev-parse HEAD).Trim()
     $sourceStatus=@(& git -C $workspace status --porcelain --untracked-files=normal)
-    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; variant=$Variant; nativeAot=$profile.nativeAot; selfContained=$profile.selfContained; instructionSet=$profile.instructionSet; entryPoint='OhMyStudy.App.exe'; installer='OhMyStudy.Setup.exe'; version=if($env:RELEASE_TAG){$env:RELEASE_TAG}elseif($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
+    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; variant=$Variant; nativeAot=$profile.nativeAot; selfContained=$profile.selfContained; instructionSet=$profile.instructionSet; entryPoint='OhMyStudy.App.exe'; installerType='msi'; version=if($env:RELEASE_TAG){$env:RELEASE_TAG}elseif($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
     $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $package 'package-manifest.json') -Encoding utf8
     $verification=Join-Path $run 'package-verification.json'
     & (Join-Path $PSScriptRoot 'Test-OfflinePackage.ps1') -PackageDirectory $package -ReportFile $verification -DesktopSmoke:$DesktopSmoke -WorkflowSmoke:$WorkflowSmoke
     $report.verificationReport=$verification
     $zip=Join-Path $run "$runId.zip"
     [IO.Compression.ZipFile]::CreateFromDirectory($package,$zip,[IO.Compression.CompressionLevel]::Optimal,$false)
-    # Recompile only the generic native bootstrap with the exact portable archive embedded.
-    # The installed launcher remains the small bootstrap inside that archive.
-    $setupProject=Join-Path $workspace 'src/OhMyStudy.Setup/OhMyStudy.Setup.csproj'
-    $installerPublish=Join-Path $run 'installer-publish'
-    Invoke-Dotnet @('restore',$setupProject,'-p:Configuration=Release','--locked-mode','--disable-parallel') (Join-Path $run 'installer-restore.log')
-    Invoke-Dotnet @('publish',$setupProject,'-c','Release','--no-restore','-p:IlcInstructionSet=x86-64',('-p:InstallerPayload='+$zip),'-o',$installerPublish) (Join-Path $run 'installer-publish.log')
-    $report.installer=Join-Path $installerPublish 'OhMyStudy.Setup.exe'
-    $report.installerSha256=(Get-FileHash -LiteralPath $report.installer -Algorithm SHA256).Hash.ToLowerInvariant()
-    # Exercise the downloadable EXE, with no sibling portable files or --source argument.
-    $installed=Join-Path $run 'installer-check'
-    $installReport=Join-Path $run 'installer-check.json'
-    $process=Start-Process -FilePath $report.installer -ArgumentList @('--install','--root',('"'+$installed+'"'),'--no-shortcuts','--quiet','--report',('"'+$installReport+'"')) -WindowStyle Hidden -PassThru
-    if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Bundled installer timed out' }
-    if ($process.ExitCode -ne 0 -or -not (Get-Content -LiteralPath $installReport -Raw | ConvertFrom-Json).success) { throw 'Bundled installer failed' }
-    $active=Get-Content -LiteralPath (Join-Path $installed 'active.json') -Raw | ConvertFrom-Json
-    & (Join-Path $PSScriptRoot 'Test-OfflinePackage.ps1') -PackageDirectory (Join-Path $installed ('versions/'+$active.version)) -ReportFile (Join-Path $run 'installed-verification.json')
-    $process=Start-Process -FilePath (Join-Path $package 'OhMyStudy.Setup.exe') -ArgumentList @('--uninstall','--root',('"'+$installed+'"'),'--no-shortcuts','--quiet','--report',('"'+(Join-Path $run 'uninstall-check.json')+'"')) -WindowStyle Hidden -PassThru
-    if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Bundled uninstall timed out' }
-    if ($process.ExitCode -ne 0 -or (Test-Path -LiteralPath (Join-Path $installed 'active.json'))) { throw 'Bundled uninstall failed' }
+    $report.installer = Join-Path $run ($runId + '-installer.msi')
+    $msi = & (Join-Path $PSScriptRoot 'Build-MsiPackage.ps1') -PackageDirectory $package -OutputFile $report.installer
+    $report.installerSha256 = $msi.sha256
+    $report.installerType = 'msi'
+    & (Join-Path $PSScriptRoot 'Test-MsiPackage.ps1') -InstallerMsi $report.installer -ReportFile (Join-Path $run 'msi-verification.json') -InstallSmoke -VerifyPayload
     $report.zip=$zip; $report.zipSha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); $report.fileCount=$files.Count
     $report.packageStatus='created-and-local-checks-passed'
 } catch { $report.packageStatus='failed'; $report.error=$_.Exception.Message; throw }

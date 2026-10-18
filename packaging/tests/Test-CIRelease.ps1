@@ -14,7 +14,7 @@ foreach ($variant in $variants) {
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
     $packages=@()
     foreach ($kind in @('portable','installer')) {
-        $name="OhMyStudy-v1.2.3-win-x64-$variant-$kind"+$(if ($kind -eq 'portable') { '.zip' } else { '.exe' })
+        $name="OhMyStudy-v1.2.3-win-x64-$variant-$kind"+$(if ($kind -eq 'portable') { '.zip' } else { '.msi' })
         $path=Join-Path $directory $name
         [IO.File]::WriteAllText($path,'synthetic payload')
         $packages+=@{ variant=$variant; kind=$kind; name=$name; bytes=(Get-Item $path).Length; sha256=(Get-FileHash $path).Hash.ToLowerInvariant() }
@@ -31,7 +31,7 @@ Reject { & $script -Tag v2.0.0 -Repository TaiRuiQu/oh-my-study -AssetDirectory 
 Reject { & $script -Tag v1.2.3 -Repository 'invalid repository' -AssetDirectory $root -DryRun }
 $manifestFile=Join-Path $root 'aot/build-manifest.json'
 $original=[IO.File]::ReadAllText($manifestFile)
-foreach ($case in @('missing-kind','duplicate-kind','wrong-variant','wrong-commit','traversal','hash','size')) {
+foreach ($case in @('missing-kind','duplicate-kind','wrong-variant','wrong-commit','traversal','hash','size','legacy-exe')) {
     $manifest=$original | ConvertFrom-Json
     switch ($case) {
         'missing-kind' { $manifest.packages=@($manifest.packages[0]) }
@@ -41,6 +41,7 @@ foreach ($case in @('missing-kind','duplicate-kind','wrong-variant','wrong-commi
         'traversal' { $manifest.packages[0].name='../outside.zip' }
         'hash' { $manifest.packages[0].sha256='0'*64 }
         'size' { $manifest.packages[0].bytes=99999 }
+        'legacy-exe' { $manifest.packages[1].name=$manifest.packages[1].name.Replace('.msi','.exe') }
     }
     $manifest | ConvertTo-Json -Depth 6 | Set-Content $manifestFile
     Reject { Validate }

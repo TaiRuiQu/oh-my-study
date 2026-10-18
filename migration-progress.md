@@ -6,7 +6,7 @@
 
 C# / .NET / WinUI Native AOT 重写已完成 P0–P9 开发实现与本机自动检查。后续工作按产品维护、功能待办和独立验收推进，已完成阶段的计划与过程记录已从当前文档删除，历史可从 Git 查阅。正式构建不依赖 `.reference/` 中的旧代码。
 
-当前分发状态仍为 `release-candidate-user-acceptance-pending`。干净 Windows、真实资料与凭据、真实模型与样卷、Sandbox 实机、实际打印、DPI/输入法/读屏和参考设备性能由用户执行，尚未通过。具体步骤见 [验收清单](docs/acceptance.zh-CN.md)。
+当前开发分发已切换为 MSI，历史已公开 EXE 的通过记录不代表新 MSI 已完成验证。当前分发状态仍为 `release-candidate-user-acceptance-pending`。干净 Windows、真实资料与凭据、真实模型与样卷、Sandbox 实机、实际打印、DPI/输入法/读屏和参考设备性能由用户执行，尚未通过。具体步骤见 [验收清单](docs/acceptance.zh-CN.md)。
 
 ## 最近已记录的验证
 
@@ -60,3 +60,11 @@ Git 签名配置（2026-10-18）：本仓库显式设置 `gpg.format=ssh`、`com
 首轮两项非 AOT 构建均已成功完成 portable、独立 installer、安装后校验及卸载；发布因 AOT 两项失败而正确跳过。修复后本机 Checks（含四种强制锁定还原）和解决方案编译全部通过，0 警告/0 错误。
 
 四种构建补充发布完成（2026-10-18）：最终源码 b431f6f91b8078ba99f5abc645d8faf58a6976ed；CI 39121738918 的完整检查/回归、四项构建、各项 portable 校验和独立 installer 实际安装/安装后逐文件校验/卸载、统一发布全部成功：https://github.com/TaiRuiQu/oh-my-study/actions/runs/39121738918 。0.1.0 Release 已公开四种构建的 4 个 ZIP + 4 个 EXE，两个清单均已下载复核为八个文件且来源提交一致。[发布资产与哈希快照](docs/verification/release-variants.2026-10-18.json)。保留原 v0.1.0 标签 d28742c，旧单一 ZIP 继续保留；新增八件套及其真实来源在 Release 说明与新构建清单中明确。工作流现已默认每次发布完整八件套。AVX-512 App 未在托管运行器执行，人工验收和二进制代码签名待办继续保留。
+
+MSI 安装向导完成（2026-10-18）：按用户最终选择改为“所有用户”安装，默认 `%ProgramFiles%/OhMyStudy`，安装由 Windows 请求管理员确认。使用固定 WiX 5.0.2 和 Windows Installer 标准向导，支持安装位置、桌面快捷方式选项与实际安装进度。此前自写 Win32 配置界面已撤回；四种构建的流水线现产出 ZIP + MSI，portable 不再包含旧 Setup。旧 Setup 与测试只作历史 EXE 兼容维护，不参与当前发布包构建或执行。旧 EXE 安装需先卸载，学习资料保留。
+
+本机验证：12 项管理员上下文的 MSI 回归通过，覆盖中文/空格位置、桌面选项与保留、升级、拒绝降级、失败升级回滚、同版本构建切换、卸载和额外文件保留。完整 AOT MSI 已实际安装、校验全部 4799 个载荷文件并卸载；交互检查通过欢迎/许可、目录浏览、桌面选项取消和安装确认页（有管理员盾牌），预览未开始安装并已关闭。PowerShell 语法、WiX XML、actionlint、仓库边界、ZIP+MSI 八件套发布干运行（含拒绝旧 EXE）和 git diff --check 通过。所有用户方案没有出现先前免管理员实验的回滚注册/卸载问题；该旧实验未交付，使用完整组件重装后卸载完成清理，保留失败证据。
+
+本地试用产物：`output/msi-preview/OhMyStudy-win-x64-aot-rc-20261018-195451-a7a2843d/OhMyStudy-win-x64-aot-rc-20261018-195451-a7a2843d-installer.msi`，112394361 字节，SHA-256 `7a9077d322758777ba8aa9ba3ec133305d214dcee076d5e24b6d0c605c75c122`。App 为已发布 v0.1.0 普通 AOT 的原二进制，源提交 b431f6f，当前 HEAD 与该提交的 src 无代码差异；只重做分发与安装器，源码快照包含本次工作树。原包 ZIP 哈希和验证摘要见 [MSI 摘要](docs/verification/msi.2026-10-18.json)。之后的交接摘要更新未重做 MSI，不能将其解释为新的二进制构建。
+
+下一步：在新提交上运行完整四项 CI 构建并发布 MSI；当前只验证完整 AOT MSI 和四格式发布规则，不能把其余三种 MSI 或 GitHub Actions 记为已通过。GitHub 已有 v0.1.0 Release 仍为此前 EXE，未覆盖。继续执行干净 Windows 10/11、真实资料、凭据、Sandbox、打印、辅助功能与性能验收；二进制代码签名仍待配置。

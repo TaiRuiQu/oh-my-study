@@ -1,12 +1,12 @@
 # Oh My Study
 
-面向学生的原生 Windows 学习应用，支持试卷导入与批改、原件对照、题库和错题整理。当前工程采用 C# / .NET 10 / WinUI 3，提供 Native AOT（普通 / AVX-512）、非 AOT 自带运行时和依赖 .NET 的版本，均面向 Windows 10/11 x64。每种版本同时提供 portable ZIP 与独立 installer EXE；下载选择见 [安装说明](docs/installation.zh-CN.md)。
+面向学生的原生 Windows 学习应用，支持试卷导入与批改、原件对照、题库和错题整理。当前工程采用 C# / .NET 10 / WinUI 3，提供 Native AOT（普通 / AVX-512）、非 AOT 自带运行时和依赖 .NET 的版本，均面向 Windows 10/11 x64。每种版本同时提供 portable ZIP 与MSI 安装包；下载选择见 [安装说明](docs/installation.zh-CN.md)。
 
 已实现图片与 PDF 导入、三种导入模式、三协议整卷任务、题目编辑、来源定位、备份恢复、A3/A4 题目与答案 PDF 导出，以及离线安装、升级和卸载。真实模型与样卷、干净系统、Sandbox、物理打印和辅助功能仍待用户验收；当前验证状态与待办见 [维护进度](migration-progress.md)。
 
 ## 安装与使用
 
-解压完整离线包，运行 `portable/OhMyStudy.Setup.exe`，安装后从开始菜单打开；也可直接使用完整 portable 目录。升级保留资料，卸载保留资料和备份。首次导入旧资料前退出旧版并保留完整备份。
+双击 MSI，选择安装位置和是否创建桌面快捷方式，安装后从开始菜单打开；portable ZIP 解压后直接运行 `OhMyStudy.App.exe`。旧 EXE 安装需先卸载旧版，再安装 MSI，资料会保留。升级保留资料，卸载保留资料和备份。首次导入旧资料前退出旧版并保留完整备份。
 
 默认资料目录为 `%LOCALAPPDATA%/OhMyStudy/Library`。AI 功能需要自行配置供应商、密钥和模型；离线包包含本地排版和计算依赖，无需开发 SDK 或系统 Python/Node/TeX。具体步骤和恢复方法见 [安装与卸载](docs/installation.zh-CN.md)。
 

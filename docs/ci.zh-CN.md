@@ -5,7 +5,7 @@
 ## 触发与顺序
 
 - 推送`main`、向`main`提交PR、手动运行：先lint、checks和test，全部成功后才构建离线应用并上传Actions artifacts。
-- 推送任意新tag：执行同一检查和构建链，再通过四项构建矩阵自动创建对应 GitHub Release，附 4 个 portable ZIP、4 个独立 installer EXE、`SHA256SUMS.txt` 与 `build-manifest.json`。删除tag不会发布。
+- 推送任意新tag：执行同一检查和构建链，再通过四项构建矩阵自动创建对应 GitHub Release，附 4 个 portable ZIP、4 个MSI 安装包、`SHA256SUMS.txt` 与 `build-manifest.json`。删除tag不会发布。
 - `v1.2.3`或`1.2.3`形式发布为普通Release，其余tag（包括`v1.2.3-rc.1`）标为预发布。同名 Release 重跑或补充发布时，校验完整八件套后更新同名资产，保留其他文件和原发布说明；未完成的草稿可继续上传并发布。
 - 检查或构建失败时不会上传正式应用artifact或创建Release；检查日志仍尽量保留14天，成功应用artifact保留30天。Release资产不随Actions artifact保留期过期。
 
@@ -60,14 +60,14 @@ git push origin v0.1.0
 
 | Variant | App 参数 | 文件后缀 |
 | --- | --- | --- |
-| `aot` | `PublishAot=true`、`SelfContained=true`、`IlcInstructionSet=x86-64,-avx512`、向量上限 128 | `-aot-portable.zip` / `-aot-installer.exe` |
-| `aot-avx512` | `PublishAot=true`、`SelfContained=true`、`IlcInstructionSet=x86-64-v4`、向量上限 512 | `-aot-avx512-portable.zip` / `-aot-avx512-installer.exe` |
-| `self-contained` | `PublishAot=false`、`SelfContained=true`，不裁剪、不启用 ReadyToRun | `-self-contained-portable.zip` / `-self-contained-installer.exe` |
-| `framework-dependent` | `PublishAot=false`、`SelfContained=false`，保留 apphost，不裁剪、不启用 ReadyToRun | `-framework-dependent-portable.zip` / `-framework-dependent-installer.exe` |
+| `aot` | `PublishAot=true`、`SelfContained=true`、`IlcInstructionSet=x86-64,-avx512`、向量上限 128 | `-aot-portable.zip` / `-aot-installer.msi` |
+| `aot-avx512` | `PublishAot=true`、`SelfContained=true`、`IlcInstructionSet=x86-64-v4`、向量上限 512 | `-aot-avx512-portable.zip` / `-aot-avx512-installer.msi` |
+| `self-contained` | `PublishAot=false`、`SelfContained=true`，不裁剪、不启用 ReadyToRun | `-self-contained-portable.zip` / `-self-contained-installer.msi` |
+| `framework-dependent` | `PublishAot=false`、`SelfContained=false`，保留 apphost，不裁剪、不启用 ReadyToRun | `-framework-dependent-portable.zip` / `-framework-dependent-installer.msi` |
 
-完整文件名为 `OhMyStudy-<tag>-win-x64-<variant>-<portable.zip|installer.exe>`。AVX-512 目标按 .NET 10 的 `x86-64-v4` 组选择，不使用构建机的 `native` 指令集；普通 AOT 明确排除 `avx512` 组。说明见 [.NET Native AOT 编译选项](https://github.com/dotnet/runtime/blob/v10.0.0/src/coreclr/nativeaot/docs/optimizing.md)及[指令集定义](https://github.com/dotnet/runtime/blob/v10.0.0/src/coreclr/tools/Common/JitInterface/ThunkGenerator/InstructionSetDesc.txt)。这里的指令集选择针对 App 的 .NET 原生编译，不重新编译附带的第三方工具。
+完整文件名为 `OhMyStudy-<tag>-win-x64-<variant>-<portable.zip|installer.msi>`。AVX-512 目标按 .NET 10 的 `x86-64-v4` 组选择，不使用构建机的 `native` 指令集；普通 AOT 明确排除 `avx512` 组。说明见 [.NET Native AOT 编译选项](https://github.com/dotnet/runtime/blob/v10.0.0/src/coreclr/nativeaot/docs/optimizing.md)及[指令集定义](https://github.com/dotnet/runtime/blob/v10.0.0/src/coreclr/tools/Common/JitInterface/ThunkGenerator/InstructionSetDesc.txt)。这里的指令集选择针对 App 的 .NET 原生编译，不重新编译附带的第三方工具。
 
-Setup 与安装后的稳定启动器始终使用通用 Native AOT，避免依赖目标机 .NET，也避免在安装阶段要求 AVX-512。installer EXE 是携带 portable ZIP 资源的独立安装器，无需同目录 ZIP；解包到新建临时目录，拒绝越界/设备名/链接/重复路径，安装引擎继续校验每个文件，结束后清理临时目录。CI 实际运行下载用的 EXE，安装后再次校验，随后用 portable 内的小安装器卸载。
+安装格式统一为 MSI，由固定版本 WiX 构建，使用系统 Windows Installer 和标准安装向导。向导提供安装位置、桌面快捷方式选项与实际进度；安装器不依赖目标机 .NET，也不要求 AVX-512。CI 实际安装交付的 MSI，校验安装后全部文件并卸载；portable ZIP 不再包含旧自写安装器。MSI 的独立产品回归覆盖选项保留、升级、降级拒绝、同版本切换、回滚及卸载。
 
 两种非 AOT App 使用 `packages.self-contained.lock.json` 和 `packages.framework-dependent.lock.json`，其余仍使用默认锁文件；restore 和 publish 必须传相同 profile 属性。可本机复现一项：
 

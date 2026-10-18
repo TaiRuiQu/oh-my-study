@@ -1,0 +1,73 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="$(var.ProductName)" Manufacturer="Oh My Study" Version="$(var.PackageVersion)"
+           UpgradeCode="$(var.UpgradeCode)" Scope="perMachine" Language="2052" Codepage="65001" InstallerVersion="500">
+    <SummaryInformation Description="Oh My Study 安装程序" />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" Schedule="afterInstallInitialize"
+                  DowngradeErrorMessage="已安装较新的版本，请使用相同或更新的安装包。" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Icon Id="AppIcon.ico" SourceFile="$(var.AppIcon)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/TaiRuiQu/oh-my-study" />
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="DisableShutdown" />
+
+    <Property Id="LEGACYINSTALLROOT">
+      <RegistrySearch Id="FindLegacyInstaller" Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\OhMyStudy" Name="InstallLocation" Type="raw" />
+    </Property>
+    <Launch Condition="Installed OR NOT LEGACYINSTALLROOT" Message="检测到旧版安装。请先在 Windows 设置中卸载旧版，再运行此安装包。学习资料会保留。" />
+    <Property Id="PREVIOUSINSTALLFOLDER">
+      <RegistrySearch Id="FindInstallFolder" Root="HKLM" Key="$(var.RegistryKey)" Name="InstallFolder" Type="raw" />
+    </Property>
+    <Property Id="PREVIOUSDESKTOP">
+      <RegistrySearch Id="FindDesktopChoice" Root="HKLM" Key="$(var.RegistryKey)" Name="DesktopShortcut" Type="raw" />
+    </Property>
+    <Property Id="INSTALLDESKTOPSHORTCUT" Secure="yes" />
+    <Property Id="INSTALLFOLDER" Secure="yes" />
+    <Property Id="DESKTOPCHOICESET" Secure="yes" />
+    <SetProperty Id="INSTALLFOLDER" Value="[PREVIOUSINSTALLFOLDER]" Before="CostInitialize" Sequence="both"
+                 Condition="PREVIOUSINSTALLFOLDER AND NOT INSTALLFOLDER" />
+    <SetProperty Id="INSTALLDESKTOPSHORTCUT" Action="RestoreDesktopChoice" Value="[PREVIOUSDESKTOP]" Before="CostInitialize" Sequence="both"
+                 Condition="NOT DESKTOPCHOICESET AND INSTALLDESKTOPSHORTCUT = &quot;&quot; AND PREVIOUSDESKTOP &lt;&gt; &quot;&quot;" />
+    <SetProperty Id="INSTALLDESKTOPSHORTCUT" Action="DefaultDesktopChoice" Value="1" Before="RestoreDesktopChoice" Sequence="both"
+                 Condition="NOT DESKTOPCHOICESET AND INSTALLDESKTOPSHORTCUT = &quot;&quot; AND PREVIOUSDESKTOP = &quot;&quot;" />
+    <SetProperty Id="DESKTOPCHOICESET" Value="1" Before="ExecuteAction" Sequence="ui" />
+    <SetProperty Id="INSTALLDESKTOPSHORTCUT" Action="ShowUncheckedDesktopChoice" Value="" After="CostFinalize" Sequence="ui"
+                 Condition="INSTALLDESKTOPSHORTCUT = &quot;0&quot;" />
+    <SetProperty Id="INSTALLDESKTOPSHORTCUT" Action="NormalizeDesktopChoice" Value="0" Before="CostFinalize" Sequence="execute"
+                 Condition="INSTALLDESKTOPSHORTCUT = &quot;&quot;" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="OhMyStudy" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="APPLICATIONSHORTCUTS" Name="$(var.ProductName)" />
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder">
+      <Directory Id="DESKTOPSHORTCUTS" Name="." />
+    </StandardDirectory>
+
+    <Component Id="InstallationSettings" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue Root="HKLM" Key="$(var.RegistryKey)" Name="InstallFolder" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+      <RegistryValue Root="HKLM" Key="$(var.RegistryKey)" Name="DesktopShortcut" Value="[INSTALLDESKTOPSHORTCUT]" Type="string" />
+    </Component>
+    <Component Id="StartMenuShortcuts" Directory="APPLICATIONSHORTCUTS" Guid="*">
+      <Shortcut Id="StartMenuLaunch" Name="$(var.ProductName)" Target="[INSTALLFOLDER]OhMyStudy.App.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+      <Shortcut Id="StartMenuUninstall" Name="卸载 $(var.ProductName)" Target="[SystemFolder]msiexec.exe" Arguments="/x [ProductCode]" />
+      <RemoveFolder Id="RemoveStartMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="$(var.RegistryKey)" Name="StartMenu" Value="1" Type="integer" KeyPath="yes" />
+    </Component>
+    <Component Id="DesktopShortcut" Directory="DESKTOPSHORTCUTS" Guid="*" Transitive="yes" Condition="INSTALLDESKTOPSHORTCUT = &quot;1&quot;">
+      <Shortcut Id="DesktopLaunch" Name="$(var.ProductName)" Target="[INSTALLFOLDER]OhMyStudy.App.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+      <RegistryValue Root="HKLM" Key="$(var.RegistryKey)" Name="DesktopLinkInstalled" Value="1" Type="integer" KeyPath="yes" />
+    </Component>
+    <Feature Id="Application" Title="Oh My Study" Level="1">
+      <ComponentGroupRef Id="PayloadComponents" />
+      <ComponentRef Id="InstallationSettings" />
+      <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <UIRef Id="StudyInstallUI" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+  </Package>
+</Wix>
