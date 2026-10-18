@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-18T07:37:19.0608736+00:00",
+  "localDate": "2026-10-18",
+  "timezone": "Asia/Shanghai",
+  "status": "release-candidate-unvalidated",
+  "scope": "Local Windows x64 synthetic Native AOT and portable package checks; migration acceptance remains open.",
+  "provenance": {
+    "userLibrariesAccessed": false,
+    "realCredentialsAccessed": false,
+    "realProviderRequests": false,
+    "sandboxSessionsStarted": false,
+    "physicalPrintJobsSubmitted": false,
+    "diagnosticLibraries": "unique directories beside external reports",
+    "evidencePaths": "repository-relative; local output artifacts are ignored by Git"
+  },
+  "nativeSuite": {
+    "report": "output/migration/runs/migration-20261018-152724-1b3b62f9/run.json",
+    "sdk": "10.0.402",
+    "status": "selected-checks-passed",
+    "checks": [
+      {
+        "name": "domain",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "b9efab0a371c55786b6fa5ce91e47d2382ed54846f4f5e36bf48d56ccb300f85"
+      },
+      {
+        "name": "storage",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "7f4325b7748cdae17fc4d4bca2725d969a2552b076527e6d2e1fdb45a8162772"
+      },
+      {
+        "name": "provider",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "629ad2323745059378ee3b3cd5879b3d0f43fa9603086d1ef6dccd5006e30097"
+      },
+      {
+        "name": "execution",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "52a753cf8032950449e11f15b7e5231cb4fd60db8df2424471446376bfb8ed2e"
+      },
+      {
+        "name": "grading",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "008f2386f0fcd5db1612a093d294c4ce3acce36f35d3f515d6d0670f71c89a78"
+      },
+      {
+        "name": "media",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "71d79a83bdeb9fd33a7d720e784247a5681f158ca8c272c8d1cc53a341b3e038"
+      },
+      {
+        "name": "documents",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "e7d6e692b4928c315e0b02bccd9ed94dbc425233aa041487666fcf775f9053ea"
+      },
+      {
+        "name": "app",
+        "status": "passed",
+        "exitCode": 0,
+        "executableSha256": "f41fa9b15d218a26886f774ffb0e22fec455850047fbcab2d974239f3e5e8f6f"
+      }
+    ],
+    "executionIncludesPrivatePythonAndPowerShell": true
+  },
+  "package": {
+    "directory": "output/releases/OhMyStudy-win-x64-rc-20261018-153255-d5509074/portable",
+    "report": "output/releases/OhMyStudy-win-x64-rc-20261018-153255-d5509074/package-report.json",
+    "zip": "output/releases/OhMyStudy-win-x64-rc-20261018-153255-d5509074/OhMyStudy-win-x64-rc-20261018-153255-d5509074.zip",
+    "zipBytes": 146267047,
+    "zipSha256": "cbe4b538c1f2e035b3e23f5ccecdf2c5589151d6975203930998aa55acdd5e56",
+    "entryPoint": "OhMyStudy.App.exe",
+    "entryPointSha256": "f41fa9b15d218a26886f774ffb0e22fec455850047fbcab2d974239f3e5e8f6f",
+    "filesExcludingManifest": 4820,
+    "manifestSha256": "d40b88edba7e025ff662f3755076ef2c03c257d7983eb2998ebeeef1e4e1c927",
+    "sourceSnapshotSha256": "f9a3453ffac112a2078dcd41f46ba6c395b9e63b87b4338c56e15c1405047a51",
+    "runtimeManifestSha256": "3ac633ef41ecbfb74588d5faa9e85927be94bce87a29f4491e94f56ebb6b9138",
+    "runtimeStatus": "computation-verified-sandbox-not-enabled",
+    "runtimeFiles": 4479,
+    "packageStatus": "created-and-local-checks-passed",
+    "optionalWinUiWebViewInteropFiles": [
+      "Microsoft.Web.WebView2.Core.dll",
+      "WebView2Loader.dll"
+    ]
+  },
+  "validations": {
+    "directoryReport": "output/releases/OhMyStudy-win-x64-rc-20261018-153255-d5509074/package-verification.json",
+    "sandboxZipReport": "output/migration/evidence/p9-final-zip-2026-10-18.json",
+    "normalUserZipReport": "output/migration/evidence/p9-final-zip-user-2026-10-18.json",
+    "normalUserZipStatus": "selected-local-checks-passed",
+    "checks": [
+      "all-manifest-file-sizes-and-sha256",
+      "native-x64-app-PRI-XBF-and-private-runtime-present",
+      "pinned-native-document-tools-and-font",
+      "private-runtime-manifest-hashes",
+      "no-bundled-Node-Rust-browser-executable-or-CoreCLR",
+      "App-source-no-fixed-browser-control-or-legacy-launch",
+      "portable-native-desktop-smoke",
+      "no-forbidden-child-observed-during-desktop-smoke",
+      "portable-persisted-twelve-page-workflow"
+    ],
+    "desktopPassed": true,
+    "desktopNativeAot": true,
+    "workflowReport": "output/migration/runs/package-check-20261018-153530-5a4200d4/workflow-smoke.json",
+    "workflowPassed": true,
+    "workflowChecks": [
+      {
+        "name": "empty-start",
+        "passed": true
+      },
+      {
+        "name": "import-twelve-pages",
+        "passed": true
+      },
+      {
+        "name": "original-bytes",
+        "passed": true
+      },
+      {
+        "name": "all-pages-displayed",
+        "passed": true
+      },
+      {
+        "name": "rotation-persisted",
+        "passed": true
+      },
+      {
+        "name": "question-loaded",
+        "passed": true
+      },
+      {
+        "name": "edit-saved",
+        "passed": true
+      },
+      {
+        "name": "source-highlight",
+        "passed": true
+      },
+      {
+        "name": "library-native-navigation",
+        "passed": true
+      },
+      {
+        "name": "blank-no-false-mistake",
+        "passed": true
+      },
+      {
+        "name": "cache-byte-budget",
+        "passed": true
+      },
+      {
+        "name": "backup-reopen-edit",
+        "passed": true
+      },
+      {
+        "name": "dirty-refresh-keeps-edit",
+        "passed": true
+      },
+      {
+        "name": "dark-caption",
+        "passed": true
+      },
+      {
+        "name": "light-caption",
+        "passed": true
+      },
+      {
+        "name": "keyboard-editor-focus",
+        "passed": true
+      },
+      {
+        "name": "native-aot",
+        "passed": true
+      }
+    ],
+    "normalUserCimObservationAvailable": true,
+    "observedChildProcessNames": [],
+    "processObservationLimit": "100 ms CIM samples; very short-lived children may be missed; not an execution sandbox",
+    "immutablePackageRecheckedAfterSmoke": true
+  },
+  "localWorkflowObservation": {
+    "scenarioMilliseconds": 1714.122,
+    "cachedPageP95Milliseconds": 19.507,
+    "privateBytesAtEnd": 309387264,
+    "cacheRetainedBytes": 51840000,
+    "performanceBudgetAccepted": false,
+    "interpretation": "One local diagnostic run, not cold-start, idle-memory, frame-time or reference-device acceptance."
+  },
+  "notRun": [
+    "clean-Windows-10-11-offline-installation",
+    "installer-update-uninstall",
+    "real-user-library-and-credentials",
+    "real-provider-semantics",
+    "real-Sandbox-and-physical-printing",
+    "redistribution-license-review",
+    "source-correspondence-review",
+    "code-signing-and-distribution-trust",
+    "DPI-IME-accessibility-and-reference-device-performance"
+  ],
+  "notes": [
+    "The initial sandbox checks passed desktop/workflow but reported CIM unavailable. A subsequent authorized normal-user ZIP extraction and both smoke checks passed with CIM observation available.",
+    "The package retains WinUI optional WebView2 interop DLLs. No forbidden child was observed during sampled desktop smoke; short-lived processes may be missed, and this is not an execution sandbox.",
+    "The source snapshot was captured while packaging the tested EXE. Later NativeQuestionPresenter changes were whitespace/line formatting only, followed by documentation and evidence updates. This record does not claim byte-for-byte reproducibility from every file of the current working tree.",
+    "Real user libraries, keys, providers, Sandbox and physical printers were not used. Clean-system installation, upgrades/uninstall, license and source-correspondence review remain unvalidated."
+  ]
+}

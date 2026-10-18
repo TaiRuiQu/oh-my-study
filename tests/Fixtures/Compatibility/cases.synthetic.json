@@ -1,0 +1,879 @@
+{
+  "schema_version": 1,
+  "provenance": "SYNTHETIC source-derived expected behavior; executable fixture sanity checks do not establish C# parity or model accuracy.",
+  "base_fixture": "contracts.synthetic.json",
+  "baseline_commit": "0b5c5398e6e552792f3fe23cfaa12de7ad206f07",
+  "json_contract_cases": [
+    {
+      "id": "provider_has_key_is_not_deserialized",
+      "type": "Provider",
+      "base": "/provider",
+      "add": {
+        "has_key": true,
+        "future_flag": "ignored"
+      },
+      "expected": {
+        "accepted": true,
+        "has_key": false,
+        "future_flag_preserved": false
+      },
+      "source": "src-tauri/src/domain/mod.rs:Provider"
+    },
+    {
+      "id": "unknown_question_field_is_rejected",
+      "type": "Question",
+      "base": "/question",
+      "add": {
+        "future_flag": true
+      },
+      "expected": {
+        "accepted": false
+      },
+      "source": "src-tauri/src/domain/grading.rs:Question"
+    },
+    {
+      "id": "unknown_content_field_is_rejected",
+      "type": "Content",
+      "raw_json": "{\"kind\":\"text\",\"text\":\"中文\",\"future_flag\":true}",
+      "expected": {
+        "accepted": false
+      },
+      "source": "src-tauri/src/domain/grading.rs:Content"
+    },
+    {
+      "id": "unknown_region_field_is_rejected",
+      "type": "Region",
+      "base": "/question/sources/0",
+      "add": {
+        "future_flag": true
+      },
+      "expected": {
+        "accepted": false
+      },
+      "source": "src-tauri/src/domain/grading.rs:Region"
+    },
+    {
+      "id": "unknown_execution_call_field_is_rejected",
+      "type": "ExecutionCall",
+      "base": "/execution_call",
+      "add": {
+        "future_flag": true
+      },
+      "expected": {
+        "accepted": false
+      },
+      "source": "src-tauri/src/execution/permissions.rs:ExecutionCall"
+    },
+    {
+      "id": "unknown_settings_field_is_ignored",
+      "type": "AppSettings",
+      "base": "/settings",
+      "add": {
+        "future_flag": true
+      },
+      "expected": {
+        "accepted": true,
+        "future_flag_preserved": false
+      },
+      "source": "src-tauri/src/domain/mod.rs:AppSettings"
+    },
+    {
+      "id": "missing_optional_grade_score_becomes_null",
+      "type": "Grade",
+      "raw_json": "{\"verdict\":\"uncertain\",\"source\":\"ai_solution\",\"reason\":\"合成模糊\"}",
+      "expected": {
+        "accepted": true,
+        "earned": null,
+        "possible": null
+      },
+      "source": "src-tauri/src/domain/grading.rs:Grade"
+    },
+    {
+      "id": "missing_required_question_collection_is_rejected",
+      "type": "Question",
+      "base": "/question",
+      "remove": [
+        "options"
+      ],
+      "expected": {
+        "accepted": false
+      },
+      "source": "src-tauri/src/domain/grading.rs:Question"
+    },
+    {
+      "id": "missing_job_input_defaults_to_null",
+      "type": "Job",
+      "base": "/job",
+      "remove": [
+        "input"
+      ],
+      "expected": {
+        "accepted": true,
+        "input": null
+      },
+      "source": "src-tauri/src/jobs/mod.rs:Job"
+    },
+    {
+      "id": "job_lowercase_state_is_rejected",
+      "type": "Job",
+      "base": "/job",
+      "add": {
+        "state": "completed"
+      },
+      "expected": {
+        "accepted": false
+      },
+      "source": "src-tauri/src/jobs/mod.rs:JobState"
+    },
+    {
+      "id": "thinking_uses_kind_discriminator",
+      "type": "Thinking",
+      "raw_json": "{\"kind\":\"gemini_budget\",\"tokens\":-1}",
+      "expected": {
+        "accepted": true,
+        "tokens": -1
+      },
+      "source": "src-tauri/src/ai/providers/mod.rs:Thinking"
+    },
+    {
+      "id": "u64_max",
+      "type": "Thinking",
+      "raw_json": "{\"kind\":\"budget\",\"tokens\":18446744073709551615}",
+      "expected": {
+        "deserialization_accepted": true,
+        "request_validation_accepted": false
+      },
+      "source": "src-tauri/src/ai/providers/mod.rs:Thinking/RequestOptions"
+    },
+    {
+      "id": "u64_overflow",
+      "type": "Thinking",
+      "raw_json": "{\"kind\":\"budget\",\"tokens\":18446744073709551616}",
+      "expected": {
+        "deserialization_accepted": false
+      },
+      "source": "src-tauri/src/ai/providers/mod.rs:Thinking"
+    },
+    {
+      "id": "job_times_are_unix_milliseconds",
+      "type": "Job",
+      "base": "/job",
+      "expected": {
+        "created_at_json_type": "integer",
+        "updated_at_json_type": "integer",
+        "sequence_json_type": "integer"
+      },
+      "source": "src-tauri/src/jobs/mod.rs:Job/now"
+    },
+    {
+      "id": "document_time_is_preserved_string",
+      "type": "Document",
+      "base": "/document",
+      "expected": {
+        "created_at": "2026-10-18T00:00:00+00:00"
+      },
+      "source": "src-tauri/src/storage/records.rs:document"
+    }
+  ],
+  "grade_cases": [
+    {
+      "id": "correct_exact",
+      "grade": {
+        "verdict": "correct",
+        "earned": 2,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": true
+    },
+    {
+      "id": "correct_tolerance",
+      "grade": {
+        "verdict": "correct",
+        "earned": 1.99995,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": true
+    },
+    {
+      "id": "correct_outside_tolerance",
+      "grade": {
+        "verdict": "correct",
+        "earned": 1.9998,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": false
+    },
+    {
+      "id": "partial_positive_below_possible",
+      "grade": {
+        "verdict": "partial",
+        "earned": 1,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": true
+    },
+    {
+      "id": "partial_zero",
+      "grade": {
+        "verdict": "partial",
+        "earned": 0,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": false
+    },
+    {
+      "id": "partial_full",
+      "grade": {
+        "verdict": "partial",
+        "earned": 2,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": false
+    },
+    {
+      "id": "incorrect_zero",
+      "grade": {
+        "verdict": "incorrect",
+        "earned": 0,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": true
+    },
+    {
+      "id": "unanswered_zero",
+      "grade": {
+        "verdict": "unanswered",
+        "earned": 0,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": true
+    },
+    {
+      "id": "uncertain_no_earned",
+      "grade": {
+        "verdict": "uncertain",
+        "earned": null,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": "无法辨认"
+      },
+      "accepted": true
+    },
+    {
+      "id": "uncertain_no_reason",
+      "grade": {
+        "verdict": "uncertain",
+        "earned": null,
+        "possible": null,
+        "source": "ai_solution",
+        "reason": " "
+      },
+      "accepted": false
+    },
+    {
+      "id": "uncertain_with_earned",
+      "grade": {
+        "verdict": "uncertain",
+        "earned": 0,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": "无法辨认"
+      },
+      "accepted": false
+    },
+    {
+      "id": "unknown_possible_with_earned",
+      "grade": {
+        "verdict": "incorrect",
+        "earned": 0,
+        "possible": null,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": false
+    },
+    {
+      "id": "negative_possible",
+      "grade": {
+        "verdict": "incorrect",
+        "earned": 0,
+        "possible": -1,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": false
+    },
+    {
+      "id": "earned_exceeds_possible",
+      "grade": {
+        "verdict": "partial",
+        "earned": 3,
+        "possible": 2,
+        "source": "ai_solution",
+        "reason": ""
+      },
+      "accepted": false
+    },
+    {
+      "id": "unknown_scores_do_not_become_zero",
+      "grade": {
+        "verdict": "incorrect",
+        "earned": null,
+        "possible": null,
+        "source": "ai_solution",
+        "reason": "满分未知"
+      },
+      "accepted": true
+    }
+  ],
+  "region_cases": [
+    {
+      "id": "unit_page",
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1,
+      "role": "material",
+      "accepted": true
+    },
+    {
+      "id": "small_end_tolerance",
+      "x": 0.9,
+      "y": 0,
+      "width": 0.1000009,
+      "height": 1,
+      "role": "material",
+      "accepted": true
+    },
+    {
+      "id": "outside_end_tolerance",
+      "x": 0.9,
+      "y": 0,
+      "width": 0.100002,
+      "height": 1,
+      "role": "material",
+      "accepted": false
+    },
+    {
+      "id": "negative_x",
+      "x": -0.1,
+      "y": 0,
+      "width": 0.2,
+      "height": 1,
+      "role": "material",
+      "accepted": false
+    },
+    {
+      "id": "zero_width",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 1,
+      "role": "material",
+      "accepted": false
+    },
+    {
+      "id": "x_at_one",
+      "x": 1,
+      "y": 0,
+      "width": 0.1,
+      "height": 1,
+      "role": "material",
+      "accepted": false
+    },
+    {
+      "id": "reference_page_as_material",
+      "page_id": "30000000-0000-4000-8000-000000000002",
+      "x": 0,
+      "y": 0,
+      "width": 1,
+      "height": 1,
+      "role": "material",
+      "accepted": false
+    }
+  ],
+  "question_cases": [
+    {
+      "id": "ai_answered_partial",
+      "base": "/question",
+      "document_mode": "ai_grading",
+      "manual": false,
+      "accepted": true,
+      "wrong_question": true
+    },
+    {
+      "id": "blank_requires_null_attempt",
+      "base": "/question",
+      "document_mode": "blank",
+      "manual": false,
+      "accepted": false
+    },
+    {
+      "id": "blank_null_attempt",
+      "base": "/question",
+      "set": {
+        "attempt": null
+      },
+      "document_mode": "blank",
+      "manual": false,
+      "accepted": true,
+      "wrong_question": false
+    },
+    {
+      "id": "answered_requires_attempt",
+      "base": "/question",
+      "set": {
+        "attempt": null
+      },
+      "document_mode": "ai_grading",
+      "manual": false,
+      "accepted": false
+    },
+    {
+      "id": "manual_source_by_ai_rejected",
+      "base": "/question",
+      "set_paths": {
+        "/attempt/grade/source": "manual"
+      },
+      "document_mode": "ai_grading",
+      "manual": false,
+      "accepted": false
+    },
+    {
+      "id": "manual_source_by_editor_accepted",
+      "base": "/question",
+      "set_paths": {
+        "/attempt/grade/source": "manual"
+      },
+      "document_mode": "ai_grading",
+      "manual": true,
+      "accepted": true
+    },
+    {
+      "id": "wrong_view_includes_partial",
+      "verdict": "partial",
+      "has_attempt": true,
+      "wrong_question": true
+    },
+    {
+      "id": "wrong_view_includes_incorrect",
+      "verdict": "incorrect",
+      "has_attempt": true,
+      "wrong_question": true
+    },
+    {
+      "id": "wrong_view_includes_unanswered",
+      "verdict": "unanswered",
+      "has_attempt": true,
+      "wrong_question": true
+    },
+    {
+      "id": "wrong_view_excludes_uncertain",
+      "verdict": "uncertain",
+      "has_attempt": true,
+      "wrong_question": false
+    },
+    {
+      "id": "wrong_view_excludes_correct",
+      "verdict": "correct",
+      "has_attempt": true,
+      "wrong_question": false
+    }
+  ],
+  "policy_cases": [
+    {
+      "id": "sandbox_ready",
+      "preferred_mode": "sandbox",
+      "capability_state": "ready",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "sandbox",
+        "executor_kind": "windows_sandbox",
+        "fallback_reason_present": false,
+        "warning_present": false
+      }
+    },
+    {
+      "id": "sandbox_unsupported",
+      "preferred_mode": "sandbox",
+      "capability_state": "unsupported",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    },
+    {
+      "id": "sandbox_needs_enable",
+      "preferred_mode": "sandbox",
+      "capability_state": "needs_enable",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    },
+    {
+      "id": "sandbox_needs_reboot",
+      "preferred_mode": "sandbox",
+      "capability_state": "needs_reboot",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    },
+    {
+      "id": "sandbox_virtualization_unavailable",
+      "preferred_mode": "sandbox",
+      "capability_state": "virtualization_unavailable",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    },
+    {
+      "id": "sandbox_policy_blocked",
+      "preferred_mode": "sandbox",
+      "capability_state": "policy_blocked",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    },
+    {
+      "id": "sandbox_busy",
+      "preferred_mode": "sandbox",
+      "capability_state": "busy",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    },
+    {
+      "id": "sandbox_unknown",
+      "preferred_mode": "sandbox",
+      "capability_state": "unknown",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    },
+    {
+      "id": "sandbox_start_failed",
+      "preferred_mode": "sandbox",
+      "capability_state": "start_failed",
+      "sandbox_networking": false,
+      "expected": {
+        "effective_mode": "bypass_permission",
+        "executor_kind": "host",
+        "fallback_reason_present": true,
+        "warning_present": true
+      }
+    }
+  ],
+  "workflow_cases": [
+    {
+      "id": "independent_duplicate_import",
+      "expected": "Same bytes imported twice create different document/question IDs; draft_key upsert is scoped to document.",
+      "tests": [
+        "src-tauri/tests/grading_integration.rs:save_idempotence_is_scoped_to_document_and_cancel_blocks_late_writes"
+      ]
+    },
+    {
+      "id": "repeat_save_is_idempotent",
+      "expected": "Saving same document/draft_key updates existing stable question ID and row position.",
+      "tests": [
+        "src-tauri/tests/grading_integration.rs:save_idempotence_is_scoped_to_document_and_cancel_blocks_late_writes"
+      ]
+    },
+    {
+      "id": "teacher_and_manual_preservation",
+      "expected": "Regrade preserves teacher evidence in teacher mode and manual grades recursively; protected parts cannot disappear.",
+      "tests": [
+        "src-tauri/tests/grading_integration.rs:teacher_evidence_and_manual_grades_survive_regrading"
+      ]
+    },
+    {
+      "id": "references_are_separate",
+      "expected": "Reference task saves matching only, preserves referenced stable keys, does not regrade; unmatched answer requires reason.",
+      "tests": [
+        "src-tauri/tests/grading_integration.rs:reference_matching_is_separate_and_ai_reference_requires_a_match"
+      ]
+    },
+    {
+      "id": "finish_requires_viewed_complete_pages",
+      "expected": "All target pages viewed, unique coverage, source/key agreement, and all existing root questions saved this run.",
+      "tests": [
+        "src-tauri/src/ai/grading_tests.rs:three_native_whole_paper_loops_save_once_reject_missing_coverage_and_finish"
+      ]
+    },
+    {
+      "id": "cancel_keeps_saved_results",
+      "expected": "Committed results remain; cancellation and result commits serialize; terminal jobs reject late writes.",
+      "tests": [
+        "src-tauri/src/jobs/tests.rs:cancel_is_a_late_write_barrier_and_global_slot_waits_for_executor_exit",
+        "src-tauri/tests/grading_integration.rs:save_idempotence_is_scoped_to_document_and_cancel_blocks_late_writes"
+      ]
+    },
+    {
+      "id": "single_active_job",
+      "expected": "One global worker slot including permission wait; next job waits for prior executor exit.",
+      "tests": [
+        "src-tauri/src/jobs/tests.rs:cancel_is_a_late_write_barrier_and_global_slot_waits_for_executor_exit"
+      ]
+    },
+    {
+      "id": "restart_interrupted",
+      "expected": "QUEUED/RUNNING/WAITING_PERMISSION become INTERRUPTED; approval state cleared; no replay.",
+      "tests": [
+        "src-tauri/src/jobs/tests.rs:restarting_interrupts_all_unfinished_states_without_resuming_permissions"
+      ]
+    },
+    {
+      "id": "persist_before_broadcast",
+      "expected": "Full job snapshot and full immutable event in one transaction; sequence strictly increases; failed persistence stops queue.",
+      "tests": [
+        "src-tauri/src/jobs/tests.rs:channel_events_are_persisted_before_broadcast_and_storage_check_reads_own_write",
+        "src-tauri/src/jobs/tests.rs:failed_persistence_stops_queue_before_any_unaudited_execution"
+      ]
+    },
+    {
+      "id": "approved_call_digest",
+      "expected": "All execution fields and bytes match reviewed digest; allow_once consumed; allow_task limited to same live job.",
+      "tests": [
+        "src-tauri/src/execution/permissions.rs:every_review_field_changes_digest",
+        "src-tauri/src/jobs/tests.rs:reviewed_digest_is_required_allow_once_waits_again_and_denial_stops_job"
+      ]
+    },
+    {
+      "id": "sandbox_no_replay",
+      "expected": "A ready Sandbox policy cannot execute on host; lost Sandbox session never replays call.",
+      "tests": [
+        "src-tauri/src/jobs/tests.rs:sandbox_executor_is_not_faked_by_host_fallback",
+        "src-tauri/src/execution/sandbox.rs:loss_never_replays"
+      ]
+    },
+    {
+      "id": "asset_io_failure_is_atomic",
+      "expected": "Ordinary SQL/I/O failure removes files created by this import and rolls back SQL; crash orphan files remain a recovery item.",
+      "tests": [
+        "src-tauri/tests/storage_integration.rs:sqlite_import_failure_removes_files_and_rolls_back_document"
+      ]
+    },
+    {
+      "id": "page_edits_protect_sources",
+      "expected": "Stable source IDs survive reorder/rotation; referenced pages cannot be deleted; active document cannot be edited.",
+      "tests": [
+        "src-tauri/tests/grading_integration.rs:save_idempotence_is_scoped_to_document_and_cancel_blocks_late_writes"
+      ],
+      "source": "src-tauri/src/storage/records.rs:update_pages"
+    },
+    {
+      "id": "pdf_original_mapping",
+      "expected": "PDF cache refers to original asset and 0-based original page; legacy pending PDF upgrade keeps first source page ID.",
+      "tests": [
+        "src-tauri/tests/grading_integration.rs:pdfium_page_count_original_mapping_limits_and_legacy_upgrade"
+      ]
+    },
+    {
+      "id": "native_protocol_context",
+      "expected": "Opaque Responses encrypted reasoning, Messages signatures/redacted blocks, Gemini thoughtSignature preserved exactly.",
+      "tests": [
+        "src-tauri/src/ai/providers/tests.rs:native_round_trips_preserve_opaque_context_and_tool_images"
+      ]
+    },
+    {
+      "id": "utf8_sse",
+      "expected": "Every possible byte chunk split produces same result; premature EOF is failure.",
+      "tests": [
+        "src-tauri/src/ai/providers/tests.rs:native_sse_survives_arbitrary_utf8_boundaries_and_preserves_signatures",
+        "src-tauri/src/ai/providers/tests.rs:truncated_streams_and_invalid_tool_results_cannot_be_completed"
+      ]
+    },
+    {
+      "id": "unknown_capability",
+      "expected": "Unknown vision/tools requires explicit opt-in; known false is always rejected; model name never establishes capability.",
+      "tests": [
+        "src-tauri/src/ai/providers/tests.rs:thinking_is_native_and_parameters_are_never_silently_deleted"
+      ]
+    },
+    {
+      "id": "host_process_tree",
+      "expected": "Suspended process is assigned to owned Job before resume; timeout/cancel/output limit/normal exit reap descendants; private runtime only.",
+      "tests": [
+        "src-tauri/tests/host_execution.rs:private_host_execution_lifecycle"
+      ]
+    },
+    {
+      "id": "future_database",
+      "expected": "user_version > 2 is rejected before application CRUD; do not downgrade PRAGMA.",
+      "tests": [
+        "src-tauri/tests/storage_integration.rs:refuses_future_database_versions_and_embedded_provider_credentials"
+      ]
+    }
+  ],
+  "protocol_expected_usage": {
+    "fixture": "../protocols/round-trips.synthetic.json",
+    "responses_tool": {
+      "input": 100,
+      "input_uncached": 80,
+      "cache_read": 20,
+      "cache_write": null,
+      "output": 30,
+      "reasoning": 10,
+      "total": 130
+    },
+    "messages_tool": {
+      "input": 100,
+      "input_uncached": 80,
+      "cache_read": 15,
+      "cache_write": 5,
+      "output": 30,
+      "reasoning": null,
+      "total": 130
+    },
+    "gemini_tool": {
+      "input": 100,
+      "input_uncached": 80,
+      "cache_read": 20,
+      "cache_write": null,
+      "output": 30,
+      "reasoning": 10,
+      "total": 130
+    }
+  },
+  "formula_cases": [
+    {
+      "id": "fraction",
+      "latex": "\\frac{x^2-1}{x-1}",
+      "expected": "Readable fraction with stable baseline."
+    },
+    {
+      "id": "matrix",
+      "latex": "A=\\begin{pmatrix}1&2&3\\\\0&-1&4\\\\2&0&1\\end{pmatrix}",
+      "expected": "3 by 3 matrix."
+    },
+    {
+      "id": "sub_super_sum",
+      "latex": "f(x)=x_1^2+e^{-x}+\\sum_{k=1}^{n}k^2",
+      "expected": "Subscripts, superscripts and sum bounds retained."
+    },
+    {
+      "id": "chinese_condition",
+      "latex": "\\text{平均速度}=\\frac{\\text{总路程}}{\\text{总时间}}",
+      "expected": "Fixed Chinese glyphs; no missing glyph fallback."
+    },
+    {
+      "id": "chemical_arrow",
+      "latex": "\\ce{2H2 + O2 ->[\\text{点燃}] 2H2O}",
+      "expected": "mhchem reaction arrow and Chinese condition."
+    },
+    {
+      "id": "ionic_charge",
+      "latex": "\\ce{SO4^2- + Ba^2+ -> BaSO4 v}",
+      "expected": "Ionic charges and precipitate mark."
+    },
+    {
+      "id": "long_formula",
+      "latex": "\\sum_{k=1}^{n}\\frac{k(k+1)(k+2)}{(n+1)(n+2)(n+3)}+\\frac{\\text{很长的中文条件}}{\\sqrt{1+x^2}}=\\frac{1}{4}",
+      "expected": "Readable scaling/wrapping and deterministic export."
+    },
+    {
+      "id": "invalid_input",
+      "latex": "\\frac{1}{",
+      "expected": "Readable error/fallback; no crash or silent disappearance."
+    },
+    {
+      "id": "untrusted_markup",
+      "latex": "\\href{https://synthetic.invalid}{x}",
+      "expected": "Explicitly reject link/HTML/runtime package commands per legacy controlled pipeline."
+    }
+  ],
+  "performance_datasets": [
+    {
+      "id": "paper12",
+      "pages": 12,
+      "width": 2400,
+      "height": 3600,
+      "roles": {
+        "material": 10,
+        "reference": 2
+      },
+      "source": "Synthetic high-resolution grids, text and colored regions; generated after P1 renderer exists.",
+      "measured": false
+    },
+    {
+      "id": "library5000",
+      "root_questions": 5000,
+      "parts_per_question": 3,
+      "contains": [
+        "Chinese text",
+        "formula",
+        "source region",
+        "attempt"
+      ],
+      "measured": false
+    },
+    {
+      "id": "library20000",
+      "root_questions": 20000,
+      "parts_per_question": 3,
+      "contains": [
+        "Chinese text",
+        "formula",
+        "source region",
+        "attempt"
+      ],
+      "measured": false
+    },
+    {
+      "id": "repeat100",
+      "iterations": 100,
+      "actions": [
+        "browse",
+        "rotate",
+        "navigate back",
+        "edit",
+        "queue",
+        "cancel",
+        "export"
+      ],
+      "measured": false
+    }
+  ]
+}

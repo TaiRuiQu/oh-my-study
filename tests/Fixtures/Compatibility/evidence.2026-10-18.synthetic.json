@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-18T13:30:14+08:00",
+  "timezone": "Asia/Shanghai",
+  "provenance": "Migration P0 execution evidence. All newly used documents/protocols/assets/credentials were synthetic. No user library, real provider credential, real provider endpoint or Windows Sandbox session was accessed.",
+  "baseline_commit": "0b5c5398e6e552792f3fe23cfaa12de7ad206f07",
+  "initial_git_status": [
+    "?? migration.md"
+  ],
+  "environment": {
+    "os_api": "Microsoft Windows NT 10.0.26200.0",
+    "os_edition": "not verified; Win32_OperatingSystem CIM query denied",
+    "cargo": "1.98.1 (797e8a9bc 2026-08-05)",
+    "rustc": "1.98.1 (48a229cea 2026-09-01)",
+    "node": "v22.23.2",
+    "npm": "10.9.8",
+    "powershell": "7.6.5",
+    "vite_build_report": "7.3.7",
+    "python_fixture_tool": "Python 3.13, standard library only",
+    "cargo_cache": "tmp/cargo-home",
+    "private_runtime": "runtime/staging/python/python.exe",
+    "pdfium": "src-tauri/resources/pdfium/bin/pdfium.dll; lock version 7881"
+  },
+  "source_hashes": {
+    "Cargo.lock": "7c1163e6c949a440db5dc756d960b4cf965b7112fef4adf2d4294e6476b837f4",
+    "package-lock.json": "44d81b829c8547daaca5a6e3e600b8d848fb31c84b0ccff600f0e620126924ce",
+    "src-tauri/migrations/001_initial.sql": "5bd843262b2e7db4cdaa9598bfb3a2ce7ed63e51d47e0d65ee6ffa98a6b097e8",
+    "src-tauri/migrations/002_grading.sql": "a0e3234b314eae49b4a93506f91cff6a42ef4ccf64fb382f9d93e71616c94a10",
+    "migration.md": "e17f51630d6472901c9b22b0b82789a47784863b895e6fbad0a6c4640dc77fdd"
+  },
+  "checks": [
+    {
+      "id": "rust_default_home_initial_attempt",
+      "command": "cargo test -p oh-my-study-core --locked",
+      "exit_code": 1,
+      "status": "failed_environment",
+      "reason": "Default Cargo home attempted crates.io; pdfium-render index fetch failed with Schannel SEC_E_NO_CREDENTIALS 0x8009030e. Retried below with existing project cache and --offline."
+    },
+    {
+      "id": "frontend_typecheck",
+      "command": "npm run typecheck",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "id": "frontend_lint",
+      "command": "npm run lint",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "id": "frontend_build",
+      "command": "npm run build",
+      "exit_code": 0,
+      "status": "passed",
+      "metrics": {
+        "modules": 2673,
+        "build_seconds": 10.91
+      },
+      "warnings": [
+        "Chunks over 500 kB after minification; JS main 607.57 kB and formula 1672.75 kB reported. These are build output sizes, not native performance measurements."
+      ]
+    },
+    {
+      "id": "rust_fmt",
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "id": "rust_core_clippy",
+      "command": "cargo clippy --locked --offline --workspace --all-targets -- -D warnings",
+      "cargo_home": "tmp/cargo-home",
+      "exit_code": 0,
+      "status": "passed",
+      "features": "default core; desktop-feature Clippy not rerun"
+    },
+    {
+      "id": "rust_default_tests",
+      "command": "cargo test -p oh-my-study-core --locked --offline",
+      "cargo_home": "tmp/cargo-home",
+      "exit_code": 0,
+      "status": "passed",
+      "passed": 53,
+      "failed": 0,
+      "ignored": 4,
+      "suites": {
+        "unit": {
+          "passed": 38,
+          "ignored": 1
+        },
+        "grading_integration": {
+          "passed": 4,
+          "ignored": 1
+        },
+        "host_execution": {
+          "passed": 0,
+          "ignored": 1
+        },
+        "jobs_persistence": {
+          "passed": 1,
+          "ignored": 1
+        },
+        "storage_integration": {
+          "passed": 10,
+          "ignored": 0
+        },
+        "doctests": {
+          "passed": 0,
+          "ignored": 0
+        }
+      },
+      "compile_seconds": 44.03,
+      "unit_seconds": 8.26
+    },
+    {
+      "id": "pdfium_native",
+      "command": "cargo test -p oh-my-study-core --locked --offline --test grading_integration -- --ignored",
+      "exit_code": 0,
+      "status": "passed",
+      "passed": 1,
+      "seconds": 7.57,
+      "scenario": "Actual PDFium self-authored PDF pages, original mapping, page/byte limits, legacy pending PDF upgrade"
+    },
+    {
+      "id": "host_native",
+      "command": "cargo test -p oh-my-study-core --locked --offline --test host_execution -- --ignored",
+      "exit_code": 0,
+      "status": "passed",
+      "passed": 1,
+      "seconds": 2.35,
+      "scenario": "Actual private Python/Shell, Chinese paths, argument data, environment filtering, timeout/cancel/output cap, owned descendants"
+    },
+    {
+      "id": "private_python_job",
+      "command": "cargo test -p oh-my-study-core --locked --offline --test jobs_persistence -- --ignored",
+      "exit_code": 0,
+      "status": "passed",
+      "passed": 1,
+      "seconds": 1.18,
+      "scenario": "Actual private Python scientific libraries execute only after real broker approval"
+    },
+    {
+      "id": "private_runner",
+      "command": "./runtime/staging/python/python.exe -I ./runtime/test_runner.py",
+      "exit_code": 0,
+      "status": "passed",
+      "passed": 9,
+      "seconds": 7.72
+    },
+    {
+      "id": "typesetting_tests",
+      "command": "npm test --prefix probes/typesetting",
+      "exit_code": 0,
+      "status": "passed",
+      "passed": 5,
+      "scenario": "Controlled TeX/SVG rejection, question/answer projection isolation, trusted template; no PDF regeneration or physical printing this run"
+    },
+    {
+      "id": "fixture_integrity",
+      "command": "python -X utf8 tests/fixtures/migration/fixture_tools.py verify",
+      "exit_code": 0,
+      "status": "passed",
+      "sqlite_versions": [
+        1,
+        2
+      ],
+      "v1_to_v2_canonical_sql": "passed",
+      "asset_hashes": 2,
+      "existing_output_overwrite": "refused",
+      "permission_digest": "49df49be73030b3ed8ed2f8d25430e8854106f0a394d927d8ee13cdd81e2f942",
+      "scope": "Fixture consistency and schema only; no second business implementation"
+    },
+    {
+      "id": "legacy_rust_oracle",
+      "command": "./tests/fixtures/migration/verify_legacy.ps1",
+      "exit_code": 0,
+      "status": "passed",
+      "case_counts": {
+        "json_contract": 15,
+        "grade": 15,
+        "region": 7,
+        "question_domain": 6,
+        "policy": 9,
+        "protocol_usage": 3,
+        "wrong_view_predicate": 5,
+        "permission_serialization_digest": 1
+      },
+      "scope": "55 Rust parsing/domain/policy/usage cases, 1 digest, plus 5 source-derived wrong-view predicates; no C# parity or UI execution"
+    },
+    {
+      "id": "legacy_desktop_build",
+      "command": "cargo build --locked --offline --features desktop,custom-protocol --bin oh-my-study",
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 92,
+      "artifact": "target/debug/oh-my-study.exe",
+      "artifact_bytes": 32110592,
+      "artifact_sha256": "566d1ad133960003070aa9eda90eb95954481ae73f2e8b9debc516c18c95637c",
+      "scope": "Debug embedded-dist old Tauri/WebView2 build only; not launched in this run and not a native AOT deliverable"
+    }
+  ],
+  "not_run": [
+    {
+      "id": "windows_credential_roundtrip",
+      "reason": "Default ignored test not opted in this run; no Windows vault access. Previous synthetic credential evidence is in progress.md, not new evidence."
+    },
+    {
+      "id": "legacy_desktop_m1_m2_smoke",
+      "reason": "Not launched to avoid conflict with current native app smoke. Existing progress.md reports 8 M1 and 9 M2 synthetic WebView2 checks; not rerecorded here."
+    },
+    {
+      "id": "typesetting_pdf_render_and_print",
+      "reason": "Only Node unit tests rerun. Existing 8 PDF page visual checks and developer probe remain separate; actual physical printing unaccepted."
+    },
+    {
+      "id": "real_provider",
+      "reason": "No real endpoints or credentials accessed; synthetic HTTP tests only."
+    },
+    {
+      "id": "real_sample_semantics",
+      "reason": "No user papers accessed; three-column math, cross-page biology and teacher-marked chemistry still need manual ground truth."
+    },
+    {
+      "id": "sandbox_os_lifecycle",
+      "reason": "Unit/state/bridge tests only; real Sandbox ownership/start/stop not tested."
+    },
+    {
+      "id": "native_csharp_parity",
+      "reason": "This P0 artifact records old backend only; new implementation evidence maintained independently."
+    },
+    {
+      "id": "native_performance_and_clean_install",
+      "reason": "No AOT performance dataset or clean-system install measured by this P0 subtask."
+    }
+  ],
+  "notes": [
+    "Counts from different runtimes/suites are kept separate and must not be summed as one test suite.",
+    "New workflow/formula/performance case inventories are not marked executed merely because they exist.",
+    "Source files outside docs/migration/p0-baseline.zh-CN.md and tests/fixtures/migration/ were not edited by this P0 subtask; normal compiler/test outputs are generated in ignored target/tmp/dist/output paths."
+  ]
+}

@@ -1,0 +1,41 @@
+using System.Xml.Linq;
+using OhMyStudy.Domain;
+
+namespace OhMyStudy.Infrastructure.Execution;
+
+public sealed class SandboxMappings
+{
+    private readonly string[] _directories;
+    private SandboxMappings(string[] directories) => _directories = directories;
+
+    public static SandboxMappings ForTask(string privateRuntime, string taskRoot, string jobId)
+    {
+        if (!ExecutionCall.ValidId(jobId)) throw new ArgumentException("无效的任务标识。");
+        var root = RuntimePaths.CheckedDirectory(taskRoot);
+        var task = RuntimePaths.CheckedDirectory(Path.Combine(root, jobId));
+        var paths = new[] { RuntimePaths.CheckedDirectory(privateRuntime), RuntimePaths.CheckedDirectory(Path.Combine(task, "inputs")),
+            RuntimePaths.CheckedDirectory(Path.Combine(task, "requests")), RuntimePaths.CheckedDirectory(Path.Combine(task, "results")) };
+        for (int i = 0; i < paths.Length; i++)
+        {
+            if (paths[i].StartsWith(@"\\", StringComparison.Ordinal)) throw new IOException("沙箱映射需要本地目录。");
+            for (int j = i + 1; j < paths.Length; j++)
+                if (Within(paths[i], paths[j]) || Within(paths[j], paths[i])) throw new IOException("沙箱映射目录不能重叠。");
+        }
+        return new(paths);
+    }
+
+    public string ToConfiguration(string jobId, string nonce, bool networking)
+    {
+        if (!ExecutionCall.ValidId(jobId) || !ExecutionCall.ValidId(nonce)) throw new ArgumentException("无效的会话标识。");
+        string[] names = ["Runtime", "Inputs", "Requests", "Results"];
+        var folders = _directories.Select((directory, index) => new XElement("MappedFolder", new XElement("HostFolder", directory),
+            new XElement("SandboxFolder", @"C:\OMS\" + names[index]), new XElement("ReadOnly", index != 3 ? "true" : "false")));
+        var command = $@"C:\OMS\Runtime\python.exe -I C:\OMS\Runtime\sandbox-worker.py --job-id {jobId} --nonce {nonce}";
+        return new XElement("Configuration", new XElement("VGpu", "Disable"), new XElement("Networking", networking ? "Enable" : "Disable"),
+            new XElement("ClipboardRedirection", "Disable"), new XElement("AudioInput", "Disable"), new XElement("VideoInput", "Disable"),
+            new XElement("PrinterRedirection", "Disable"), new XElement("MemoryInMB", 2048), new XElement("MappedFolders", folders),
+            new XElement("LogonCommand", new XElement("Command", command))).ToString(SaveOptions.DisableFormatting);
+    }
+    private static bool Within(string a, string b) => a.Equals(b, StringComparison.OrdinalIgnoreCase)
+        || a.StartsWith(Path.TrimEndingDirectorySeparator(b) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+}

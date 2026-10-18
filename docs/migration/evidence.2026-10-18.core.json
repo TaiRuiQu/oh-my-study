@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "runId": "migration-20261018-152724-1b3b62f9",
+  "timestampUtc": "2026-10-18T07:27:24.4765641+00:00",
+  "status": "release-candidate-unvalidated",
+  "checkStatus": "selected-checks-passed",
+  "runRoot": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9",
+  "checks": [
+    {
+      "name": "domain",
+      "status": "passed",
+      "project": "tests/OhMyStudy.Domain.Tests/OhMyStudy.Domain.Tests.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\domain\\OhMyStudy.Domain.Tests.exe",
+      "sha256": "b9efab0a371c55786b6fa5ce91e47d2382ed54846f4f5e36bf48d56ccb300f85",
+      "exitCode": 0,
+      "elapsedMilliseconds": 18899
+    },
+    {
+      "name": "storage",
+      "status": "passed",
+      "project": "tests/OhMyStudy.Storage.Tests/OhMyStudy.Storage.Tests.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\storage\\OhMyStudy.Storage.Tests.exe",
+      "sha256": "7f4325b7748cdae17fc4d4bca2725d969a2552b076527e6d2e1fdb45a8162772",
+      "exitCode": 0,
+      "elapsedMilliseconds": 19975
+    },
+    {
+      "name": "provider",
+      "status": "passed",
+      "project": "tests/OhMyStudy.Provider.Tests/OhMyStudy.Provider.Tests.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\provider\\OhMyStudy.Provider.Tests.exe",
+      "sha256": "629ad2323745059378ee3b3cd5879b3d0f43fa9603086d1ef6dccd5006e30097",
+      "exitCode": 0,
+      "elapsedMilliseconds": 5798
+    },
+    {
+      "name": "execution",
+      "status": "passed",
+      "project": "tests/OhMyStudy.Execution.Tests/OhMyStudy.Execution.Tests.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\execution\\OhMyStudy.Execution.Tests.exe",
+      "sha256": "52a753cf8032950449e11f15b7e5231cb4fd60db8df2424471446376bfb8ed2e",
+      "exitCode": 0,
+      "elapsedMilliseconds": 31917
+    },
+    {
+      "name": "grading",
+      "status": "passed",
+      "project": "tests/OhMyStudy.Grading.Tests/OhMyStudy.Grading.Tests.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\grading\\OhMyStudy.Grading.Tests.exe",
+      "sha256": "008f2386f0fcd5db1612a093d294c4ce3acce36f35d3f515d6d0670f71c89a78",
+      "exitCode": 0,
+      "elapsedMilliseconds": 22179
+    },
+    {
+      "name": "media",
+      "status": "passed",
+      "project": "tests/OhMyStudy.Media.Tests/OhMyStudy.Media.Tests.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\media\\OhMyStudy.Media.Tests.exe",
+      "sha256": "71d79a83bdeb9fd33a7d720e784247a5681f158ca8c272c8d1cc53a341b3e038",
+      "exitCode": 0,
+      "elapsedMilliseconds": 18260
+    },
+    {
+      "name": "documents",
+      "status": "passed",
+      "project": "probes/OhMyStudy.Documents.Probe/OhMyStudy.Documents.Probe.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\documents\\OhMyStudy.Documents.Probe.exe",
+      "sha256": "e7d6e692b4928c315e0b02bccd9ed94dbc425233aa041487666fcf775f9053ea",
+      "exitCode": 0,
+      "elapsedMilliseconds": 23382
+    },
+    {
+      "name": "app",
+      "status": "passed",
+      "project": "src/OhMyStudy.App/OhMyStudy.App.csproj",
+      "executable": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\app\\OhMyStudy.App.exe",
+      "sha256": "f41fa9b15d218a26886f774ffb0e22fec455850047fbcab2d974239f3e5e8f6f",
+      "exitCode": 0,
+      "elapsedMilliseconds": 50115
+    }
+  ],
+  "notRun": [
+    "clean-Windows-10-11-offline-installation-matrix",
+    "real-library-cutover-and-rollback",
+    "real-provider-and-paper-semantics",
+    "real-Sandbox-session-ownership",
+    "physical-printing",
+    "DPI-accessibility-and-performance-budget",
+    "real-credential-store-migration"
+  ],
+  "sdk": "10.0.402",
+  "appPublishDirectory": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\publish\\app",
+  "workflowReport": "C:\\Users\\XiaoQ\\Documents\\oh-my-study\\output\\migration\\runs\\migration-20261018-152724-1b3b62f9\\workflow-smoke.json"
+}

@@ -1,0 +1,265 @@
+<Window
+    x:Class="OhMyStudy.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:OhMyStudy.App.ViewModels"
+    xmlns:domain="using:OhMyStudy.Domain"
+    Title="Oh My Study">
+    <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
+    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TitleBar x:Name="AppTitleBar" Title="Oh My Study" Height="48"
+            IsPaneToggleButtonVisible="True" PaneToggleRequested="AppTitleBar_PaneToggleRequested">
+            <TitleBar.Resources>
+                <x:Double x:Key="TitleBarCompactHeight">48</x:Double>
+                <x:Double x:Key="TitleBarExpandedHeight">48</x:Double>
+            </TitleBar.Resources>
+            <TitleBar.IconSource>
+                <BitmapIconSource UriSource="ms-appx:///Assets/App.png" ShowAsMonochrome="False" />
+            </TitleBar.IconSource>
+        </TitleBar>
+        <NavigationView x:Name="Navigation" Grid.Row="1" OpenPaneLength="212"
+            IsPaneToggleButtonVisible="False" IsTitleBarAutoPaddingEnabled="False"
+            IsBackButtonVisible="Collapsed" IsSettingsVisible="True" AlwaysShowHeader="False"
+            PaneDisplayMode="Auto" SelectionChanged="Navigation_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="资料" Tag="materials" IsSelected="True">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="题库" Tag="library">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="错题" Tag="mistakes">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE734;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="任务" Tag="tasks">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+            <Grid Margin="20,16,24,12" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" /><RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{x:Bind ViewModel.SectionTitle, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" />
+                        <TextBlock Text="{x:Bind ViewModel.DocumentTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button Click="OpenFiles_Click" AutomationProperties.Name="导入图片或 PDF">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock Text="导入资料" /></StackPanel>
+                        </Button>
+                        <Button x:Name="GradeButton" Content="开始整理" Click="Grade_Click" IsEnabled="False" Style="{StaticResource AccentButtonStyle}" />
+                        <Button AutomationProperties.Name="更多工作区操作">
+                            <FontIcon Glyph="&#xE712;" FontSize="18" />
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="添加参考答案" Click="AddReferences_Click" />
+                                    <MenuFlyoutItem Text="管理页面" Click="ManagePages_Click" />
+                                    <MenuFlyoutItem Text="导出题目" Click="ExportQuestions_Click" />
+                                    <MenuFlyoutItem Text="打印原件" Click="PrintOriginal_Click" />
+                                    <MenuFlyoutItem Text="整理参考答案" Click="ReadReferences_Click" />
+                                    <MenuFlyoutItem Text="备份资料" Click="Backup_Click" />
+                                    <MenuFlyoutItem Text="恢复备份" Click="RestoreBackup_Click" />
+                                    <MenuFlyoutItem Text="导入旧版资料" Click="MigrateLegacy_Click" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="查看示例" Click="RestoreSample_Click" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="关于 Oh My Study" Click="About_Click" />
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+                <StackPanel Grid.Row="1" Spacing="8">
+                    <StackPanel x:Name="DocumentToolbar" Orientation="Horizontal" Spacing="12">
+                        <ComboBox x:Name="DocumentPicker" PlaceholderText="选择资料" MinWidth="240" MaxWidth="480" SelectionChanged="DocumentPicker_SelectionChanged">
+                            <ComboBox.ItemTemplate><DataTemplate x:DataType="domain:Document"><TextBlock Text="{x:Bind Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button x:Name="EditQuestionButton" Content="编辑题目" Click="EditQuestion_Click" IsEnabled="False" />
+                    </StackPanel>
+                    <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational"
+                        Title="示例资料" Message="可查看和编辑，修改不会保存。" />
+                </StackPanel>
+                <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="424" /></Grid.ColumnDefinitions>
+                    <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12"
+                        Background="{ThemeResource WorkspaceSurfaceBrush}" AllowDrop="True" DragOver="Source_DragOver" Drop="Source_Drop">
+                        <Grid RowSpacing="0">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Grid Padding="16,12" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="原件" Style="{StaticResource PanelHeadingStyle}" />
+                                    <TextBlock x:Name="OriginalCaption" Text="示例原件" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <Button Click="RotateLeft_Click" ToolTipService.ToolTip="向左旋转 90°" AutomationProperties.Name="原件向左旋转九十度"><FontIcon Glyph="&#xE7AD;" FontSize="16" /></Button>
+                                    <Button Click="RotateRight_Click" ToolTipService.ToolTip="向右旋转 90°" AutomationProperties.Name="原件向右旋转九十度"><FontIcon Glyph="&#xE7AD;" FontSize="16" FlowDirection="RightToLeft" /></Button>
+                                </StackPanel>
+                            </Grid>
+                            <ScrollViewer x:Name="SourceViewer" Grid.Row="1" Background="{ThemeResource WorkspaceCanvasBrush}" Padding="24"
+                                HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" ZoomMode="Enabled"
+                                MinZoomFactor="0.25" MaxZoomFactor="4" ViewChanged="SourceViewer_ViewChanged"
+                                AutomationProperties.Name="原件视口，可缩放和平移">
+                                <Canvas x:Name="PageCanvas" Width="760" Height="1040">
+                                    <Grid x:Name="PaperPage" Width="760" Height="1040" Background="{ThemeResource PaperBrush}"
+                                        AutomationProperties.Name="原件">
+                                        <Grid.RenderTransform><CompositeTransform x:Name="PageTransform" CenterX="380" CenterY="520" /></Grid.RenderTransform>
+                                        <StackPanel x:Name="SamplePaper" Margin="64,54,64,50" Spacing="18" Visibility="Collapsed">
+                                            <TextBlock Text="OH MY STUDY" FontSize="11" CharacterSpacing="160" Foreground="{ThemeResource PaperMutedBrush}" />
+                                            <TextBlock Text="函数与导数" FontSize="34" FontWeight="SemiBold" Foreground="{ThemeResource PaperInkBrush}" />
+                                            <TextBlock Text="学习练习" Style="{StaticResource PaperTextStyle}" FontSize="16" />
+                                            <Border Height="1" Background="{ThemeResource PaperMutedBrush}" Opacity="0.3" Margin="0,4,0,4" />
+                                            <TextBlock Text="1. 已知函数 f(x) = x³ − 3x，求函数在区间 [−2, 2] 上的最大值与最小值。" Style="{StaticResource PaperTextStyle}" />
+                                            <TextBlock Text="解：f′(x) = 3x² − 3 = 3(x + 1)(x − 1)。&#x0a;令 f′(x) = 0，得 x = −1 或 x = 1。&#x0a;比较端点与驻点的函数值，得最大值 2，最小值 −2。" Style="{StaticResource PaperTextStyle}" FontSize="17" Margin="18,0,0,18" />
+                                            <TextBlock Text="2. 直线 y = kx + 1 与抛物线 y = x² 交于 A、B 两点，求线段 AB 的长度。" Style="{StaticResource PaperTextStyle}" />
+                                            <Grid Height="112" Margin="30,0,30,4">
+                                                <Path Data="M 20,86 L 400,86 M 200,4 L 200,105" Stroke="{ThemeResource PaperMutedBrush}" StrokeThickness="1" />
+                                                <Path Data="M 62,4 Q 202,170 342,4 M 60,100 L 330,15" Stroke="{ThemeResource PaperInkBrush}" StrokeThickness="2" />
+                                                <TextBlock Text="x" Margin="406,72,0,0" Foreground="{ThemeResource PaperInkBrush}" />
+                                                <TextBlock Text="y" Margin="210,0,0,0" Foreground="{ThemeResource PaperInkBrush}" />
+                                            </Grid>
+                                            <TextBlock Text="3. 设数列 {aₙ} 满足 a₁ = 1，aₙ₊₁ = 2aₙ + 1，写出通项公式并说明理由。" Style="{StaticResource PaperTextStyle}" />
+                                        </StackPanel>
+                                        <Image x:Name="ImportedImage" Visibility="Collapsed" Stretch="Uniform" AutomationProperties.Name="原件图片" />
+                                        <Canvas x:Name="SourceOverlay" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
+                                            <Border x:Name="SourceHighlight" Canvas.Left="48" Canvas.Top="228" Width="664" Height="188" CornerRadius="6" BorderThickness="2"
+                                                BorderBrush="{ThemeResource SourceHighlightBorderBrush}" Background="{ThemeResource SourceHighlightBrush}" />
+                                        </Canvas>
+                                    </Grid>
+                                </Canvas>
+                            </ScrollViewer>
+                            <Grid Grid.Row="2" Padding="12,8" ColumnSpacing="8">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel x:Name="PdfPageControls" Grid.ColumnSpan="3" Visibility="Collapsed" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8" HorizontalAlignment="Center">
+                                    <Button x:Name="PreviousPdfPage" Content="上一页" Click="PreviousPdfPage_Click" AutomationProperties.Name="显示 PDF 上一页" />
+                                    <TextBlock x:Name="PdfPageLabel" Text="第 1 / 1 页" VerticalAlignment="Center" />
+                                    <Button x:Name="NextPdfPage" Content="下一页" Click="NextPdfPage_Click" AutomationProperties.Name="显示 PDF 下一页" />
+                                    <Button x:Name="CancelPreview" Content="取消加载" Click="CancelPreview_Click" IsEnabled="False" />
+                                </StackPanel>
+                                <Button Grid.Row="1" Click="FitPage_Click" Content="适合页面" ToolTipService.ToolTip="恢复适合视口的缩放" />
+                                <Slider x:Name="ZoomSlider" Grid.Row="1" Grid.Column="1" Minimum="25" Maximum="400" Value="65" StepFrequency="5" Width="130"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center" ValueChanged="ZoomSlider_ValueChanged" AutomationProperties.Name="原件缩放百分比" />
+                                <TextBlock x:Name="ZoomLabel" Grid.Row="1" Grid.Column="2" Text="65%" Width="44" VerticalAlignment="Center" TextAlignment="Right" Style="{StaticResource QuietTextStyle}" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Grid Padding="20,14" ColumnSpacing="8">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="题目" Style="{StaticResource PanelHeadingStyle}" />
+                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
+                            </Grid>
+                            <ListView x:Name="QuestionList" Grid.Row="1" Margin="8,0,8,8" Padding="0" SelectionMode="Single"
+                                ItemsSource="{x:Bind ViewModel.Questions}" SelectedItem="{x:Bind ViewModel.SelectedQuestion, Mode=TwoWay}"
+                                SelectionChanged="QuestionList_SelectionChanged" IsItemClickEnabled="False" HorizontalContentAlignment="Stretch"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="题目列表">
+                                <ListView.ItemsPanel><ItemsPanelTemplate><ItemsStackPanel Orientation="Vertical" /></ItemsPanelTemplate></ListView.ItemsPanel>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:QuestionViewModel">
+                                        <StackPanel Padding="8,12" Spacing="7" HorizontalAlignment="Stretch">
+                                            <Grid ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{x:Bind Label}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                <TextBlock Grid.Column="1" Text="{x:Bind OutcomeLabel}" Style="{StaticResource QuietTextStyle}" />
+                                            </Grid>
+                                            <TextBlock Text="{x:Bind Statement}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <Border Grid.Row="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="20,16">
+                                <StackPanel Spacing="10">
+                                    <ScrollViewer x:Name="QuestionContentHost" MaxHeight="180" VerticalScrollBarVisibility="Auto" />
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind ViewModel.SelectedQuestion.Label, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
+                                        <Button x:Name="LocateSourceButton" Grid.Column="1" Content="定位原件" Click="LocateSource_Click" />
+                                    </Grid>
+                                    <TextBox x:Name="AnswerEditor" Header="答案" AcceptsReturn="True" TextWrapping="Wrap"
+                                        MinHeight="82" MaxHeight="125" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                        Text="{x:Bind ViewModel.SelectedQuestion.Answer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Header="备注" PlaceholderText="记录你的理解、标签或复习提示"
+                                        Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button Content="保存" Command="{x:Bind ViewModel.FinishEditCommand}" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <ScrollViewer x:Name="TasksPanel" Grid.Row="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="TaskCards" Spacing="12" MaxWidth="900" HorizontalAlignment="Stretch" />
+                </ScrollViewer>
+                <ScrollViewer x:Name="SettingsPanel" Grid.Row="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="20">
+                        <TextBlock Text="模型" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="12">
+                                <ComboBox x:Name="ProviderPicker" Header="供应商" PlaceholderText="选择或添加" MinWidth="280" SelectionChanged="ProviderPicker_SelectionChanged">
+                                    <ComboBox.ItemTemplate><DataTemplate x:DataType="domain:Provider"><TextBlock Text="{x:Bind Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBox x:Name="ProviderName" Header="名称" PlaceholderText="例如：我的模型" />
+                                <ComboBox x:Name="ProtocolPicker" Header="接口" SelectedIndex="0" MinWidth="280">
+                                    <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" /><ComboBoxItem Content="Google Gemini" />
+                                </ComboBox>
+                                <TextBox x:Name="ProviderUrl" Header="地址" PlaceholderText="https://…" />
+                                <PasswordBox x:Name="ProviderKey" Header="密钥" PlaceholderText="留空保留已有密钥" />
+                                <TextBox x:Name="ModelId" Header="模型" PlaceholderText="填写模型名称" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="保存" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
+                                    <Button Content="添加" Click="NewProvider_Click" />
+                                    <Button Content="删除" Click="DeleteProvider_Click" />
+                                    <Button Content="获取模型" Click="RefreshModels_Click" />
+                                    <Button Content="模型设置" Click="ModelSettings_Click" />
+                                </StackPanel>
+                                <TextBlock x:Name="ProviderFeedback" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="执行" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="12">
+                                <ComboBox x:Name="ExecutionModePicker" Header="代码与命令" MinWidth="280" SelectionChanged="ExecutionModePicker_SelectionChanged">
+                                    <ComboBoxItem Content="每次询问" /><ComboBoxItem Content="沙箱运行" /><ComboBoxItem Content="直接在本机运行" />
+                                </ComboBox>
+                                <TextBlock x:Name="ExecutionDescription" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="外观" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="应用主题" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <ComboBox x:Name="ThemePicker" Header="主题" SelectedIndex="0" SelectionChanged="ThemePicker_SelectionChanged" MinWidth="220">
+                                    <ComboBoxItem Content="跟随 Windows" Tag="system" /><ComboBoxItem Content="浅色" Tag="light" /><ComboBoxItem Content="深色" Tag="dark" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Oh My Study" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="整理资料，梳理错题，轻松复习。" TextWrapping="Wrap" />
+                                <Button Content="关于" Click="About_Click" HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+                <Grid Grid.Row="3" ColumnSpacing="20" Padding="0,0,0,2">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind ViewModel.TaskStatus, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
+                        <Button Content="取消任务" Command="{x:Bind ViewModel.CancelTaskCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

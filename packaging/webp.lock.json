@@ -1,0 +1,11 @@
+{
+  "version": "1.6.0",
+  "url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0-windows-x64.zip",
+  "archiveSha256": "48886f506b21f62e4661f0f4cbfca19800897c385128e8902542d29a950c93f1",
+  "executableSha256": "17c1488bf84b7834e9aa908bb40afd0be2e55d57567d210e96336c56bb6ae993",
+  "encoderSha256": "6a2f5cb5dce71366353ab1d9caf9c636e039f25703acfce1c148eed346f2f72a",
+  "licenseUrl": "https://raw.githubusercontent.com/webmproject/libwebp/v1.6.0/COPYING",
+  "licenseSha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf",
+  "patentsUrl": "https://raw.githubusercontent.com/webmproject/libwebp/v1.6.0/PATENTS",
+  "patentsSha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c"
+}

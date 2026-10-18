@@ -1,19 +1,25 @@
-# Local credentials
+# Local legacy implementation. Recoverable from the recorded Git baseline.
+/.reference/
+
+# Credentials and local configuration
 .env
 .env.*
 !.env.example
 *.local
 
-# Generated previews and outputs
-/tmp/
-/output/
+# .NET and IDE artifacts
+**/bin/
+**/obj/
+.vs/
+TestResults/
+*.user
+*.suo
 
-# Frontend and Rust build artifacts
-node_modules/
-dist/
-target/
-/src-tauri/gen/
-/src-tauri/resources/pdfium/
+# Native tool cache, synthetic evidence and publish outputs
+/output/
+/tmp/
+/.artifacts/
+**/__pycache__/
 
 # Operating system files
 .DS_Store

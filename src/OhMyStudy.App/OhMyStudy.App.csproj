@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <WindowsSdkPackageVersion>10.0.26100.87</WindowsSdkPackageVersion>
+    <RootNamespace>OhMyStudy.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OhMyStudy.Documents/OhMyStudy.Documents.csproj" />
+    <ProjectReference Include="../OhMyStudy.Infrastructure/OhMyStudy.Infrastructure.csproj" />
+    <Content Include="Assets/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- Native AOT's publish pipeline omits WinUI's generated resource outputs unless listed explicitly. -->
+  <Target Name="IncludeNativeXamlPublishResources" BeforeTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <_NativeXamlResource Include="$(TargetDir)**\*.xbf" />
+      <ResolvedFileToPublish Include="$(TargetDir)$(AssemblyName).pri" Condition="Exists('$(TargetDir)$(AssemblyName).pri')">
+        <RelativePath>$(AssemblyName).pri</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+      <ResolvedFileToPublish Include="@(_NativeXamlResource)">
+        <RelativePath>%(_NativeXamlResource.RecursiveDir)%(_NativeXamlResource.Filename)%(_NativeXamlResource.Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+    <Error Condition="!Exists('$(TargetDir)$(AssemblyName).pri')" Text="WinUI PRI resource index was not generated. Native AOT publish must include the application PRI and XBF files." />
+    <Error Condition="!Exists('$(TargetDir)App.xbf') Or !Exists('$(TargetDir)MainWindow.xbf') Or !Exists('$(TargetDir)Themes\WorkspaceResources.xbf')" Text="Compiled WinUI XAML resources are missing. Build the WinUI application before publishing." />
+  </Target>
+</Project>

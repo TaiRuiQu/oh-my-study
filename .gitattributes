@@ -1,6 +1,8 @@
 * text=auto
-*.rs text eol=lf
-*.ts text eol=lf
-*.tsx text eol=lf
 *.json text eol=lf
 *.sse text eol=lf whitespace=-blank-at-eof
+*.cs text eol=lf
+*.xaml text eol=lf
+*.csproj text eol=lf
+*.props text eol=lf
+*.slnx text eol=lf

@@ -1,7 +1,0 @@
-node_modules
-dist
-target
-output
-runtime
-Cargo.lock
-package-lock.json

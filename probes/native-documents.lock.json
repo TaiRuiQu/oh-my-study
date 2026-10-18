@@ -1,0 +1,24 @@
+{
+  "typst": {
+    "version": "0.14.2",
+    "license": "Apache-2.0",
+    "url": "https://github.com/typst/typst/releases/download/v0.14.2/typst-x86_64-pc-windows-msvc.zip",
+    "archiveSha256": "51353994ac83218c3497052e89b2c432c53b9d4439cdc1b361e2ea4798ebfc13",
+    "executableSha256": "1bfcabe2756657587c5f879041b55265c2a954c2ba8125ada842d2a33b371695"
+  },
+  "font": {
+    "version": "Source Han Serif SC 2.003R Regular",
+    "license": "OFL-1.1",
+    "url": "https://raw.githubusercontent.com/adobe-fonts/source-han-serif/2.003R/OTF/SimplifiedChinese/SourceHanSerifSC-Regular.otf",
+    "sha256": "78aa7a328fd974df2d688c8a9fd74a33d8334dfa84ab24d9d11efb2ffc464117",
+    "licenseUrl": "https://raw.githubusercontent.com/adobe-fonts/source-han-serif/2.003R/LICENSE.txt",
+    "licenseSha256": "9ff5bb567e1b92c801fc1069e5fbf992ff8efccacb9db94e5959a5b3ba9bb903"
+  },
+  "pdfium": {
+    "version": "chromium/7881 win-x64",
+    "license": "BSD-3-Clause plus bundled third-party notices",
+    "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/7881/pdfium-win-x64.tgz",
+    "archiveSha256": "73cc0de638ac2095e7445bf56a38200a5b7c7ca0e9f4ba144598f2457377ac08",
+    "librarySha256": "79d4676b656cfb1abcea88f9ade3b4b0826c5200382db5f4ec72a636c598c118"
+  }
+}
