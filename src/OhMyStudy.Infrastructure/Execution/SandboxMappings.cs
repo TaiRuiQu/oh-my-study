@@ -24,7 +24,7 @@ public sealed class SandboxMappings
         return new(paths);
     }
 
-    public string ToConfiguration(string jobId, string nonce, bool networking)
+    public string ToConfiguration(string jobId, string nonce, bool networking, bool logonWorker = false)
     {
         if (!ExecutionCall.ValidId(jobId) || !ExecutionCall.ValidId(nonce)) throw new ArgumentException("无效的会话标识。");
         string[] names = ["Runtime", "Inputs", "Requests", "Results"];
@@ -34,7 +34,7 @@ public sealed class SandboxMappings
         return new XElement("Configuration", new XElement("VGpu", "Disable"), new XElement("Networking", networking ? "Enable" : "Disable"),
             new XElement("ClipboardRedirection", "Disable"), new XElement("AudioInput", "Disable"), new XElement("VideoInput", "Disable"),
             new XElement("PrinterRedirection", "Disable"), new XElement("MemoryInMB", 2048), new XElement("MappedFolders", folders),
-            new XElement("LogonCommand", new XElement("Command", command))).ToString(SaveOptions.DisableFormatting);
+            logonWorker ? new XElement("LogonCommand", new XElement("Command", command)) : null).ToString(SaveOptions.DisableFormatting);
     }
     private static bool Within(string a, string b) => a.Equals(b, StringComparison.OrdinalIgnoreCase)
         || a.StartsWith(Path.TrimEndingDirectorySeparator(b) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);

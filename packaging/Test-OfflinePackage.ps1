@@ -80,7 +80,7 @@ try {
     $report.checks+='pinned-native-document-tools-and-font'
     $runtimeRoot=Join-Path $root 'runtime'
     $runtime=Get-Content -LiteralPath (Join-Path $runtimeRoot 'runtime-manifest.json') -Raw | ConvertFrom-Json
-    if ($runtime.schemaVersion -ne 1 -or $runtime.status -ne 'computation-verified-sandbox-not-enabled' -or -not $runtime.files -or $runtime.files.Count -eq 0) { throw 'Private computation runtime manifest has no verifiable file list/status' }
+    if ($runtime.schemaVersion -ne 1 -or $runtime.status -ne 'computation-verified-sandbox-guest-packaged' -or -not $runtime.files -or $runtime.files.Count -eq 0) { throw 'Private computation runtime manifest has no verifiable file list/status' }
     foreach ($file in $runtime.files) {
         $runtimeFile=Assert-Path $runtimeRoot $file.path
         Assert-FileHash $runtimeFile $file.sha256
@@ -89,6 +89,7 @@ try {
     Assert-FileHash (Join-Path $root 'licenses/runtime.lock.json') $runtime.lockSha256
     Assert-FileHash (Join-Path $runtimeRoot 'runtime.lock.json') $runtime.lockSha256
     Assert-FileHash (Join-Path $runtimeRoot 'python/execute.py') $runtime.workerSha256
+    Assert-FileHash (Join-Path $runtimeRoot 'python/sandbox-worker.py') $runtime.sandboxWorkerSha256
     $report.checks+='private-runtime-manifest-hashes'
     $optionalInterop=@($allFiles | Where-Object { $_.Extension -eq '.dll' -and $_.Name -match '(?i)webview2' } | ForEach-Object { [IO.Path]::GetRelativePath($root,$_.FullName).Replace('\','/') })
     $report.optionalWinUiWebViewInteropFiles=$optionalInterop

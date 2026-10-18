@@ -1,6 +1,6 @@
 # P4 任务与执行交接
 
-更新：2026-10-18。代码实现与本机合成验收分开记录；Sandbox真实生命周期尚未通过。
+更新：2026-10-18。代码实现与本机合成验收分开记录；Sandbox实机验收由用户负责，本轮未执行。
 
 ## 实现与边界
 
@@ -19,10 +19,26 @@
 
 队列审阅发现并修复：退出与正在持久化提交的竞争、CTS取消/释放竞争，以及外部可变输入列表进入排队快照。退出竞争另在整卷集成套件中通过确定性阻塞存储验证。
 
-## Sandbox保持独立状态
+## Sandbox调用、归属与生命周期
 
-`SandboxCapability.Detect()`只读检测版本、可执行文件及已知占用，不启用系统功能、不提权、不接管已有沙箱。系统组件存在不等于本应用能可靠管理自己的虚拟机会话，因此检测不会凭可执行文件存在宣称`Ready`。
+`SandboxCapability.Detect()`只读检测版本、可执行文件及已知占用，不启用系统功能、不提权。`ProbeAsync(privateRuntime)`进一步检查固定的系统/Store执行别名`wsb.exe`、包内Python/两个worker以及`wsb list --raw`。只有可识别的空会话列表返回`Ready`；现有会话返回`Busy`，命令失败、未知JSON格式、旧系统或缺少CLI均保持未就绪。CLI要求Windows 11 24H2及已更新的Windows Sandbox；Windows 10的旧单实例客户端没有可证明的会话归属接口，故不启用这一路线。
 
-`SandboxMappings`与`SandboxSession`迁移最小映射、nonce握手和中断状态机；它们不提供操作系统会话所有权。当前不发行虚假的沙箱worker，也不启动/关闭用户沙箱。选择沙箱且未就绪时，开始对话框明确显示本机执行后果；一旦获得沙箱执行许可，宿主执行器拒绝接收，不会失败后重放到宿主。
+`SandboxToolExecutor`每个已授权调用创建独立VM。它先检查没有现有会话，再生成随机GUID并通过`wsb start --id <GUID> --config <XML>`请求该新会话；只通过`wsb stop --id <同一GUID>`释放。归属不从进程名、窗口、前后列表差分或guest JSON推断。启动、取消和失败都尝试释放该精确ID；清理使用独立超时，不受任务撤销影响。释放失败保留本地`ownership.json`，并锁止当前应用进程的后续Sandbox启动，提示手动关闭后重开。不会自动接管上次进程遗留会话。普通退出仍由任务队列等待执行器清理；崩溃或强杀可能留下会话，下次检查会明确阻止启动。
 
-P4尚待验收：真实Sandbox会话归属、系统状态矩阵、桥接及自动生命周期。协议状态机、主机执行测试通过不能替代这一项。
+`wsb exec --id <GUID> --run-as System`只启动包内固定`runtime/sandbox-worker.py`，不连接或操作用户桌面。专用CLI控制器只回收本次命令行进程；不会将共享Sandbox服务放入宿主执行器的kill-on-close Job。VM始终通过精确ID释放。CLI环境按白名单创建，不继承供应商密钥和代理变量。
+
+每次映射仅包含包内只读运行时、只读输入快照、只读请求和可写结果四个目录。快照限256个文件、512个条目、64MiB、8层目录，不接受链接、UNC、重叠映射或递归包含调用输出的工作目录。guest把输入复制到自己的可写工作区；代码应使用相对输入路径，原宿主绝对路径不会被改写或暴露。除独立结果目录外，不映射整个资料库或用户目录。网络设置来自任务冻结的`AuthorizedCall.SandboxNetworking`。默认禁用网络、剪贴板、音视频、打印重定向和GPU。
+
+请求固定绑定protocol/job/call/nonce/digest，nonce使用32字节密码学随机数。worker先原子写握手，再运行获准的Python或PowerShell计算，处理超时、非零退出和总计1MiB输出上限。请求JSON上限2MiB；返回JSON上限8MiB以容纳字符转义，但解码后的总输出仍限1MiB。host验证握手后等待结果，先停止整个所属VM，才打开最终结果，拒绝错身份、错nonce、未知字段、无效JSON、未知状态、成功却非零退出和超长输出。guest数据从不变成宿主命令，也不自动导入guest生成的任意文件。
+
+`PolicyToolExecutor`只根据已冻结的授权模式分派一次；`HostToolExecutor`拒收Sandbox许可。Sandbox失败没有宿主重试路径。UI应使用异步`ProbeAsync`获取开始对话框的能力状态，并以`PolicyToolExecutor(new HostToolExecutor(runtime), new SandboxToolExecutor(runtime))`注入任务队列。未就绪时仍由既有开始对话框明确说明本机执行后果；运行中失败只报告失败。
+
+本机验证分两层：`SandboxChecks`使用可注入的隔离控制器验证最小映射、新会话ID、停止后读取、已有会话保护、无宿主重放、nonce/身份/JSON/状态/输出校验、取消/任务撤销、启动歧义、输入上限以及释放失败后的锁止；`sandbox_worker_checks.py`使用包内Python在宿主临时目录验证固定worker的中文输入、Python退出码/超时/输出上限及PowerShell数组参数。这些均不声明已运行实际Windows Sandbox。
+
+2026-10-18实际发布并运行`output/migration/publish/execution-p4-complete/OhMyStudy.Execution.Tests.exe`，`RuntimeFeature.IsDynamicCodeSupported=false`，17组全部通过；其中worker组包含上述5个真实私有运行时计算场景。报告：`output/migration/evidence/execution-p4-complete/execution-report.json`。发布没有自有AOT/裁剪警告；出现NU1900（NuGet漏洞数据源网络不可达），不能将其记为漏洞审计通过。测试发布物直接包含正式worker源码副本，因此可以使用已有私有Python验证，不改写旧运行时的已封存manifest；正式生产包仍须通过更新后的`prepare-runtime.ps1`纳入worker及哈希。
+
+运行统一证据：发布并运行`tests/OhMyStudy.Execution.Tests`的Release Native AOT产物，传入`<证据目录> --runtime <包含sandbox-worker.py的私有python目录>`；JSON报告保留`real-windows-sandbox-session-ownership`为未执行。固定worker也可单独验证：`<私有python>/python.exe -I -X utf8 tests/OhMyStudy.Execution.Tests/sandbox_worker_checks.py runtime/sandbox-worker.py <私有python目录>`。
+
+用户负责、未执行：Windows 11实际CLI JSON格式/组件版本、真实新会话归属与映射、网络开关、启动失败与取消、退出和崩溃恢复；Windows 10/11系统状态矩阵。真实Sandbox和虚拟机资源开销不能由本机协议或计算测试替代。
+
+实现依据：[Windows Sandbox CLI](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli)与[配置文件](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file)。实际支持范围以用户实机结果为准。

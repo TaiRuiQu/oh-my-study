@@ -7,7 +7,9 @@
 - **P3实现收尾完成**：新增 `LibraryMigrationService.CopyAndUpgradeAsync`，只读原库→在线一致备份→新目录恢复→仅副本升级→文档/题目/参考答案/覆盖/模型调用/任务事件/设置/凭据引用指纹校验。生成不含密钥的持久化收据；不改当前资料指针，不覆盖已有目录，取消和失败保留原库及已完成备份。
 - **P3实际验证**：`output/migration/publish/storage-copy-upgrade/OhMyStudy.Storage.Tests.exe` 为实际 Native AOT；80项通过。新增18项覆盖v1/v2副本升级、原库字节不变、凭据引用、不读密钥、原版本备份恢复、覆盖/路径/取消拒绝。首次离线还原有NU1900漏洞数据源不可达提示，代码编译/AOT无诊断；最终统一联网还原与回归会另记。
 - **历史验证纠正**：此前Provider测试工程缺少AOT发布属性，普通apphost也没有CLR头，旧PE检查错误地接受了它。此前“8组全部实际AOT”不适用于Provider分项。已补真实AOT设置与防apphost检查；新的实际AOT产物 `output/migration/publish/provider-aot-loopback/OhMyStudy.Provider.Tests.exe` 已通过11场景（含真实127.0.0.1套接字三协议/分块SSE/模型分页/禁止认证重定向/在途取消），随后P5提交会记录完整结果。
-- P4沙箱归属/执行、P6复杂导出与公式、P7递归编辑/阅读上下文正在并行收尾；P8与P9由主代理接续。代理不直接提交，避免混入不同阶段的在途文件。
+- **P4实现收尾完成**：新CLI按随机ID创建/停止自己会话；只读运行时/请求/输入、单独可写结果；nonce/调用摘要校验、stop成功后读结果，忙时拒绝/取消回收/失败不在宿主重放。不可确认归属的旧系统保持未就绪；不自动启用系统功能或提权。
+- **P4实际验证**：`output/migration/publish/execution-p4-complete/OhMyStudy.Execution.Tests.exe`，17组实际AOT通过，证据`output/migration/evidence/execution-p4-complete/execution-report.json`。含6组隔离沙箱生命周期/协议、固定guest worker在宿主隔离运行的5项计算；这不等于Sandbox实机验收。私有运行时清单/缓存键/包校验已加入guest worker哈希；新版运行时从固定本地归档离线重建，不改系统环境。
+- P6复杂导出与公式、P7递归编辑/阅读上下文正在收尾；P8与P9由主代理接续。代理不直接提交，避免混入不同阶段的在途文件。
 
 用户验收接续清单将在 `docs/migration/user-acceptance.zh-CN.md` 汇总；真实资料/凭据没有被本轮测试访问或切换。
 
@@ -103,7 +105,7 @@ CI四阶段已在本机逐一执行通过：格式/actionlint、结构/语法/�
 | P1 技术路线 | 本机通过，完整验收未关闭 | 实际Release Native AOT、原生工作区、SQLite/凭据、公式/PDF、打印API；系统矩阵/必要公式兼容等仍待验收 |
 | P2 工程与领域 | 已实现，本机AOT兼容通过 | 完整旧DTO/评分/来源/覆盖/配置/JSON与摘要；107项通过 |
 | P3 存储与凭据 | 实现完成，本机80项AOT通过 | 只读原库、一致备份、新目录升级、实体指纹与回退；真实切换由用户验收 |
-| P4 任务与执行 | 主机实现通过，Sandbox未关闭 | 队列/事件/权限/提交屏障/Windows Job/私有计算；Sandbox仅协议状态，不启动假会话 |
+| P4 任务与执行 | 实现完成，本机17组AOT通过 | 主机执行与按ID归属的Sandbox执行器；Sandbox真实系统验收由用户负责 |
 | P5 协议与整卷 | 实现与合成回归通过 | 三协议10场景、整卷211断言；真实供应商/样卷语义未验 |
 | P6 文档管线 | 本机实现通过，完整验收未关闭 | 26媒体检查及公式/PDF探针；复杂公式/内容导出与物理打印仍有边界 |
 | P7 应用工作流 | 核心已接通，需完整人工验收 | 真实持久化入口；复杂题目编辑、真实文件选择/拖放/完整键盘等继续核对 |

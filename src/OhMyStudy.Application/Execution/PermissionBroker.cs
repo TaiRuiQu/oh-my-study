@@ -11,16 +11,18 @@ public sealed class AuthorizedCall
     private int _consumed;
     private readonly string _json;
 
-    internal AuthorizedCall(ExecutionCall call, ExecutionMode mode, CancellationToken revocation)
+    internal AuthorizedCall(ExecutionCall call, ExecutionMode mode, CancellationToken revocation, bool sandboxNetworking = false)
     {
         // Snapshot nested lists too: editing an argument after review must not change execution.
         _json = DomainJson.Serialize(call);
         Mode = mode;
+        SandboxNetworking = sandboxNetworking;
         _revocation = revocation;
     }
 
     public ExecutionCall Call => DomainJson.Deserialize<ExecutionCall>(_json);
     public ExecutionMode Mode { get; }
+    public bool SandboxNetworking { get; }
     public bool IsLive => !_revocation.IsCancellationRequested;
     public CancellationToken Revocation => _revocation;
 
@@ -64,7 +66,7 @@ public sealed class PermissionBroker : IDisposable
             if (_waiting.ContainsKey(call.JobId)) throw new InvalidOperationException("任务正在等待执行许可。");
             if (!_used.Add((call.JobId, call.CallId))) throw new InvalidOperationException("调用标识已使用，不能重放。");
             if (job.Policy.EffectiveMode != ExecutionMode.RequestPermission || _taskGrants.Contains(call.JobId))
-                return new(snapshot, job.Policy.EffectiveMode, job.Live.Token);
+                return new(snapshot, job.Policy.EffectiveMode, job.Live.Token, job.Policy.SandboxNetworking);
             _waiting.Add(call.JobId, snapshot);
             return null;
         }

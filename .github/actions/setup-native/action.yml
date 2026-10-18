@@ -16,4 +16,4 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: output/migration/toolchain
-        key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('probes/native-documents.lock.json', 'probes/prepare-documents.ps1', 'packaging/runtime.lock.json', 'packaging/webp.lock.json', 'packaging/prepare-runtime.ps1', 'packaging/prepare-webp.ps1', 'runtime/execute.py') }}
+        key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('probes/native-documents.lock.json', 'probes/prepare-documents.ps1', 'packaging/runtime.lock.json', 'packaging/webp.lock.json', 'packaging/prepare-runtime.ps1', 'packaging/prepare-webp.ps1', 'runtime/*.py') }}

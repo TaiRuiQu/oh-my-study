@@ -8,5 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/OhMyStudy.Infrastructure/OhMyStudy.Infrastructure.csproj" />
+    <None Update="sandbox_worker_checks.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../runtime/sandbox-worker.py" Link="sandbox-worker.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

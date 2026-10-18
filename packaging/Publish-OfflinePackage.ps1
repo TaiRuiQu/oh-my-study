@@ -85,7 +85,7 @@ try {
     Assert-Hash $webpExe $webpLock.executableSha256; Assert-Hash (Join-Path $webpRoot 'COPYING') $webpLock.licenseSha256; Assert-Hash (Join-Path $webpRoot 'PATENTS') $webpLock.patentsSha256
     Copy-Item -LiteralPath $webpExe -Destination (Join-Path $webp 'dwebp.exe')
     foreach ($name in @('COPYING','PATENTS')) { Copy-Item -LiteralPath (Join-Path $webpRoot $name) -Destination $webp }
-    foreach ($required in @('runtime-manifest.json','python/python.exe','python/execute.py')) {
+    foreach ($required in @('runtime-manifest.json','python/python.exe','python/execute.py','python/sandbox-worker.py')) {
         if (-not (Test-Path -LiteralPath (Join-Path $RuntimeDirectory $required) -PathType Leaf)) { throw "Private runtime incomplete: $required; run packaging/prepare-runtime.ps1 explicitly" }
     }
     Copy-Tree $RuntimeDirectory (Join-Path $package 'runtime')

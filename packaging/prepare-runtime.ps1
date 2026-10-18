@@ -50,6 +50,8 @@ if (Test-Path -LiteralPath $manifestPath) {
     $valid = $existing.lockSha256 -eq (Get-FileHash -LiteralPath $lockFile -Algorithm SHA256).Hash.ToLowerInvariant()
     $workerHash = (Get-FileHash -LiteralPath (Join-Path $workspace 'runtime/execute.py') -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($existing.workerSha256 -ne $workerHash) { $valid = $false }
+    $sandboxWorkerHash = (Get-FileHash -LiteralPath (Join-Path $workspace 'runtime/sandbox-worker.py') -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($existing.sandboxWorkerSha256 -ne $sandboxWorkerHash) { $valid = $false }
     foreach ($file in $existing.files) { if (-not (Test-Digest (Join-Path $target $file.path) $file.sha256)) { $valid = $false; break } }
     if ($valid) { Write-Host "Private computation runtime already verified: $target"; return }
     throw 'Existing private runtime differs. Choose a new OutputDirectory to rebuild without overwriting.'
@@ -67,6 +69,7 @@ try {
     $pth = Join-Path $python ('python' + ($lock.cpython.version.Split('.')[0..1] -join '') + '._pth')
     [IO.File]::WriteAllText($pth, "python313.zip`n.`nLib/site-packages`nimport site`n", [Text.UTF8Encoding]::new($false))
     Copy-Item -LiteralPath (Join-Path $workspace 'runtime/execute.py') -Destination (Join-Path $python 'execute.py')
+    Copy-Item -LiteralPath (Join-Path $workspace 'runtime/sandbox-worker.py') -Destination (Join-Path $python 'sandbox-worker.py')
     Copy-Item -LiteralPath $lockFile -Destination (Join-Path $stage 'runtime.lock.json')
     $script = "import sys,json,numpy,sympy,matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as p; from PIL import Image; p.plot([0,1],[0,1]); p.close(); print(json.dumps({'python':sys.version.split()[0],'numpy':numpy.__version__,'sympy':sympy.__version__,'matplotlib':matplotlib.__version__,'pillow':Image.__version__}))"
     $savedCache = $env:MPLCONFIGDIR
@@ -78,9 +81,10 @@ try {
     $files = @(Get-ChildItem -LiteralPath $stage -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{
         path=[IO.Path]::GetRelativePath($stage,$_.FullName).Replace('\','/'); size=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     } })
-    $manifest = [ordered]@{ schemaVersion=1; status='computation-verified-sandbox-not-enabled'; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O');
+    $manifest = [ordered]@{ schemaVersion=1; status='computation-verified-sandbox-guest-packaged'; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O');
         cpython=$lock.cpython.version; packages=@($lock.wheels | Select-Object name,version); lockSha256=(Get-FileHash -LiteralPath $lockFile -Algorithm SHA256).Hash.ToLowerInvariant();
         workerSha256=(Get-FileHash -LiteralPath (Join-Path $workspace 'runtime/execute.py') -Algorithm SHA256).Hash.ToLowerInvariant(); files=$files;
+        sandboxWorkerSha256=(Get-FileHash -LiteralPath (Join-Path $workspace 'runtime/sandbox-worker.py') -Algorithm SHA256).Hash.ToLowerInvariant();
         notRun=@('real-windows-sandbox-session','clean-windows-matrix','dependency-security-audit') }
     $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $stage 'runtime-manifest.json') -Encoding utf8
     Move-Item -LiteralPath $stage -Destination $target

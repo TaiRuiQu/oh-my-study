@@ -203,7 +203,17 @@ if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
         result = await executor.ExecuteAsync(broker.Request(call)!, Path.Combine(root, "shell-call"), CancellationToken.None);
         Require(result.Succeeded && result.Stdout.Contains("a b|尾\\|中文"), result.Stderr + result.Stdout);
     });
+    await Check("sandbox-worker-isolated-host-computation", async () =>
+    {
+        var runtime = Path.GetFullPath(args[runtimeArgument + 1]);
+        var result = await processRunner.RunAsync(new(Path.Combine(runtime, "python.exe"),
+            ["-I", "-X", "utf8", Path.Combine(AppContext.BaseDirectory, "sandbox_worker_checks.py"), Path.Combine(AppContext.BaseDirectory, "sandbox-worker.py"), runtime],
+            root, WindowsProcessRunner.CreateEnvironment(runtime, root), TimeSpan.FromSeconds(45)));
+        Require(result.Succeeded && result.Stdout.Contains("powershell-arguments"), result.Stderr + result.Stdout);
+    });
 }
+
+await SandboxChecks.RunAsync(root, Check, Require);
 
 var report = new CheckReport(DateTimeOffset.UtcNow, RuntimeFeature.IsDynamicCodeSupported, root, results.ToArray(),
     runtimeArgument >= 0 ? ["real-windows-sandbox-session-ownership", "clean-windows-matrix"] : ["real-windows-sandbox-session-ownership", "private-python-packages-when-not-prepared", "clean-windows-matrix"]);
