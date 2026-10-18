@@ -41,13 +41,13 @@ public static class NativeQuestionPresenter
             cancellationToken.ThrowIfCancellationRequested();
             switch (content)
             {
-                case TextContent text: panel.Children.Add(Text(text.Text)); break;
+                case TextContent text: await AddRichTextAsync(panel, text.Text, cancellationToken); break;
                 case FormulaContent formula: panel.Children.Add(await FormulaAsync(formula.Latex, cancellationToken)); break;
-                case TableContent table: panel.Children.Add(Table(table.Rows)); break;
+                case TableContent table: panel.Children.Add(await TableAsync(table.Rows, cancellationToken)); break;
                 case ImageContent image: panel.Children.Add(await SourceImageAsync(image, library, cancellationToken)); break;
             }
         }
-        foreach (var option in question.Options) panel.Children.Add(Text(option));
+        foreach (var option in question.Options) await AddRichTextAsync(panel, option, cancellationToken);
         if (question.Attempt is { } attempt)
         {
             panel.Children.Add(Text("作答：" + (string.IsNullOrWhiteSpace(attempt.StudentAnswer) ? "未作答" : attempt.StudentAnswer)));
@@ -73,12 +73,19 @@ public static class NativeQuestionPresenter
         Text = text,
         TextWrapping = TextWrapping.Wrap,
         IsTextSelectionEnabled = true,
-        FontSize = heading ? 16 : 15,
+        FontFamily = new FontFamily("ms-appx:///native/fonts/" + TypstToolchain.FontFileName + "#" + TypstToolchain.TextFontFamily),
+        FontSize = heading ? 16 : TypstToolchain.BodySizePoints * 96 / 72,
         FontWeight = heading ? FontWeights.SemiBold : FontWeights.Normal,
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
 
-    private static FrameworkElement Table(List<List<string>> rows)
+    private static async Task AddRichTextAsync(StackPanel panel, string text, CancellationToken cancellationToken)
+    {
+        foreach (var run in DocumentText.Split(text))
+            panel.Children.Add(run.IsFormula ? await FormulaAsync(run.Text, cancellationToken) : Text(run.Text));
+    }
+
+    private static async Task<FrameworkElement> TableAsync(List<List<string>> rows, CancellationToken cancellationToken)
     {
         var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left };
         int columns = rows.Count == 0 ? 0 : rows.Max(row => row.Count);
@@ -88,11 +95,14 @@ public static class NativeQuestionPresenter
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             for (var column = 0; column < columns; column++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                var body = new StackPanel { Spacing = 4, MaxWidth = 300 };
+                await AddRichTextAsync(body, column < rows[row].Count ? rows[row][column] : "", cancellationToken);
                 var cell = new Border
                 {
                     Padding = new Thickness(10, 7, 10, 7),
                     BorderThickness = new Thickness(0, 0, 0, 1),
-                    Child = Text(column < rows[row].Count ? rows[row][column] : "")
+                    Child = body
                 };
                 if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("ControlStrokeColorDefaultBrush", out var stroke) && stroke is Brush brush) cell.BorderBrush = brush;
                 Grid.SetRow(cell, row); Grid.SetColumn(cell, column); grid.Children.Add(cell);
@@ -111,7 +121,7 @@ public static class NativeQuestionPresenter
             var page = documents.SelectMany(document => document.Pages).SingleOrDefault(page => page.Id == content.Region.PageId);
             if (page is null) return Text("图片暂时无法显示。");
             var source = await library.ReadAssetAsync(page.AssetId, cancellationToken: cancellationToken);
-            var result = await PageImages.ReadAsync(source.Bytes, content.Region, 0, cancellationToken);
+            var result = await PageImages.ReadAsync(source.Bytes, content.Region, page.Rotation, cancellationToken);
             var image = await ImageAsync(Convert.FromBase64String(result.Image.Base64), content.Caption, cancellationToken);
             image.MaxHeight = 420;
             if (string.IsNullOrWhiteSpace(content.Caption)) return image;

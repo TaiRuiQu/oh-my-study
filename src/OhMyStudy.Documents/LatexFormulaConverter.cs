@@ -15,10 +15,15 @@ public static class LatexFormulaConverter
     {
         ArgumentNullException.ThrowIfNull(source);
         if (source.Length > MaximumInputLength)
-            return new(false, null, source[..MaximumInputLength] + "…", "公式超过 8192 字符限制。", MaximumInputLength);
+            return new(false, null, source, "公式超过 8192 字符限制。", MaximumInputLength);
         try
         {
-            var parser = new Parser(source);
+            string input = source.Trim();
+            if ((input.StartsWith("$$", StringComparison.Ordinal) && input.EndsWith("$$", StringComparison.Ordinal) && input.Length > 4)
+                || (input.StartsWith("\\[", StringComparison.Ordinal) && input.EndsWith("\\]", StringComparison.Ordinal))
+                || (input.StartsWith("\\(", StringComparison.Ordinal) && input.EndsWith("\\)", StringComparison.Ordinal))) input = input[2..^2];
+            else if (input.Length > 2 && input[0] == '$' && input[^1] == '$') input = input[1..^1];
+            var parser = new Parser(input);
             var math = parser.Parse();
             return new(true, math, source, null, -1);
         }
@@ -230,7 +235,25 @@ public static class LatexFormulaConverter
                 case "mathbf": return "bold(" + Argument() + ")";
                 case "mathit": return "italic(" + Argument() + ")";
                 case "overline": return "overline(" + Argument() + ")";
+                case "bar": return "overline(" + Argument() + ")";
+                case "hat": return "hat(" + Argument() + ")";
+                case "dot": return "dot(" + Argument() + ")";
+                case "ddot": return "dot.double(" + Argument() + ")";
                 case "vec": return "arrow(" + Argument() + ")";
+                case "overrightarrow": return "arrow(" + Argument() + ")";
+                case "binom":
+                    var top = Argument();
+                    return "binom(" + top + ", " + Argument() + ")";
+                case "overset":
+                    var above = Argument();
+                    return "attach(" + Argument() + ", t: " + above + ")";
+                case "underset":
+                    var below = Argument();
+                    return "attach(" + Argument() + ", b: " + below + ")";
+                case "displaystyle":
+                case "textstyle":
+                case "limits":
+                case "nolimits": return "";
                 case "left":
                 case "right":
                     Space();
@@ -262,6 +285,19 @@ public static class LatexFormulaConverter
                 "in" => "in",
                 "notin" => "in.not",
                 "subset" => "subset",
+                "subseteq" => "subset.eq",
+                "supset" => "supset",
+                "supseteq" => "supset.eq",
+                "parallel" => "parallel",
+                "perp" => "perp",
+                "angle" => "angle",
+                "triangle" => "triangle",
+                "circ" => "circle.stroked.small",
+                "ldots" or "cdots" or "dots" => "dots.h",
+                "vdots" => "dots.v",
+                "ddots" => "dots.down",
+                "because" => "because",
+                "therefore" => "therefore",
                 "cup" => "union",
                 "cap" => "inter",
                 "to" or "rightarrow" => "arrow.r",
@@ -271,7 +307,6 @@ public static class LatexFormulaConverter
                 "Leftrightarrow" => "arrow.l.r.double",
                 "uparrow" => "arrow.t",
                 "downarrow" => "arrow.b",
-                "ldots" or "cdots" => "dots.h",
                 "sin" => "sin",
                 "cos" => "cos",
                 "tan" => "tan",
@@ -313,7 +348,7 @@ public static class LatexFormulaConverter
 
         private string Matrix(string environment)
         {
-            if (environment is not ("matrix" or "pmatrix" or "bmatrix" or "vmatrix")) Fail("不支持此矩阵环境。 ");
+            if (environment is not ("matrix" or "pmatrix" or "bmatrix" or "vmatrix" or "cases" or "aligned" or "align" or "align*")) Fail("不支持此矩阵环境。 ");
             var terminator = "\\end{" + environment + "}";
             var end = source.IndexOf(terminator, position, StringComparison.Ordinal);
             if (end < 0) { Fail("矩阵环境未闭合。 "); return ""; }
@@ -328,7 +363,7 @@ public static class LatexFormulaConverter
             foreach (var row in rows)
             {
                 var columns = row.Split('&');
-                if (columns.Length > 16 || (width >= 0 && width != columns.Length)) Fail("矩阵列数不一致或超过 16 列。 ");
+                if (columns.Length > 16 || (environment is not ("cases" or "aligned" or "align" or "align*") && width >= 0 && width != columns.Length)) Fail("矩阵列数不一致或超过 16 列。 ");
                 width = columns.Length;
                 var parsedColumns = new List<string>();
                 foreach (var cell in columns)
@@ -342,11 +377,12 @@ public static class LatexFormulaConverter
                     catch (FormulaException error) { throw new FormulaException(error.Message, cellOffset + error.Offset); }
                     cellOffset += cell.Length + 1;
                 }
-                parsedRows.Add(string.Join(", ", parsedColumns));
+                parsedRows.Add(string.Join(environment == "cases" ? " quad " : ", ", parsedColumns));
                 cellOffset++; // Row separator is two backslashes; a column delimiter is one character.
             }
             var delimiter = environment switch { "pmatrix" => "(", "bmatrix" => "[", "vmatrix" => "|", _ => "" };
-            return "mat(delim: " + (delimiter.Length == 0 ? "none" : Quote(delimiter)) + ", " + string.Join("; ", parsedRows) + ")";
+            if (environment == "cases") return "cases(" + string.Join(", ", parsedRows) + ")";
+            return "mat(delim: " + (delimiter.Length == 0 ? "#none" : Quote(delimiter)) + ", " + string.Join("; ", parsedRows) + ")";
         }
 
         private string Chemistry(string chemical)

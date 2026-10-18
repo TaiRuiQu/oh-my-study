@@ -35,6 +35,12 @@ var operators = @"\prod + \int + \iint + \infty + \cdot + \times + \div + \pm + 
 foreach (var (formula, index) in operators.Split(" + ").Select((formula, index) => (formula, index)))
     await typesetter.RenderFormulaAsync(formula, Path.Combine(output, "operator-" + index));
 checks.Add("all additional whitelisted operators and delimiter/root/style forms compiled");
+foreach (var (formula, index) in new[] { @"\binom{n}{k}", @"\overset{a}{x}+\underset{b}{y}", @"\bar{x}+\hat{x}+\dot{x}+\ddot{x}+\overrightarrow{AB}", @"\subseteq+\supset+\supseteq+\parallel+\perp+\angle+\triangle+\circ+\vdots+\ddots+\because+\therefore", @"f(x)=\begin{cases}x^2&x\ge0\\-x&x<0\end{cases}", @"\begin{aligned}a&=b+c\\d&=e-f\end{aligned}", @"\(\displaystyle\sum\limits_{k=1}^n k\)" }.Select((formula, index) => (formula, index)))
+{
+    Require(LatexFormulaConverter.Convert(formula).IsSupported, "extended formula parsed");
+    await typesetter.RenderFormulaAsync(formula, Path.Combine(output, "extended-" + index));
+}
+checks.Add("cases/aligned/binomial/accents/geometry/set symbols and delimited display formulas compiled");
 for (var index = 0; index < samples.Length; index++)
 {
     var preview = await typesetter.RenderFormulaAsync(samples[index], Path.Combine(output, "formula-" + (index + 1)));
@@ -129,6 +135,7 @@ using (var pdf = pdfium.Open(exports.Count > 0 ? Path.Combine(output, exports[0]
     try { pdf.RenderPage(0, 800, cancellationToken: cancelled.Token); throw new Exception("cancel was ignored"); } catch (OperationCanceledException) { }
 }
 checks.Add("raster rotation, disposal and pre-cancellation");
+await ComplexDocumentProbe.VerifyAsync(root, output, typesetter, pdfium, checks);
 var report = new ProbeReport(DateTimeOffset.Now, RuntimeInformation.OSDescription, RuntimeInformation.FrameworkDescription,
     RuntimeFeature.IsDynamicCodeSupported, TypstToolchain.EngineVersion, clock.ElapsedMilliseconds, checks, exports);
 await File.WriteAllTextAsync(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(report, ProbeJsonContext.Default.ProbeReport));
