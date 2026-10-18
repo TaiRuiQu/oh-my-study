@@ -34,6 +34,14 @@ SQL 001/002 已复制到 `src/OhMyStudy.Infrastructure/Storage/Migrations`，作
 
 SQLite 与 Credential Manager 没有跨系统事务。进程在两者之间崩溃或清理失败可能遗留未引用凭据；实现不能承诺二者崩溃原子性，也不枚举/自动删除用户凭据。自动测试仅使用内存合成 vault，未读取、替换或删除真实凭据。目标安装身份下凭据访问、系统 vault 错误及清理恢复仍需授权实机验证。
 
+## 本轮收尾与用户接续
+
+`LibraryMigrationService.CopyAndUpgradeAsync`只读原目录，先生成一致备份，再恢复到一个不存在的新目录；仅升级该副本。它比较备份与升级副本的文档、题目、参考答案、覆盖、模型调用、任务/事件、设置和供应商引用的SHA-256指纹，原件由备份/恢复清单逐文件校验。成功收据`migration-receipt.json`不含密钥，不读取系统凭据，也不切换活动资料指针。活动指针仅在App明确选择并打开新库后更新。
+
+2026-10-18实际Native AOT产物`output/migration/publish/storage-copy-upgrade/OhMyStudy.Storage.Tests.exe`执行80项通过。新增18项涵盖v1/v2源库字节不变、副本升级/凭据引用、收据、原版本备份回退、已有路径/包含路径拒绝、取消无残留。首次离线还原有NU1900网络审计数据不可达提示，没有代码/AOT诊断；最终统一检查另记。
+
+旧版不遵循原生写入租约，因此产品迁移只写独立副本，不与旧版共享写入目标；真实资料切换与凭据身份验证按用户决定由用户执行，不计自动通过。
+
 ## 已执行验证
 
 独立 `tests/OhMyStudy.Storage.Tests` 控制台工程使用复制的旧 SQL 和语言无关合成资料；所有生成库位于唯一临时目录。2026-10-18 首轮 Release/JIT 执行 54 项检查通过，包括：

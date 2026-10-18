@@ -36,6 +36,7 @@ internal static class Program
             await PdfRelationships();
             await GradingAndJobs();
             await CredentialAtomicity();
+            await CopyUpgradeRecovery();
             Console.WriteLine($"Storage regression: {passed} checks passed. Synthetic temporary libraries only. {Root}");
             return 0;
         }
@@ -111,6 +112,30 @@ internal static class Program
         Check(Convert.ToInt32(Value(broken, "PRAGMA user_version")) == 1 && Convert.ToInt32(Value(broken, "SELECT COUNT(*) FROM pragma_table_info('source_pages') WHERE name='original_asset_id'")) == 0, "migration rollback includes ALTER and user_version");
         var future = CreateLegacy(2); using (var db = Db(future)) Sql(db, "PRAGMA user_version=99");
         await Fails(() => LibraryRepository.OpenAsync(new(future, LibraryOpenMode.ReadWrite)), "future schema rejects open");
+    }
+
+    private static async Task CopyUpgradeRecovery()
+    {
+        foreach (int version in new[] { 1, 2 })
+        {
+            string source = CreateLegacy(version), backup = Unique("cutover-backup"), destination = Unique("cutover-copy");
+            byte[] originalDatabase = File.ReadAllBytes(Path.Combine(source, "study.sqlite3"));
+            var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source, backup, destination);
+            Check(migration.OriginalSchemaVersion == version && migration.CurrentSchemaVersion == 2 && migration.Documents == 1, $"v{version} copy-only migration upgrades verified destination");
+            Check(File.ReadAllBytes(Path.Combine(source, "study.sqlite3")).SequenceEqual(originalDatabase), $"v{version} source database bytes untouched");
+            Check(migration.CredentialReferences == 1 && migration.ContentSha256.Length == 64, "cutover validates credential references without reading secrets");
+            using var receipt = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(destination, "migration-receipt.json")));
+            Check(!receipt.RootElement.GetProperty("credentialsReadOrExported").GetBoolean() && !receipt.RootElement.GetProperty("activeLibraryChanged").GetBoolean(), "durable receipt separates copy validation from user cutover");
+            string rollback = Unique("cutover-rollback"); await LibraryRepository.RestoreBackupAsync(backup, rollback);
+            await using var recovered = await LibraryRepository.OpenAsync(new(rollback));
+            Check((await recovered.InspectAsync()).SchemaVersion == version && (await recovered.ListProvidersAsync()).Single().KeyRef == Fixture<Provider>("provider").KeyRef, "rollback preserves original schema and key reference");
+            await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source, Unique("unused-backup"), destination), "migration refuses overwrite before creating backup");
+            await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source, Path.Combine(source, "inside"), Unique("unused-copy")), "migration rejects backup inside original");
+            using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
+            string canceledCopy = Unique("canceled-copy"), canceledBackup = Unique("canceled-backup");
+            await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source, canceledBackup, canceledCopy, cancelled.Token), "canceled migration creates no destination");
+            Check(!Directory.Exists(canceledBackup) && !Directory.Exists(canceledCopy), "pre-cancel leaves source and destinations unchanged");
+        }
     }
 
     private static async Task ImportRecovery()
