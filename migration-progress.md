@@ -14,9 +14,21 @@ C# / .NET / WinUI Native AOT 重写已完成 P0–P9 开发实现与本机自动
 
 按用户澄清，界面布局与视觉效果使用实际应用自动截图测试，Computer Use 仅用于功能测试。约定已同步到 `AGENTS.md` 与[设计原则](docs/design-principles.zh-CN.md)，后续每轮维护需记录截图生成方式、检查范围、证据、修复结果与未验证项，不得将 Computer Use 操作计为布局视觉验收。任务页本轮最终截图复查仍在进行，不能以此前构建、回归检查或 Computer Use 操作替代。
 
+### 界面与打印字体替换（2026-10-19）
+
+用户要求按设计文档应用字体：界面用微软雅黑（非衬线），打印 PDF 用衬线且只用新宋体。本轮已落地，不再只是约定。
+
+此前界面混用字族：窗口外壳因 WinUI 的隐式字体解析落到微软雅黑，而题目正文与公式预览绑定随包的思源宋体（衬线），`output/ui-polish/final-workflow.png` 可见同一界面内两种字族并存；导出 PDF 也用思源宋体。现已按用户确认的两项决定实施：打印衬线字体取 **新宋体（NSimSun）**（`simsun.ttc` 中更适合打印的一款，实测可被 Typst 解析并以 `/BaseFont=NSimSun` 内嵌），并**彻底移除**随包分发的思源宋体（约 24 MB），使“不选用其他衬线字体”真正成立。
+
+实现：`TypstToolchain` 去掉字体目录参数，导出与预览各自取用打印模板（NSimSun）与界面模板（微软雅黑）；排版编译不再用 `--ignore-system-fonts`，改为使用系统已安装字体。界面侧在 `Themes/WorkspaceResources.xaml` 中覆盖 `ContentControlThemeFontFamily` 与框架文本样式键（该字典在 `XamlControlsResources` 之后合并，故重定义生效且无需改动每处控件），题目与公式预览改用微软雅黑。新宋体缺失时 Typst 只发警告且退出码为 0，已补断言改为明确抛出中文提示，不再静默替换字体。随包的思源宋体及其许可从 lock、准备脚本、csproj、打包脚本与离线包校验清单中一并移除。
+
+验证：Debug 与 Release（`PublishAot=false`）整个解决方案构建均 0 警告/0 错误。文档探针通过，实际生成的 4 份 A3/A4 题目与答案 PDF 内嵌字体实测为 `NSimSun` + `NewCMMath-Book`，抽看渲染页确认新宋体排版与公式清晰。界面视觉验收使用应用自动截图：`--workflow-smoke`（48 项，唯一不通过项为它专门要求的 `native-aot` 身份断言）、`--import-smoke` 与 `--task-smoke`，实际查看 `output/font-final/`、`output/font-import/`、`output/font-task/` 各截图，覆盖题目详情的空/单项/多项/长文本、试卷页、原件展开、导入与“先设置识别模型”及关于对话框、错误恢复、设置与执行/外观各卡片、任务页各状态，以及浅/深主题与宽窄窗口；确认题目正文与界面外壳同为微软雅黑、无混排，无截断、溢出或对齐问题。格式、仓库边界与 `git diff --check` 通过。
+
+未验证：实际物理打印、干净系统与 Windows N/KN 版（无新宋体）下的降级提示、完整 Native AOT 发布与 MSI 重新分发；本机未安装 PowerShell 7，`Invoke-MigrationChecks.ps1` 与打包脚本本轮未实际执行（仅做了 UTF-8 解析检查与引用清理核对）。已发布的候选包不包含本轮源码修改。
+
 ### 字体选用约定（2026-10-18）
 
-用户明确约定界面展示使用非衬线字体，打印输出使用衬线字体，且衬线字体只选用新宋体（Windows 自带的宋体）。规则已同步到 `AGENTS.md` 与[设计原则](docs/design-principles.zh-CN.md)。本次记录约定不等同于已完成全部打印路径的字体替换或实际打印验收。
+用户明确约定界面展示使用非衬线字体，打印输出使用衬线字体，且衬线字体只选用新宋体（Windows 自带的宋体）。规则已同步到 `AGENTS.md` 与[设计原则](docs/design-principles.zh-CN.md)。全部路径的替换已于 2026-10-19 完成，见上条；实际打印验收仍待用户执行。
 
 ### 普通桌面启动与原生异常日志（2026-10-18）
 

@@ -72,7 +72,7 @@ try {
         if ($file.Name -match '(?i)^(node|npm|npx|cargo|rustc|msedge|msedgewebview2|chrome|chromium|firefox)\.(exe|dll|cmd|bat)$' -or $file.Extension -eq '.rs') { throw "Unexpected legacy/browser/JIT runtime file: $relative" }
     }
     $report.checks+='all-manifest-file-sizes-and-sha256'; $report.fileCount=$manifest.files.Count
-    foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','Assets/App.ico','Microsoft.ui.xaml.dll','e_sqlite3.dll','native/pdfium.dll','native/pdfium-licenses/pdfium.txt','native/typst/typst.exe','native/typst/LICENSE','native/typst/NOTICE','native/fonts/SourceHanSerifSC-Regular.otf','native/fonts/OFL.txt','runtime/runtime-manifest.json','runtime/python/python.exe','runtime/python/execute.py','LICENSE','THIRD-PARTY-NOTICES.txt','components.json','source/source-snapshot.zip')) { $null=Assert-Path $root $required }
+    foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','Assets/App.ico','Microsoft.ui.xaml.dll','e_sqlite3.dll','native/pdfium.dll','native/pdfium-licenses/pdfium.txt','native/typst/typst.exe','native/typst/LICENSE','native/typst/NOTICE','runtime/runtime-manifest.json','runtime/python/python.exe','runtime/python/execute.py','LICENSE','THIRD-PARTY-NOTICES.txt','components.json','source/source-snapshot.zip')) { $null=Assert-Path $root $required }
     if ($profile.nativeAot) {
         Assert-NativeApp (Join-Path $root 'OhMyStudy.App.exe')
         foreach ($name in @('coreclr.dll','clrjit.dll')) { if (Test-Path -LiteralPath (Join-Path $root $name)) { throw "JIT file in AOT package: $name" } }
@@ -93,13 +93,11 @@ try {
     $documentLock=Get-Content -LiteralPath (Join-Path $root 'licenses/native-documents.lock.json') -Raw | ConvertFrom-Json
     Assert-FileHash (Join-Path $root 'native/pdfium.dll') $documentLock.pdfium.librarySha256
     Assert-FileHash (Join-Path $root 'native/typst/typst.exe') $documentLock.typst.executableSha256
-    Assert-FileHash (Join-Path $root 'native/fonts/SourceHanSerifSC-Regular.otf') $documentLock.font.sha256
-    Assert-FileHash (Join-Path $root 'native/fonts/OFL.txt') $documentLock.font.licenseSha256
     $webpLock=Get-Content -LiteralPath (Join-Path $root 'licenses/webp.lock.json') -Raw | ConvertFrom-Json
     Assert-FileHash (Join-Path $root 'native/webp/dwebp.exe') $webpLock.executableSha256
     Assert-FileHash (Join-Path $root 'native/webp/COPYING') $webpLock.licenseSha256
     Assert-FileHash (Join-Path $root 'native/webp/PATENTS') $webpLock.patentsSha256
-    $report.checks+='pinned-native-document-tools-and-font'
+    $report.checks+='pinned-native-document-tools'
     $runtimeRoot=Join-Path $root 'runtime'
     $runtime=Get-Content -LiteralPath (Join-Path $runtimeRoot 'runtime-manifest.json') -Raw | ConvertFrom-Json
     if ($runtime.schemaVersion -ne 1 -or $runtime.status -ne 'computation-verified-sandbox-guest-packaged' -or -not $runtime.files -or $runtime.files.Count -eq 0) { throw 'Private computation runtime manifest has no verifiable file list/status' }

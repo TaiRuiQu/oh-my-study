@@ -74,7 +74,7 @@ public static class NativeQuestionPresenter
         Text = text,
         TextWrapping = TextWrapping.Wrap,
         IsTextSelectionEnabled = true,
-        FontFamily = new FontFamily("ms-appx:///native/fonts/" + TypstToolchain.FontFileName + "#" + TypstToolchain.TextFontFamily),
+        FontFamily = new FontFamily(TypstToolchain.PreviewFontFamily),
         FontSize = heading ? 16 : TypstToolchain.BodySizePoints * 96 / 72,
         FontWeight = heading ? FontWeights.SemiBold : FontWeights.Normal,
         HorizontalAlignment = HorizontalAlignment.Stretch
@@ -233,7 +233,7 @@ public static class NativeQuestionPresenter
             return await Task.Run<RasterizedPage?>(async () =>
             {
                 if (!LatexFormulaConverter.Convert(latex).IsSupported) return null;
-                var tools = new TypstToolchain(Path.Combine(AppContext.BaseDirectory, "native", "typst", "typst.exe"), Path.Combine(AppContext.BaseDirectory, "native", "fonts"));
+                var tools = new TypstToolchain(Path.Combine(AppContext.BaseDirectory, "native", "typst", "typst.exe"));
                 var service = new TypstDocumentService(tools);
                 string directory = Directory.CreateTempSubdirectory("OhMyStudy-Formula-").FullName;
                 try

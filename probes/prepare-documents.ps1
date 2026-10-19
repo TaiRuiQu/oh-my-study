@@ -27,11 +27,6 @@ if (-not (Test-PinnedHash $typstExecutable $lock.typst.executableSha256) -or
 }
 if (-not (Test-PinnedHash $typstExecutable $lock.typst.executableSha256)) { throw 'Typst executable checksum mismatch' }
 
-$fontDirectory = Join-Path $toolchain 'fonts'
-New-Item -ItemType Directory -Force -Path $fontDirectory | Out-Null
-Get-PinnedFile $lock.font.url (Join-Path $fontDirectory 'SourceHanSerifSC-Regular.otf') $lock.font.sha256
-Get-PinnedFile $lock.font.licenseUrl (Join-Path $fontDirectory 'OFL.txt') $lock.font.licenseSha256
-
 $pdfiumDirectory = Join-Path $toolchain 'pdfium'
 $pdfiumLibrary = Join-Path $pdfiumDirectory 'pdfium.dll'
 New-Item -ItemType Directory -Force -Path $pdfiumDirectory | Out-Null
@@ -53,4 +48,4 @@ if (-not (Test-PinnedHash $pdfiumLibrary $lock.pdfium.librarySha256)) { throw 'P
 if (-not (Test-Path -LiteralPath (Join-Path $pdfiumLicenseDirectory 'pdfium.txt'))) { throw 'PDFium licenses are missing' }
 & $typstExecutable --version
 if ($LASTEXITCODE) { throw 'Typst launch failed' }
-Write-Output "Native document tools prepared at $toolchain. No Node.js, browser, Rust SDK or installed fonts are used."
+Write-Output "Native document tools prepared at $toolchain. No Node.js, browser, Rust SDK or bundled font is used; printing relies on the Windows-installed 新宋体 (NSimSun)."

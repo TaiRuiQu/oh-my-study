@@ -107,9 +107,8 @@ try {
                 } else { $report.notRun += 'app: desktop smoke not requested' }
                 if ($WorkflowSmoke) {
                     $workflow = Join-Path $run 'workflow-smoke.json'
-                    foreach ($directory in @('fonts','typst','webp')) { New-Item -ItemType Directory -Path (Join-Path $publish "native/$directory") -Force | Out-Null }
+                    foreach ($directory in @('typst','webp')) { New-Item -ItemType Directory -Path (Join-Path $publish "native/$directory") -Force | Out-Null }
                     Copy-Item -LiteralPath (Join-Path $output 'toolchain/pdfium/pdfium.dll') -Destination (Join-Path $publish 'native/pdfium.dll')
-                    Copy-Item -LiteralPath (Join-Path $output 'toolchain/fonts/SourceHanSerifSC-Regular.otf') -Destination (Join-Path $publish 'native/fonts/SourceHanSerifSC-Regular.otf')
                     Copy-Item -LiteralPath (Join-Path $output 'toolchain/typst-x86_64-pc-windows-msvc/typst.exe') -Destination (Join-Path $publish 'native/typst/typst.exe')
                     Copy-Item -LiteralPath (Join-Path $output 'toolchain/libwebp/libwebp-1.6.0-windows-x64/bin/dwebp.exe') -Destination (Join-Path $publish 'native/webp/dwebp.exe')
                     $process = Start-Process -FilePath $exe -ArgumentList @('--workflow-smoke',('"'+$workflow+'"')) -WindowStyle Hidden -PassThru

@@ -45,7 +45,7 @@ dotnet publish src/OhMyStudy.App/OhMyStudy.App.csproj -c Release --no-restore -o
 ./packaging/Publish-OfflinePackage.ps1 -AppPublishDirectory ./output/migration/app-local -DesktopSmoke -WorkflowSmoke
 ```
 
-完整目录属于部署产物，不能只复制EXE。发布目标包含PRI/XBF和图标；打包脚本加入SQLite、PDFium/notices、Typst、字体、dwebp、两个计算worker及`runtime/python`。安装格式改为 MSI，打包脚本通过 WiX 生成标准向导；旧自写安装器不纳入 portable 或 MSI。
+完整目录属于部署产物，不能只复制EXE。发布目标包含PRI/XBF和图标；打包脚本加入SQLite、PDFium/notices、Typst、dwebp、两个计算worker及`runtime/python`（排版字体使用系统字体，不随包分发）。安装格式改为 MSI，打包脚本通过 WiX 生成标准向导；旧自写安装器不纳入 portable 或 MSI。
 
 普通用户双击 MSI，在标准向导选择安装位置和桌面快捷方式；默认位置为`%ProgramFiles%/OhMyStudy`。升级、进度、回滚、修复和卸载由 Windows Installer 管理，学习资料保留。旧 EXE 安装需先卸载，再安装 MSI。portable ZIP 直接运行应用，不含旧安装器。具体构建、验证与兼容边界见[安装说明](../../docs/installation.zh-CN.md)。
 
@@ -87,6 +87,6 @@ OhMyStudy.App.exe --workflow-smoke C:\absolute\evidence\workflow.json
 
 导入记录文件类型、字节数、阶段、耗时和关联标识；失败包含异常类型、堆栈和内部异常。识别后台异常在队列转为普通失败提示前记录，资源加载、窗口创建/激活、XAML 与未处理异常也进入日志。不记录密钥、请求正文或试卷内容。Release 仍为 WinExe，不启用控制台宿主。
 
-普通构建自动把已准备的 PDFium、WebP、Typst 和字体复制到实际运行目录，缺少 PDFium 时在构建阶段报出准备命令。没有把开发目录作为运行时回退路径。损坏、加密 PDF 显示可执行的恢复提示，底层错误码保留在日志。
+普通构建自动把已准备的 PDFium、WebP、Typst 复制到实际运行目录，缺少 PDFium 时在构建阶段报出准备命令。没有把开发目录作为运行时回退路径。损坏、加密 PDF 显示可执行的恢复提示，底层错误码保留在日志。
 
 `--import-smoke <报告绝对路径>` 使用隔离资料库、真实 PDF/PNG 解码与模拟识别任务，验证导入自动提交、题库追加、取消、未配置模型与损坏文件恢复，并保存实际 XAML 渲染截图；不会访问真实凭据或调用外部模型。报告及截图默认由调用者选择位置，本轮放在 `output/import-review/`。这项检查不能替代真实模型识别质量验收。

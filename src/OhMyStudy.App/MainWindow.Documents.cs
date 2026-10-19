@@ -69,7 +69,7 @@ public sealed partial class MainWindow
                         Parts: await ExportPartsAsync(item.Parts, library, pages, reader, imageBudget, 0, _lifetime.Token).ConfigureAwait(false)));
                 }
                 var document = new ExamDocument(title, questions);
-                var service = new TypstDocumentService(new(Path.Combine(AppContext.BaseDirectory, "native", "typst", "typst.exe"), Path.Combine(AppContext.BaseDirectory, "native", "fonts")));
+                var service = new TypstDocumentService(new(Path.Combine(AppContext.BaseDirectory, "native", "typst", "typst.exe")));
                 var directory = Directory.CreateTempSubdirectory("OhMyStudy-Export-").FullName;
                 try
                 {

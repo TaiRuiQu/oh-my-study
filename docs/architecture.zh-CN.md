@@ -23,7 +23,7 @@ flowchart TD
     Infra --> Data[SQLite / 原件 / Windows 凭据]
     Infra --> Models[Responses / Messages / Gemini]
     Infra --> Host[Windows Job Object / 私有 Python]
-    Docs --> Engines[PDFium / Typst / 固定字体]
+    Docs --> Engines[PDFium / Typst / 系统字体]
 ```
 
 App 当前直接组合具体仓储、队列、协议与文档服务；没有把计划中的抽象误写为已经实现的依赖反转。正式代码不使用旧 Rust 后端、Node 常驻服务、反射扫描注册或运行时代码生成。JSON 使用封闭的源生成上下文，WinUI 使用编译绑定和局部状态通知。
@@ -58,7 +58,7 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 
 公式链路为 C# 有界 LaTeX/mhchem 转换 → 私有 Typst → PDF/SVG → PDFium。原生内容视图覆盖文字、公式、表格和来源图像；不支持的公式保留完整可读原式。A3/A4 PDF导出支持图像裁片、表格、选项和递归小问，题目与答案分开排版；缺图、无效内容或资源超限明确拒绝。文档回归生成8份45页PDF，包含分页、字体与复杂内容检查；这不等于M4复习卷或物理打印通过。原件打印只在用户点击后启动系统流程，物理打印由用户验收。
 
-PDFium、Typst、SQLite、dwebp、字体和私有 Python 均有固定来源与哈希。WinUI传递的可选WebView2 interop文件单列记录，文件存在不等于浏览器进程被调用；当前产品没有浏览器控件或固定浏览器启动路径。离线候选包提供MSI安装包及完整portable ZIP、运行时、两个计算worker、依赖许可证、源码快照及逐文件清单，状态为`release-candidate-user-acceptance-pending`。
+PDFium、Typst、SQLite、dwebp 和私有 Python 均有固定来源与哈希。排版字体不随包分发：界面用微软雅黑，打印用 Windows 自带的宋体（新宋体），缺少该字体时导出明确失败而不是静默替换。WinUI传递的可选WebView2 interop文件单列记录，文件存在不等于浏览器进程被调用；当前产品没有浏览器控件或固定浏览器启动路径。离线候选包提供MSI安装包及完整portable ZIP、运行时、两个计算worker、依赖许可证、源码快照及逐文件清单，状态为`release-candidate-user-acceptance-pending`。
 
 MSI 默认按所有用户安装到`%ProgramFiles%/OhMyStudy`，标准向导允许更改目录和桌面快捷方式选项，并显示实际安装进度。Windows Installer 管理文件、开始菜单、事务升级、修复与卸载；四种构建共用升级标识。学习资料和凭据不进入 MSI 删除集合。旧 EXE 安装需先卸载；安装器源码仅用于兼容维护，不参与当前发布。干净系统与真实资料验收仍待完成，见[安装说明](installation.zh-CN.md)。
 

@@ -23,15 +23,15 @@ public sealed record TypesettingDiagnostic(int QuestionNumber, string Source, st
 public sealed record ExamExportResult(string PdfPath, string SourcePath, IReadOnlyList<TypesettingDiagnostic> Diagnostics);
 public sealed record FormulaPreviewResult(string PdfPath, string SvgPath, FormulaConversion Conversion);
 
-/// <summary>Paths resolve to the private shipped native engine and a pinned font folder.</summary>
-public sealed record TypstToolchain(string ExecutablePath, string FontDirectory)
+/// <summary>Print output uses the installed Windows 新宋体 (NSimSun); the engine ships no font of its own.</summary>
+public sealed record TypstToolchain(string ExecutablePath)
 {
-    public const string TextFontFamily = "Source Han Serif SC";
+    public const string TextFontFamily = "NSimSun";
     public const string MathFontFamily = "New Computer Modern Math";
+    /// <summary>Formula previews read inside the application stay non-serif, matching the interface.</summary>
+    public const string PreviewFontFamily = "Microsoft YaHei UI";
     public const double BodySizePoints = 11;
     public const double FormulaPreviewMaximumWidthPoints = 560;
     public const string EngineVersion = "0.14.2";
     public const string ExecutableSha256 = "1bfcabe2756657587c5f879041b55265c2a954c2ba8125ada842d2a33b371695";
-    public const string FontFileName = "SourceHanSerifSC-Regular.otf";
-    public const string FontSha256 = "78aa7a328fd974df2d688c8a9fd74a33d8334dfa84ab24d9d11efb2ffc464117";
 }

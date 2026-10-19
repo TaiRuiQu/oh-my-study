@@ -10,15 +10,12 @@ namespace OhMyStudy.Documents;
 public sealed class TypstDocumentService
 {
     private readonly string executable;
-    private readonly string fonts;
     private static string Quote(string value) => LatexFormulaConverter.Quote(value);
 
     public TypstDocumentService(TypstToolchain toolchain)
     {
         executable = Path.GetFullPath(toolchain.ExecutablePath);
-        fonts = Path.GetFullPath(toolchain.FontDirectory);
         VerifyHash(executable, TypstToolchain.ExecutableSha256, "Typst");
-        VerifyHash(Path.Combine(fonts, TypstToolchain.FontFileName), TypstToolchain.FontSha256, "字体");
     }
 
     private static void VerifyHash(string path, string expected, string name)
@@ -35,7 +32,7 @@ public sealed class TypstDocumentService
         Directory.CreateDirectory(directory);
         var conversion = LatexFormulaConverter.Convert(latex);
         var sourcePath = Path.Combine(directory, "formula.typ");
-        var source = "#set page(width: auto, height: auto, margin: 3pt, fill: none)\n" + FontTemplate
+        var source = "#set page(width: auto, height: auto, margin: 3pt, fill: none)\n" + PreviewFontTemplate
             + (conversion.IsSupported ? "#context { let eq = $ " + conversion.TypstMath + " $\n if measure(eq).width > 560pt {\nblock(width: 560pt)[#text(size: 9pt, \"公式原文：\") #linebreak() #text(" + Quote(DocumentText.AllowWrap(latex)) + ")]\n} else { eq } }"
                 : "#block(width: 320pt)[#text(size: 9pt, \"公式原文：\") #linebreak() #text(" + Quote(DocumentText.AllowWrap(latex)) + ")]\n");
         await File.WriteAllTextAsync(sourcePath, source, new UTF8Encoding(false), cancellationToken);
@@ -58,7 +55,7 @@ public sealed class TypstDocumentService
         var sourcePath = Path.Combine(directory, name + ".typ");
         var diagnostics = new List<TypesettingDiagnostic>();
         var source = new StringBuilder("// Fixed native document template; no eval, import or user-selected paths.\n");
-        source.Append(FontTemplate);
+        source.Append(PrintFontTemplate);
         source.Append("#set document(title: ").Append(Quote(document.Title)).Append(", author: \"Oh My Study\")\n");
         source.Append("#set page(paper: \"").Append(paper == ExamPaper.A3Landscape ? "a3" : "a4")
             .Append("\", flipped: ").Append(paper == ExamPaper.A3Landscape ? "true" : "false")
@@ -297,9 +294,15 @@ public sealed class TypstDocumentService
         }
     }
 
-    private static readonly string FontTemplate = "#set text(font: " + Quote(TypstToolchain.TextFontFamily)
+    /// <summary>Printed exams use the installed serif 新宋体; formulas fall back to it for their non-mathematical parts.</summary>
+    private static readonly string PrintFontTemplate = "#set text(font: " + Quote(TypstToolchain.TextFontFamily)
         + ", size: " + TypstToolchain.BodySizePoints.ToString(CultureInfo.InvariantCulture) + "pt, lang: \"zh\")\n#show math.equation: set text(font: ("
         + Quote(TypstToolchain.MathFontFamily) + ", " + Quote(TypstToolchain.TextFontFamily) + "))\n";
+
+    /// <summary>Formula previews are read on screen, so they follow the interface's non-serif family.</summary>
+    private static readonly string PreviewFontTemplate = "#set text(font: " + Quote(TypstToolchain.PreviewFontFamily)
+        + ", size: " + TypstToolchain.BodySizePoints.ToString(CultureInfo.InvariantCulture) + "pt, lang: \"zh\")\n#show math.equation: set text(font: ("
+        + Quote(TypstToolchain.MathFontFamily) + ", " + Quote(TypstToolchain.PreviewFontFamily) + "))\n";
 
     private async Task CompileAsync(string sourcePath, string destination, CancellationToken cancellationToken)
     {
@@ -309,7 +312,7 @@ public sealed class TypstDocumentService
         Directory.CreateDirectory(packages);
         var temporary = Path.Combine(directory, Guid.NewGuid().ToString("N") + Path.GetExtension(destination));
         var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = directory };
-        foreach (var argument in new[] { "compile", "--root", directory, "--font-path", fonts, "--ignore-system-fonts", "--package-path", packages,
+        foreach (var argument in new[] { "compile", "--root", directory, "--package-path", packages,
             "--package-cache-path", packages, "--creation-timestamp", "0", "--jobs", "2", "--diagnostic-format", "short", sourcePath, temporary })
             start.ArgumentList.Add(argument);
         // Ignore machine-level Typst overrides; the template contains no packages or plugins.
@@ -325,6 +328,14 @@ public sealed class TypstDocumentService
             var error = await errorTask;
             _ = await outputTask;
             if (process.ExitCode != 0) throw new InvalidDataException("原生排版失败：" + error);
+            // A family that is not installed is only a warning, and the engine would silently
+            // substitute another face. Fail loudly instead, so a PDF never claims a font it lacks.
+            int missing = error.IndexOf("unknown font family", StringComparison.OrdinalIgnoreCase);
+            if (missing >= 0)
+            {
+                string family = error[missing..].Split('\n')[0]["unknown font family".Length..].TrimStart(' ', ':', '：');
+                throw new InvalidDataException($"系统缺少排版所需字体“{family}”，请安装 Windows 自带的宋体（新宋体）后重试。");
+            }
             if (!File.Exists(temporary)) throw new IOException("Typst 未生成输出。 ");
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporary, destination, true);

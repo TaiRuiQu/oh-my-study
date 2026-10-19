@@ -3,6 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Default">
+            <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei UI</FontFamily>
             <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FF171A20" />
             <SolidColorBrush x:Key="WorkspaceCardBrush" Color="#FF262B33" />
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FF414852" />
@@ -19,6 +20,7 @@
             <SolidColorBrush x:Key="SourceHighlightBorderBrush" Color="#FF5A9CFF" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
+            <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei UI</FontFamily>
             <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FFE9EDF2" />
             <SolidColorBrush x:Key="WorkspaceCardBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FFCBD2DC" />
@@ -35,6 +37,7 @@
             <SolidColorBrush x:Key="SourceHighlightBorderBrush" Color="#FF4968E8" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="HighContrast">
+            <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei UI</FontFamily>
             <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="WorkspaceCardBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
@@ -51,6 +54,29 @@
             <SolidColorBrush x:Key="SourceHighlightBorderBrush" Color="{ThemeResource SystemColorHighlightColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
+    <!-- Interface text stays non-serif; only printed output uses 新宋体 (NSimSun).
+         These keys are redefined here because this dictionary is merged after XamlControlsResources,
+         where the framework fixes FontFamily to XamlAutoFontFamily. Redefining them applies the
+         interface family to every existing usage without touching each control. -->
+    <Style x:Key="BodyStrongTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="{StaticResource BodyStrongTextBlockFontSize}" />
+    </Style>
+    <Style x:Key="SubtitleTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="{StaticResource SubtitleTextBlockFontSize}" />
+        <Setter Property="OpticalMarginAlignment" Value="TrimSideBearings" />
+    </Style>
+    <Style x:Key="TitleTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="{StaticResource TitleTextBlockFontSize}" />
+        <Setter Property="OpticalMarginAlignment" Value="TrimSideBearings" />
+    </Style>
+    <Style x:Key="CaptionTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontSize" Value="{StaticResource CaptionTextBlockFontSize}" />
+        <Setter Property="FontWeight" Value="Normal" />
+    </Style>
     <Style x:Key="PanelHeadingStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyStrongTextBlockStyle}">
         <Setter Property="FontSize" Value="15" />
     </Style>

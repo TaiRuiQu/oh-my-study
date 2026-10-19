@@ -68,8 +68,6 @@ try {
     $tools=Join-Path $cache 'toolchain'
     Assert-Hash (Join-Path $tools 'pdfium/pdfium.dll') $documentLock.pdfium.librarySha256
     Assert-Hash (Join-Path $tools 'typst-x86_64-pc-windows-msvc/typst.exe') $documentLock.typst.executableSha256
-    Assert-Hash (Join-Path $tools 'fonts/SourceHanSerifSC-Regular.otf') $documentLock.font.sha256
-    Assert-Hash (Join-Path $tools 'fonts/OFL.txt') $documentLock.font.licenseSha256
     $native=Join-Path $package 'native'; New-Item -ItemType Directory -Path $native -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $tools 'pdfium/pdfium.dll') -Destination (Join-Path $native 'pdfium.dll')
     Copy-Tree (Join-Path $tools 'pdfium/licenses') (Join-Path $native 'pdfium-licenses')
@@ -80,7 +78,6 @@ try {
         if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Typst distribution file missing: $name" }
         Copy-Item -LiteralPath $file -Destination $typst
     }
-    Copy-Tree (Join-Path $tools 'fonts') (Join-Path $native 'fonts')
     $webpLock=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'webp.lock.json') -Raw | ConvertFrom-Json
     $webpRoot=Join-Path $tools 'libwebp'; $webp=Join-Path $native 'webp'; New-Item -ItemType Directory -Path $webp -Force | Out-Null
     $webpExe=Join-Path $webpRoot "libwebp-$($webpLock.version)-windows-x64/bin/dwebp.exe"
@@ -102,7 +99,6 @@ try {
     $components=[Collections.Generic.List[object]]::new()
     $components.Add([ordered]@{ name='Typst'; version=$documentLock.typst.version; license=$documentLock.typst.license; path='native/typst/typst.exe'; sha256=$documentLock.typst.executableSha256; source=$documentLock.typst.url })
     $components.Add([ordered]@{ name='PDFium'; version=$documentLock.pdfium.version; license=$documentLock.pdfium.license; path='native/pdfium.dll'; sha256=$documentLock.pdfium.librarySha256; source=$documentLock.pdfium.url })
-    $components.Add([ordered]@{ name='Source Han Serif SC'; version=$documentLock.font.version; license=$documentLock.font.license; path='native/fonts/SourceHanSerifSC-Regular.otf'; sha256=$documentLock.font.sha256; source=$documentLock.font.url })
     $components.Add([ordered]@{ name='libwebp dwebp'; version=$webpLock.version; license='BSD-3-Clause plus patent grant'; path='native/webp/dwebp.exe'; sha256=$webpLock.executableSha256; source=$webpLock.url })
     $components.Add([ordered]@{ name='CPython'; version=$pythonLock.cpython.version; distributionArchiveSha256=$pythonLock.cpython.sha256; path='runtime/python/python.exe'; source=$pythonLock.cpython.url; notices='runtime/python/LICENSE.txt' })
     foreach ($wheel in $pythonLock.wheels) { $components.Add([ordered]@{ name=$wheel.name; version=$wheel.version; distributionArchiveSha256=$wheel.sha256; source=$wheel.url; scope='extracted private runtime wheel'; notices='runtime/python/Lib/site-packages/*dist-info/' }) }
@@ -129,7 +125,8 @@ try {
     @'
 Oh My Study: GPL-3.0-or-later. The complete license is included as LICENSE.
 The working-tree source snapshot is source/source-snapshot.zip. Existing supplied publishes require source-correspondence review.
-Native third-party tools keep their licenses beside native/typst, native/fonts and native/pdfium-licenses.
+Native third-party tools keep their licenses beside native/typst and native/pdfium-licenses.
+Printed PDF uses the Windows-installed 新宋体 (NSimSun); no font is redistributed.
 Dependency-graph metadata and .NET notices are under licenses/. The private Python runtime keeps its own notices.
 components.json records pinned versions and hashes. Some graph entries are build dependencies.
 Redistribution/license review and clean-system installation acceptance remain unvalidated.

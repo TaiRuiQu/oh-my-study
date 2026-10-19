@@ -9,7 +9,7 @@ var root = Path.GetFullPath(args.ElementAtOrDefault(0) ?? Directory.GetCurrentDi
 var output = Path.GetFullPath(args.ElementAtOrDefault(1) ?? Path.Combine(root, "output", "migration", "documents"));
 Directory.CreateDirectory(output);
 var clock = Stopwatch.StartNew();
-var toolchain = new TypstToolchain(Path.Combine(root, "output", "migration", "toolchain", "typst-x86_64-pc-windows-msvc", "typst.exe"), Path.Combine(root, "output", "migration", "toolchain", "fonts"));
+var toolchain = new TypstToolchain(Path.Combine(root, "output", "migration", "toolchain", "typst-x86_64-pc-windows-msvc", "typst.exe"));
 var pdfium = new PdfiumRasterizer(Path.Combine(root, "output", "migration", "toolchain", "pdfium", "pdfium.dll"));
 var typesetter = new TypstDocumentService(toolchain);
 var samples = new[]
