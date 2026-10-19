@@ -134,3 +134,7 @@ MSI 安装向导完成（2026-10-18）：按用户最终选择改为“所有用
 视觉验收规范补充（2026-10-18）：按用户要求在 `AGENTS.md` 与 `docs/design-principles.zh-CN.md` 写入强制约定：每次 UI 修改，无论大小，都须实际运行渲染并视觉检查；逐项修复留白、布局、重复信息、间距等细节，修复后重新渲染复查，达到完美视觉效果、最佳实践与直觉要求才能完成。维护记录保留检查范围、证据和未验证项，不能用构建或测试代替视觉验收。本次仅修改规范文档，已审阅内容及 Markdown 差异，`git diff --check` 通过；未改 UI，未重复运行应用或构建。下一次 UI 修改起持续执行上述验收约定。
 
 源码提交交接（2026-10-18）：按用户要求，本轮交付以 SSH 签名提交并推送到 `main`，范围包含设置重写、资料库位置与原件保留、细节打磨、`max` 选项、回归用例及视觉验收规范；上文“未提交”为各轮验证当时状态。沿用最终 App Native AOT 48 项工作流、Provider Native AOT 12 组及已审阅截图的证据，提交前复核差异、仓库边界与证据完整性。开始工作前已有的 App `packages.lock.json` 改动不纳入本次提交，保留本地。此次不生成安装包、不发布 Release；下一步在提交后的源码上执行完整发布流程与尚未完成的真实环境验收。
+
+CI 锁定还原与 Lint 修复（2026-10-19）：Actions 39187253785 在 Lint 前的 Release 还原失败（NU1004）：App 默认锁文件被非 AOT 还原覆盖，缺少 Microsoft.DotNet.ILCompiler 10.0.13 及其 Windows 运行时依赖。已按锁定 SDK 重新生成 Release AOT 锁文件；Debug 和显式 PublishAot=false 改用已有 self-contained 锁文件，framework-dependent 继续使用独立锁文件。在 Checks 中增加 Debug、显式非 AOT 的强制锁定还原，并强制重新还原最终 Release 解决方案，避免增量还原掩盖不一致。另移除 MainWindow.Library.cs 与 MainWindow.xaml.cs 的 UTF-8 BOM，并统一 LF，满足现有格式规则；两文件除此之外内容未变，没有界面行为或布局修改，本轮不涉及视觉验收。
+
+本地验证：原样执行 Invoke-CI.ps1 的 Lint 与 Checks 均通过，包含 C# 格式、固定版本 actionlint、仓库边界、PowerShell 语法、JSON/XML、八件套发布回归、四种发布配置及 Debug/显式非 AOT/最终 Release 的强制锁定还原；解决方案 Release 编译为 0 警告、0 错误，NuGetAudit 保持开启。日志位于 output/ci/lint-fix.log 和 output/ci/checks-fix.log，git diff --check 通过。下一步 SSH 签名提交并推送，跟进新 Actions 的 Lint 与质量作业；远端测试、完整四项打包及发布尚未验证，本次不发布 Release。

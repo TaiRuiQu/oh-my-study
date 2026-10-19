@@ -50,7 +50,10 @@ try {
                 $profile = & (Join-Path $PSScriptRoot 'Get-PublishProfile.ps1') -Variant $profileVariant
                 Invoke-Dotnet (@('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Release','--locked-mode','--force','--disable-parallel') + $profile.properties)
             }
-            Invoke-Dotnet @('restore','OhMyStudy.slnx','-p:Configuration=Release','--locked-mode','--disable-parallel')
+            # Ordinary Debug/non-AOT restores must keep the default AOT lock intact.
+            Invoke-Dotnet @('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Debug','--locked-mode','--force','--disable-parallel')
+            Invoke-Dotnet @('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Release','-p:PublishAot=false','--locked-mode','--force','--disable-parallel')
+            Invoke-Dotnet @('restore','OhMyStudy.slnx','-p:Configuration=Release','--locked-mode','--force','--disable-parallel')
             Invoke-Dotnet @('build','OhMyStudy.slnx','-c','Release','--no-restore','-warnaserror')
         }
         'Test' {
