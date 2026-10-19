@@ -5,6 +5,9 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishAot>true</PublishAot>
     <SelfContained>true</SelfContained>
+    <!-- Evaluate after the project has selected AOT, including solution restores. -->
+    <NuGetLockFilePath Condition="'$(PublishAot)' == 'true'">packages.aot.lock.json</NuGetLockFilePath>
+    <NuGetLockFilePath Condition="'$(PublishAot)' != 'true'">packages.lock.json</NuGetLockFilePath>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/OhMyStudy.Documents/OhMyStudy.Documents.csproj" />

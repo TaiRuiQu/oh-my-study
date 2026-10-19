@@ -53,6 +53,12 @@ try {
             # Ordinary Debug/non-AOT restores must keep the default AOT lock intact.
             Invoke-Dotnet @('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Debug','--locked-mode','--force','--disable-parallel')
             Invoke-Dotnet @('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Release','-p:PublishAot=false','--locked-mode','--force','--disable-parallel')
+            # These executables support local non-AOT verification as well as Release AOT.
+            # Exercise both paths before the solution restore to detect lock contamination.
+            foreach ($project in @('probes/OhMyStudy.Documents.Probe/OhMyStudy.Documents.Probe.csproj','tests/OhMyStudy.Media.Tests/OhMyStudy.Media.Tests.csproj')) {
+                Invoke-Dotnet @('restore',$project,'-p:Configuration=Debug','-p:PublishAot=false','--locked-mode','--force','--disable-parallel')
+                Invoke-Dotnet @('restore',$project,'-p:Configuration=Release','--locked-mode','--force','--disable-parallel')
+            }
             Invoke-Dotnet @('restore','OhMyStudy.slnx','-p:Configuration=Release','--locked-mode','--force','--disable-parallel')
             Invoke-Dotnet @('build','OhMyStudy.slnx','-c','Release','--no-restore','-warnaserror')
         }
