@@ -38,8 +38,11 @@ foreach ($file in $files) {
 }
 if (-not (Test-Path -LiteralPath (Join-Path $payload 'OhMyStudy.App.exe'))) { throw 'MSI input has no application' }
 New-Item -ItemType Directory -Path (Split-Path -Parent $output) -Force | Out-Null
-$stage = Join-Path (Split-Path -Parent $output) ([IO.Path]::GetFileNameWithoutExtension($output) + '-authoring')
-New-Item -ItemType Directory -Path $stage -Force | Out-Null
+# WiX's native binder/cabinet APIs still reject long paths. Keep intermediate,
+# source and MSI paths short regardless of the requested package/output names.
+$stage = Join-Path $workspace ('output/ci/msi-build-' + [guid]::NewGuid().ToString('N').Substring(0,12))
+$stagedPayload = Join-Path $stage 'files'
+New-Item -ItemType Directory -Path $stagedPayload -Force | Out-Null
 $tool = & (Join-Path $PSScriptRoot 'prepare-msi-tools.ps1')
 function Escape-Xml([string]$Value) { return [Security.SecurityElement]::Escape($Value) }
 function Identifier([string]$Prefix, [string]$Value) {
@@ -58,8 +61,10 @@ function Add-Directory([string]$Directory, [string]$DirectoryId) {
         $relativeFile = [IO.Path]::GetRelativePath($payload, $file.FullName).Replace('\','/')
         $id = Identifier 'F' $relativeFile
         $componentGuid = ([guid]::ParseExact((Identifier '' "$RegistryKey/$relativeFile"), 'N')).ToString('B')
+        $source = Join-Path $stagedPayload ($id + $file.Extension)
+        Copy-Item -LiteralPath $file.FullName -Destination $source
         $references.Add("C$id")
-        $null = $xml.AppendLine("<Component Id='C$id' Guid='$componentGuid'><File Id='$id' Source='$(Escape-Xml $file.FullName)' KeyPath='yes'/></Component>")
+        $null = $xml.AppendLine("<Component Id='C$id' Guid='$componentGuid'><File Id='$id' Name='$(Escape-Xml $file.Name)' Source='$(Escape-Xml $source)' KeyPath='yes'/></Component>")
     }
     foreach ($child in Get-ChildItem -LiteralPath $Directory -Directory | Sort-Object Name) {
         $id = Identifier 'P' ([IO.Path]::GetRelativePath($payload,$child.FullName).Replace('\','/'))
@@ -77,13 +82,18 @@ $harvest = Join-Path $stage 'Payload.wxs'
 $license = [IO.File]::ReadAllText((Join-Path $workspace 'LICENSE')).Replace('\','\\').Replace('{','\{').Replace('}','\}').Replace("`r",'').Replace("`n",'\par ')
 $licenseRtf = Join-Path $stage 'License.rtf'
 [IO.File]::WriteAllText($licenseRtf, '{\rtf1\ansi\deff0{\fonttbl{\f0 Segoe UI;}}\f0\fs18 ' + $license + '}', [Text.Encoding]::ASCII)
-$icon = Join-Path $payload 'Assets/App.ico'
-if (-not (Test-Path -LiteralPath $icon)) { $icon = Join-Path $workspace 'src/OhMyStudy.App/Assets/App.ico' }
+$iconSource = Join-Path $payload 'Assets/App.ico'
+if (-not (Test-Path -LiteralPath $iconSource)) { $iconSource = Join-Path $workspace 'src/OhMyStudy.App/Assets/App.ico' }
+$icon = Join-Path $stage 'App.ico'
+Copy-Item -LiteralPath $iconSource -Destination $icon
+$stagedMsi = Join-Path $stage 'package.msi'
 $arguments = @('build', (Join-Path $PSScriptRoot 'msi/Package.wxs'), (Join-Path $PSScriptRoot 'msi/InstallDirDlg.wxs'), (Join-Path $PSScriptRoot 'msi/InstallUI.wxs'), $harvest,
     '-arch','x64','-culture','zh-CN','-ext',$tool.extension,'-intermediateFolder',$stage,
-    '-d',"PackageVersion=$PackageVersion",'-d',"ProductName=$ProductName",'-d',"UpgradeCode=$UpgradeCode",'-d',"RegistryKey=$RegistryKey",'-d',"LicenseRtf=$licenseRtf",'-d',"AppIcon=$icon",'-o',$output)
-& dotnet $tool.cli @arguments
-if ($LASTEXITCODE -ne 0) { throw "WiX MSI build failed: $LASTEXITCODE" }
+    '-d',"PackageVersion=$PackageVersion",'-d',"ProductName=$ProductName",'-d',"UpgradeCode=$UpgradeCode",'-d',"RegistryKey=$RegistryKey",'-d',"LicenseRtf=$licenseRtf",'-d',"AppIcon=$icon",'-o',$stagedMsi)
+$buildLog = Join-Path $stage 'wix-build.log'
+& dotnet $tool.cli @arguments 2>&1 | Tee-Object -FilePath $buildLog | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "WiX MSI build failed: $LASTEXITCODE; see $buildLog" }
+Copy-Item -LiteralPath $stagedMsi -Destination $output
 $report = [ordered]@{ schemaVersion=1; package=$output; sha256=(Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash.ToLowerInvariant(); packageVersion=$PackageVersion; fileCount=$files.Count; wixVersion=$tool.version; installerType='msi'; scope='perMachine'; payload=$payload }
 $report | ConvertTo-Json | Set-Content -LiteralPath ($output + '.json') -Encoding utf8
 return [pscustomobject]$report

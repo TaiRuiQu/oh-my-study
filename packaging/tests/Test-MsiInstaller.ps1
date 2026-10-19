@@ -14,13 +14,19 @@ $installedMsi = $null
 $shortcuts = @("APPLICATIONSHORTCUTS=$(Join-Path $area 'start')","DESKTOPSHORTCUTS=$(Join-Path $area 'desktop')")
 function Assert([bool]$Condition, [string]$Message) { if (-not $Condition) { throw $Message }; $checks.Add($Message) }
 function Package([string]$Version, [string]$Content) {
-    $root = Join-Path $area ("payload-$Version-" + [guid]::NewGuid().ToString('N'))
+    $root = Join-Path $area ("framework-dependent-payload-$Version-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path (Join-Path $root 'native/字体') -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $root 'OhMyStudy.App.exe'), $Content)
     [IO.File]::WriteAllText((Join-Path $root 'native/字体/许可.txt'), 'SYNTHETIC LICENSE ' + $Content)
+    # Real dependency metadata exceeds MAX_PATH beneath CI's variant directories.
+    $longLicense = Join-Path $root 'licenses/Microsoft.WindowsAppSDK.InteractiveExperiences-2.1.9/Microsoft.WindowsAppSDK.InteractiveExperiences.nuspec'
+    if ($longLicense.Length -le 260) { throw 'Long-path MSI fixture must exceed 260 characters' }
+    New-Item -ItemType Directory -Path (Split-Path -Parent $longLicense) -Force | Out-Null
+    [IO.File]::WriteAllText($longLicense, 'SYNTHETIC LONG LICENSE ' + $Content)
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -File | ForEach-Object { @{path=[IO.Path]::GetRelativePath($root,$_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} })
     @{ version=$Version; files=$files } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $root 'package-manifest.json')
-    $msi = Join-Path $area ("$Version-" + [guid]::NewGuid().ToString('N') + '.msi')
+    $label = "OhMyStudy-win-x64-framework-dependent-$Version"
+    $msi = Join-Path $area ("$label/$label-" + [guid]::NewGuid().ToString('N') + '.msi')
     $null = & (Join-Path $PSScriptRoot '../Build-MsiPackage.ps1') -PackageDirectory $root -OutputFile $msi -ProductName $name -UpgradeCode $upgrade -RegistryKey $key
     return $msi
 }
@@ -49,6 +55,7 @@ try {
     Execute @('/i',$v1,"INSTALLFOLDER=$target",'DESKTOPCHOICESET=1') 'unchecked-install'
     $installedMsi=$v1
     Assert ((Test-Path -LiteralPath (Join-Path $target 'OhMyStudy.App.exe')) -and -not (Test-Path -LiteralPath (Join-Path $area "desktop/$name.lnk"))) 'unchecked desktop choice is respected'
+    Assert ([IO.File]::ReadAllText((Join-Path $target 'licenses/Microsoft.WindowsAppSDK.InteractiveExperiences-2.1.9/Microsoft.WindowsAppSDK.InteractiveExperiences.nuspec')) -eq 'SYNTHETIC LONG LICENSE VERSION_ONE') 'long source and output paths preserve the installed filename and content'
     Assert ((Get-ItemPropertyValue -LiteralPath "HKLM:\$key" -Name DesktopShortcut) -eq '0') 'unchecked preference is saved as zero'
     $v2 = Package '0.1.2' 'VERSION_TWO'
     Execute @('/i',$v2) 'upgrade'
