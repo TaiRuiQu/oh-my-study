@@ -7,10 +7,27 @@ using System.Text;
 namespace OhMyStudy.Documents;
 
 /// <summary>Generates only trusted templates. User text never becomes Typst source code.</summary>
-public sealed class TypstDocumentService
+public sealed partial class TypstDocumentService
 {
     private readonly string executable;
-    private static string Quote(string value) => LatexFormulaConverter.Quote(value);
+    private static string Quote(string text)
+    {
+        var result = new StringBuilder("\"");
+        foreach (var character in text)
+        {
+            result.Append(character switch
+            {
+                '\\' => "\\\\",
+                '"' => "\\\"",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
+                _ when char.IsControl(character) => " ",
+                _ => character.ToString()
+            });
+        }
+        return result.Append('"').ToString();
+    }
 
     public TypstDocumentService(TypstToolchain toolchain)
     {
@@ -23,24 +40,6 @@ public sealed class TypstDocumentService
         using var input = File.OpenRead(path);
         var hash = Convert.ToHexStringLower(SHA256.HashData(input));
         if (hash != expected) throw new InvalidDataException(name + "哈希不匹配，请运行原生文档工具准备脚本。 ");
-    }
-
-    public async Task<FormulaPreviewResult> RenderFormulaAsync(string latex, string outputDirectory, CancellationToken cancellationToken = default)
-    {
-        if (latex.Length > 32_768) throw new ArgumentException("公式原文超过 32768 字符。", nameof(latex));
-        var directory = Path.GetFullPath(outputDirectory);
-        Directory.CreateDirectory(directory);
-        var conversion = LatexFormulaConverter.Convert(latex);
-        var sourcePath = Path.Combine(directory, "formula.typ");
-        var source = "#set page(width: auto, height: auto, margin: 3pt, fill: none)\n" + PreviewFontTemplate
-            + (conversion.IsSupported ? "#context { let eq = $ " + conversion.TypstMath + " $\n if measure(eq).width > 560pt {\nblock(width: 560pt)[#text(size: 9pt, \"公式原文：\") #linebreak() #text(" + Quote(DocumentText.AllowWrap(latex)) + ")]\n} else { eq } }"
-                : "#block(width: 320pt)[#text(size: 9pt, \"公式原文：\") #linebreak() #text(" + Quote(DocumentText.AllowWrap(latex)) + ")]\n");
-        await File.WriteAllTextAsync(sourcePath, source, new UTF8Encoding(false), cancellationToken);
-        var pdf = Path.Combine(directory, "formula.pdf");
-        var svg = Path.Combine(directory, "formula.svg");
-        await CompileAsync(sourcePath, pdf, cancellationToken);
-        await CompileAsync(sourcePath, svg, cancellationToken);
-        return new(pdf, svg, conversion);
     }
 
     public async Task<ExamExportResult> ExportExamAsync(ExamDocument document, ExamPaper paper, ExamEdition edition,
@@ -61,25 +60,25 @@ public sealed class TypstDocumentService
             .Append("\", flipped: ").Append(paper == ExamPaper.A3Landscape ? "true" : "false")
             .Append(", margin: (x: 17mm, top: 18mm, bottom: 17mm), footer: context align(center, text(size: 9pt)[#counter(page).display(\"1 / 1\", both: true)]))\n");
         source.Append("#set par(leading: 0.75em, spacing: 0.65em)\n");
-        source.Append("#let fit-formula(body, original) = layout(size => {\n let eq = math.equation(block: true, body)\n if measure(eq).width > size.width {\n block(stroke: 0.4pt + rgb(\"b9a97b\"), inset: 5pt, width: 100%)[#text(size: 9pt, fill: rgb(\"785b18\"), \"公式超过栏宽，原式如下：\") #linebreak() #text(original)]\n } else { eq }\n})\n");
+        source.Append("#let fit-formula(pic, original) = layout(size => { if measure(pic).width > size.width { block(breakable: true)[#text(size: 9pt, \"公式超过栏宽，原式如下：\") #linebreak() #text(original)] } else { align(center, pic) } })\n");
         source.Append("#align(center, text(size: 18pt, weight: \"bold\", ").Append(Quote(document.Title)).Append("))\n");
         source.Append("#align(center, text(size: 10pt, ").Append(Quote(edition == ExamEdition.Questions ? "题目卷 · 姓名：____________  日期：____________" : "答案解析册")).Append("))\n#v(4mm)\n");
         if (paper == ExamPaper.A3Landscape) source.Append("#columns(2, gutter: 12mm)[\n");
         long totalText = document.Title.Length;
         int nodes = 0;
-        var assets = new ExportAssets(directory, edition);
+        var assets = new ExportAssets(directory, edition, cancellationToken, paper == ExamPaper.A3Landscape ? 181 * 72 / 25.4 : 176 * 72 / 25.4);
         foreach (var question in document.Questions)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (question.Number < 1) throw new ArgumentException("题号必须为正整数。 ", nameof(document));
             source.Append("#block(sticky: true, above: 3mm, below: 1mm)[#strong[").Append(question.Number).Append(".]]\n");
             AppendSegments(source, question.Body, diagnostics, question.Number, assets, ref totalText);
-            AppendOptions(source, question.Options, diagnostics, question.Number, ref totalText);
+            AppendOptions(source, question.Options, diagnostics, question.Number, assets, ref totalText);
             if (edition == ExamEdition.Answers)
             {
                 // Neither StudentAttempt nor question-edition answer/explanation fields are read.
-                AppendTextBlock(source, "答案：" + (question.Answer ?? "未提供"), diagnostics, question.Number, ref totalText);
-                if (question.Explanation is { Length: > 0 }) AppendTextBlock(source, "解析：" + question.Explanation, diagnostics, question.Number, ref totalText);
+                AppendTextBlock(source, "答案：" + (question.Answer ?? "未提供"), diagnostics, question.Number, assets, ref totalText);
+                if (question.Explanation is { Length: > 0 }) AppendTextBlock(source, "解析：" + question.Explanation, diagnostics, question.Number, assets, ref totalText);
             }
             AppendParts(source, question.Parts, question.Number.ToString(CultureInfo.InvariantCulture), 0,
                 edition, diagnostics, question.Number, assets, ref totalText, ref nodes, cancellationToken);
@@ -120,11 +119,11 @@ public sealed class TypstDocumentService
             CountText(label, ref total);
             source.Append("#block(sticky: true, above: 2mm)[#strong[#text(").Append(Quote(label)).Append(")]]\n");
             AppendSegments(source, part.Body, diagnostics, question, assets, ref total);
-            AppendOptions(source, part.Options, diagnostics, question, ref total);
+            AppendOptions(source, part.Options, diagnostics, question, assets, ref total);
             if (edition == ExamEdition.Answers)
             {
-                AppendTextBlock(source, "答案：" + (part.Answer ?? "未提供"), diagnostics, question, ref total);
-                if (part.Explanation is { Length: > 0 }) AppendTextBlock(source, "解析：" + part.Explanation, diagnostics, question, ref total);
+                AppendTextBlock(source, "答案：" + (part.Answer ?? "未提供"), diagnostics, question, assets, ref total);
+                if (part.Explanation is { Length: > 0 }) AppendTextBlock(source, "解析：" + part.Explanation, diagnostics, question, assets, ref total);
             }
             else AppendBlank(source, part.BlankMillimetres);
             AppendParts(source, part.Parts, label, depth + 1, edition, diagnostics, question, assets, ref total, ref nodes, cancellationToken);
@@ -132,36 +131,45 @@ public sealed class TypstDocumentService
     }
 
     private static void AppendOptions(StringBuilder source, IReadOnlyList<string>? options,
-        List<TypesettingDiagnostic> diagnostics, int question, ref long total)
+        List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
         if (options is null) return;
         if (options.Count > 100) throw new ArgumentException("选项数过多。");
-        foreach (var option in options) AppendTextBlock(source, option, diagnostics, question, ref total);
+        foreach (var option in options) AppendTextBlock(source, option, diagnostics, question, assets, ref total);
     }
 
-    private static void AppendTextBlock(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ref long total)
+    private static void AppendTextBlock(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
         CountText(text, ref total);
         // Blocks can break across a page/column. Formula delimiters share the preview converter.
         source.Append("#block(breakable: true)[");
-        foreach (var run in DocumentText.Split(text))
+        foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(text)))
         {
-            if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question);
+            if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay);
             else source.Append("#text(").Append(Quote(DocumentText.AllowWrap(run.Text))).Append(")");
         }
         source.Append("]\n");
     }
 
-    private static void AppendFormula(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question)
+    private static void AppendFormula(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, bool display, double? maximumWidth = null)
     {
-        var formula = LatexFormulaConverter.Convert(text);
-        if (formula.IsSupported)
-            source.Append("\n#fit-formula($").Append(formula.TypstMath).Append("$, ").Append(Quote(DocumentText.AllowWrap(text))).Append(")\n");
+        var formula = assets.AddFormula(text, display, out string? diagnostic);
+        if (formula is not null)
+        {
+            if (!display && formula.WidthPoints > (maximumWidth ?? assets.ColumnWidthPoints))
+            {
+                diagnostics.Add(new(question, text, "公式超过栏宽，已保留原文。"));
+                source.Append("#text(").Append(Quote(DocumentText.AllowWrap(text))).Append(")");
+                return;
+            }
+            string picture = "image(" + Quote(Path.GetFileName(formula.Path)) + ", width: " + formula.WidthPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt, height: " + formula.HeightPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt)";
+            if (display) source.Append("\n\n#block(width: 100%)[#fit-formula(").Append(picture).Append(", ").Append(Quote(DocumentText.AllowWrap(text))).Append(")]\n\n");
+            else source.Append("#box(baseline: ").Append((formula.HeightPoints - formula.BaselinePoints).ToString("0.###", CultureInfo.InvariantCulture)).Append("pt, ").Append(picture).Append(")");
+        }
         else
         {
-            diagnostics.Add(new(question, text, formula.Diagnostic!));
-            source.Append("#block(breakable: true, inset: 4pt)[#text(size: 9pt, ")
-                .Append(Quote("公式原文：")).Append(") #linebreak() #text(").Append(Quote(DocumentText.AllowWrap(text))).Append(")]\n");
+            diagnostics.Add(new(question, text, diagnostic!));
+            source.Append("#text(").Append(Quote(DocumentText.AllowWrap(text))).Append(")");
         }
     }
 
@@ -173,7 +181,7 @@ public sealed class TypstDocumentService
         {
             if ((segment.Rows is not null && segment.Image is not null) || ((segment.Rows is not null || segment.Image is not null) && (segment.IsFormula || segment.Text.Length != 0)))
                 throw new ArgumentException("题目片段类型不明确。");
-            if (segment.Rows is { } rows) AppendTable(source, rows, diagnostics, question, ref total);
+            if (segment.Rows is { } rows) AppendTable(source, rows, diagnostics, question, assets, ref total);
             else if (segment.Image is { } image)
             {
                 CountText(image.Caption, ref total);
@@ -182,19 +190,19 @@ public sealed class TypstDocumentService
                 source.Append("#block(breakable: false)[#layout(size => { let pic = image(").Append(Quote(asset))
                     .Append(", width: size.width); if measure(pic).height > 150mm { align(center, image(").Append(Quote(asset))
                     .Append(", height: 150mm)) } else { pic } })]\n");
-                if (image.Caption.Length > 0) AppendTextBlock(source, image.Caption, diagnostics, question, ref total);
+                if (image.Caption.Length > 0) AppendTextBlock(source, image.Caption, diagnostics, question, assets, ref total);
             }
             else if (segment.IsFormula)
             {
                 CountText(segment.Text, ref total);
-                AppendFormula(source, segment.Text, diagnostics, question);
+                AppendFormula(source, segment.Text, diagnostics, question, assets, true);
             }
-            else AppendTextBlock(source, segment.Text, diagnostics, question, ref total);
+            else AppendTextBlock(source, segment.Text, diagnostics, question, assets, ref total);
         }
     }
 
     private static void AppendTable(StringBuilder source, IReadOnlyList<IReadOnlyList<string>> rows,
-        List<TypesettingDiagnostic> diagnostics, int question, ref long total)
+        List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
         if (rows.Count == 0) return;
         int columns = rows.Max(row => row.Count);
@@ -223,8 +231,8 @@ public sealed class TypstDocumentService
                     source.Append("table.cell(breakable: true)[");
                     string cell = column < row.Count ? row[column] : "";
                     CountText(cell, ref total);
-                    foreach (var run in DocumentText.Split(cell))
-                        if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question);
+                    foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(cell)))
+                        if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, Math.Max(8, (assets.ColumnWidthPoints - (wide ? 30 : 0)) / width - 10));
                         else source.Append("#text(").Append(Quote(DocumentText.AllowWrap(run.Text))).Append(")");
                     source.Append("],\n");
                 }
@@ -233,10 +241,33 @@ public sealed class TypstDocumentService
         }
     }
 
-    private sealed class ExportAssets(string directory, ExamEdition edition)
+    private sealed class ExportAssets(string directory, ExamEdition edition, CancellationToken token, double columnWidthPoints)
     {
+        internal double ColumnWidthPoints { get; } = columnWidthPoints;
         private readonly HashSet<string> written = new(StringComparer.Ordinal);
         private long bytes;
+        private readonly Dictionary<(string, bool), (FormulaSvg? Formula, string? Diagnostic)> formulas = [];
+        private long formulaBytes;
+        public FormulaSvg? AddFormula(string text, bool display, out string? diagnostic)
+        {
+            token.ThrowIfCancellationRequested();
+            if (!formulas.TryGetValue((text, display), out var cached))
+            {
+                if (formulas.Count >= 2048) throw new ArgumentException("试卷公式过多，请分批导出。");
+                string name = "formula-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes((display ? "display:" : "inline:") + text))) + ".svg";
+                bool success = VelociTexFormulaRenderer.TryWriteSvg(text, Path.Combine(directory, name), TypstToolchain.BodySizePoints, display, token, out var formula, out diagnostic);
+                if (success)
+                {
+                    formulaBytes += new FileInfo(formula!.Path).Length;
+                    if (formulaBytes > 128L * 1024 * 1024) throw new ArgumentException("试卷公式总量超过限制。");
+                }
+                cached = (formula, diagnostic);
+                formulas.Add((text, display), cached);
+            }
+            diagnostic = cached.Diagnostic;
+            return cached.Formula;
+        }
+
         public string Add(ExamImage image)
         {
             if (image.ContainsHandwriting && edition == ExamEdition.Questions)
@@ -294,23 +325,17 @@ public sealed class TypstDocumentService
         }
     }
 
-    /// <summary>Printed exams use the installed serif 新宋体; formulas fall back to it for their non-mathematical parts.</summary>
+    /// <summary>Only print prose uses the installed Windows 新宋体; formula outlines come from VelociTex.</summary>
     private static readonly string PrintFontTemplate = "#set text(font: " + Quote(TypstToolchain.TextFontFamily)
-        + ", size: " + TypstToolchain.BodySizePoints.ToString(CultureInfo.InvariantCulture) + "pt, lang: \"zh\")\n#show math.equation: set text(font: ("
-        + Quote(TypstToolchain.MathFontFamily) + ", " + Quote(TypstToolchain.TextFontFamily) + "))\n";
+        + ", size: " + TypstToolchain.BodySizePoints.ToString(CultureInfo.InvariantCulture) + "pt, lang: \"zh\")\n";
 
-    /// <summary>Formula previews are read on screen, so they follow the interface's non-serif family.</summary>
-    private static readonly string PreviewFontTemplate = "#set text(font: " + Quote(TypstToolchain.PreviewFontFamily)
-        + ", size: " + TypstToolchain.BodySizePoints.ToString(CultureInfo.InvariantCulture) + "pt, lang: \"zh\")\n#show math.equation: set text(font: ("
-        + Quote(TypstToolchain.MathFontFamily) + ", " + Quote(TypstToolchain.PreviewFontFamily) + "))\n";
-
-    private async Task CompileAsync(string sourcePath, string destination, CancellationToken cancellationToken)
+    private async Task CompileAsync(string sourcePath, string destination, CancellationToken cancellationToken, int pages = 0)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var directory = Path.GetDirectoryName(sourcePath)!;
         var packages = Path.Combine(directory, "empty-packages");
         Directory.CreateDirectory(packages);
-        var temporary = Path.Combine(directory, Guid.NewGuid().ToString("N") + Path.GetExtension(destination));
+        var temporary = Path.Combine(directory, Guid.NewGuid().ToString("N") + (pages > 0 ? "-{p}" : "") + Path.GetExtension(destination));
         var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = directory };
         foreach (var argument in new[] { "compile", "--root", directory, "--package-path", packages,
             "--package-cache-path", packages, "--creation-timestamp", "0", "--jobs", "2", "--diagnostic-format", "short", sourcePath, temporary })
@@ -336,9 +361,20 @@ public sealed class TypstDocumentService
                 string family = error[missing..].Split('\n')[0]["unknown font family".Length..].TrimStart(' ', ':', '：');
                 throw new InvalidDataException($"系统缺少排版所需字体“{family}”，请安装 Windows 自带的宋体（新宋体）后重试。");
             }
-            if (!File.Exists(temporary)) throw new IOException("Typst 未生成输出。 ");
             cancellationToken.ThrowIfCancellationRequested();
-            File.Move(temporary, destination, true);
+            if (pages == 0)
+            {
+                if (!File.Exists(temporary)) throw new IOException("Typst 未生成输出。 ");
+                File.Move(temporary, destination, true);
+            }
+            else
+            {
+                for (int page = 1; page <= pages; page++)
+                {
+                    string number = page.ToString(CultureInfo.InvariantCulture);
+                    File.Move(temporary.Replace("{p}", number), destination.Replace("{p}", number), true);
+                }
+            }
         }
         finally
         {
@@ -350,6 +386,11 @@ public sealed class TypstDocumentService
             // Observe readers even after cancellation; bounded streams must not leave background tasks.
             try { await Task.WhenAll(errorTask, outputTask); } catch (OperationCanceledException) { }
             if (File.Exists(temporary)) File.Delete(temporary);
+            for (int page = 1; page <= pages; page++)
+            {
+                string output = temporary.Replace("{p}", page.ToString(CultureInfo.InvariantCulture));
+                if (File.Exists(output)) File.Delete(output);
+            }
         }
     }
 

@@ -115,6 +115,10 @@ try {
                 $target=Join-Path $notices "$id-$version"; New-Item -ItemType Directory -Path $target -Force | Out-Null
                 $metadata=@(Get-ChildItem -LiteralPath $packageCache -File | Where-Object { $_.Name -match '(?i)license|notice|copying|\.nuspec$|^README\.md$' })
                 foreach ($file in $metadata) { Copy-Item -LiteralPath $file.FullName -Destination $target }
+                if ($id -like 'VelociTex.*') {
+                    Copy-Tree (Join-Path $packageCache 'licenses') (Join-Path $target 'licenses')
+                    Copy-Item -LiteralPath (Join-Path $packageCache 'THIRD-PARTY-NOTICES.md') -Destination $target
+                }
                 $components.Add([ordered]@{ name=$id; version=$version; nugetContentHash=$dependency.Value.contentHash; graph=$lockPath; metadataPath="licenses/$id-$version"; distributionScope='dependency-graph; build tools may not be runtime files'; licenseReview='upstream metadata retained; redistribution review not completed' })
             }
         }
@@ -126,7 +130,8 @@ try {
 Oh My Study: GPL-3.0-or-later. The complete license is included as LICENSE.
 The working-tree source snapshot is source/source-snapshot.zip. Existing supplied publishes require source-correspondence review.
 Native third-party tools keep their licenses beside native/typst and native/pdfium-licenses.
-Printed PDF uses the Windows-installed 新宋体 (NSimSun); no font is redistributed.
+Printed prose uses Windows-installed 新宋体 (NSimSun). Individual screen and print formulas use VelociTex's unchanged embedded KaTeX fonts (SIL OFL 1.1 / Reserved Font Names).
+VelociTex code and KaTeX rules have separate MIT notices. All upstream font licenses and notices are retained under licenses/VelociTex.*.
 Dependency-graph metadata and .NET notices are under licenses/. The private Python runtime keeps its own notices.
 components.json records pinned versions and hashes. Some graph entries are build dependencies.
 Redistribution/license review and clean-system installation acceptance remain unvalidated.

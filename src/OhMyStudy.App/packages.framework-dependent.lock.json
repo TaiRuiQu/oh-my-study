@@ -32,6 +32,31 @@
           "Microsoft.WindowsAppSDK.InteractiveExperiences": "2.1.8"
         }
       },
+      "VelociTex.Core": {
+        "type": "Direct",
+        "requested": "[1.0.0-rc.2, )",
+        "resolved": "1.0.0-rc.2",
+        "contentHash": "wq62wtoZEh5yCKZ38ZnkGZYC3HMPKJap16luHGiSjNWkHctqntzcbW+Z5F3xlByfCK2GmySdvMBNJB1PRpTXVQ=="
+      },
+      "VelociTex.Rendering.Direct2D": {
+        "type": "Direct",
+        "requested": "[1.0.0-rc.2, )",
+        "resolved": "1.0.0-rc.2",
+        "contentHash": "cY7R48B5czzp8xLM4FQdncX8oiyH+NYg0QgeaBfJ7giC6NWEaaLo31AuhmYbFqsJvbvoUJ5Wm1am/e8ytXKlcw==",
+        "dependencies": {
+          "VelociTex.Core": "1.0.0-rc.2"
+        }
+      },
+      "VelociTex.WinUI": {
+        "type": "Direct",
+        "requested": "[1.0.0-rc.2, )",
+        "resolved": "1.0.0-rc.2",
+        "contentHash": "k6KI4Wt3slcFV7aGvKAgrKUFd0RyEAPBza9KXswraC73ioCkYjIbGDo/iiHYzBKx/JWL3hskGbW2dxn1IEKAlA==",
+        "dependencies": {
+          "Microsoft.WindowsAppSDK.WinUI": "2.3.9",
+          "VelociTex.Rendering.Direct2D": "1.0.0-rc.2"
+        }
+      },
       "Microsoft.Web.WebView2": {
         "type": "Transitive",
         "resolved": "1.0.3719.77",
@@ -101,7 +126,11 @@
         }
       },
       "ohmystudy.documents": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "VelociTex.Core": "[1.0.0-rc.2, )",
+          "VelociTex.Rendering.Direct2D": "[1.0.0-rc.2, )"
+        }
       },
       "ohmystudy.domain": {
         "type": "Project"

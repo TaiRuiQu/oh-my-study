@@ -46,7 +46,6 @@ internal static class ComplexDocumentProbe
             throw new InvalidOperationException("handwritten image entered question edition");
         }
         catch (InvalidDataException error) when (error.Message.Contains("手写", StringComparison.Ordinal)) { }
-        Require(LatexFormulaConverter.Convert(unsupported).Original == unsupported, "oversized fallback preserves full original");
         Require(DocumentText.Split(@"甲 $x^2$ 乙 \(y\) 丙 \[z\] 丁 $$a+b$$").Count(run => run.IsFormula) == 4, "shared formula boundaries");
         Require(DocumentText.Split("unclosed $x").All(run => !run.IsFormula), "unclosed delimiter retained as text");
         checks.Add("complex A3/A4 PDF: 519 table cells, ragged/wide/paginated tables, raster image, 12-level parts, long body, full 9000-character formula fallback; actual extracted text and edition isolation");

@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:OhMyStudy.App.ViewModels"
     xmlns:domain="using:OhMyStudy.Domain"
+    xmlns:controls="using:OhMyStudy.App.Controls"
     Title="Oh My Study">
     <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource WorkspaceCanvasBrush}">
@@ -176,13 +177,13 @@
                                 <ListView.ItemsPanel><ItemsPanelTemplate><ItemsStackPanel Orientation="Vertical" /></ItemsPanelTemplate></ListView.ItemsPanel>
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="vm:QuestionViewModel">
-                                        <StackPanel Padding="8,12" Spacing="7" HorizontalAlignment="Stretch">
+                                        <StackPanel Padding="8,10" Spacing="6" HorizontalAlignment="Stretch">
                                             <Grid ColumnSpacing="8">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                                 <TextBlock Text="{x:Bind Label}" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                                 <TextBlock Grid.Column="1" Text="{x:Bind OutcomeLabel}" Style="{StaticResource QuietTextStyle}" />
                                             </Grid>
-                                            <TextBlock Text="{x:Bind Statement}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                            <controls:QuestionPreview Item="{x:Bind Mode=OneWay}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListView.ItemTemplate>

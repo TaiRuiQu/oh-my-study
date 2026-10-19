@@ -45,7 +45,7 @@ dotnet publish src/OhMyStudy.App/OhMyStudy.App.csproj -c Release --no-restore -o
 ./packaging/Publish-OfflinePackage.ps1 -AppPublishDirectory ./output/migration/app-local -DesktopSmoke -WorkflowSmoke
 ```
 
-完整目录属于部署产物，不能只复制EXE。发布目标包含PRI/XBF和图标；打包脚本加入SQLite、PDFium/notices、Typst、dwebp、两个计算worker及`runtime/python`（排版字体使用系统字体，不随包分发）。安装格式改为 MSI，打包脚本通过 WiX 生成标准向导；旧自写安装器不纳入 portable 或 MSI。
+完整目录属于部署产物，不能只复制EXE。发布目标包含PRI/XBF和图标；打包脚本加入SQLite、PDFium/notices、Typst、dwebp、两个计算worker及`runtime/python`（正文使用系统字体；单个公式随 VelociTex 携带原始 KaTeX 数学字体及 OFL / RFN 声明）。安装格式改为 MSI，打包脚本通过 WiX 生成标准向导；旧自写安装器不纳入 portable 或 MSI。
 
 普通用户双击 MSI，在标准向导选择安装位置和桌面快捷方式；默认位置为`%ProgramFiles%/OhMyStudy`。升级、进度、回滚、修复和卸载由 Windows Installer 管理，学习资料保留。旧 EXE 安装需先卸载，再安装 MSI。portable ZIP 直接运行应用，不含旧安装器。具体构建、验证与兼容边界见[安装说明](../../docs/installation.zh-CN.md)。
 
@@ -90,3 +90,9 @@ OhMyStudy.App.exe --workflow-smoke C:\absolute\evidence\workflow.json
 普通构建自动把已准备的 PDFium、WebP、Typst 复制到实际运行目录，缺少 PDFium 时在构建阶段报出准备命令。没有把开发目录作为运行时回退路径。损坏、加密 PDF 显示可执行的恢复提示，底层错误码保留在日志。
 
 `--import-smoke <报告绝对路径>` 使用隔离资料库、真实 PDF/PNG 解码与模拟识别任务，验证导入自动提交、题库追加、取消、未配置模型与损坏文件恢复，并保存实际 XAML 渲染截图；不会访问真实凭据或调用外部模型。报告及截图默认由调用者选择位置，本轮放在 `output/import-review/`。这项检查不能替代真实模型识别质量验收。
+
+## 公式渲染
+
+界面和打印公式统一使用 nuget.org 的 VelociTex.Core、VelociTex.Rendering.Direct2D、VelociTex.WinUI 1.0.0-rc.2。没有本地 NuGet 源、Typst 显示开关或 LaTeX → Typst 转换。Typst 仅保留 PDF 正文排版与分页职责。公式 SVG 以内容哈希命名，导出不同版本不会覆盖旧源文档引用的不同公式。
+
+`--math-smoke <绝对报告路径>` 和 `--preview-smoke <绝对报告路径>` 使用隔离资料库，自动捕获应用窗口客户区，包含 XAML 截图遗漏的原生 Composition 公式层。截图时只临时置顶本应用窗口；报告和截图存于指定目录。独立公式、段落原文与单式复制、深浅主题、宽窄窗口、取消、缓存和列表复用均有回归入口。最新本轮证据见 `docs/verification/velocitex.2026-10-19.md`。

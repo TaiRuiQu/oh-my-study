@@ -73,6 +73,7 @@ try {
     }
     $report.checks+='all-manifest-file-sizes-and-sha256'; $report.fileCount=$manifest.files.Count
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','Assets/App.ico','Microsoft.ui.xaml.dll','e_sqlite3.dll','native/pdfium.dll','native/pdfium-licenses/pdfium.txt','native/typst/typst.exe','native/typst/LICENSE','native/typst/NOTICE','runtime/runtime-manifest.json','runtime/python/python.exe','runtime/python/execute.py','LICENSE','THIRD-PARTY-NOTICES.txt','components.json','source/source-snapshot.zip')) { $null=Assert-Path $root $required }
+    foreach ($required in @('licenses/VelociTex.Core/LICENSE','licenses/VelociTex.Core/THIRD-PARTY-NOTICES.md','licenses/VelociTex.Core/licenses/KaTeX-FONTS-OFL.txt','licenses/VelociTex.Core/licenses/KaTeX-LICENSE.txt','licenses/VelociTex.Rendering.Direct2D/LICENSE','licenses/VelociTex.WinUI/LICENSE')) { $null=Assert-Path $root $required }
     if ($profile.nativeAot) {
         Assert-NativeApp (Join-Path $root 'OhMyStudy.App.exe')
         foreach ($name in @('coreclr.dll','clrjit.dll')) { if (Test-Path -LiteralPath (Join-Path $root $name)) { throw "JIT file in AOT package: $name" } }

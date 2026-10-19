@@ -21,15 +21,11 @@ public sealed record ExamDocument(string Title, IReadOnlyList<ExamQuestion> Ques
 
 public sealed record TypesettingDiagnostic(int QuestionNumber, string Source, string Message);
 public sealed record ExamExportResult(string PdfPath, string SourcePath, IReadOnlyList<TypesettingDiagnostic> Diagnostics);
-public sealed record FormulaPreviewResult(string PdfPath, string SvgPath, FormulaConversion Conversion);
 
 /// <summary>Print output uses the installed Windows 新宋体 (NSimSun); the engine ships no font of its own.</summary>
 public sealed record TypstToolchain(string ExecutablePath)
 {
     public const string TextFontFamily = "NSimSun";
-    public const string MathFontFamily = "New Computer Modern Math";
-    /// <summary>Formula previews read inside the application stay non-serif, matching the interface.</summary>
-    public const string PreviewFontFamily = "Microsoft YaHei UI";
     public const double BodySizePoints = 11;
     public const double FormulaPreviewMaximumWidthPoints = 560;
     public const string EngineVersion = "0.14.2";

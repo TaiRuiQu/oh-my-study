@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "timestampUtc": "2026-10-19T02:28:38.7165827+00:00",
+  "status": "local-native-validation-passed-not-released",
+  "baseCommit": "5ee1717ba164ce4bdff1d1191242f6ac77cad630",
+  "application": {
+    "path": "output/math-native-app/OhMyStudy.App.exe",
+    "profile": "Release Native AOT",
+    "sha256": "504d3426916a7d5617525e400f69891a7a8521933457878a4612d6c546cf731e",
+    "publishLog": "output/math-native-publish.log"
+  },
+  "mathSmoke": {
+    "passed": true,
+    "report": "output/math-native-review/report.txt",
+    "coldCreateMilliseconds": 381.44,
+    "cachedCreateMilliseconds": [
+      0.83,
+      0.88
+    ],
+    "cachedSelectionP95Milliseconds": 9.54,
+    "selectionSamples": 12,
+    "boundary": "Local synthetic sample; CPU and layout, not GPU presentation",
+    "screenshots": [
+      {
+        "path": "output/math-native-review/report.cold.png",
+        "sha256": "4f6d917e5117bc5b5713a6b11db8795432847c03b9f7956ae19ea782be057efe"
+      },
+      {
+        "path": "output/math-native-review/report.compact.png",
+        "sha256": "441f583426367fbe2fea1b532229bfdca0516bfed32f146be74253c4a77a7df9"
+      },
+      {
+        "path": "output/math-native-review/report.dark.png",
+        "sha256": "b9dd7c0ff6ad54a5e837ffb28443f2c5e5a3b5e2ee251d0bad9c5d1884286d0d"
+      },
+      {
+        "path": "output/math-native-review/report.empty.png",
+        "sha256": "9113adf232d386defbfbd178adcee4d699020798ad4de4b3b7c19e9abc75ff1f"
+      },
+      {
+        "path": "output/math-native-review/report.errors-dark.png",
+        "sha256": "4063a71fe0b1b50da6300095acb0e0e9e4fd584bf4631f3a07079d68b4b3b9ae"
+      },
+      {
+        "path": "output/math-native-review/report.errors.png",
+        "sha256": "b5312c30eee49a31ea637cc608c5a6bfafe4b172599628499d381cabbb27716a"
+      },
+      {
+        "path": "output/math-native-review/report.long-compact.png",
+        "sha256": "ea2e188dae0fe719cf3f9d873c0892d85bbe9514ea93e5238407bd3eddd4b258"
+      },
+      {
+        "path": "output/math-native-review/report.long.png",
+        "sha256": "181efa6a26bc1ad788bb2ae2736706970ed1bbf9f2b857f4646f3ef235538808"
+      },
+      {
+        "path": "output/math-native-review/report.multiple.png",
+        "sha256": "18cfbba6feb064459451b3cc0d0a3a17a235c96bfbdba3069562a63a96fbbea4"
+      },
+      {
+        "path": "output/math-native-review/report.narrow-dark.png",
+        "sha256": "7638adc8095a48a71e4aa1f16eeccffd352e8fd83738b7ebfe2e4ab09e703ffa"
+      },
+      {
+        "path": "output/math-native-review/report.plain.png",
+        "sha256": "0e8e3198060a5b95b958315a8b1d9fcef05f4d1b872bb2a234d6817432975c6e"
+      },
+      {
+        "path": "output/math-native-review/report.rapid-switch.png",
+        "sha256": "304ed2bbcd8d82d266caeb140a7ae833b3a2573dd173c985e2d7d5039bbf94b0"
+      },
+      {
+        "path": "output/math-native-review/report.repeat.png",
+        "sha256": "45916cea1762a375e600a08c1e0316c884be5df6ba41e16f74c00912f7e0296b"
+      },
+      {
+        "path": "output/math-native-review/report.table-compact.png",
+        "sha256": "cf1ed603c25222d93be5d235dedfa03c6815f580997a2a360272fdc641dd532c"
+      },
+      {
+        "path": "output/math-native-review/report.table-parts.png",
+        "sha256": "b88eb5203dab2a85cd3f12b50fd12f58051b15afd2cf427f657f42293e20f495"
+      },
+      {
+        "path": "output/math-native-review/report.warm.png",
+        "sha256": "45916cea1762a375e600a08c1e0316c884be5df6ba41e16f74c00912f7e0296b"
+      }
+    ]
+  },
+  "workflow": {
+    "passed": true,
+    "checks": 48,
+    "report": "output/math-native-review/workflow.json"
+  },
+  "documents": {
+    "passed": true,
+    "checks": 11,
+    "exports": 4,
+    "elapsedMilliseconds": 29861,
+    "report": "output/math-documents-final-regression/verification.json"
+  },
+  "sourceHashes": [
+    {
+      "path": "src/OhMyStudy.App/MainWindow.xaml.cs",
+      "sha256": "a8b40a8a837deb19a9e4f373f383ceea19d4ba7eadf3f4c39dd93e87ec091865"
+    },
+    {
+      "path": "src/OhMyStudy.App/MainWindow.MathSmoke.cs",
+      "sha256": "14200e21297de401dbb8ab1bf3f0ed7514ad71593ee87336de3e05da09e755d8"
+    },
+    {
+      "path": "src/OhMyStudy.App/Services/NativeQuestionPresenter.cs",
+      "sha256": "a8d0849e77733c052a2c9dc268f8273c66208f0e58f8377c87cbb58e34815071"
+    },
+    {
+      "path": "src/OhMyStudy.App/Services/NativeReadingSession.cs",
+      "sha256": "0996770a5c70d1490278024531dfdc2a615c8425ce310c6ab50a34136009d389"
+    },
+    {
+      "path": "src/OhMyStudy.Documents/DocumentText.cs",
+      "sha256": "3eb46fbb613e4e66781514377e36d22d89e47f0393660d89e935b8f64a439f0b"
+    },
+    {
+      "path": "src/OhMyStudy.Documents/ExamDocument.cs",
+      "sha256": "34ec9d61190614a8c1d6b6ffe1872bfc20a6b5f198e3683578ddb793ff1ac4d6"
+    },
+    {
+      "path": "src/OhMyStudy.Documents/LatexFormulaConverter.cs",
+      "sha256": "f9a12b1ef194071dd2784bd8f02001b35dc998e23408c42db815fa250533a896"
+    },
+    {
+      "path": "src/OhMyStudy.Documents/TypstDocumentService.cs",
+      "sha256": "f10e0236afb7847dac113eb21c390541b1d6eb5efd75147f1e30c4edb6737e1b"
+    },
+    {
+      "path": "src/OhMyStudy.Documents/TypstDocumentService.Reading.cs",
+      "sha256": "bf2d09036cf50c7d6790dbe386eb70d61c95eca7a18fe4ab37eac9dd098fae6b"
+    },
+    {
+      "path": "probes/OhMyStudy.Documents.Probe/Program.cs",
+      "sha256": "5fa535691557dbadd414f0c041e4f90b9063c3f304641a07b26c20ecbbcbb394"
+    },
+    {
+      "path": "probes/OhMyStudy.Documents.Probe/ReadingProbe.cs",
+      "sha256": "6c88183372c1ec1ab1215703992bef72b4ec7b6d5e056fb765830c31bf1f303e"
+    }
+  ],
+  "notRun": [
+    "real-document-recognition",
+    "physical-dpi-multi-monitor-switch",
+    "system-high-contrast",
+    "screen-reader",
+    "physical-print",
+    "clean-system-installation",
+    "release-packaging-and-publication"
+  ]
+}

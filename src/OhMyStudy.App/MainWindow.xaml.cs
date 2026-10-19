@@ -59,6 +59,7 @@ public sealed partial class MainWindow : Window
         _performanceReportPath = performanceReport;
         ViewModel = new WorkspaceViewModel(sample: smokeReportPath is not null);
         InitializeComponent();
+        QuestionContentHost.SizeChanged += QuestionContent_SizeChanged;
         InitializeSettingsLayout();
         InitializeWorkspaceAccessibility();
         ExtendsContentIntoTitleBar = true;
@@ -152,6 +153,16 @@ public sealed partial class MainWindow : Window
             await RunWorkflowSmokeAsync(_workflowReportPath);
             return;
         }
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--preview-smoke") is int previewIndex && previewIndex > 0)
+        {
+            await RunPreviewSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[previewIndex + 1]));
+            return;
+        }
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--math-smoke") is int mathIndex && mathIndex > 0)
+        {
+            await RunMathSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[mathIndex + 1]));
+            return;
+        }
         else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--task-smoke") is int taskIndex && taskIndex > 0)
         {
             await RunTaskSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[taskIndex + 1]));
@@ -232,6 +243,32 @@ public sealed partial class MainWindow : Window
     private async void QuestionList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized) return;
+        _questionPresentationTask = PresentSelectedQuestionAsync(clear: true);
+        await _questionPresentationTask;
+    }
+
+    private Task _questionPresentationTask = Task.CompletedTask;
+    private double _questionPresentationWidth;
+    private int _questionLayoutRevision;
+
+    private async void QuestionContent_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!_initialized || _closed || Math.Abs(e.NewSize.Width - _questionPresentationWidth) < 2) return;
+        int revision = ++_questionLayoutRevision;
+        try
+        {
+            await Task.Delay(150, _lifetime.Token);
+            if (revision == _questionLayoutRevision && !_closed)
+            {
+                _questionPresentationTask = PresentSelectedQuestionAsync(clear: false);
+                await _questionPresentationTask;
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task PresentSelectedQuestionAsync(bool clear)
+    {
         UpdateQuestionState();
         long generation = ++_questionPresentationGeneration;
         _questionPresentationCancellation?.Cancel();
@@ -244,9 +281,11 @@ public sealed partial class MainWindow : Window
         UpdateSourceHighlight();
         var question = ViewModel.SelectedQuestion.Saved;
         if (question is null || _library is null) { QuestionContentHost.Content = null; return; }
+        _questionPresentationWidth = Math.Max(110, QuestionContentHost.ActualWidth);
+        if (clear) QuestionContentHost.Content = new TextBlock { Text = "正在加载题目…" };
         try
         {
-            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation);
+            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme);
             if (!_closed && generation == _questionPresentationGeneration && ReferenceEquals(ViewModel.SelectedQuestion.Saved, question))
             {
                 QuestionContentHost.Content = content;
@@ -895,18 +934,37 @@ public sealed partial class MainWindow : Window
     {
         string directoryPath = Path.GetDirectoryName(path) ?? throw new InvalidOperationException("截图需要绝对路径。");
         Directory.CreateDirectory(directoryPath);
-        var bitmap = new RenderTargetBitmap();
-        await bitmap.RenderAsync(element ?? RootGrid);
-        var buffer = await bitmap.GetPixelsAsync();
-        using var reader = DataReader.FromBuffer(buffer);
-        var pixels = new byte[buffer.Length];
-        reader.ReadBytes(pixels);
+        byte[] pixels;
+        int pixelWidth, pixelHeight;
+        if (element is null && Environment.GetCommandLineArgs().Any(argument => argument is "--math-smoke" or "--preview-smoke"))
+        {
+            AppWindow.Show(); Activate();
+            nint window = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            NativeSetForegroundWindow(window);
+            NativeCaptureSetWindowPos(window, -1, 0, 0, 0, 0, 0x0043);
+            try
+            {
+                await Task.Delay(180);
+                (pixels, pixelWidth, pixelHeight) = CaptureNativeClient();
+            }
+            finally { NativeCaptureSetWindowPos(window, -2, 0, 0, 0, 0, 0x0043); }
+        }
+        else
+        {
+            var bitmap = new RenderTargetBitmap();
+            await bitmap.RenderAsync(element ?? RootGrid);
+            var buffer = await bitmap.GetPixelsAsync();
+            using var reader = DataReader.FromBuffer(buffer);
+            pixels = new byte[buffer.Length];
+            reader.ReadBytes(pixels);
+            pixelWidth = bitmap.PixelWidth; pixelHeight = bitmap.PixelHeight;
+        }
         StorageFolder directory = await StorageFolder.GetFolderFromPathAsync(directoryPath);
         StorageFile file = await directory.CreateFileAsync(Path.GetFileName(path), CreationCollisionOption.ReplaceExisting);
         using var stream = await file.OpenAsync(FileAccessMode.ReadWrite);
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
         encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
-            (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, 96, 96, pixels);
+            (uint)pixelWidth, (uint)pixelHeight, 96, 96, pixels);
         await encoder.FlushAsync();
     }
 

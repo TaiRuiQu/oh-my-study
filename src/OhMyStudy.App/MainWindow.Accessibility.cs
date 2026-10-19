@@ -69,6 +69,8 @@ public sealed partial class MainWindow
         if (Navigation.MenuItems[index] is NavigationViewItem item) item.Focus(FocusState.Keyboard);
     }
 
+    private bool? _questionListStacked;
+
     private void ApplyWorkspaceLayout()
     {
         bool compact = RootGrid.ActualWidth < 1050;
@@ -84,9 +86,17 @@ public sealed partial class MainWindow
         WorkspaceGrid.ColumnSpacing = source && !compact ? 16 : 0;
         WorkspaceGrid.RowSpacing = 0;
         bool stacked = source || RootGrid.ActualWidth < 800;
+        bool listLayoutChanged = _questionListStacked != stacked;
+        _questionListStacked = stacked;
         QuestionListColumn.Width = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(320);
         QuestionLayout.ColumnDefinitions[1].Width = stacked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        QuestionListRow.Height = stacked ? new GridLength(150) : new GridLength(1, GridUnitType.Star);
+        QuestionListRow.Height = stacked ? new GridLength(200) : new GridLength(1, GridUnitType.Star);
+        if (listLayoutChanged)
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (!_closed && QuestionList.SelectedItem is { } selected && QuestionList.Items.Contains(selected))
+                    QuestionList.ScrollIntoView(selected);
+            });
         QuestionLayout.RowDefinitions[2].Height = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
         Grid.SetColumn(QuestionDetail, stacked ? 0 : 1);
         Grid.SetRow(QuestionDetail, stacked ? 2 : 0);

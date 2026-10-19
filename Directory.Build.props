@@ -8,6 +8,8 @@
     <IsAotCompatible>true</IsAotCompatible>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Global Native AOT publishes must not overwrite ordinary library restore locks. -->
+    <NuGetLockFilePath Condition="'$(PublishAot)' == 'true' And '$(MSBuildProjectName)' != 'OhMyStudy.App'">packages.aot.lock.json</NuGetLockFilePath>
     <Deterministic>true</Deterministic>
     <InvariantGlobalization>false</InvariantGlobalization>
     <AnalysisLevel>latest</AnalysisLevel>

@@ -12,6 +12,11 @@ var clock = Stopwatch.StartNew();
 var toolchain = new TypstToolchain(Path.Combine(root, "output", "migration", "toolchain", "typst-x86_64-pc-windows-msvc", "typst.exe"));
 var pdfium = new PdfiumRasterizer(Path.Combine(root, "output", "migration", "toolchain", "pdfium", "pdfium.dll"));
 var typesetter = new TypstDocumentService(toolchain);
+if (args.Contains("--reading-only", StringComparer.Ordinal))
+{
+    await ReadingProbe.VerifyAsync(typesetter, output);
+    return;
+}
 var samples = new[]
 {
     @"\frac{x^2-1}{x-1}+\frac{1}{\sqrt{x+2}}",
@@ -25,41 +30,8 @@ var samples = new[]
     string.Join("+", Enumerable.Range(1, 60).Select(index => "x_{" + index + "}^2"))
 };
 var checks = new List<string>();
-foreach (var sample in samples) Require(LatexFormulaConverter.Convert(sample).IsSupported, "supported formula: " + sample);
-checks.Add("9 representative mathematics/chemistry/long-formula samples parsed");
-foreach (var bad in new[] { @"\href{https://example.invalid}{x}", @"\frac{1}", @"\ce{H2 ->[bad}", "#panic(\"UNTRUSTED\")", "x_", "a(b", "a)b", "{}", new string('{', 64) + "x" + new string('}', 64), string.Concat(Enumerable.Repeat(@"\sqrt", 64)) + "x", new string('x', 8193) })
-    Require(!LatexFormulaConverter.Convert(bad).IsSupported, "invalid input rejected");
-checks.Add("11 invalid/unsafe/deep/oversized inputs return readable diagnostic");
-var operators = @"\prod + \int + \iint + \infty + \cdot + \times + \div + \pm + \mp + \leq + \geq + \neq + \approx + \equiv + \in + \notin + \subset + \cup + \cap + \to + \leftarrow + \leftrightarrow + \Rightarrow + \Leftrightarrow + \uparrow + \downarrow + \ldots + \sin + \cos + \tan + \ln + \log + \lim + \max + \min + \det + \alpha + \beta + \gamma + \delta + \epsilon + \theta + \lambda + \mu + \nu + \xi + \pi + \rho + \sigma + \tau + \phi + \chi + \psi + \omega + \Delta + \Sigma + \Omega + \Gamma + \Theta + \Phi + \left(x+1\right)^2 + \sqrt[3]{x} + \overline{x} + \vec{x} + \mathbf{x} + \mathit{x} + \mathrm{ABC} + \quad + \qquad";
-// Separate short lines keep this coverage compilation below the preview fallback threshold.
-foreach (var (formula, index) in operators.Split(" + ").Select((formula, index) => (formula, index)))
-    await typesetter.RenderFormulaAsync(formula, Path.Combine(output, "operator-" + index));
-checks.Add("all additional whitelisted operators and delimiter/root/style forms compiled");
-foreach (var (formula, index) in new[] { @"\binom{n}{k}", @"\overset{a}{x}+\underset{b}{y}", @"\bar{x}+\hat{x}+\dot{x}+\ddot{x}+\overrightarrow{AB}", @"\subseteq+\supset+\supseteq+\parallel+\perp+\angle+\triangle+\circ+\vdots+\ddots+\because+\therefore", @"f(x)=\begin{cases}x^2&x\ge0\\-x&x<0\end{cases}", @"\begin{aligned}a&=b+c\\d&=e-f\end{aligned}", @"\(\displaystyle\sum\limits_{k=1}^n k\)" }.Select((formula, index) => (formula, index)))
-{
-    Require(LatexFormulaConverter.Convert(formula).IsSupported, "extended formula parsed");
-    await typesetter.RenderFormulaAsync(formula, Path.Combine(output, "extended-" + index));
-}
-checks.Add("cases/aligned/binomial/accents/geometry/set symbols and delimited display formulas compiled");
-for (var index = 0; index < samples.Length; index++)
-{
-    var preview = await typesetter.RenderFormulaAsync(samples[index], Path.Combine(output, "formula-" + (index + 1)));
-    using var pdf = pdfium.Open(preview.PdfPath);
-    Require(pdf.PageCount == 1, "single page formula preview");
-    pdf.RenderPage(0, 1000).SaveBmp(Path.Combine(Path.GetDirectoryName(preview.PdfPath)!, "formula.bmp"));
-    var svg = await File.ReadAllTextAsync(preview.SvgPath);
-    Require(!svg.Contains("<text", StringComparison.OrdinalIgnoreCase) && !svg.Contains("<script", StringComparison.OrdinalIgnoreCase), "self-contained glyph paths");
-}
-var quotedPreview = await typesetter.RenderFormulaAsync(@"\text{#panic(""UNTRUSTED_FORMULA"")}", Path.Combine(output, "formula-quoted"));
-using (var pdf = pdfium.Open(quotedPreview.PdfPath)) Require(pdf.ExtractText(0).Contains("UNTRUSTED_FORMULA", StringComparison.Ordinal), "formula text injection remains text");
-var invalidPreview = await typesetter.RenderFormulaAsync(@"\unsupported{a}", Path.Combine(output, "formula-invalid"));
-using (var pdf = pdfium.Open(invalidPreview.PdfPath))
-{
-    Require(pdf.ExtractText(0).Contains("unsupported", StringComparison.Ordinal), "invalid preview preserves original");
-    pdf.RenderPage(0, 1000).SaveBmp(Path.Combine(output, "formula-invalid", "formula.bmp"));
-}
-checks.Add("9 representative formulas, quoted formula text and 1 readable error compiled to native PDF/SVG and rasterized by PDFium");
-
+await ReadingProbe.VerifyAsync(typesetter, Path.Combine(output, "reading"));
+checks.Add("VelociTex SVG outlines, CJK shaping, four delimiters, safe diagnostics and cancellation");
 var questions = samples.Select((formula, index) => new ExamQuestion(index + 1,
     new ExamSegment[] { new("阅读公式并说明各符号与条件："), new(formula, true) },
     "ANSWER_ONLY_" + (index + 1) + "：此处为原创样题答案，仅用于迁移验证。",

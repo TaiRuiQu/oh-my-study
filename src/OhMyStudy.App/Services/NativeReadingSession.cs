@@ -1,0 +1,86 @@
+using System.Text;
+using Microsoft.UI.Xaml;
+using OhMyStudy.Domain;
+
+namespace OhMyStudy.App.Services;
+
+/// <summary>All reading surfaces use the NuGet VelociTex renderer.</summary>
+internal sealed class NativeReadingSession(double width, bool preview = false, ElementTheme initialTheme = ElementTheme.Default)
+{
+    private readonly double _width = width;
+    private readonly NativeFormulaReadingSession _native = new(width, preview, initialTheme);
+    internal NativeReadingSession Nested() => new(Math.Max(80, _width - 12), initialTheme: initialTheme);
+
+    public static async Task<NativeReadingSession> CreateAsync(Question question, double availableWidth, CancellationToken token, ElementTheme theme = ElementTheme.Default)
+    {
+        var session = new NativeReadingSession(Math.Clamp(Math.Floor(availableWidth), 80, 4000), initialTheme: theme);
+        await NativeFormulaReadingSession.PrepareAsync(Collect(question), false, token);
+        return session;
+    }
+
+    internal static async Task<NativeReadingSession> CreatePreviewsAsync(IReadOnlyList<string> texts, double availableWidth, CancellationToken token)
+    {
+        var session = new NativeReadingSession(Math.Clamp(Math.Floor(availableWidth), 40, 1200), preview: true);
+        await NativeFormulaReadingSession.PrepareAsync(texts, true, token);
+        return session;
+    }
+
+    internal static double? CachedPreviewHeight(string text, double availableWidth)
+        => NativeFormulaReadingSession.CachedPreviewHeight(text, Math.Clamp(Math.Floor(availableWidth), 40, 1200));
+
+    public Task<FrameworkElement> PresentAsync(string text, CancellationToken token, bool table = false, ElementTheme? theme = null)
+        => _native.PresentAsync(text, token, table, theme);
+
+    internal static IEnumerable<Content> Coalesce(IEnumerable<Content> content)
+    {
+        var paragraph = new StringBuilder();
+        foreach (var item in content)
+        {
+            if (item is TextContent text) paragraph.Append(text.Text);
+            else if (item is FormulaContent formula)
+            {
+                string latex = formula.Latex.Trim();
+                paragraph.Append(latex.StartsWith('$') || latex.StartsWith(@"\(", StringComparison.Ordinal) || latex.StartsWith(@"\[", StringComparison.Ordinal)
+                    ? latex : @"\(" + latex + @"\)");
+            }
+            else
+            {
+                if (paragraph.Length > 0) { yield return new TextContent { Text = paragraph.ToString() }; paragraph.Clear(); }
+                yield return item;
+            }
+        }
+        if (paragraph.Length > 0) yield return new TextContent { Text = paragraph.ToString() };
+    }
+
+    private static IEnumerable<string> Collect(Question question)
+    {
+        if (question.Points is { } points) yield return $"{points:g} 分";
+        foreach (var content in Coalesce(question.Content))
+        {
+            if (content is TextContent text) yield return text.Text;
+            else if (content is TableContent table)
+                foreach (var row in table.Rows)
+                    foreach (var cell in row) yield return cell;
+        }
+        foreach (var option in question.Options) yield return option;
+        foreach (var feedback in Feedback(question)) yield return feedback;
+        foreach (var part in question.Parts)
+            foreach (var key in Collect(part)) yield return key;
+    }
+
+    internal static IEnumerable<string> Feedback(Question question)
+    {
+        if (question.Attempt is { } attempt)
+        {
+            yield return "作答：" + (string.IsNullOrWhiteSpace(attempt.StudentAnswer) ? "未作答" : attempt.StudentAnswer);
+            var score = attempt.Grade.Earned is { } earned && attempt.Grade.Possible is { } possible ? $"{earned:g} / {possible:g}" : "分值未确定";
+            var source = attempt.Grade.Source switch { GradeSource.Teacher => "教师", GradeSource.Manual => "手动修改", GradeSource.AiReference => "参考答案", _ => "模型解题" };
+            yield return $"评分：{score} · {source}";
+            if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return attempt.Grade.Reason;
+            if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return "教师批注：" + teacher.Raw;
+            if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return "判断差异：" + attempt.Conflict;
+            if (!string.IsNullOrWhiteSpace(attempt.AiSolution)) yield return "解题过程：" + attempt.AiSolution;
+        }
+        foreach (var uncertain in question.Uncertainties) yield return "待确认：" + uncertain;
+    }
+}

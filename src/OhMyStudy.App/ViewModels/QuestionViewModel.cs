@@ -12,6 +12,7 @@ public sealed partial class QuestionViewModel : ObservableObject
     {
         Number = number;
         Statement = statement;
+        PreviewText = statement;
         _answer = answer;
         IsIncorrect = incorrect;
         Page = page;
@@ -23,6 +24,7 @@ public sealed partial class QuestionViewModel : ObservableObject
         _presentationJson = DomainJson.Serialize(saved.Question);
         Number = int.TryParse(saved.Question.Number, out int n) ? n : 0;
         Statement = PlainText(saved.Question);
+        PreviewText = Preview(saved.Question);
         _answer = saved.Question.StandardAnswer;
         _notes = saved.Question.Explanation;
         IsIncorrect = IsMistake(saved.Question);
@@ -34,6 +36,7 @@ public sealed partial class QuestionViewModel : ObservableObject
     public int Number { get; }
     public string Label => Saved is { } saved ? $"第 {saved.Question.Number} 题" : Number == 0 ? "题目" : $"第 {Number} 题";
     public string Statement { get; }
+    public string PreviewText { get; }
     public bool IsIncorrect { get; }
     public int Page { get; }
     public string SourceLabel => $"第 {Page} 页";
@@ -61,4 +64,18 @@ public sealed partial class QuestionViewModel : ObservableObject
     public static bool IsMistake(Question question) => question.Attempt?.Grade.Verdict is Verdict.Partial or Verdict.Incorrect or Verdict.Unanswered || question.Parts.Any(IsMistake);
     public static string PlainText(Question question) => string.Join("\n", question.Content.Select(content => content switch
     { TextContent text => text.Text, FormulaContent formula => formula.Latex, TableContent table => string.Join("\n", table.Rows.Select(row => string.Join("  ", row))), ImageContent image => image.Caption, _ => "" }));
+
+    private static string Preview(Question question)
+    {
+        string text = string.Concat(question.Content.Take(8).Select(content => content switch
+        {
+            TextContent prose => prose.Text,
+            FormulaContent formula => formula.Latex.Trim() is var latex && (latex.StartsWith('$') || latex.StartsWith(@"\(", StringComparison.Ordinal) || latex.StartsWith(@"\[", StringComparison.Ordinal))
+                ? latex : @"\(" + formula.Latex + @"\)",
+            TableContent table => " " + string.Join("　", table.Rows.Take(2).SelectMany(row => row)),
+            ImageContent image => string.IsNullOrWhiteSpace(image.Caption) ? "图片题" : image.Caption,
+            _ => ""
+        }));
+        return string.IsNullOrWhiteSpace(text) ? "暂无题目内容" : text;
+    }
 }

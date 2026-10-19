@@ -3,6 +3,9 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="VelociTex.Core" Version="1.0.0-rc.2" />
+    <PackageVersion Include="VelociTex.Rendering.Direct2D" Version="1.0.0-rc.2" />
+    <PackageVersion Include="VelociTex.WinUI" Version="1.0.0-rc.2" />
     <PackageVersion Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.9" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
     <PackageVersion Include="Microsoft.Windows.CsWinRT" Version="2.3.1" />

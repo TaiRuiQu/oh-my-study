@@ -36,9 +36,18 @@
     <NuGetLockFilePath Condition="'$(OhMyStudyPublishVariant)' == 'framework-dependent'">packages.framework-dependent.lock.json</NuGetLockFilePath>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="VelociTex.Core" GeneratePathProperty="true" />
+    <PackageReference Include="VelociTex.Rendering.Direct2D" GeneratePathProperty="true" />
+    <PackageReference Include="VelociTex.WinUI" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(PkgVelociTex_Core)\LICENSE;$(PkgVelociTex_Core)\THIRD-PARTY-NOTICES.md" Link="licenses\VelociTex.Core\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(PkgVelociTex_Core)\licenses\*" Link="licenses\VelociTex.Core\licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(PkgVelociTex_Rendering_Direct2D)\LICENSE;$(PkgVelociTex_Rendering_Direct2D)\THIRD-PARTY-NOTICES.md" Link="licenses\VelociTex.Rendering.Direct2D\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(PkgVelociTex_WinUI)\LICENSE;$(PkgVelociTex_WinUI)\THIRD-PARTY-NOTICES.md" Link="licenses\VelociTex.WinUI\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Ordinary builds need the same PDF decoder as the portable application. -->
   <PropertyGroup>
