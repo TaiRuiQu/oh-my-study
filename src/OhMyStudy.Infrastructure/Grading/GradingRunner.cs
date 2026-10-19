@@ -80,7 +80,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         {
             cancellation.ThrowIfCancellationRequested();
             await context.ProgressAsync(Math.Min(90, ordinal), $"已阅读 {viewed.Count} 页，已保存 {saved.Count} 题。").ConfigureAwait(false);
-            var turn = await client.CallAsync(credentials, options, history, definitions, cancellationToken: cancellation).ConfigureAwait(false);
+            var turn = await ModelActivity.CallAsync(context, ordinal,
+                progress => client.CallAsync(credentials, options, history, definitions, progress, cancellation)).ConfigureAwait(false);
             double? estimated = turn.Usage.Input is { } a && input.Model.PriceInput is { } p && turn.Usage.Output is { } b && input.Model.PriceOutput is { } q
                 ? (a * p + b * q) / 1_000_000d : null;
             var usage = new JsonObject
@@ -102,6 +103,28 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             {
                 cancellation.ThrowIfCancellationRequested();
                 var call = turn.Calls[index];
+                var stepClock = Stopwatch.StartNew();
+                string? pageId = call.Arguments.ValueKind == JsonValueKind.Object && call.Arguments.TryGetProperty("page_id", out var pageValue) && pageValue.ValueKind == JsonValueKind.String ? pageValue.GetString() : null;
+                int pageIndex = input.Document.Pages.FindIndex(p => p.Id == pageId);
+                var activity = new JobActivity
+                {
+                    Key = $"tool-{ordinal}-{index}",
+                    Kind = call.Name,
+                    Title = call.Name switch
+                    {
+                        "read_page" => pageIndex >= 0 ? $"阅读第 {pageIndex + 1} 页" : "阅读页面",
+                        "save_question" => "保存题目",
+                        "save_references" => "整理参考答案",
+                        "finish" => "核对整卷结果",
+                        "python" or "shell" => "运行辅助计算",
+                        _ => "检查操作"
+                    },
+                    PageId = pageIndex >= 0 ? pageId : null,
+                    Detail = "正在处理",
+                    PagesRead = viewed.Count,
+                    QuestionsSaved = saved.Count
+                };
+                await context.ActivityAsync(activity).ConfigureAwait(false);
                 var attachments = new List<Image>();
                 JsonObject result;
                 bool error = false;
@@ -156,6 +179,26 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     result = new() { ["error"] = caught is DomainValidationException ? caught.Message : "工具参数或业务约束不符合要求，请按定义修正。" };
                     error = true;
                 }
+                string detail = error ? result["error"]!.GetValue<string>() : call.Name switch
+                {
+                    "read_page" => call.Arguments.TryGetProperty("crop", out var cropValue) && cropValue.ValueKind == JsonValueKind.Object ? "已查看页面局部" : "已读取原件",
+                    "save_question" => "题目已加入题库",
+                    "save_references" => "参考答案已保存",
+                    "finish" => "页面覆盖与保存结果核对完成",
+                    "python" or "shell" => "辅助计算已完成",
+                    _ => "操作完成"
+                };
+                string stepText = call.Name is "python" or "shell" && !error ? result["stdout"]?.GetValue<string>() ?? "" : "";
+                await context.ActivityAsync(activity with
+                {
+                    State = error ? "failed" : "completed",
+                    Detail = detail.Length > 1000 ? detail[..1000] : detail,
+                    Text = stepText.Length > 16000 ? stepText[..16000] : stepText,
+                    PagesRead = viewed.Count,
+                    QuestionsSaved = saved.Count,
+                    ElapsedMs = stepClock.ElapsedMilliseconds
+                }).ConfigureAwait(false);
+                await context.ProgressAsync(Math.Min(90, ordinal), $"已阅读 {viewed.Count} 页，已保存 {saved.Count} 题。").ConfigureAwait(false);
                 feedback.Add(new() { Call = call, Text = result.ToJsonString(), Images = attachments, IsError = error });
             }
             if (finished) return;

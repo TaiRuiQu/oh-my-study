@@ -1,10 +1,12 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using OhMyStudy.App.Services;
+using OhMyStudy.App.Diagnostics;
 using OhMyStudy.App.ViewModels;
 using OhMyStudy.Application.Jobs;
 using OhMyStudy.Domain;
@@ -108,7 +110,7 @@ public sealed partial class MainWindow
             LibraryPath.Text = _libraryDirectory;
             string privateRuntime = Path.Combine(AppContext.BaseDirectory, "runtime", "python");
             var activeLibrary = _library;
-            _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new GradingRunner(_library, new NativePageImages()),
+            _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new LoggedJobRunner(new GradingRunner(_library, new NativePageImages())),
                 new PolicyToolExecutor(new HostToolExecutor(privateRuntime), new SandboxToolExecutor(privateRuntime)), Path.Combine(_libraryDirectory, "task-results"), _lifetime.Token);
             ViewModel.SaveQuestionAsync = async question =>
             {
@@ -147,7 +149,7 @@ public sealed partial class MainWindow
             return true;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { return false; }
-        catch { ViewModel.StatusMessage = "资料库无法打开，请检查保存位置或在设置中选择已有资料库。"; GradeButton.IsEnabled = false; return false; }
+        catch (Exception error) { AppLog.Error("Library.Open", error); ViewModel.StatusMessage = "资料库无法打开，请检查保存位置或在设置中选择已有资料库。"; GradeButton.IsEnabled = false; return false; }
         finally
         {
             if (!complete)
@@ -215,6 +217,31 @@ public sealed partial class MainWindow
         if (view.Zoom > 0) SourceViewer.ChangeView(view.X, view.Y, view.Zoom, true);
         await RestoreWorkspaceContextAsync("materials:" + current.Id, generation);
         UpdateSourceHighlight();
+        UpdateQuestionState();
+        ApplyWorkspaceLayout();
+    }
+
+    private async Task ShowQuestionLibraryAsync()
+    {
+        RememberViewport();
+        long generation = ++_documentGeneration;
+        CancelPreviewLoad(); SourcePane.Visibility = Visibility.Collapsed;
+        _suppressNavigation = true;
+        try { Navigation.SelectedItem = Navigation.MenuItems[1]; }
+        finally { _suppressNavigation = false; }
+        SettingsPanel.Visibility = TasksPanel.Visibility = DocumentToolbar.Visibility = SectionCaption.Visibility = Visibility.Collapsed;
+        WorkspaceGrid.Visibility = WorkspaceActions.Visibility = Visibility.Visible;
+        WorkspaceNotice.Visibility = WorkspaceNotice.IsOpen ? Visibility.Visible : Visibility.Collapsed;
+        ViewModel.ShowSection("library");
+        if (_library is not null)
+        {
+            var questions = await _library.ListQuestionsAsync(_lifetime.Token);
+            if (_closed || generation != _documentGeneration) return;
+            ViewModel.LoadLibrary(questions, false);
+            await RestoreWorkspaceContextAsync("library", generation);
+        }
+        UpdateQuestionState();
+        ApplyWorkspaceLayout();
     }
 
     private void RememberViewport()
@@ -284,13 +311,18 @@ public sealed partial class MainWindow
         }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }
-        catch { if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = "页面无法打开，请重新选择或导入。"; }
+        catch (Exception error) { AppLog.Error("Document.ShowPage", error); if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = "页面无法打开，请重新选择或导入。"; }
     }
 
-    private async Task ImportFilesAsync(IReadOnlyList<StorageFile> files, bool reference = false, string? referenceDocumentId = null)
+    private async Task ImportFilesAsync(IReadOnlyList<StorageFile> files, bool reference = false, string? referenceDocumentId = null, ProcessingChoice? confirmedProcessing = null)
     {
         if (_library is null || files.Count == 0) return;
         if (!await _importGate.WaitAsync(0)) return;
+        var clock = Stopwatch.StartNew();
+        Document? imported = null;
+        bool recognitionQueued = false;
+        Job? recognitionJob = null;
+        ImportPaperButton.IsEnabled = false;
         try
         {
             if (HasUnsavedSettingsChanges)
@@ -299,44 +331,55 @@ public sealed partial class MainWindow
                 DiscardSettingsForm();
             }
             if (files.Count > LibraryLimits.MaximumPages) { ViewModel.StatusMessage = "一次最多导入12页。"; return; }
-            ImportMode mode = ImportMode.AiGrading;
-            if (!reference)
-            {
-                var choice = new ComboBox { MinWidth = 320, SelectedIndex = 1 };
-                choice.Items.Add(new ComboBoxItem { Content = "已有教师批改" }); choice.Items.Add(new ComboBoxItem { Content = "待AI批改" }); choice.Items.Add(new ComboBoxItem { Content = "空白试卷" });
-                var dialog = new ContentDialog
-                {
-                    XamlRoot = RootGrid.XamlRoot,
-                    Title = "导入资料",
-                    Content = choice,
-                    PrimaryButtonText = "导入",
-                    CloseButtonText = "取消",
-                    DefaultButton = ContentDialogButton.Primary
-                };
-                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-                mode = choice.SelectedIndex switch { 0 => ImportMode.TeacherGraded, 2 => ImportMode.Blank, _ => ImportMode.AiGrading };
-            }
+            var processing = reference ? null : confirmedProcessing ?? await ChooseProcessingAsync(false, importing: true);
+            if (!reference && processing is null) return;
             ViewModel.StatusMessage = "正在导入…";
+            AppLog.Info("Import.Start", $"Files={files.Count}; Reference={reference}");
             var sources = new List<ImportSource>();
             long total = 0;
             foreach (var file in files)
             {
                 var properties = await file.GetBasicPropertiesAsync();
                 if (properties.Size > LibraryLimits.MaximumAssetBytes || total + (long)properties.Size > LibraryLimits.MaximumBatchBytes)
-                    throw new InvalidDataException("文件过大。");
+                    throw new InvalidDataException("单个文件不能超过 64 MB，一次导入不能超过 256 MB。请拆分后重试。");
+                AppLog.Info("Import.ReadFile", $"Type={file.FileType}; Bytes={properties.Size}");
                 byte[] bytes = await File.ReadAllBytesAsync(file.Path, _lifetime.Token);
                 total += bytes.Length; sources.Add(new(file.Name, bytes, reference ? "reference" : "material"));
             }
-            var document = reference && referenceDocumentId is not null
+            imported = reference && referenceDocumentId is not null
                 ? await _library.AppendDocumentSourcesAsync(referenceDocumentId, sources, _lifetime.Token)
-                : await _library.ImportDocumentAsync(Path.GetFileNameWithoutExtension(files[0].Name), mode, sources, _lifetime.Token);
-            await RefreshDocumentsAsync(document.Id);
-            ViewModel.StatusMessage = reference ? "参考答案已添加，可选择重新整理。" : "已导入。";
+                : await _library.ImportDocumentAsync(Path.GetFileNameWithoutExtension(files[0].Name), processing!.Mode, sources, _lifetime.Token);
+            AppLog.Info("Import.Saved", $"Document={imported.Id}; Pages={imported.Pages.Count}; ElapsedMs={clock.ElapsedMilliseconds}");
+            await RefreshDocumentsAsync(imported.Id);
+            if (!reference)
+            {
+                recognitionJob = await SubmitProcessingAsync(imported, processing!, false);
+                recognitionQueued = true;
+                await ShowQuestionLibraryAsync();
+            }
+            ViewModel.StatusMessage = reference ? "参考答案已添加，可选择重新整理。"
+                : RecognitionStatus((await _jobs!.GetAsync(recognitionJob!.Id, _lifetime.Token)).State);
         }
         catch (OperationCanceledException) { ViewModel.StatusMessage = "已取消导入。"; }
-        catch { ViewModel.StatusMessage = "导入失败，请检查文件格式、页数和大小后重试。"; }
-        finally { _importGate.Release(); }
+        catch (Exception error)
+        {
+            AppLog.Error(imported is null ? "Import.Prepare" : "Import.StartRecognition", error);
+            ViewModel.StatusMessage = recognitionQueued ? "试卷已导入并开始识别，题库暂时无法刷新。请重新打开题库。"
+                : imported is not null ? "试卷已保存，识别未能开始。请在试卷中重新识别。" : ImportFailureMessage(error);
+        }
+        finally { ImportPaperButton.IsEnabled = true; _importGate.Release(); }
     }
+
+    private static string ImportFailureMessage(Exception error) => error switch
+    {
+        FileNotFoundException or DllNotFoundException or BadImageFormatException => "导入所需的文件缺失或损坏，请重新安装应用后重试。",
+        PdfReadException => "导入失败：" + error.Message,
+        InvalidDataException when error.Message.Contains("PDFium", StringComparison.Ordinal) => "PDF 无法处理，请重新安装应用后重试。",
+        UnauthorizedAccessException => "无法读取文件或保存资料，请检查访问权限后重试。",
+        InvalidDataException => "导入失败：" + error.Message,
+        IOException => "无法读取或保存试卷，请检查文件和保存位置后重试。",
+        _ => "导入失败，请重新选择文件后重试。"
+    };
 
     private async Task<IReadOnlyList<StorageFile>> PickFilesAsync()
     {
@@ -523,43 +566,82 @@ public sealed partial class MainWindow
         if (_library is null || _jobs is null || ViewModel.CurrentDocument is not { } document) return;
         try
         {
-            var providers = await _library.ListProvidersAsync(_lifetime.Token);
-            var provider = providers.FirstOrDefault(p => p.Models.Any(m => p.Id + ":" + m.Id == _settings.DefaultModel)) ?? providers.FirstOrDefault(p => p.Models.Any(m => m.Id == _settings.DefaultModel)) ?? providers.FirstOrDefault();
-            if (provider is null || provider.Models.Count == 0 || provider.KeyRef is null)
-            { ViewModel.StatusMessage = "请先在设置中添加模型和密钥。"; return; }
-            var model = provider.Models.FirstOrDefault(m => provider.Id + ":" + m.Id == _settings.DefaultModel || m.Id == _settings.DefaultModel) ?? provider.Models[0];
-            var availableModels = providers.SelectMany(p => p.Models.Select(m => (Provider: p, Model: m))).ToList();
-            var choice = new ComboBox { MinWidth = 320 };
-            foreach (var available in availableModels) choice.Items.Add(available.Provider.Name + " / " + available.Model.Label);
-            choice.SelectedIndex = availableModels.FindIndex(p => p.Provider.Id == provider.Id && p.Model.Id == model.Id);
-            var thinkingChoice = new ComboBox { Header = "思考", MinWidth = 320, SelectedIndex = 0 };
-            thinkingChoice.Items.Add("默认"); foreach (var option in model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option));
-            var unknown = new CheckBox { Content = "允许尝试尚未确认能力的模型" };
-            choice.SelectionChanged += (_, _) => { thinkingChoice.Items.Clear(); thinkingChoice.Items.Add("默认"); if (choice.SelectedIndex >= 0) foreach (var option in availableModels[choice.SelectedIndex].Model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option)); thinkingChoice.SelectedIndex = 0; };
-            var preferred = _settings.ExecutionMode switch { "sandbox" => ExecutionMode.Sandbox, "bypass_permission" => ExecutionMode.BypassPermission, _ => ExecutionMode.RequestPermission };
-            var capability = await SandboxCapability.ProbeAsync(Path.Combine(AppContext.BaseDirectory, "runtime", "python"), _lifetime.Token);
-            var policy = ExecutionPolicy.Freeze(preferred, capability, _settings.SandboxNetworking);
-            var content = new StackPanel { Spacing = 14 }; content.Children.Add(choice); content.Children.Add(thinkingChoice); content.Children.Add(unknown);
-            if (policy.Warning is not null) content.Children.Add(new TextBlock { Text = "沙箱暂不可用。本次代码与命令将在本机运行，可访问当前账户的文件和网络。", TextWrapping = TextWrapping.Wrap });
-            content.Children.Add(new TextBlock { Text = "资料会发送给所选模型，可能产生费用。", TextWrapping = TextWrapping.Wrap });
-            var dialog = new ContentDialog
-            {
-                XamlRoot = RootGrid.XamlRoot,
-                Title = references ? "整理参考答案" : "开始整理",
-                Content = content,
-                PrimaryButtonText = "开始",
-                CloseButtonText = "取消",
-                DefaultButton = ContentDialogButton.Primary
-            };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-            (provider, model) = availableModels[choice.SelectedIndex];
-            Thinking? thinking = thinkingChoice.SelectedIndex > 0 ? model.Capabilities.Thinking[thinkingChoice.SelectedIndex - 1] : null;
-            var input = new GradingInput { Document = document, Provider = provider, Model = model, Thinking = thinking, AllowUnknown = unknown.IsChecked == true };
-            _activeJob = (await _jobs.SubmitAsync(references ? DiagnosticKind.References : DiagnosticKind.Grading, policy, input, _lifetime.Token)).Id;
-            await RefreshTasksAsync(); ViewModel.StatusMessage = "已加入队列。";
+            var processing = await ChooseProcessingAsync(references, importing: false);
+            if (processing is null) return;
+            await SubmitProcessingAsync(document, processing, references);
+            ViewModel.StatusMessage = "已加入队列。";
         }
-        catch { ViewModel.StatusMessage = "任务无法开始，请检查模型设置或等待当前任务结束。"; }
+        catch (Exception error) { AppLog.Error("Recognition.Start", error); ViewModel.StatusMessage = "任务无法开始，请检查模型设置或等待当前任务结束。"; }
     }
+
+    private sealed record ProcessingChoice(Provider Provider, ModelConfig Model, Thinking? Thinking, bool AllowUnknown, ExecutionPolicy Policy, ImportMode Mode);
+
+    private async Task<ProcessingChoice?> ChooseProcessingAsync(bool references, bool importing)
+    {
+        if (_library is null || _jobs is null) return null;
+        var providers = await _library.ListProvidersAsync(_lifetime.Token);
+        providers = providers.Where(p => p.KeyRef is not null && p.Models.Count > 0).ToList();
+        var provider = providers.FirstOrDefault(p => p.Models.Any(m => p.Id + ":" + m.Id == _settings.DefaultModel)) ?? providers.FirstOrDefault(p => p.Models.Any(m => m.Id == _settings.DefaultModel)) ?? providers.FirstOrDefault();
+        if (provider is null || provider.Models.Count == 0 || provider.KeyRef is null)
+        {
+            var setup = new ContentDialog { XamlRoot = RootGrid.XamlRoot, RequestedTheme = RootGrid.ActualTheme, Title = "先设置识别模型", Content = "识别试卷需要模型和密钥，设置后即可导入并自动加入题库。", PrimaryButtonText = "前往设置", CloseButtonText = "取消", DefaultButton = ContentDialogButton.Primary };
+            if (await setup.ShowAsync() == ContentDialogResult.Primary) Navigation.SelectedItem = Navigation.SettingsItem;
+            ViewModel.StatusMessage = importing ? "尚未导入，请先设置模型。" : "请先在设置中添加模型和密钥。";
+            return null;
+        }
+        var model = provider.Models.FirstOrDefault(m => provider.Id + ":" + m.Id == _settings.DefaultModel || m.Id == _settings.DefaultModel) ?? provider.Models[0];
+        var availableModels = providers.SelectMany(p => p.Models.Select(m => (Provider: p, Model: m))).ToList();
+        var choice = new ComboBox { Header = "识别模型", HorizontalAlignment = HorizontalAlignment.Stretch };
+        foreach (var available in availableModels) choice.Items.Add(available.Provider.Name + " / " + available.Model.Label);
+        choice.SelectedIndex = availableModels.FindIndex(p => p.Provider.Id == provider.Id && p.Model.Id == model.Id);
+        var thinkingChoice = new ComboBox { Header = "思考", HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = 0 };
+        thinkingChoice.Items.Add("默认"); foreach (var option in model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option));
+        var unknown = new CheckBox { Content = "允许尝试尚未确认能力的模型" };
+        choice.SelectionChanged += (_, _) => { thinkingChoice.Items.Clear(); thinkingChoice.Items.Add("默认"); if (choice.SelectedIndex >= 0) foreach (var option in availableModels[choice.SelectedIndex].Model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option)); thinkingChoice.SelectedIndex = 0; };
+        var preferred = _settings.ExecutionMode switch { "sandbox" => ExecutionMode.Sandbox, "bypass_permission" => ExecutionMode.BypassPermission, _ => ExecutionMode.RequestPermission };
+        var capability = await SandboxCapability.ProbeAsync(Path.Combine(AppContext.BaseDirectory, "runtime", "python"), _lifetime.Token);
+        var policy = ExecutionPolicy.Freeze(preferred, capability, _settings.SandboxNetworking);
+        var content = new StackPanel { Spacing = 14 }; content.Children.Add(choice); content.Children.Add(thinkingChoice); content.Children.Add(unknown);
+        var modeChoice = new ComboBox { Header = "试卷类型", SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+        modeChoice.Items.Add("空白试卷"); modeChoice.Items.Add("已作答，需批改"); modeChoice.Items.Add("已有教师批改");
+        if (importing) content.Children.Insert(0, modeChoice);
+        if (policy.Warning is not null) content.Children.Add(new TextBlock { Text = "沙箱暂不可用。本次代码与命令将在本机运行，可访问当前账户的文件和网络。", TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(new TextBlock { Text = "资料会发送给所选模型，可能产生费用。", TextWrapping = TextWrapping.Wrap });
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = importing ? "导入试卷" : references ? "整理参考答案" : "重新识别",
+            RequestedTheme = RootGrid.ActualTheme,
+            Content = content,
+            PrimaryButtonText = importing ? "导入并识别" : "开始",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return null;
+        (provider, model) = availableModels[choice.SelectedIndex];
+        Thinking? thinking = thinkingChoice.SelectedIndex > 0 ? model.Capabilities.Thinking[thinkingChoice.SelectedIndex - 1] : null;
+        return new(provider, model, thinking, unknown.IsChecked == true, policy,
+            modeChoice.SelectedIndex switch { 1 => ImportMode.AiGrading, 2 => ImportMode.TeacherGraded, _ => ImportMode.Blank });
+    }
+
+    private async Task<Job> SubmitProcessingAsync(Document document, ProcessingChoice processing, bool references)
+    {
+        if (_jobs is null) throw new InvalidOperationException("任务队列未就绪。");
+        var input = new GradingInput { Document = document, Provider = processing.Provider, Model = processing.Model, Thinking = processing.Thinking, AllowUnknown = processing.AllowUnknown };
+        var submitted = await _jobs.SubmitAsync(references ? DiagnosticKind.References : DiagnosticKind.Grading, processing.Policy, input, _lifetime.Token);
+        _activeJob = submitted.Id;
+        AppLog.Info("Recognition.Queued", $"Job={_activeJob}; Document={document.Id}; Model={processing.Model.Id}");
+        try { await RefreshTasksAsync(); }
+        catch (Exception error) { AppLog.Error("Recognition.RefreshQueuedJob", error); }
+        return submitted;
+    }
+    private static string RecognitionStatus(JobState state) => state switch
+    {
+        JobState.Completed => "识别完成，题目已加入题库。",
+        JobState.Failed => "识别未完成，已保存的题目会保留。可在试卷中重新识别。",
+        JobState.Cancelled => "已取消识别，已保存的题目会保留。",
+        _ => "正在识别，题目会自动加入题库。"
+    };
     private static string ThinkingLabel(Thinking value) => value switch
     { ResponsesThinking v => v.Effort, AdaptiveThinking v => v.Effort, BudgetThinking v => $"{v.Tokens} tokens", GeminiLevelThinking v => v.Level, GeminiBudgetThinking v => v.Tokens == -1 ? "自动" : $"{v.Tokens} tokens", _ => "默认" };
 
@@ -572,63 +654,21 @@ public sealed partial class MainWindow
                 DispatcherQueue.TryEnqueue(async () =>
                 {
                     if (_closed || _lifetime.IsCancellationRequested || !ReferenceEquals(_jobs, observedJobs)) return;
-                    try { await RefreshTasksAsync(); if (change.Kind is "completed" or "failed" or "cancelled") await ReloadQuestionsAsync(); }
+                    try
+                    {
+                        AppLog.Info("Job.Changed", $"Job={change.JobId}; State={change.Kind}");
+                        await RefreshTasksAsync();
+                        if (change.Kind is "progress" or "completed" or "failed" or "cancelled") await ReloadQuestionsAsync();
+                        if (change.Kind == "completed") ViewModel.StatusMessage = "识别完成，题目已加入题库。";
+                        else if (change.Kind == "failed") ViewModel.StatusMessage = "识别未完成，已保存的题目会保留。可在试卷中重新识别。";
+                        else if (change.Kind == "cancelled") ViewModel.StatusMessage = "已取消识别，已保存的题目会保留。";
+                    }
                     catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
-                    catch { if (!_closed) ViewModel.StatusMessage = "任务状态暂时无法更新，请重新打开任务页。"; }
+                    catch (Exception error) { AppLog.Error("Job.Refresh", error); if (!_closed) ViewModel.StatusMessage = "任务状态暂时无法更新，请重新打开任务页。"; }
                 });
         }
         catch (OperationCanceledException) { }
-        catch { if (!_closed && ReferenceEquals(_jobs, observedJobs)) DispatcherQueue.TryEnqueue(() => ViewModel.StatusMessage = "任务状态暂时无法更新。"); }
-    }
-    private async Task RefreshTasksAsync()
-    {
-        if (_jobs is null || _closed) return;
-        long generation = ++_taskRefreshGeneration;
-        var jobs = await _jobs.ListAsync(_lifetime.Token);
-        if (_closed || generation != _taskRefreshGeneration) return;
-        var active = jobs.FirstOrDefault(j => !j.State.IsTerminal());
-        _activeJob = active?.Id; ViewModel.UpdateJob(active);
-        var cards = new List<UIElement>();
-        if (jobs.Count == 0) cards.Add(new TextBlock { Text = "暂无任务。", Margin = new Thickness(0, 12, 0, 0) });
-        foreach (var job in jobs)
-        {
-            var panel = new StackPanel { Spacing = 10 };
-            panel.Children.Add(new TextBlock { Text = job.Input?.Document.Name ?? "资料整理", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
-            panel.Children.Add(new TextBlock { Text = job.Message, TextWrapping = TextWrapping.Wrap });
-            panel.Children.Add(new TextBlock { Text = job.ExecutionPolicy.ExecutorKind == ExecutorKind.WindowsSandbox ? "沙箱运行" : "本机运行", Opacity = .65 });
-            if (job.Input is not null && _library is not null)
-            {
-                var details = await _library.ListJobModelCallsAsync(job.Id, _lifetime.Token);
-                if (_closed || generation != _taskRefreshGeneration) return;
-                var costs = details.Where(c => c.TryGetProperty("estimated_cost", out var cost) && cost.ValueKind == System.Text.Json.JsonValueKind.Number)
-                    .Select(c => c.GetProperty("estimated_cost").GetDouble()).ToArray();
-                ulong inputTokens = 0, outputTokens = 0;
-                foreach (var call in details)
-                    if (call.TryGetProperty("usage", out var usage))
-                    { if (usage.TryGetProperty("input", out var input) && input.TryGetUInt64(out var a)) inputTokens += a; if (usage.TryGetProperty("output", out var output) && output.TryGetUInt64(out var b)) outputTokens += b; }
-                if (details.Count > 0) panel.Children.Add(new TextBlock { Text = $"用量：输入 {inputTokens} · 输出 {outputTokens}", Opacity = .65 });
-                if (details.Count > 0) panel.Children.Add(new TextBlock { Text = costs.Length == details.Count ? $"估算费用：{costs.Sum():0.######} {job.Input.Model.Currency}" : "费用暂无法估算", Opacity = .65 });
-            }
-            if (!job.State.IsTerminal())
-            {
-                var cancel = new Button { Content = "取消" };
-                cancel.Click += async (_, _) => { try { await _jobs.CancelAsync(job.Id); await RefreshTasksAsync(); } catch { ViewModel.StatusMessage = "无法取消，请重试。"; } }; panel.Children.Add(cancel);
-            }
-            if (job.PendingPermission is { } review)
-            {
-                var button = new Button { Content = "查看执行请求", Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"] };
-                button.Click += async (_, _) => await ReviewPermissionAsync(job.Id, review); panel.Children.Add(button);
-            }
-            cards.Add(new Border
-            {
-                Child = panel,
-                Padding = new Thickness(20),
-                CornerRadius = new CornerRadius(10),
-                Background = (Brush)Microsoft.UI.Xaml.Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]
-            });
-        }
-        if (_closed || generation != _taskRefreshGeneration) return;
-        TaskCards.Children.Clear(); foreach (var card in cards) TaskCards.Children.Add(card);
+        catch (Exception error) { AppLog.Error("Job.Observe", error); if (!_closed && ReferenceEquals(_jobs, observedJobs)) DispatcherQueue.TryEnqueue(() => ViewModel.StatusMessage = "任务状态暂时无法更新。"); }
     }
     private async Task ReviewPermissionAsync(string id, PermissionReview review)
     {
@@ -638,7 +678,7 @@ public sealed partial class MainWindow
         var body = new StackPanel { Spacing = 12 }; body.Children.Add(new TextBlock { Text = "将在本机运行，可访问当前账户的文件和网络。", TextWrapping = TextWrapping.Wrap });
         body.Children.Add(new TextBlock { Text = $"{(review.Call.Tool == ToolKind.Python ? "Python" : "PowerShell")} · 最长 {review.Call.TimeoutMs / 1000d:0.###} 秒\n目录：{review.Call.WorkingDirectory}\n参数：{DomainJson.Serialize(review.Call.Arguments)}", TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
         body.Children.Add(text); body.Children.Add(task);
-        var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = "允许执行？", Content = body, PrimaryButtonText = "允许", SecondaryButtonText = "拒绝", CloseButtonText = "稍后" };
+        var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, RequestedTheme = RootGrid.RequestedTheme, Title = "允许执行？", Content = body, PrimaryButtonText = "允许", SecondaryButtonText = "拒绝", CloseButtonText = "稍后" };
         var result = await dialog.ShowAsync(); if (result == ContentDialogResult.None) return;
         try { await _jobs.DecideAsync(id, review.Digest, result == ContentDialogResult.Secondary ? PermissionChoice.Deny : task.IsChecked == true ? PermissionChoice.AllowTask : PermissionChoice.AllowOnce); await RefreshTasksAsync(); }
         catch { ViewModel.StatusMessage = "执行请求已变化，请重新查看。"; }

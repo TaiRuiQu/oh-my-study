@@ -8,6 +8,7 @@ internal static class SmokeStartupDiagnostics
     /// <summary>Only explicit smoke runs persist startup exception details; a crash never becomes a passing report.</summary>
     public static void Log(string phase, Exception exception)
     {
+        AppLog.Error(phase, exception);
         try
         {
             if (ReportPath() is null) return;
@@ -28,6 +29,7 @@ internal static class SmokeStartupDiagnostics
 
     public static void LogText(string phase, string message)
     {
+        AppLog.Info(phase, message);
         try
         {
             string? report = ReportPath();

@@ -56,6 +56,7 @@ public sealed partial class MainWindow
     {
         if (_library is null) return;
         if (ViewModel.CurrentDocument?.Id != document.Id) await LoadDocumentAsync(document);
+        SourcePane.Visibility = Visibility.Visible; ApplyWorkspaceLayout();
         long generation = _documentGeneration;
         int index = document.Pages.FindIndex(page => page.Id == region.PageId);
         if (index < 0) { ViewModel.StatusMessage = "来源页已不存在。"; return; }

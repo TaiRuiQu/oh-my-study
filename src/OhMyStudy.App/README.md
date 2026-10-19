@@ -4,7 +4,7 @@ WinUI 3 App 已组合正式 C# 领域、仓储、任务、协议和文档服务�
 
 ## 当前流程
 
-- 导入 PNG、JPEG、WebP、PDF，选择教师批改、AI 批改或空白卷模式；材料和参考答案合计最多 12 页。
+- 从题库顶部导入 PNG、JPEG、WebP、PDF，选择教师批改、AI 批改或空白卷模式后自动识别并加入题库；材料和参考答案合计最多 12 页。
 - 资料选择、页管理、旋转和移除持久化；仍被题目/参考答案引用的页不能直接移除。原件与 PDF 原页关系保留。
 - 原件缩放、平移与题目来源高亮共用坐标变换；按页/分辨率缓存有字节预算。WebP 无可用系统 codec 时使用私有 dwebp。
 - 题目通过原生文字、公式、表格和图像呈现；完整编辑支持选项、表格单元格、配图、来源及最多八层小问。标准答案、学生作答与教师批注保持独立，重批保护手动/教师评分；刷新和导航保留草稿，保存期间新输入不被覆盖，校验失败保留窗口。退出或切库前说明未保存后果。
@@ -36,13 +36,12 @@ Sandbox使用新wsb CLI按每次调用创建和停止明确ID的独立VM，不�
 ```powershell
 $env:DOTNET_CLI_HOME = Join-Path $PWD 'output/migration/dotnet-home'
 $env:NUGET_PACKAGES = Join-Path $PWD 'output/migration/nuget'
-dotnet restore src/OhMyStudy.App/OhMyStudy.App.csproj -p:Configuration=Release --locked-mode
-dotnet publish src/OhMyStudy.App/OhMyStudy.App.csproj -c Release --no-restore -o output/migration/app-local
-
-# 明确准备固定原生工具/计算运行时，再由脚本补全可运行目录。
+# 先准备固定原生工具/计算运行时，再构建和打包。
 ./probes/prepare-documents.ps1
 ./packaging/prepare-webp.ps1
 ./packaging/prepare-runtime.ps1
+dotnet restore src/OhMyStudy.App/OhMyStudy.App.csproj -p:Configuration=Release --locked-mode
+dotnet publish src/OhMyStudy.App/OhMyStudy.App.csproj -c Release --no-restore -o output/migration/app-local
 ./packaging/Publish-OfflinePackage.ps1 -AppPublishDirectory ./output/migration/app-local -DesktopSmoke -WorkflowSmoke
 ```
 
@@ -79,3 +78,15 @@ OhMyStudy.App.exe --workflow-smoke C:\absolute\evidence\workflow.json
 真实文件选择/拖放、输入法、读屏、高对比、DPI/多屏、干净Win10/11、真实资料与凭据、供应商、Sandbox、物理打印、GPU/ETW和参考设备性能均由用户负责，当前未标记通过。最新各层数量为Storage93、Provider11、Execution17、Grading211、Media26、Documents8份45页及Setup40；原始结果以根进度与对应报告为准。
 
 维护细节见[架构](../../docs/architecture.zh-CN.md)、[设计原则](../../docs/design-principles.zh-CN.md)、[验收清单](../../docs/acceptance.zh-CN.md)。
+
+## 试卷导入与调试（2026-10-18）
+
+默认打开题库，从顶部“导入试卷”选择 PDF 或图片，在同一个对话框中选择试卷类型与模型并确认“导入并识别”。保存原件后自动开始识别、返回题库，已保存题目随任务进度刷新。未设置模型时明确提示前往设置，不把原件保存伪装成题目入库。原件从“查看原件”或“定位原件”主动展开；窄窗口查看原件时暂时收起题目区域，关闭原件即可继续编辑。
+
+入口使用显式 `[STAThread]` 并设置 UI 同步上下文。Debug 使用控制台子系统，直接在终端运行 `dotnet run --project src/OhMyStudy.App -c Debug -p:Platform=x64` 即可查看 UTF-8 日志，同时写入实际运行目录的 `logs/debug-日期-进程号.log`，启动时打印完整路径。命令行 Debug 的控制台宿主与界面分开，即使 WinUI 原生 fail-fast 绕过 C# 异常处理，也能输出、落盘并传递非零退出码；Ctrl+C 或关闭宿主会结束其界面子进程。F5 已附加调试器时直接运行界面，保留断点调试。内部 `--ui-process` 参数用于避免递归启动；用户仍使用原有启动命令。
+
+导入记录文件类型、字节数、阶段、耗时和关联标识；失败包含异常类型、堆栈和内部异常。识别后台异常在队列转为普通失败提示前记录，资源加载、窗口创建/激活、XAML 与未处理异常也进入日志。不记录密钥、请求正文或试卷内容。Release 仍为 WinExe，不启用控制台宿主。
+
+普通构建自动把已准备的 PDFium、WebP、Typst 和字体复制到实际运行目录，缺少 PDFium 时在构建阶段报出准备命令。没有把开发目录作为运行时回退路径。损坏、加密 PDF 显示可执行的恢复提示，底层错误码保留在日志。
+
+`--import-smoke <报告绝对路径>` 使用隔离资料库、真实 PDF/PNG 解码与模拟识别任务，验证导入自动提交、题库追加、取消、未配置模型与损坏文件恢复，并保存实际 XAML 渲染截图；不会访问真实凭据或调用外部模型。报告及截图默认由调用者选择位置，本轮放在 `output/import-review/`。这项检查不能替代真实模型识别质量验收。

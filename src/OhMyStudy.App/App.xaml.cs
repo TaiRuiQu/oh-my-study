@@ -9,14 +9,20 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
+        AppLog.Info("Application.Start", $"Version={typeof(App).Assembly.GetName().Version}; PID={Environment.ProcessId}; BaseDirectory={AppContext.BaseDirectory}");
         UnhandledException += (_, args) => SmokeStartupDiagnostics.Log("Application.UnhandledException", args.Exception);
-        if (Array.IndexOf(Environment.GetCommandLineArgs(), "--smoke-test") >= 0)
+        bool xamlDiagnostics = Array.IndexOf(Environment.GetCommandLineArgs(), "--smoke-test") >= 0;
+#if DEBUG
+        xamlDiagnostics = true;
+#endif
+        if (xamlDiagnostics)
         {
             DebugSettings.BindingFailed += (_, args) => SmokeStartupDiagnostics.LogText("XAML.BindingFailed", args.Message);
             DebugSettings.XamlResourceReferenceFailed += (_, args) => SmokeStartupDiagnostics.LogText("XAML.ResourceReferenceFailed", args.Message);
             DebugSettings.IsXamlResourceReferenceTracingEnabled = true;
         }
-        try { InitializeComponent(); }
+        AppLog.Info("Application.InitializeComponent", "Loading application resources.");
+        try { InitializeComponent(); AppLog.Info("Application.ResourcesReady", "Application resources loaded."); }
         catch (Exception exception)
         {
             SmokeStartupDiagnostics.Log("Application.InitializeComponent", exception);
@@ -45,8 +51,11 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         try
         {
+            AppLog.Info("Application.OnLaunched", "Creating the main window.");
             _window = new MainWindow(reportPath, previewPdfPath, workflowReport, performanceReport);
+            AppLog.Info("Application.WindowCreated", "Activating the main window.");
             _window.Activate();
+            AppLog.Info("Application.WindowActivated", "Main window activated.");
         }
         catch (Exception exception)
         {

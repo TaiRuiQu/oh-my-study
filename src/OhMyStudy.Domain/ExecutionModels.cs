@@ -115,6 +115,21 @@ public sealed record JobEvent
     public required JsonElement Payload { get; init; }
 }
 
+/// <summary>A durable, public execution step. Never stores provider-private thinking or credentials.</summary>
+public sealed record JobActivity
+{
+    public required string Key { get; init; }
+    public required string Kind { get; init; }
+    public required string Title { get; init; }
+    public string Detail { get; init; } = "";
+    public string Text { get; init; } = "";
+    public string State { get; init; } = "running";
+    public string? PageId { get; init; }
+    public int PagesRead { get; init; }
+    public int QuestionsSaved { get; init; }
+    public long ElapsedMs { get; init; }
+}
+
 public sealed class DomainValidationException(string message) : Exception(message)
 {
     public static void Require(bool condition, string message) { if (!condition) throw new DomainValidationException(message); }

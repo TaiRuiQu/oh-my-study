@@ -25,6 +25,7 @@ public sealed partial class MainWindow
         SectionCaption.Visibility = Visibility.Visible;
         WorkspaceGrid.Visibility = Visibility.Visible; DocumentToolbar.Visibility = Visibility.Visible;
         ViewModel.ShowSection("materials");
+        UpdateQuestionState();
     }
 
     private void RememberWorkspaceContext()
@@ -34,7 +35,7 @@ public sealed partial class MainWindow
         string focus = IsWithin(focused, AnswerEditor) ? "answer" : IsWithin(focused, QuestionList) ? "list"
             : IsWithin(focused, SourceViewer) ? "source" : IsWithin(focused, QuestionContentHost) ? "content" : "";
         _workspaceContexts[_workspaceContextKey] = new(ViewModel.SelectedQuestion.Saved?.Id, ViewModel.SelectedQuestion.Number,
-            FindVisualChild<ScrollViewer>(QuestionList)?.VerticalOffset ?? 0, QuestionContentHost.VerticalOffset,
+            FindVisualChild<ScrollViewer>(QuestionList)?.VerticalOffset ?? 0, QuestionDetail.VerticalOffset,
             focus, AnswerEditor.SelectionStart, AnswerEditor.SelectionLength);
     }
 
@@ -43,8 +44,8 @@ public sealed partial class MainWindow
         if (_workspaceContexts.TryGetValue(_workspaceContextKey, out var context)
             && context.QuestionId == ViewModel.SelectedQuestion.Saved?.Id)
         {
-            QuestionContentHost.UpdateLayout();
-            QuestionContentHost.ChangeView(null, context.ContentY, null, true);
+            QuestionDetail.UpdateLayout();
+            QuestionDetail.ChangeView(null, context.ContentY, null, true);
         }
     }
 
@@ -61,7 +62,7 @@ public sealed partial class MainWindow
         if (_closed || generation != _documentGeneration || key != _workspaceContextKey) return;
         QuestionList.UpdateLayout();
         FindVisualChild<ScrollViewer>(QuestionList)?.ChangeView(null, context.ListY, null, true);
-        QuestionContentHost.ChangeView(null, context.ContentY, null, true);
+        QuestionDetail.ChangeView(null, context.ContentY, null, true);
         switch (context.Focus)
         {
             case "answer":

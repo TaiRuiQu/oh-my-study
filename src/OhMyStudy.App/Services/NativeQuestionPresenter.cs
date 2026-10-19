@@ -27,15 +27,16 @@ public static class NativeQuestionPresenter
         cancellationToken.ThrowIfCancellationRequested();
         // Await without ConfigureAwait(false): all XAML objects belong to this UI thread.
         var panel = new StackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Stretch };
-        await AddQuestionAsync(panel, question, library, cancellationToken);
+        await AddQuestionAsync(panel, question, library, cancellationToken, root: true);
         return panel;
     }
 
-    private static async Task AddQuestionAsync(StackPanel panel, Question question, LibraryRepository library, CancellationToken cancellationToken)
+    private static async Task AddQuestionAsync(StackPanel panel, Question question, LibraryRepository library, CancellationToken cancellationToken, bool root = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var label = question.Points is { } points ? $"{question.Number}　（{points:g} 分）" : question.Number;
-        panel.Children.Add(Text(label, heading: true));
+        if (!root) panel.Children.Add(Text(label, heading: true));
+        else if (question.Points is { } total) panel.Children.Add(Text($"{total:g} 分"));
         foreach (var content in question.Content)
         {
             cancellationToken.ThrowIfCancellationRequested();

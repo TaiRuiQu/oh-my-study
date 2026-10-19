@@ -285,9 +285,24 @@ public sealed class JobQueue : IAsyncDisposable
         finally { _gate.Release(); }
     }
 
-    private async Task PersistAsync(Job job, string kind, CancellationToken cancellationToken)
+    internal async Task ActivityAsync(string id, JobActivity activity)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(activity.Key);
+        if (activity.Key.Length > 128 || activity.Title.Length > 200 || activity.Detail.Length > 1000 || activity.Text.Length > 16000)
+            throw new ArgumentException("任务步骤超过长度限制。", nameof(activity));
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            EnsureLive(id);
+            await PersistAsync(Bump(Get(id)), "activity", CancellationToken.None, DomainJson.ToElement(activity)).ConfigureAwait(false);
+        }
+        finally { _gate.Release(); }
+    }
+
+    private async Task PersistAsync(Job job, string kind, CancellationToken cancellationToken, System.Text.Json.JsonElement? payload = null)
     {
         var item = Event(job, kind);
+        if (payload is { } value) item = item with { Payload = value };
         try { await _store.CommitAsync(job, item, cancellationToken).ConfigureAwait(false); }
         catch (Exception error) { StopOnFailure(error); throw new IOException("任务记录未能保存，队列已停止。", error); }
         _jobs[job.Id] = job;

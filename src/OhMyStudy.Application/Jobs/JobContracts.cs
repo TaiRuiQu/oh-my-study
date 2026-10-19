@@ -33,6 +33,7 @@ public sealed class JobContext
     public string JobId { get; }
     public CancellationToken Cancellation { get; }
     public Task ProgressAsync(double progress, string message) => _owner.ProgressAsync(JobId, progress, message);
+    public Task ActivityAsync(JobActivity activity) => _owner.ActivityAsync(JobId, activity);
     public Task<T> CommitAsync<T>(Func<CancellationToken, Task<T>> operation) => _owner.CommitResultAsync(JobId, operation);
     public Task CommitAsync(Func<CancellationToken, Task> operation) => _owner.CommitResultAsync(JobId,
         async token => { await operation(token).ConfigureAwait(false); return true; });

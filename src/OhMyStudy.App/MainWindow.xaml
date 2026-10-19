@@ -1,4 +1,4 @@
-<Window
+﻿<Window
     x:Class="OhMyStudy.App.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,7 +6,7 @@
     xmlns:domain="using:OhMyStudy.Domain"
     Title="Oh My Study">
     <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
-    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource WorkspaceCanvasBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -26,10 +26,10 @@
             IsBackButtonVisible="Collapsed" IsSettingsVisible="True" AlwaysShowHeader="False"
             PaneDisplayMode="Auto" SelectionChanged="Navigation_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="资料" Tag="materials" IsSelected="True">
+                <NavigationViewItem Content="试卷" Tag="materials">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="题库" Tag="library">
+                <NavigationViewItem Content="题库" Tag="library" IsSelected="True">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="错题" Tag="mistakes">
@@ -39,22 +39,23 @@
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
-            <Grid Margin="20,16,24,12" RowSpacing="16">
+            <Grid Margin="20,16,24,12" RowSpacing="8" AllowDrop="True" DragOver="Source_DragOver" Drop="Source_Drop">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                     <RowDefinition Height="*" /><RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <Grid ColumnSpacing="20">
+                <Grid x:Name="WorkspaceHeader" ColumnSpacing="20" RowSpacing="12">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel Spacing="6">
                         <TextBlock x:Name="SectionCaption" Text="{x:Bind ViewModel.SectionTitle, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" />
                         <TextBlock x:Name="PageHeading" Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <StackPanel x:Name="WorkspaceActions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Button Click="OpenFiles_Click" AutomationProperties.Name="导入图片或 PDF">
-                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock Text="导入资料" /></StackPanel>
+                        <Button x:Name="ImportPaperButton" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" AutomationProperties.Name="导入试卷，支持 PDF 或图片">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock Text="导入试卷" /></StackPanel>
                         </Button>
-                        <Button x:Name="GradeButton" Content="开始整理" Click="Grade_Click" IsEnabled="False" Style="{StaticResource AccentButtonStyle}" />
+                        <Button x:Name="GradeButton" Content="重新识别" Click="Grade_Click" IsEnabled="False" Visibility="Collapsed" />
                         <Button AutomationProperties.Name="更多工作区操作">
                             <FontIcon Glyph="&#xE712;" FontSize="18" />
                             <Button.Flyout>
@@ -77,20 +78,25 @@
                     </StackPanel>
                 </Grid>
                 <StackPanel Grid.Row="1" Spacing="8">
-                    <StackPanel x:Name="DocumentToolbar" Orientation="Horizontal" Spacing="12">
-                        <ComboBox x:Name="DocumentPicker" PlaceholderText="选择资料" MinWidth="240" MaxWidth="480" SelectionChanged="DocumentPicker_SelectionChanged">
-                            <ComboBox.ItemTemplate><DataTemplate x:DataType="domain:Document"><TextBlock Text="{x:Bind Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                    <Grid x:Name="DocumentToolbar" ColumnSpacing="12" RowSpacing="8" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <ComboBox x:Name="DocumentPicker" PlaceholderText="选择试卷" MinWidth="180" MaxWidth="320" HorizontalAlignment="Stretch" SelectionChanged="DocumentPicker_SelectionChanged">
+                            <ComboBox.ItemTemplate><DataTemplate x:DataType="domain:Document"><TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Name}" /></DataTemplate></ComboBox.ItemTemplate>
                         </ComboBox>
+                        <StackPanel x:Name="DocumentCommands" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                         <Button x:Name="EditQuestionButton" Content="编辑题目" Click="EditQuestion_Click" IsEnabled="False" />
-                        <Button Content="整理结果" Click="ViewResults_Click" />
-                    </StackPanel>
+                        <Button Content="识别结果" Click="ViewResults_Click" />
+                        <Button x:Name="ViewOriginalButton" Content="查看原件" Click="ViewOriginal_Click" />
+                        </StackPanel>
+                    </Grid>
                     <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational" CloseButtonClick="WorkspaceNotice_CloseButtonClick"
                         Title="示例资料" Message="可查看和编辑，修改不会保存。" />
                 </StackPanel>
                 <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="16">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="WorkspaceColumnsRight" Width="424" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition x:Name="WorkspaceQuestionsRow" Height="0" /></Grid.RowDefinitions>
-                    <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12"
+                    <Border x:Name="SourcePane" Visibility="Collapsed" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12"
                         Background="{ThemeResource WorkspaceSurfaceBrush}" AllowDrop="True" DragOver="Source_DragOver" Drop="Source_Drop">
                         <Grid RowSpacing="0">
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -103,6 +109,7 @@
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                     <Button Click="RotateLeft_Click" ToolTipService.ToolTip="向左旋转 90°" AutomationProperties.Name="原件向左旋转九十度"><FontIcon Glyph="&#xE7AD;" FontSize="16" /></Button>
                                     <Button Click="RotateRight_Click" ToolTipService.ToolTip="向右旋转 90°" AutomationProperties.Name="原件向右旋转九十度"><FontIcon Glyph="&#xE7AD;" FontSize="16" FlowDirection="RightToLeft" /></Button>
+                                    <Button Click="CloseOriginal_Click" ToolTipService.ToolTip="收起原件" AutomationProperties.Name="收起原件"><FontIcon Glyph="&#xE711;" FontSize="14" /></Button>
                                 </StackPanel>
                             </Grid>
                             <ScrollViewer x:Name="SourceViewer" Grid.Row="1" Background="{ThemeResource WorkspaceCanvasBrush}" Padding="24"
@@ -153,10 +160,11 @@
                             </Grid>
                         </Grid>
                     </Border>
-                    <Border x:Name="QuestionPane" Grid.Column="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                        <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                            <Grid Padding="20,14" ColumnSpacing="8">
+                    <Border x:Name="QuestionPane" Grid.Column="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}">
+                        <Grid x:Name="QuestionLayout">
+                            <Grid.ColumnDefinitions><ColumnDefinition x:Name="QuestionListColumn" Width="320" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="QuestionListRow" Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Grid x:Name="QuestionListHeading" Padding="20,14" ColumnSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="题目" Style="{StaticResource PanelHeadingStyle}" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
@@ -179,35 +187,96 @@
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
-                            <Border Grid.Row="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="20,16">
-                                <StackPanel Spacing="10">
-                                    <ScrollViewer x:Name="QuestionContentHost" MaxHeight="180" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="题目内容" IsTabStop="True" />
+                            <ScrollViewer x:Name="QuestionDetail" Grid.Column="1" Grid.RowSpan="3" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1,0,0,0" Padding="24,20" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                                <StackPanel Spacing="16">
                                     <Grid ColumnSpacing="10">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <TextBlock Text="{x:Bind ViewModel.SelectedQuestion.Label, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
-                                        <Button x:Name="LocateSourceButton" Grid.Column="1" Content="定位原件" Click="LocateSource_Click" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="LocateSourceButton" Content="定位原件" Click="LocateSource_Click" />
+                                            <Button Content="保存" Command="{x:Bind ViewModel.FinishEditCommand}" Style="{StaticResource AccentButtonStyle}" />
+                                        </StackPanel>
                                     </Grid>
+                                    <ScrollViewer x:Name="QuestionContentHost" VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="题目内容" IsTabStop="True" />
                                     <TextBox x:Name="AnswerEditor" Header="答案" AcceptsReturn="True" TextWrapping="Wrap"
-                                        MinHeight="82" MaxHeight="125" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                        MinHeight="100" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
                                         Text="{x:Bind ViewModel.SelectedQuestion.Answer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBox Header="备注" PlaceholderText="记录你的理解或复习提示"
+                                    <TextBox Header="备注" PlaceholderText="记录你的理解或复习提示" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
                                         Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <Button Content="保存" Command="{x:Bind ViewModel.FinishEditCommand}" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" />
                                 </StackPanel>
-                            </Border>
+                            </ScrollViewer>
+                            <StackPanel x:Name="EmptyQuestionState" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="24">
+                                <FontIcon Glyph="&#xE8F1;" FontSize="36" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="EmptyQuestionTitle" Text="还没有题目" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="EmptyQuestionMessage" Text="从上方导入 PDF 或图片试卷，识别后题目会自动加入题库。" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
-                <ScrollViewer x:Name="TasksPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                    <StackPanel x:Name="TaskCards" Spacing="12" MaxWidth="900" HorizontalAlignment="Stretch" />
-                </ScrollViewer>
+                <Grid x:Name="TasksPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" ColumnSpacing="16" RowSpacing="12" SizeChanged="TasksPanel_SizeChanged">
+                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="TaskListColumn" Width="268" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition x:Name="TaskListRow" Height="*" /><RowDefinition Height="0" /></Grid.RowDefinitions>
+                    <Border x:Name="TaskSidebar" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,12,8,8">
+                        <Grid RowSpacing="10">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <TextBlock Text="最近任务" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="12,0" />
+                            <ListView x:Name="TaskPicker" Grid.Row="1" SelectionChanged="TaskPicker_SelectionChanged" HorizontalContentAlignment="Stretch" Padding="0" AutomationProperties.Name="任务列表" />
+                        </Grid>
+                    </Border>
+                    <ComboBox x:Name="TaskCompactPicker" Visibility="Collapsed" HorizontalAlignment="Stretch" SelectionChanged="TaskCompactPicker_SelectionChanged" AutomationProperties.Name="选择任务" />
+                    <Border x:Name="TaskDetail" Grid.Column="1" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
+                        <Grid RowSpacing="0">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <ScrollViewer x:Name="TaskSummaryScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="TaskSummary" Spacing="16" Padding="24,20,24,16">
+                                <Grid ColumnSpacing="14">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="44" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Background="{ThemeResource TaskAccentBackgroundBrush}" CornerRadius="12" Width="44" Height="44" VerticalAlignment="Top"><FontIcon x:Name="TaskHeroIcon" Glyph="&#xE9F9;" FontSize="23" Foreground="{ThemeResource TaskAccentBrush}" /></Border>
+                                    <StackPanel Grid.Column="1" Spacing="4">
+                                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskTitle" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" /><TextBlock x:Name="TaskSampleMark" Grid.Column="1" Text="示例" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" VerticalAlignment="Center" /></Grid>
+                                        <TextBlock x:Name="TaskSubtitle" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Background="{ThemeResource WorkspaceCanvasBrush}" CornerRadius="8" Padding="12"><StackPanel Spacing="6"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8A5;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock x:Name="TaskPages" FontSize="22" FontWeight="SemiBold" /></StackPanel><TextBlock Text="已读页面" Style="{StaticResource QuietTextStyle}" /></StackPanel></Border>
+                                    <Border Grid.Column="1" Background="{ThemeResource WorkspaceCanvasBrush}" CornerRadius="8" Padding="12"><StackPanel Spacing="6"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8F1;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock x:Name="TaskQuestions" FontSize="22" FontWeight="SemiBold" /></StackPanel><TextBlock Text="已存题目" Style="{StaticResource QuietTextStyle}" /></StackPanel></Border>
+                                    <Border Grid.Column="2" Background="{ThemeResource WorkspaceCanvasBrush}" CornerRadius="8" Padding="12"><StackPanel Spacing="6"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE945;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock x:Name="TaskRounds" FontSize="22" FontWeight="SemiBold" /></StackPanel><TextBlock Text="识别轮次" Style="{StaticResource QuietTextStyle}" /></StackPanel></Border>
+                                </Grid>
+                                <ProgressBar x:Name="TaskProgress" IsIndeterminate="True" Visibility="Collapsed" AutomationProperties.Name="任务正在处理" />
+                                <TextBlock x:Name="TaskUsage" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
+                            </StackPanel>
+                            </ScrollViewer>
+                                <StackPanel x:Name="TaskButtons" Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="24,0,24,16">
+                                    <Button x:Name="TaskPermissionButton" Content="查看执行请求" Click="TaskPermission_Click" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" />
+                                    <Button x:Name="TaskCancelButton" Content="取消任务" Click="TaskCancel_Click" Visibility="Collapsed" />
+                                    <Button Content="查看题库" Click="TaskLibrary_Click" />
+                                </StackPanel>
+                            <Border Grid.Row="2" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0">
+                                <Grid RowSpacing="12" Padding="24,16,24,0">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="执行过程" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" /><TextBlock x:Name="TaskStateLabel" Grid.Column="1" Foreground="{ThemeResource TaskAccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="2" Click="TaskLatest_Click" ToolTipService.ToolTip="滚动到最新一步" AutomationProperties.Name="滚动到最新一步"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE74B;" FontSize="12" /><TextBlock Text="最新" /></StackPanel></Button></Grid>
+                                    <ScrollViewer x:Name="TaskTimelineScroll" Grid.Row="1" SizeChanged="TaskTimeline_SizeChanged" ViewChanged="TaskTimeline_ViewChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="TaskTimeline" Spacing="0" Padding="0,0,4,20" /></ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <Border x:Name="TaskEmpty" Grid.ColumnSpan="2" Grid.RowSpan="2" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="300" Margin="24">
+                            <Border Background="{ThemeResource TaskAccentBackgroundBrush}" CornerRadius="24" Width="88" Height="88"><FontIcon Glyph="&#xE9F9;" FontSize="38" Foreground="{ThemeResource TaskAccentBrush}" /></Border>
+                            <TextBlock Text="识别进度，随时可见" Style="{StaticResource SubtitleTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" />
+                            <TextBlock Text="导入试卷后，在这里查看阅读、识别与保存的每一步。" Style="{StaticResource QuietTextStyle}" TextAlignment="Center" TextWrapping="Wrap" />
+                            <Button Content="导入试卷" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
                 <ScrollViewer x:Name="SettingsPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="20" Padding="0,0,4,16">
                         <TextBlock Text="模型" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Grid x:Name="ProviderLayout" ColumnSpacing="20" RowSpacing="16" SizeChanged="ProviderLayout_SizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition x:Name="ProviderListColumn" Width="212" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                            <Border x:Name="ProviderSidebar" Padding="12" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" VerticalAlignment="Top">
+                            <Border x:Name="ProviderSidebar" Padding="12" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" VerticalAlignment="Top">
                                 <StackPanel Spacing="12">
                                     <TextBlock Text="供应商" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="8,4" />
                                     <ListView x:Name="ProviderPicker" MinHeight="0" MaxHeight="420" Padding="0" Visibility="Collapsed" SelectionChanged="ProviderPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="供应商列表">
@@ -217,7 +286,7 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel x:Name="ProviderDetails" Grid.Column="1" Spacing="16">
-                                <Border x:Name="ProviderSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <Border x:Name="ProviderSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                                     <StackPanel Spacing="14">
                                         <TextBlock Text="供应商设置" Style="{StaticResource PanelHeadingStyle}" />
                                         <Grid x:Name="ProviderFields" ColumnSpacing="16">
@@ -237,7 +306,7 @@
                                         <TextBlock x:Name="ProviderFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                                     </StackPanel>
                                 </Border>
-                                <Border x:Name="ModelSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                <Border x:Name="ModelSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                                     <StackPanel Spacing="14">
                                         <TextBlock Text="模型列表" Style="{StaticResource PanelHeadingStyle}" />
                                         <StackPanel x:Name="ModelActionButtons" Orientation="Horizontal" Spacing="8">
@@ -291,7 +360,7 @@
                             </StackPanel>
                         </Grid>
                         <TextBlock x:Name="LibrarySectionTitle" Text="资料库" Style="{StaticResource SubtitleTextBlockStyle}" />
-                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
                                 <TextBox x:Name="LibraryPath" Header="保存位置" IsReadOnly="True" TextWrapping="Wrap" />
                                 <TextBlock Text="导入的原件会复制到资料库，删除原文件后仍可查看。" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
@@ -304,7 +373,7 @@
                             </StackPanel>
                         </Border>
                         <TextBlock Text="执行" Style="{StaticResource SubtitleTextBlockStyle}" />
-                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
                                 <ComboBox x:Name="ExecutionModePicker" Header="代码与命令" MinWidth="280" SelectionChanged="ExecutionModePicker_SelectionChanged">
                                     <ComboBoxItem Content="每次询问" /><ComboBoxItem Content="沙箱运行" /><ComboBoxItem Content="直接在本机运行" />
@@ -314,7 +383,7 @@
                             </StackPanel>
                         </Border>
                         <TextBlock Text="外观" Style="{StaticResource SubtitleTextBlockStyle}" />
-                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
                                 <ComboBox x:Name="ThemePicker" Header="主题" SelectedIndex="0" SelectionChanged="ThemePicker_SelectionChanged" MinWidth="220">
                                     <ComboBoxItem Content="跟随 Windows" Tag="system" /><ComboBoxItem Content="浅色" Tag="light" /><ComboBoxItem Content="深色" Tag="dark" />
@@ -324,12 +393,12 @@
                         <Button Content="关于" Click="About_Click" HorizontalAlignment="Left" />
                     </StackPanel>
                 </ScrollViewer>
-                <Grid Grid.Row="3" ColumnSpacing="20" Padding="0,0,0,2">
+                <Grid x:Name="WorkspaceStatus" Grid.Row="3" ColumnSpacing="20" Padding="0,0,0,2">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                    <StackPanel x:Name="TaskActivity" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="{x:Bind ViewModel.TaskStatus, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
-                        <Button Content="取消任务" Command="{x:Bind ViewModel.CancelTaskCommand}" />
+                        <Button Content="取消任务" Command="{x:Bind ViewModel.CancelTaskCommand}" IsEnabled="{x:Bind ViewModel.IsTaskRunning, Mode=OneWay}" />
                     </StackPanel>
                 </Grid>
             </Grid>

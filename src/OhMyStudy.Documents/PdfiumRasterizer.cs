@@ -17,6 +17,18 @@ public sealed record RasterizedPage(int Width, int Height, int Stride, byte[] Bg
     }
 }
 
+public sealed class PdfReadException(uint errorCode) : IOException(errorCode switch
+{
+    4 => "PDF 需要密码，请先另存为不加密的文件后重试。",
+    3 => "PDF 文件已损坏或格式不完整，请重新下载或另存为 PDF 后重试。",
+    6 => "PDF 的加密方式暂不支持，请另存为不加密的文件后重试。",
+    _ => "PDF 无法读取，请重新下载或另存后重试。"
+})
+{
+    public uint ErrorCode { get; } = errorCode;
+    public override string ToString() => base.ToString() + $"\nPDF error code: {ErrorCode}";
+}
+
 /// <summary>All PDFium calls share one lock, as required by PDFium's public API.</summary>
 public sealed partial class PdfiumRasterizer
 {
@@ -62,7 +74,7 @@ public sealed partial class PdfiumRasterizer
             {
                 bytes.CopyTo(new Span<byte>(data, bytes.Length));
                 var document = Native.LoadMemDocument64((nint)data, (nuint)bytes.Length, nint.Zero);
-                if (document == nint.Zero) throw new InvalidDataException("PDFium 无法读取文件，错误码 " + Native.GetLastError());
+                if (document == nint.Zero) throw new PdfReadException(Native.GetLastError());
                 return new PdfiumDocument(document, (nint)data);
             }
             catch { NativeMemory.Free(data); throw; }

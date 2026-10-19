@@ -13,16 +13,16 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private string _statusMessage = "";
     private double _taskProgress;
     private bool _isTaskRunning;
-    private string _sectionTitle = "资料";
-    private string _documentTitle = "我的资料";
-    private string _section = "materials";
+    private string _sectionTitle = "题库";
+    private string _documentTitle = "全部题目";
+    private string _section = "library";
     private bool _saving;
     public WorkspaceViewModel(bool sample = false)
     {
         CancelTaskCommand = new ActionCommand(CancelTask, () => IsTaskRunning);
         FinishEditCommand = new ActionCommand(async () => await SaveAsync(), () => !_saving);
         ResetAnswerCommand = new ActionCommand(() => SelectedQuestion.Answer = "最大值为 2，最小值为 −2。");
-        if (sample) LoadSample();
+        if (sample) { _section = "materials"; _sectionTitle = "试卷"; LoadSample(); }
     }
 
     public bool IsSample { get; private set; }
@@ -113,7 +113,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     public void ShowSection(string tag)
     {
         _section = tag;
-        SectionTitle = tag switch { "library" => "题库", "mistakes" => "错题", "settings" => "设置", "tasks" => "任务", _ => "资料" };
+        SectionTitle = tag switch { "library" => "题库", "mistakes" => "错题", "settings" => "设置", "tasks" => "任务", _ => "试卷" };
         if (tag != "settings" && tag != "tasks") RefreshQuestions();
     }
     private async Task SaveAsync()

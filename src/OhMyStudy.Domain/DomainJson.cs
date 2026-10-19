@@ -275,6 +275,7 @@ internal static class SerdeJson
 [JsonSerializable(typeof(List<Job>))]
 [JsonSerializable(typeof(Job[]))]
 [JsonSerializable(typeof(JobEvent))]
+[JsonSerializable(typeof(JobActivity))]
 [JsonSerializable(typeof(List<JobEvent>))]
 [JsonSerializable(typeof(JobEvent[]))]
 [JsonSerializable(typeof(List<AppSettings>))]

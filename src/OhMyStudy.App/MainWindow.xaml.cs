@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
@@ -70,6 +70,13 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
         _themeSettings = ThemeSettings.CreateForWindowId(AppWindow.Id);
         _initialized = true;
+        ViewModel.Questions.CollectionChanged += (_, _) => DispatcherQueue.TryEnqueue(() => { if (!_closed) UpdateQuestionState(); });
+        ViewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(ViewModel.IsTaskRunning) or nameof(ViewModel.CurrentDocument)) UpdateQuestionState();
+        };
+        UpdateQuestionState();
+        ApplyWorkspaceLayout();
         _themeSettings.Changed += ThemeSettings_Changed;
         ApplyCaptionColors();
         AppWindow.Closing += AppWindow_Closing;
@@ -95,6 +102,7 @@ public sealed partial class MainWindow : Window
         {
             if (_closed) return;
             ApplyCaptionColors(); LocalizeNavigationSettings();
+            ResetTaskTheme();
         });
     }
 
@@ -127,6 +135,9 @@ public sealed partial class MainWindow : Window
         FitPage();
         if (_smokeReportPath is not null)
         {
+            ShowMaterialsNavigation();
+            SourcePane.Visibility = Visibility.Visible;
+            ApplyWorkspaceLayout();
             SamplePaper.Visibility = Visibility.Visible;
             WorkspaceNotice.IsOpen = true;
             DocumentToolbar.Visibility = Visibility.Collapsed;
@@ -141,7 +152,21 @@ public sealed partial class MainWindow : Window
             await RunWorkflowSmokeAsync(_workflowReportPath);
             return;
         }
-        else await InitializeLibraryAsync();
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--task-smoke") is int taskIndex && taskIndex > 0)
+        {
+            await RunTaskSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[taskIndex + 1]));
+            return;
+        }
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--import-smoke") is int importIndex && importIndex > 0)
+        {
+            await RunImportSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[importIndex + 1]));
+            return;
+        }
+        else
+        {
+            await InitializeLibraryAsync();
+            await ShowQuestionLibraryAsync();
+        }
         UpdateSourceHighlight();
         if (_smokeReportPath is not null)
         {
@@ -161,6 +186,7 @@ public sealed partial class MainWindow : Window
         int index = args.SelectedItem is null ? -1 : sender.MenuItems.IndexOf(args.SelectedItem);
         string tag = args.IsSettingsSelected ? "settings" : index switch { 1 => "library", 2 => "mistakes", 3 => "tasks", _ => "materials" };
         bool settings = tag == "settings";
+        SourcePane.Visibility = Visibility.Collapsed;
         if (SettingsPanel.Visibility == Visibility.Visible && !settings && HasUnsavedSettingsChanges)
         {
             var requested = args.SelectedItem;
@@ -173,14 +199,16 @@ public sealed partial class MainWindow : Window
             try { Navigation.SelectedItem = requested; }
             finally { _suppressNavigation = false; }
         }
-        SectionCaption.Visibility = settings || tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
+        SectionCaption.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
-        WorkspaceActions.Visibility = settings || tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
+        WorkspaceActions.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
+        WorkspaceStatus.Visibility = tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
         WorkspaceNotice.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceGrid.Visibility = settings || tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
         TasksPanel.Visibility = tag == "tasks" ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = !settings && tag == "materials" && !ViewModel.IsSample ? Visibility.Visible : Visibility.Collapsed;
         ViewModel.ShowSection(tag);
+        UpdateQuestionState();
         try
         {
             if (_library is not null)
@@ -197,12 +225,14 @@ public sealed partial class MainWindow : Window
                 else if (tag == "tasks") await RefreshTasksAsync();
             }
         }
-        catch { ViewModel.StatusMessage = "无法加载，请稍后重试。"; }
+        catch (Exception error) { AppLog.Error("Navigation.Load", error); ViewModel.StatusMessage = "无法加载，请稍后重试。"; }
+        ApplyWorkspaceLayout();
     }
 
     private async void QuestionList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized) return;
+        UpdateQuestionState();
         long generation = ++_questionPresentationGeneration;
         _questionPresentationCancellation?.Cancel();
         _questionPresentationCancellation?.Dispose();
@@ -224,7 +254,7 @@ public sealed partial class MainWindow : Window
             }
         }
         catch (OperationCanceledException) { }
-        catch { if (!_closed && generation == _questionPresentationGeneration) QuestionContentHost.Content = new TextBlock { Text = "题目内容暂时无法显示。" }; }
+        catch (Exception error) { AppLog.Error("Question.Present", error); if (!_closed && generation == _questionPresentationGeneration) QuestionContentHost.Content = new TextBlock { Text = "题目内容暂时无法显示。" }; }
     }
 
     private void UpdateSourceHighlight()
@@ -263,6 +293,7 @@ public sealed partial class MainWindow : Window
             try
             {
                 if (ViewModel.CurrentDocument?.Id != saved.DocumentId) await LoadDocumentAsync(await _library.GetDocumentAsync(saved.DocumentId, _lifetime.Token));
+                SourcePane.Visibility = Visibility.Visible; ApplyWorkspaceLayout();
                 if (ViewModel.Questions.FirstOrDefault(q => q.Saved?.Id == saved.Id) is { } selected) ViewModel.SelectedQuestion = selected;
                 var document = ViewModel.CurrentDocument!;
                 int pageIndex = document.Pages.FindIndex(p => p.Id == region.PageId);
@@ -643,6 +674,7 @@ public sealed partial class MainWindow : Window
         {
             XamlRoot = RootGrid.XamlRoot,
             Title = "Oh My Study",
+            RequestedTheme = RootGrid.ActualTheme,
             Content = "整理资料，梳理错题，轻松复习。",
             CloseButtonText = "知道了",
             DefaultButton = ContentDialogButton.Close
@@ -695,7 +727,7 @@ public sealed partial class MainWindow : Window
             Navigation.SelectedItem = Navigation.MenuItems[0];
             await Task.Delay(30);
             report.NativeNavigation = libraryNavigation && mistakeNavigation && settingsNavigation &&
-                WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == "资料";
+                WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == "试卷";
             report.NavigationDetails = [libraryDetail, mistakeDetail, settingsDetail, $"returned: {ViewModel.SectionTitle}, {WorkspaceGrid.Visibility}"];
             var selected = ViewModel.SelectedQuestion;
             string originalAnswer = selected.Answer;
@@ -859,12 +891,12 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async Task CaptureWorkspaceAsync(string path)
+    private async Task CaptureWorkspaceAsync(string path, FrameworkElement? element = null)
     {
         string directoryPath = Path.GetDirectoryName(path) ?? throw new InvalidOperationException("截图需要绝对路径。");
         Directory.CreateDirectory(directoryPath);
         var bitmap = new RenderTargetBitmap();
-        await bitmap.RenderAsync(RootGrid);
+        await bitmap.RenderAsync(element ?? RootGrid);
         var buffer = await bitmap.GetPixelsAsync();
         using var reader = DataReader.FromBuffer(buffer);
         var pixels = new byte[buffer.Length];

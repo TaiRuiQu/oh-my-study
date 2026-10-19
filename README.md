@@ -25,6 +25,14 @@
 
 首次工具准备及 NuGet 还原需要网络。缓存和报告保存在忽略的 `output/`。还原须指定 `-p:Configuration=Release`，同一工程的还原和发布串行执行。旧实现只保留在忽略的 `.reference/`，正式构建不依赖它。
 
+本地调试可运行：
+
+```powershell
+dotnet run --project src/OhMyStudy.App -c Debug -p:Platform=x64
+```
+
+Debug 版本会在终端输出启动、导入、识别任务和完整异常日志，同时输出到调试器，并保存到实际运行目录下的 `logs/debug-日期-进程号.log`（启动日志会打印完整路径）。命令行运行保留独立控制台宿主，界面发生原生异常退出时也会记录退出码；F5 已附加调试器时直接运行界面，保留断点调试。构建会自动复制已准备的 PDF 与图片处理依赖；缺少 PDF 依赖时会提示先运行 `./probes/prepare-documents.ps1`。Release 保持普通桌面应用的启动方式。
+
 `OhMyStudy.slnx` 包含 `src/` 下的 App、Domain、Application、Infrastructure、Documents、Setup 工程；`tests/` 保存回归与夹具，`runtime/` 保存计算入口，`probes/` 和 `packaging/` 保存验证及发布工具。
 
 ## 文档

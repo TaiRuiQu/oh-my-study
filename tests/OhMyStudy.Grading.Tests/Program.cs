@@ -27,6 +27,7 @@ internal static class Program
             using var assets = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "assets.synthetic.json")));
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
             await ThreeProtocolsAndModes();
+            await StreamingActivity();
             await CropAndCoverageRecovery();
             await CoverageAndToolValidation();
             await InvalidToolsAndReferencePriority();
@@ -140,8 +141,55 @@ internal static class Program
                 if (mode == ImportMode.AiGrading) Check(saved.Attempt!.Grade.Source == GradeSource.AiReference && saved.Attempt.ReferenceKey == "synthetic-ref1" && GradingValidation.IsWrongQuestion(saved), "reference grading and partial enters wrong questions");
                 Check(fixture.Reader.Requests.Count == 2 && fixture.Reader.Requests.All(r => r.Crop is null && r.Rotation == 0), "all originals read once without crop");
                 await fixture.AssertDurableEvents(job);
+                var trace = (await fixture.Library.ListJobEventsAsync(job.Id)).Where(e => e.Kind == "activity").Select(e => DomainJson.Deserialize<JobActivity>(e.Payload.GetRawText())).ToList();
+                var latest = trace.GroupBy(a => a.Key).Select(g => g.Last()).ToList();
+                Check(latest.Count(a => a.Kind == "model" && a.State == "completed") == 2 && latest.Any(a => a.Kind == "finish" && a.State == "completed"), "model rounds and validated finish retained in history");
+                Check(latest.Max(a => a.PagesRead) == 2 && latest.Max(a => a.QuestionsSaved) == 1, "trace counts follow committed distinct pages and questions");
+                Check(trace.Where(a => a.Kind == "save_question").GroupBy(a => a.Key).All(g => g.First().State == "running" && g.Last().State == "completed"), "tool starts and committed outcomes retained");
                 await fixture.Library.VerifyIntegrityAsync();
             }
+    }
+
+    private static async Task StreamingActivity()
+    {
+        await using var fixture = await Fixture.Create(ImportMode.Blank, Protocol.Responses);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var question = Question(fixture.Document);
+        var client = new StreamingClient(async (progress, cancellation) =>
+        {
+            for (int i = 0; i < 100; i++) progress?.Invoke(new ProviderProgress(Text: new string('测', 220)));
+            await Task.Delay(650, cancellation);
+            entered.SetResult();
+            await release.Task.WaitAsync(cancellation);
+            return NativeTurn(Protocol.Responses, [Read(fixture.Document.Pages[0]), Read(fixture.Document.Pages[1]), Save(question), Finish(Coverage(fixture.Document, question.DraftKey))]) with { Text = new string('测', 22000) };
+        });
+        await using var queue = await fixture.Queue(client);
+        var submitted = await queue.SubmitAsync(DiagnosticKind.Grading, Policy, fixture.Input);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var events = await fixture.Library.ListJobEventsAsync(submitted.Id);
+        var partial = events.Where(e => e.Kind == "activity").Select(e => DomainJson.Deserialize<JobActivity>(e.Payload.GetRawText())).Last();
+        Check(partial.State == "running" && partial.Text.Length == 16000 && (await queue.GetAsync(submitted.Id)).State == JobState.Running, "bounded public output visible before model completion");
+        Check(events.Count(e => e.Kind == "activity") <= 3, "stream deltas coalesced instead of writing every token");
+        release.SetResult();
+        var job = await Wait(queue, submitted.Id);
+        var completed = (await fixture.Library.ListJobEventsAsync(job.Id)).Where(e => e.Kind == "activity").Select(e => DomainJson.Deserialize<JobActivity>(e.Payload.GetRawText())).ToList();
+        Check(job.State == JobState.Completed && completed.All(a => a.Text.Length <= 16000) && completed.Any(a => a.Kind == "model" && a.State == "completed"), "bounded final output and tool history survive completion");
+        var failedClient = new StreamingClient((progress, _) =>
+        {
+            progress?.Invoke(new ProviderProgress(Text: "连接中断前已收到的公开回复"));
+            throw new HttpRequestException("Synthetic disconnected stream");
+        });
+        var failed = await fixture.Run(failedClient);
+        var retained = (await fixture.Library.ListJobEventsAsync(failed.Id)).Where(e => e.Kind == "activity").Select(e => DomainJson.Deserialize<JobActivity>(e.Payload.GetRawText())).ToList();
+        Check(failed.State == JobState.Failed && retained.Any(a => a.Text == "连接中断前已收到的公开回复"), "short partial response retained on immediate transport failure");
+    }
+
+    private sealed class StreamingClient(Func<Action<ProviderProgress>?, CancellationToken, Task<Turn>> call) : IModelClient
+    {
+        public Protocol Protocol => Protocol.Responses;
+        public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress = null, CancellationToken cancellationToken = default) => call(progress, cancellationToken);
+        public Task<ModelPage> ListModelsAsync(ProviderCredentials credentials, string? cursor = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private static bool HasSystem(Protocol protocol, JsonObject request) => protocol switch

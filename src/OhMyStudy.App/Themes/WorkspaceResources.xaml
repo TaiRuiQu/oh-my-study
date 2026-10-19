@@ -3,6 +3,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Default">
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FF171A20" />
+            <SolidColorBrush x:Key="WorkspaceCardBrush" Color="#FF262B33" />
+            <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FF414852" />
+            <SolidColorBrush x:Key="TaskAccentBrush" Color="#FF70D6CC" />
+            <SolidColorBrush x:Key="TaskAccentBackgroundBrush" Color="#FF173F42" />
+            <SolidColorBrush x:Key="TaskErrorBrush" Color="#FFFFB4AB" />
+            <SolidColorBrush x:Key="TaskSecondaryBrush" Color="#FFB7C0CC" />
             <SolidColorBrush x:Key="WorkspaceCanvasBrush" Color="#FF17191D" />
             <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="#FF24262B" />
             <SolidColorBrush x:Key="PaperBrush" Color="#FFFDFCF8" />
@@ -12,6 +19,13 @@
             <SolidColorBrush x:Key="SourceHighlightBorderBrush" Color="#FF5A9CFF" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FFE9EDF2" />
+            <SolidColorBrush x:Key="WorkspaceCardBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FFCBD2DC" />
+            <SolidColorBrush x:Key="TaskAccentBrush" Color="#FF087F79" />
+            <SolidColorBrush x:Key="TaskAccentBackgroundBrush" Color="#FFE0F3EF" />
+            <SolidColorBrush x:Key="TaskErrorBrush" Color="#FFB42318" />
+            <SolidColorBrush x:Key="TaskSecondaryBrush" Color="#FF53637B" />
             <SolidColorBrush x:Key="WorkspaceCanvasBrush" Color="#FFEAEDF1" />
             <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="#FFF8F9FC" />
             <SolidColorBrush x:Key="PaperBrush" Color="#FFFDFCF8" />
@@ -21,6 +35,13 @@
             <SolidColorBrush x:Key="SourceHighlightBorderBrush" Color="#FF4968E8" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="WorkspaceCardBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TaskAccentBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="TaskAccentBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="TaskErrorBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="TaskSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="WorkspaceCanvasBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="PaperBrush" Color="{ThemeResource SystemColorWindowColor}" />
