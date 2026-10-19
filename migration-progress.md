@@ -138,3 +138,5 @@ MSI 安装向导完成（2026-10-18）：按用户最终选择改为“所有用
 CI 锁定还原与 Lint 修复（2026-10-19）：Actions 39187253785 在 Lint 前的 Release 还原失败（NU1004）：App 默认锁文件被非 AOT 还原覆盖，缺少 Microsoft.DotNet.ILCompiler 10.0.13 及其 Windows 运行时依赖。已按锁定 SDK 重新生成 Release AOT 锁文件；Debug 和显式 PublishAot=false 改用已有 self-contained 锁文件，framework-dependent 继续使用独立锁文件。在 Checks 中增加 Debug、显式非 AOT 的强制锁定还原，并强制重新还原最终 Release 解决方案，避免增量还原掩盖不一致。另移除 MainWindow.Library.cs 与 MainWindow.xaml.cs 的 UTF-8 BOM，并统一 LF，满足现有格式规则；两文件除此之外内容未变，没有界面行为或布局修改，本轮不涉及视觉验收。
 
 本地验证：原样执行 Invoke-CI.ps1 的 Lint 与 Checks 均通过，包含 C# 格式、固定版本 actionlint、仓库边界、PowerShell 语法、JSON/XML、八件套发布回归、四种发布配置及 Debug/显式非 AOT/最终 Release 的强制锁定还原；解决方案 Release 编译为 0 警告、0 错误，NuGetAudit 保持开启。日志位于 output/ci/lint-fix.log 和 output/ci/checks-fix.log，git diff --check 通过。下一步 SSH 签名提交并推送，跟进新 Actions 的 Lint 与质量作业；远端测试、完整四项打包及发布尚未验证，本次不发布 Release。
+
+远端首轮复核：SSH 签名提交 15c9d528315f3527cc3fa799e7d6a015a912fb39 已推送 main，Actions 39187999434 的 Restore locked solution 和 Lint 均成功；Checks 随后发现干净运行器未准备 PDFium，而此前本机已有缓存未暴露此问题。工作流现将固定原生依赖准备移至 Checks 编译之前，保留完整检查和缺依赖时的明确失败。下一步推送该顺序修复并跟进完整质量作业，不能将首轮整体记为通过。
