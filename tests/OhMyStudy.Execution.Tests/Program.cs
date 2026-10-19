@@ -199,9 +199,11 @@ if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
         var call = Call("computation", "python", "import numpy,sympy,matplotlib;matplotlib.use('Agg');import matplotlib.pyplot as p; print(sympy.expand((sympy.Symbol('x')+1)**2));p.plot([0,1],[0,1]);p.savefig('plot.png');print('你好')") with { TimeoutMs = 30000 };
         var result = await executor.ExecuteAsync(broker.Request(call)!, Path.Combine(root, "python-call"), CancellationToken.None);
         Require(result.Succeeded && result.Stdout.Contains("x**2 + 2*x + 1") && result.Stdout.Contains("你好") && File.Exists(Path.Combine(root, "plot.png")), "private runtime computation");
-        call = Call("computation", "shell", "param($first,$second,$third); [Console]::WriteLine(($first,$second,$third -join '|'))") with { Tool = ToolKind.Shell, TimeoutMs = 30000 };
+        // A clean Windows runner may initialize PowerShell's module cache on first use.
+        // This check covers argument passing; short deadlines are exercised separately above.
+        call = Call("computation", "shell", "param($first,$second,$third); [Console]::WriteLine(($first,$second,$third -join '|'))") with { Tool = ToolKind.Shell, TimeoutMs = 120000 };
         result = await executor.ExecuteAsync(broker.Request(call)!, Path.Combine(root, "shell-call"), CancellationToken.None);
-        Require(result.Succeeded && result.Stdout.Contains("a b|尾\\|中文"), result.Stderr + result.Stdout);
+        Require(result.Succeeded && result.Stdout.Contains("a b|尾\\|中文"), $"PowerShell arguments: status={result.Status}, exit={result.ExitCode}; {result.Stderr}{result.Stdout}");
     });
     await Check("sandbox-worker-isolated-host-computation", async () =>
     {
