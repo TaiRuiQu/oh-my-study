@@ -2,15 +2,6 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
-      "Anthropic": {
-        "type": "Direct",
-        "requested": "[12.58.0, )",
-        "resolved": "12.58.0",
-        "contentHash": "lOI9NaI5cjWDm0HnuM/yVr1/+RtMAjdJyvxUV2/yAiG4iIQRZJhzpeiK4fDigqz4+kWfaRa+40+zU3lR2hY9HQ==",
-        "dependencies": {
-          "Microsoft.Extensions.AI.Abstractions": "10.5.1"
-        }
-      },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Direct",
         "requested": "[10.0.13, )",
@@ -49,6 +40,15 @@
         "dependencies": {
           "SQLitePCLRaw.config.e_sqlite3": "3.0.2",
           "SourceGear.sqlite3": "3.50.4.2"
+        }
+      },
+      "TairuiQu.Anthropic.Aot": {
+        "type": "Direct",
+        "requested": "[12.58.0-aot.1, )",
+        "resolved": "12.58.0-aot.1",
+        "contentHash": "Z3XQyvtiLeAD0BEkTCyVSI8ccHeePyHrAzfLzuwlLVFj3P0VB5AaQtXUCZpD/0y6hPN0uBJ8GLibzqaqPXQ+cQ==",
+        "dependencies": {
+          "Microsoft.Extensions.AI.Abstractions": "10.5.1"
         }
       },
       "Microsoft.Extensions.AI.Abstractions": {
@@ -170,27 +170,6 @@
       },
       "ohmystudy.domain": {
         "type": "Project"
-      }
-    },
-    "net10.0/win-x64": {
-      "Microsoft.DotNet.ILCompiler": {
-        "type": "Direct",
-        "requested": "[10.0.13, )",
-        "resolved": "10.0.13",
-        "contentHash": "MnT222WlxhelguLZTQx9soBHKW7TeY6A9YUwVaprjUd+ARlhLAkfsXGFNX9w6kRq89/yxUcAQ/lzvmgndSFfOw==",
-        "dependencies": {
-          "runtime.win-x64.Microsoft.DotNet.ILCompiler": "10.0.13"
-        }
-      },
-      "runtime.win-x64.Microsoft.DotNet.ILCompiler": {
-        "type": "Transitive",
-        "resolved": "10.0.13",
-        "contentHash": "L85cXCLA3BMnFyf6xtFczYVstkmMqlJk4pP8cpsvz86V6Gqn885K9rg+aJdoYGCEF7I01ptCYcwujtMmqkezsA=="
-      },
-      "SourceGear.sqlite3": {
-        "type": "Transitive",
-        "resolved": "3.50.4.2",
-        "contentHash": "eV9HwQ88WyoU+reGVxJz1SwME9NbYnl9h2LOY15j0LGdXN4JkTJDk8JRRg/yNgt00O3Cn5/qnska10FEZNoU5g=="
       }
     }
   }

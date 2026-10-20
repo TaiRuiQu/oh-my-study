@@ -229,20 +229,11 @@
       "ohmystudy.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "Anthropic": "[12.58.0, )",
           "Microsoft.Data.Sqlite.Core": "[10.0.13, )",
           "OhMyStudy.Application": "[1.0.0, )",
           "OpenAI": "[2.14.0, )",
-          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.2, )"
-        }
-      },
-      "Anthropic": {
-        "type": "CentralTransitive",
-        "requested": "[12.58.0, )",
-        "resolved": "12.58.0",
-        "contentHash": "lOI9NaI5cjWDm0HnuM/yVr1/+RtMAjdJyvxUV2/yAiG4iIQRZJhzpeiK4fDigqz4+kWfaRa+40+zU3lR2hY9HQ==",
-        "dependencies": {
-          "Microsoft.Extensions.AI.Abstractions": "10.5.1"
+          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.2, )",
+          "TairuiQu.Anthropic.Aot": "[12.58.0-aot.1, )"
         }
       },
       "Microsoft.Data.Sqlite.Core": {
@@ -271,6 +262,15 @@
         "dependencies": {
           "SQLitePCLRaw.config.e_sqlite3": "3.0.2",
           "SourceGear.sqlite3": "3.50.4.2"
+        }
+      },
+      "TairuiQu.Anthropic.Aot": {
+        "type": "CentralTransitive",
+        "requested": "[12.58.0-aot.1, )",
+        "resolved": "12.58.0-aot.1",
+        "contentHash": "Z3XQyvtiLeAD0BEkTCyVSI8ccHeePyHrAzfLzuwlLVFj3P0VB5AaQtXUCZpD/0y6hPN0uBJ8GLibzqaqPXQ+cQ==",
+        "dependencies": {
+          "Microsoft.Extensions.AI.Abstractions": "10.5.1"
         }
       }
     },

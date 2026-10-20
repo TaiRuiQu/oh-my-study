@@ -1,6 +1,6 @@
 # Anthropic 官方 SDK 接入与自动缓存
 
-> 后续变更：Google 模型支持已移除，当前仅保留 Responses 与 Messages。以下三协议相关内容是当时的验证记录，现状见 [移除记录](google-removal.2026-10-20.md)。
+> 后续变更：Google 模型支持已移除，当前仅保留 Responses 与 Messages；官方包已按用户要求换为 `TairuiQu.Anthropic.Aot` 并恢复 Native AOT，见 [AOT 切换记录](anthropic-aot-switch.2026-10-20.md)。以下三协议相关内容与临时非 AOT 边界是当时的验证记录。
 
 2026-10-20。按用户要求，在现有 OpenAI 接入的工作区改动之上接入官方 `Anthropic` 12.58.0。用户确认官方包目前不支持 Native AOT，允许先完成接入；只有用户后续通知后才换为其兼容包 `TairuiQu.Anthropic.Aot`，不能提前替换或假设该包已经发布。
 

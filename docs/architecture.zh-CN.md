@@ -26,7 +26,7 @@ flowchart TD
     Docs --> Engines[VelociTex / PDFium / Typst 文档分页]
 ```
 
-App 当前直接组合具体仓储、队列、协议与文档服务；没有把计划中的抽象误写为已经实现的依赖反转。正式代码不使用旧 Rust 后端或 Node 常驻服务。业务 JSON 使用封闭的源生成上下文，WinUI 使用编译绑定和局部状态通知。Anthropic 官方 SDK 是临时例外：非 AOT 构建为其启用反射序列化，裁剪和 AOT 发布明确阻止，待替换用户提供的兼容包后恢复验收。
+App 当前直接组合具体仓储、队列、协议与文档服务；没有把计划中的抽象误写为已经实现的依赖反转。正式代码不使用旧 Rust 后端或 Node 常驻服务。业务 JSON 使用封闭的源生成上下文，WinUI 使用编译绑定和局部状态通知。消息协议使用启用 Native AOT 的 `TairuiQu.Anthropic.Aot`，不再需要反射序列化例外，裁剪和 AOT 发布恢复原有严格分析。
 
 根目录采用解决方案、集中包版本、逐工程锁文件及统一 AOT/裁剪分析。`packaging/Invoke-MigrationChecks.ps1` 串行进行 Release 锁定还原、全新发布及 EXE 实际运行；`Test-RepositoryLayout.ps1` 检查旧实现隔离。只有编译成功或设置 `PublishAot` 属性不算 Native AOT 验证通过。
 
@@ -36,7 +36,7 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 
 `JobQueue` 保持一次一个运行任务，其余排队；快照和不可复用的递增事件共同持久化，重启处理中任务与取消有明确终态。提交屏障等待已在途提交收束，拒绝取消后的迟到结果，已成功保存的题目保留。App 最小化不停止队列，关闭时等待取消和资源释放。
 
-`GradingRunner` 以整卷为上下文，组合 Responses、Messages 原生协议与各自思考配置、SSE、工具回合、用量和价格记录。Responses 的请求、认证与 SSE 帧由官方 `OpenAI` SDK（2.14.0）承担；Messages 使用官方 `Anthropic` SDK（12.58.0），请求顶层默认设置 `cache_control: {type: ephemeral}`，由供应商自动推进缓存断点，缓存读写用量仍按真实返回值记录。用户已明确允许先使用不支持 AOT 的 Anthropic 官方包，后续在用户通知后替换为保持相同接口的 `TairuiQu.Anthropic.Aot`；工程不屏蔽 AOT 告警或伪造 AOT 通过。见 [OpenAI 验收](verification/openai-sdk.2026-10-20.md) 与 [Anthropic 接入记录](verification/anthropic-sdk.2026-10-20.md)。只有校验通过的工具结果进入仓储；参考答案任务限制自身工具与覆盖范围。两种协议和三种模式的合成链路经过真实队列、协议客户端及 SQLite；真实识别、漏题、串答和评分语义仍待授权供应商及样卷验收。
+`GradingRunner` 以整卷为上下文，组合 Responses、Messages 原生协议与各自思考配置、SSE、工具回合、用量和价格记录。Responses 的请求、认证与 SSE 帧由官方 `OpenAI` SDK（2.14.0）承担；Messages 使用官方 SDK 的 Native AOT 分支 `TairuiQu.Anthropic.Aot`（12.58.0-aot.1，保留 `Anthropic.*` 命名空间），请求顶层默认设置 `cache_control: {type: ephemeral}`，由供应商自动推进缓存断点，缓存读写用量仍按真实返回值记录。该分支经 Native AOT 发布并实际运行验证，工程不屏蔽 AOT 告警。见 [OpenAI 验收](verification/openai-sdk.2026-10-20.md)、[Anthropic 接入记录](verification/anthropic-sdk.2026-10-20.md) 与 [AOT 切换记录](verification/anthropic-aot-switch.2026-10-20.md)。只有校验通过的工具结果进入仓储；参考答案任务限制自身工具与覆盖范围。两种协议和三种模式的合成链路经过真实队列、协议客户端及 SQLite；真实识别、漏题、串答和评分语义仍待授权供应商及样卷验收。
 
 权限批准绑定代码、工具、参数、目录和超时，区分一次、本任务与拒绝；宿主执行使用 Windows Job Object 回收所属进程树。私有 Python 来自锁定运行时。`PolicyToolExecutor`按冻结许可分派宿主或Sandbox，后者每次调用创建独立VM，通过新`wsb` CLI明确指定随机会话ID，并只停止该ID。调用之间不保留任意环境状态；这是替代未完成旧原型的可证明归属生命周期。Windows 10、旧Windows 11或缺少CLI时不返回Ready；开始前可明确警告并冻结本机回退，Sandbox执行失败后没有宿主重放。真实会话、映射与系统矩阵仍由用户验收，不能将本机执行显示为沙箱隔离。
 

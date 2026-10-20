@@ -10,8 +10,7 @@ using OhMyStudy.Infrastructure.Providers;
 [assembly: SupportedOSPlatform("windows10.0.19041")]
 
 // All payloads and credentials in this runner are synthetic and stay inside fake handlers.
-if (RuntimeFeature.IsDynamicCodeSupported && !args.Contains("--managed-sdk-check", StringComparer.Ordinal))
-    throw new InvalidOperationException("Run the published Native AOT executable, or explicitly use --managed-sdk-check while the official Anthropic SDK requires managed execution.");
+if (RuntimeFeature.IsDynamicCodeSupported) throw new InvalidOperationException("Run the published Native AOT protocol executable.");
 var fixtures = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "round-trips.synthetic.json")))!;
 var completed = 0;
 await Run("native requests, images, opaque tool context and usage", NativeRoundTrips);

@@ -13,8 +13,8 @@ using Tool = OhMyStudy.Domain.Tool;
 namespace OhMyStudy.Infrastructure.Providers;
 
 /// <summary>
-/// Messages transport through the official SDK. Keep its public API when replacing the
-/// Anthropic package with TairuiQu.Anthropic.Aot after the user announces its availability.
+/// Messages transport through the official SDK, supplied by the AOT-enabled
+/// TairuiQu.Anthropic.Aot fork, which keeps the Anthropic.* namespaces.
 /// </summary>
 internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyDictionary<string, string> headers)
 {

@@ -14,7 +14,7 @@
 
 环境：Windows x64、PowerShell 7、.NET SDK 10.0.402、MSVC x64 Build Tools 和 Windows SDK。版本以仓库锁文件为准。
 
-当前开发源码已接入 Anthropic 官方 SDK，并默认启用自动前缀缓存。此包暂不支持裁剪和 Native AOT；本阶段使用非 AOT 构建，例如 `dotnet build src/OhMyStudy.App -c Release -p:OhMyStudyPublishVariant=framework-dependent`。原有 AOT 验收及发布命令暂时会被明确阻止，待用户通知后换为 `TairuiQu.Anthropic.Aot` 并重新验收。切换步骤与本轮证据见 [Anthropic SDK 接入记录](docs/verification/anthropic-sdk.2026-10-20.md)。
+Responses 与 Messages 分别由官方 `OpenAI` 和启用 Native AOT 的 `TairuiQu.Anthropic.Aot` SDK 承担请求与流式解析，Messages 默认启用自动前缀缓存。全部发布变体恢复 Native AOT 与裁剪分析，不再需要非 AOT 构建参数。切换与验收证据见 [Anthropic AOT 切换记录](docs/verification/anthropic-aot-switch.2026-10-20.md)。
 
 ```powershell
 ./packaging/Test-RepositoryLayout.ps1
