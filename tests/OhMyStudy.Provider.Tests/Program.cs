@@ -20,6 +20,7 @@ await Run("incremental Unicode SSE for all protocols", Streams);
 await Run("invalid streaming states, limits and refusals", InvalidStreams);
 await Run("models preserve metadata and unknown capabilities", Models);
 await Run("catalog exact IDs, provider prices and unknown metadata", Catalog);
+await Run("daily persistent bounded cache, refresh and stale fallback", DailyCache);
 await Run("native HTTP endpoints, headers and streaming bodies", HttpFraming);
 await Run("official SDK framing: opaque context, images, native extras and terminal events", SdkFraming);
 await Run("Anthropic SDK: automatic cache, tool continuation, errors, bounds and cancellation", () => MessagesSdkRegression.RunAsync(fixtures));
@@ -50,6 +51,29 @@ static Task Catalog()
     Check(relay.PriceInput is null && relay.PriceOutput is null && relay.ContextWindow is null
         && relay.Capabilities.Vision is null && relay.Capabilities.Tools is null, "missing metadata stays unknown, prices remain provider-specific");
     return Task.CompletedTask;
+}
+
+static async Task DailyCache()
+{
+    string root = Path.Combine(Path.GetTempPath(), "OhMyStudy-Catalog-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
+    var clock = new FeedClock(new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero)); int requests = 0; bool fail = false;
+    using var http = new HttpClient(new FakeHandler((_, _) => { requests++; return Task.FromResult(Response(fail ? "{}" : "{\"value\":7.12}", fail ? 503 : 200)); }));
+    string file = Path.Combine(root, "feed.json");
+    bool Valid(JsonElement data) => data.ValueKind == JsonValueKind.Object && data.TryGetProperty("value", out _);
+    var feed = new DailyJsonFeed("https://synthetic.invalid/feed", file, 1024, Valid, clock);
+    var first = await feed.GetAsync(http); var second = await feed.GetAsync(http);
+    Check(requests == 1 && !first.IsStale && second.Value.GetProperty("value").GetDouble() == 7.12, "one request per day");
+    var reopened = new DailyJsonFeed("https://synthetic.invalid/feed", file, 1024, Valid, clock); await reopened.GetAsync(http);
+    Check(requests == 1, "cache survives restart");
+    clock.Now = clock.Now.AddDays(1); await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => feed.GetAsync(http)));
+    Check(requests == 2, "next day refresh coalesces concurrent lookups");
+    fail = true; clock.Now = clock.Now.AddDays(1); var stale = await feed.GetAsync(http); await feed.GetAsync(http);
+    Check(requests == 3 && stale.IsStale && stale.Value.GetProperty("value").GetDouble() == 7.12, "failed refresh preserves good data and avoids repeated requests");
+    using var metadata = JsonDocument.Parse("""{"p":{"models":{"m":{"name":"Visible name","limit":{"context":200000,"output":32000},"reasoning":true,"reasoning_options":[{"type":"effort","values":["low","high","xhigh",null,"default"]},{"type":"budget_tokens","min":1024}],"modalities":{"input":["text","image","pdf"],"output":["text"]}}}}}""");
+    var model = ModelCatalog.Find(metadata.RootElement, "m").Single().Model;
+    Check(model.MaxOutputTokens == 32000 && model.InputModalities!.Contains("pdf") && model.Reasoning == true && model.Capabilities.Thinking.Count == 3, "documented modalities, output and effort metadata");
+    var messages = ModelCatalog.ForProtocol(model, Protocol.Messages);
+    Check(messages.Capabilities.Thinking.SequenceEqual(new Thinking[] { new AdaptiveThinking { Effort = "low" }, new AdaptiveThinking { Effort = "high" } }) && messages.Capabilities.MessagesBudget == true, "protocol-supported efforts only");
 }
 
 async Task Run(string name, Func<Task> test)
@@ -442,4 +466,10 @@ sealed class HangingStream : Stream
     public override void SetLength(long value) => throw new NotSupportedException();
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     protected override void Dispose(bool disposing) { Disposed = true; _release.Set(); base.Dispose(disposing); }
+}
+
+sealed class FeedClock(DateTimeOffset now) : TimeProvider
+{
+    public DateTimeOffset Now { get; set; } = now;
+    public override DateTimeOffset GetUtcNow() => Now;
 }

@@ -89,16 +89,16 @@
       "source": "src-tauri/src/domain/grading.rs:Grade"
     },
     {
-      "id": "missing_required_question_collection_is_rejected",
+      "id": "missing_optional_question_options_default_empty",
       "type": "Question",
       "base": "/question",
       "remove": [
         "options"
       ],
       "expected": {
-        "accepted": false
+        "accepted": true
       },
-      "source": "src-tauri/src/domain/grading.rs:Question"
+      "source": "2026-10-20: auxiliary fields may be omitted"
     },
     {
       "id": "missing_job_input_defaults_to_null",
@@ -284,7 +284,7 @@
         "source": "ai_solution",
         "reason": " "
       },
-      "accepted": false
+      "accepted": true
     },
     {
       "id": "uncertain_with_earned",

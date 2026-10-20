@@ -75,7 +75,7 @@ public sealed partial class LibraryRepository
     }
 
     private static bool Protected(Question question, bool teacherMode) => question.Attempt is { } a &&
-        (a.Grade.Source == GradeSource.Manual || teacherMode && a.Teacher?.Grade is not null) || question.Parts.Any(p => Protected(p, teacherMode));
+        (a.Grade.Source == GradeSource.Manual || teacherMode && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null)) || question.Parts.Any(p => Protected(p, teacherMode));
 
     private static Question Preserve(Question next, Question old, bool teacherMode)
     {
@@ -83,12 +83,12 @@ public sealed partial class LibraryRepository
             throw new InvalidOperationException("不能在重批中移除已有教师或手动评分的小问，请保留原结构");
         if (old.Attempt is { } previous)
         {
-            var preserve = previous.Grade.Source == GradeSource.Manual || teacherMode && previous.Teacher?.Grade is not null;
+            var preserve = previous.Grade.Source == GradeSource.Manual || teacherMode && (previous.Grade.Source == GradeSource.Teacher || previous.Teacher?.Grade is not null);
             if (preserve && next.Attempt is null) throw new InvalidOperationException("不能在重批中移除已有教师或手动评分");
             if (next.Attempt is { } attempt)
             {
                 if (previous.Grade.Source == GradeSource.Manual) next = next with { Attempt = attempt with { Grade = previous.Grade } };
-                else if (teacherMode && previous.Teacher?.Grade is not null) next = next with { Attempt = attempt with { Teacher = previous.Teacher, Grade = previous.Grade } };
+                else if (teacherMode && (previous.Grade.Source == GradeSource.Teacher || previous.Teacher?.Grade is not null)) next = next with { Attempt = attempt with { Teacher = previous.Teacher, Grade = previous.Grade } };
             }
         }
         return next with { Parts = next.Parts.Select(p => old.Parts.FirstOrDefault(o => o.DraftKey == p.DraftKey) is { } previous ? Preserve(p, previous, teacherMode) : p).ToList() };

@@ -14,6 +14,8 @@ public sealed partial class MainWindow
     private bool _refreshingProviders;
     private bool _modelRequestRunning;
     private string? _selectedModelId;
+    private ModelConfig? _modelMetadataDraft;
+    private string SelectedCurrency => ModelCurrency.SelectedIndex switch { 0 => "USD", 1 => "CNY", _ => "" };
 
     private async void ModelPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -33,13 +35,14 @@ public sealed partial class MainWindow
 
     private void PopulateModelEditor(ModelConfig model)
     {
+        _modelMetadataDraft = model;
         _selectedModelId = model.Id.Length == 0 ? null : model.Id;
         ModelDisplayName.Text = model.DisplayName ?? ""; ModelId.Text = model.Id;
         ModelContextWindow.Text = model.ContextWindow?.ToString(CultureInfo.InvariantCulture) ?? "";
         ModelVision.IsChecked = model.Capabilities.Vision; ModelTools.IsChecked = model.Capabilities.Tools;
         ModelPriceInput.Text = model.PriceInput?.ToString(CultureInfo.InvariantCulture) ?? "";
         ModelPriceOutput.Text = model.PriceOutput?.ToString(CultureInfo.InvariantCulture) ?? "";
-        ModelCurrency.Text = model.Currency; ModelCatalogFeedback.Text = ""; ModelFeedback.Text = "";
+        ModelCurrency.SelectedIndex = model.Currency switch { "CNY" => 1, "USD" => 0, _ => -1 }; ModelCatalogFeedback.Text = ""; ModelFeedback.Text = "";
         var provider = ProviderPicker.SelectedItem as Provider;
         string[] presets = provider?.Protocol switch
         {
@@ -56,6 +59,8 @@ public sealed partial class MainWindow
         ModelThinkingBudget.Visibility = provider?.Protocol == Protocol.Messages ? Visibility.Visible : Visibility.Collapsed;
         ModelThinkingBudget.Text = model.Capabilities.Thinking.FirstOrDefault(t => t is BudgetThinking) switch
         { BudgetThinking v => v.Tokens.ToString(CultureInfo.InvariantCulture), _ => "" };
+        ModelExtraInfo.Text = ExtraModelInfo(model);
+        _ = UpdateModelCnyPreviewAsync();
         ModelEditor.Visibility = Visibility.Visible;
         _modelFormBaseline = ModelFormState();
         UpdateSettingsActionAvailability();
@@ -94,16 +99,16 @@ public sealed partial class MainWindow
                 thinking.Add(new BudgetThinking { Tokens = budget });
             }
             var old = provider.Models.FirstOrDefault(m => m.Id == _selectedModelId);
-            var model = new ModelConfig
+            var model = (_modelMetadataDraft ?? old ?? new ModelConfig { Id = "", Capabilities = Capabilities.Unknown, Currency = "USD" }) with
             {
                 Id = ModelId.Text.Trim(),
                 DisplayName = ModelDisplayName.Text.Trim(),
                 ContextWindow = string.IsNullOrWhiteSpace(ModelContextWindow.Text) ? null : ulong.Parse(ModelContextWindow.Text, CultureInfo.InvariantCulture),
                 PriceInput = Price(ModelPriceInput.Text),
                 PriceOutput = Price(ModelPriceOutput.Text),
-                Currency = ModelCurrency.Text.Trim(),
-                Capabilities = (old?.Capabilities ?? Capabilities.Unknown) with
-                { Vision = ModelVision.IsChecked, Tools = ModelTools.IsChecked, Thinking = thinking, MessagesBudget = thinking.Any(t => t is BudgetThinking), Source = "manual" }
+                Currency = SelectedCurrency,
+                Capabilities = (_modelMetadataDraft?.Capabilities ?? old?.Capabilities ?? Capabilities.Unknown) with
+                { Vision = ModelVision.IsChecked, Tools = ModelTools.IsChecked, Thinking = thinking, MessagesBudget = thinking.Any(t => t is BudgetThinking) || _modelMetadataDraft?.Capabilities.MessagesBudget == true, Source = "manual" }
             };
             var models = provider.Models.ToList();
             int index = models.FindIndex(m => m.Id == _selectedModelId);
@@ -115,7 +120,7 @@ public sealed partial class MainWindow
             _selectedModelId = model.Id;
             UpdateProviderEntry(provider with { Models = models }); UpdateModelList(provider with { Models = models }); ModelFeedback.Text = "模型已保存。";
         }
-        catch { ModelFeedback.Text = "未能保存。请检查模型 ID 是否重复、窗口和预算是否为整数、价格是否为非负数。"; }
+        catch { ModelFeedback.Text = "未能保存。请检查模型 ID，选择货币，并确认窗口和预算为整数、价格为非负数。"; }
         finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; }
     }
 
@@ -155,7 +160,7 @@ public sealed partial class MainWindow
             await client.CallWithRetryAsync(new(Encoding.UTF8.GetString(key)), options, ProviderProtocol.Initial(provider.Protocol, "Reply with OK.", []), [],
                 new ProviderRetryPolicy { MaximumAttempts = 1 }, cancellationToken: timeout.Token);
             if (ProviderPicker.SelectedItem is Provider current && current.Id == provider.Id)
-                ModelFeedback.Text = $"连接成功 · {model.Label} · {watch.Elapsed.TotalSeconds:F1} 秒";
+                ModelFeedback.Text = $"连接成功（{model.Label}，{watch.Elapsed.TotalSeconds:F1} 秒）";
         }
         catch { if (!_closed) ModelFeedback.Text = "连接失败，请检查已保存的地址、密钥、模型及网络。"; }
         finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; if (key is not null) CryptographicOperations.ZeroMemory(key); }
@@ -171,11 +176,12 @@ public sealed partial class MainWindow
             ModelCatalogFeedback.Text = "正在获取…";
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token); timeout.CancelAfter(TimeSpan.FromSeconds(30));
             using var http = new System.Net.Http.HttpClient();
-            var matches = await ModelCatalog.FindAsync(http, requestedId, timeout.Token);
+            var catalog = await ModelCatalog.GetAsync(http, timeout.Token);
+            var matches = ModelCatalog.Find(catalog.Value, requestedId);
             if (requestedId != ModelId.Text.Trim() || provider?.Id != _selectedProviderId) return;
             if (matches.Count == 0) { ModelCatalogFeedback.Text = "未找到相同 ID，请手动填写。"; return; }
-            var choice = new ComboBox { Header = "价格来源", HorizontalAlignment = HorizontalAlignment.Stretch };
-            foreach (var match in matches) choice.Items.Add(match.ProviderName);
+            var choice = new ComboBox { Header = "信息来源", HorizontalAlignment = HorizontalAlignment.Stretch, Width = Math.Max(200, Math.Min(460, RootGrid.ActualWidth - 96)) };
+            foreach (var match in matches) choice.Items.Add(new TextBlock { Text = match.ProviderName, MaxWidth = choice.Width - 48, TextTrimming = TextTrimming.CharacterEllipsis });
             choice.SelectedIndex = Math.Max(0, matches.FindIndex(m => m.Api is not null && provider is not null
                 && Uri.TryCreate(m.Api, UriKind.Absolute, out var api) && Uri.TryCreate(provider.BaseUrl, UriKind.Absolute, out var address) && api.Host == address.Host));
             var content = new StackPanel { Spacing = 12 };
@@ -183,13 +189,48 @@ public sealed partial class MainWindow
             var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = "填充模型信息", Content = content, PrimaryButtonText = "填充", CloseButtonText = "取消" };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) { ModelCatalogFeedback.Text = ""; return; }
             var selected = matches[choice.SelectedIndex];
-            ModelDisplayName.Text = selected.Model.DisplayName ?? ""; ModelContextWindow.Text = selected.Model.ContextWindow?.ToString(CultureInfo.InvariantCulture) ?? "";
-            ModelVision.IsChecked = selected.Model.Capabilities.Vision; ModelTools.IsChecked = selected.Model.Capabilities.Tools;
-            ModelPriceInput.Text = selected.Model.PriceInput?.ToString(CultureInfo.InvariantCulture) ?? "";
-            ModelPriceOutput.Text = selected.Model.PriceOutput?.ToString(CultureInfo.InvariantCulture) ?? ""; ModelCurrency.Text = selected.Model.Currency;
-            ModelCatalogFeedback.Text = $"来自 models.dev / {selected.ProviderName}，尚未保存；思考选项需自行确认。";
+            ApplyCatalogModel(ModelCatalog.ForProtocol(selected.Model, provider!.Protocol));
+            ModelCatalogFeedback.Text = $"来自 models.dev / {selected.ProviderName}（{catalog.FetchedAt.ToLocalTime():yyyy/MM/dd}）" + (catalog.IsStale ? "，当前使用缓存" : "") + "，尚未保存";
+
         }
-        catch { ModelCatalogFeedback.Text = "获取失败，可手动填写或稍后重试。"; }
+        catch { ModelCatalogFeedback.Text = "暂时无法获取，可手动填写，明天可再次更新。"; }
         finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; }
     }
+    private void ApplyCatalogModel(ModelConfig model)
+    {
+        _modelMetadataDraft = model with
+        {
+            MaxOutputTokens = model.MaxOutputTokens ?? _modelMetadataDraft?.MaxOutputTokens,
+            InputModalities = model.InputModalities ?? _modelMetadataDraft?.InputModalities,
+            OutputModalities = model.OutputModalities ?? _modelMetadataDraft?.OutputModalities,
+            Reasoning = model.Reasoning ?? _modelMetadataDraft?.Reasoning
+        };
+        if (model.DisplayName is not null) ModelDisplayName.Text = model.DisplayName;
+        if (model.ContextWindow.HasValue) ModelContextWindow.Text = model.ContextWindow.Value.ToString(CultureInfo.InvariantCulture);
+        if (model.Capabilities.Vision.HasValue) ModelVision.IsChecked = model.Capabilities.Vision;
+        if (model.Capabilities.Tools.HasValue) ModelTools.IsChecked = model.Capabilities.Tools;
+        // Missing metadata never clears a confirmed user value.
+        bool hasPrices = model.PriceInput.HasValue || model.PriceOutput.HasValue;
+        if (hasPrices && SelectedCurrency != "USD") { ModelPriceInput.Text = ""; ModelPriceOutput.Text = ""; }
+        if (model.PriceInput.HasValue) ModelPriceInput.Text = model.PriceInput.Value.ToString(CultureInfo.InvariantCulture);
+        if (model.PriceOutput.HasValue) ModelPriceOutput.Text = model.PriceOutput.Value.ToString(CultureInfo.InvariantCulture);
+        if (hasPrices) ModelCurrency.SelectedIndex = 0;
+        if (model.Reasoning == false || model.Capabilities.Thinking.Count > 0)
+        {
+            var efforts = model.Capabilities.Thinking.Select(t => t switch { ResponsesThinking r => r.Effort, AdaptiveThinking a => a.Effort, _ => "" }).ToHashSet();
+            foreach (var check in ModelThinkingOptions.Children.OfType<CheckBox>()) check.IsChecked = efforts.Contains((string)check.Content);
+        }
+        ModelExtraInfo.Text = ExtraModelInfo(model); _ = UpdateModelCnyPreviewAsync();
+    }
+    private static string ExtraModelInfo(ModelConfig model)
+    {
+        static string Modes(IEnumerable<string>? values) => string.Join("、", (values ?? []).Select(v => v switch { "text" => "文字", "image" => "图片", "audio" => "音频", "video" => "视频", "pdf" => "PDF", _ => v }));
+        var info = new List<string>();
+        if (model.InputModalities is { Count: > 0 }) info.Add("可读：" + Modes(model.InputModalities));
+        if (model.OutputModalities is { Count: > 0 }) info.Add("可生成：" + Modes(model.OutputModalities));
+        if (model.MaxOutputTokens is { } max) info.Add($"最多输出 {max:N0} token");
+        if (model.Reasoning.HasValue) info.Add(model.Reasoning.Value ? "支持思考" : "不支持思考");
+        return string.Join("；", info);
+    }
+
 }

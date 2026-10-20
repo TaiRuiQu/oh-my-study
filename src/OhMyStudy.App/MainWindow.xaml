@@ -8,6 +8,9 @@
     Title="Oh My Study">
     <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource WorkspaceCanvasBrush}">
+        <Grid.Resources>
+            <DataTemplate x:Key="ImportModelTemplate" x:DataType="domain:ModelConfig"><StackPanel Spacing="3" Padding="0,5" MaxWidth="380"><TextBlock Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Label}" /><TextBlock Text="{x:Bind Id}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Id}" Style="{StaticResource QuietTextStyle}" /></StackPanel></DataTemplate>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -52,20 +55,20 @@
                         <TextBlock x:Name="SectionCaption" Text="{x:Bind ViewModel.SectionTitle, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" />
                         <TextBlock x:Name="PageHeading" Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
-                    <StackPanel x:Name="WorkspaceActions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel x:Name="WorkspaceActions" Visibility="Collapsed" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <Button x:Name="ImportPaperButton" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" AutomationProperties.Name="导入试卷，支持 PDF 或图片">
                             <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock Text="导入试卷" /></StackPanel>
                         </Button>
                         <Button x:Name="GradeButton" Content="重新识别" Click="Grade_Click" IsEnabled="False" Visibility="Collapsed" />
-                        <Button AutomationProperties.Name="更多工作区操作">
+                        <Button x:Name="PaperMoreButton" AutomationProperties.Name="更多试卷操作">
                             <FontIcon Glyph="&#xE712;" FontSize="18" />
                             <Button.Flyout>
                                 <MenuFlyout>
-                                    <MenuFlyoutItem Text="添加参考答案" Click="AddReferences_Click" />
-                                    <MenuFlyoutItem Text="管理页面" Click="ManagePages_Click" />
-                                    <MenuFlyoutItem Text="导出题目" Click="ExportQuestions_Click" />
-                                    <MenuFlyoutItem Text="打印原件" Click="PrintOriginal_Click" />
-                                    <MenuFlyoutItem Text="整理参考答案" Click="ReadReferences_Click" />
+                                    <MenuFlyoutItem x:Name="PaperAddReferenceAction" Text="添加参考答案" Click="AddReferences_Click" />
+                                    <MenuFlyoutItem x:Name="PaperPagesAction" Text="管理页面" Click="ManagePages_Click" />
+                                    <MenuFlyoutItem x:Name="PaperExportAction" Text="导出题目" Click="ExportQuestions_Click" />
+                                    <MenuFlyoutItem x:Name="PaperPrintAction" Text="打印原件" Click="PrintOriginal_Click" />
+                                    <MenuFlyoutItem x:Name="PaperReferencesAction" Text="整理参考答案" Click="ReadReferences_Click" />
                                     <MenuFlyoutItem Text="备份资料" Click="Backup_Click" />
                                     <MenuFlyoutItem Text="恢复备份" Click="RestoreBackup_Click" />
                                     <MenuFlyoutItem Text="导入旧版资料" Click="MigrateLegacy_Click" />
@@ -82,11 +85,10 @@
                     <Grid x:Name="DocumentToolbar" ColumnSpacing="12" RowSpacing="8" Visibility="Collapsed">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <ComboBox x:Name="DocumentPicker" PlaceholderText="选择试卷" MinWidth="180" MaxWidth="320" HorizontalAlignment="Stretch" SelectionChanged="DocumentPicker_SelectionChanged">
-                            <ComboBox.ItemTemplate><DataTemplate x:DataType="domain:Document"><TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Name}" /></DataTemplate></ComboBox.ItemTemplate>
-                        </ComboBox>
+                        <Button x:Name="BackToPapersButton" Content="返回试卷列表" Click="BackToPapers_Click" />
                         <StackPanel x:Name="DocumentCommands" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                         <Button x:Name="EditQuestionButton" Content="编辑题目" Click="EditQuestion_Click" IsEnabled="False" />
+                        <Button Content="试卷信息" Click="EditPaperInfo_Click" />
                         <Button Content="识别结果" Click="ViewResults_Click" />
                         <Button x:Name="ViewOriginalButton" Content="查看原件" Click="ViewOriginal_Click" />
                         </StackPanel>
@@ -94,6 +96,44 @@
                     <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational" CloseButtonClick="WorkspaceNotice_CloseButtonClick"
                         Title="示例资料" Message="可查看和编辑，修改不会保存。" />
                 </StackPanel>
+                <Grid x:Name="PapersPanel" Grid.Row="2" Visibility="Collapsed" RowSpacing="12">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid x:Name="PaperFilters" ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBox x:Name="PaperSearch" PlaceholderText="搜索试卷标题或学科" TextChanged="PaperFilters_Changed" AutomationProperties.Name="搜索试卷" />
+                        <ComboBox x:Name="PaperSubjectFilter" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="PaperFilter_SelectionChanged" AutomationProperties.Name="按学科筛选" />
+                        <ComboBox x:Name="PaperSort" Grid.Column="2" HorizontalAlignment="Stretch" SelectionChanged="PaperFilter_SelectionChanged" SelectedIndex="0" AutomationProperties.Name="试卷排序">
+                            <x:String>最近导入</x:String><x:String>最早导入</x:String><x:String>标题</x:String><x:String>学科</x:String><x:String>得分率</x:String>
+                        </ComboBox>
+                    </Grid>
+                    <TextBlock x:Name="PaperCount" Grid.Row="1" Style="{StaticResource QuietTextStyle}" />
+                    <Border Grid.Row="2" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Background="{ThemeResource WorkspaceSurfaceBrush}">
+                        <Grid>
+                            <ListView x:Name="PaperList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="PaperList_ItemClick" HorizontalContentAlignment="Stretch" Padding="8" AutomationProperties.Name="试卷列表">
+                                <ListView.ItemTemplate><DataTemplate x:DataType="vm:PaperViewModel">
+                                    <Grid Padding="12,14" ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="7">
+                                            <TextBlock Text="{x:Bind Title}" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
+                                            <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE8D2;" FontSize="12" /><TextBlock Text="{x:Bind Subject}" Style="{StaticResource QuietTextStyle}" /><FontIcon Glyph="&#xE8F1;" FontSize="12" Margin="12,0,0,0" /><TextBlock Text="{x:Bind QuestionCount}" Style="{StaticResource QuietTextStyle}" /></StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE787;" FontSize="12" /><TextBlock Text="{x:Bind Imported}" Style="{StaticResource QuietTextStyle}" /></StackPanel>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center" MinWidth="90">
+                                            <TextBlock Text="{x:Bind Score}" HorizontalAlignment="Right" FontSize="17" FontWeight="SemiBold" />
+                                            <TextBlock Text="得分 / 满分" HorizontalAlignment="Right" Style="{StaticResource QuietTextStyle}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate></ListView.ItemTemplate>
+                            </ListView>
+                            <StackPanel x:Name="PaperEmpty" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+                                <FontIcon Glyph="&#xE8A5;" FontSize="32" />
+                                <TextBlock x:Name="PaperEmptyTitle" Text="还没有试卷" FontSize="20" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="PaperEmptyMessage" Text="导入 PDF 或图片试卷，开始整理。" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
                 <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="16">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="WorkspaceColumnsRight" Width="424" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition x:Name="WorkspaceQuestionsRow" Height="0" /></Grid.RowDefinitions>
@@ -209,7 +249,7 @@
                             <StackPanel x:Name="EmptyQuestionState" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="24">
                                 <FontIcon Glyph="&#xE8F1;" FontSize="36" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock x:Name="EmptyQuestionTitle" Text="还没有题目" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
-                                <TextBlock x:Name="EmptyQuestionMessage" Text="从上方导入 PDF 或图片试卷，识别后题目会自动加入题库。" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
+                                <TextBlock x:Name="EmptyQuestionMessage" Text="在试卷页面导入 PDF 或图片，识别后题目会自动加入题库。" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -240,12 +280,18 @@
                                 </Grid>
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <Border Background="{ThemeResource WorkspaceCanvasBrush}" CornerRadius="8" Padding="12"><StackPanel Spacing="6"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8A5;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock x:Name="TaskPages" FontSize="22" FontWeight="SemiBold" /></StackPanel><TextBlock Text="已读页面" Style="{StaticResource QuietTextStyle}" /></StackPanel></Border>
-                                    <Border Grid.Column="1" Background="{ThemeResource WorkspaceCanvasBrush}" CornerRadius="8" Padding="12"><StackPanel Spacing="6"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8F1;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock x:Name="TaskQuestions" FontSize="22" FontWeight="SemiBold" /></StackPanel><TextBlock Text="已存题目" Style="{StaticResource QuietTextStyle}" /></StackPanel></Border>
-                                    <Border Grid.Column="2" Background="{ThemeResource WorkspaceCanvasBrush}" CornerRadius="8" Padding="12"><StackPanel Spacing="6"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE945;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock x:Name="TaskRounds" FontSize="22" FontWeight="SemiBold" /></StackPanel><TextBlock Text="识别轮次" Style="{StaticResource QuietTextStyle}" /></StackPanel></Border>
+                                    <StackPanel Spacing="5"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8A5;" FontSize="15" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock Text="已读页面" Style="{StaticResource QuietTextStyle}" /></StackPanel><TextBlock x:Name="TaskPages" FontSize="20" FontWeight="SemiBold" /></StackPanel>
+                                    <StackPanel Grid.Column="1" Spacing="5"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8F1;" FontSize="15" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock Text="已存题目" Style="{StaticResource QuietTextStyle}" /></StackPanel><TextBlock x:Name="TaskQuestions" FontSize="20" FontWeight="SemiBold" /></StackPanel>
+                                    <StackPanel Grid.Column="2" Spacing="5"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE945;" FontSize="15" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock Text="识别轮次" Style="{StaticResource QuietTextStyle}" /></StackPanel><TextBlock x:Name="TaskRounds" FontSize="20" FontWeight="SemiBold" /></StackPanel>
                                 </Grid>
                                 <ProgressBar x:Name="TaskProgress" IsIndeterminate="True" Visibility="Collapsed" AutomationProperties.Name="任务正在处理" />
-                                <TextBlock x:Name="TaskUsage" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
+                                <StackPanel x:Name="TaskUsageDetails" Spacing="8" Visibility="Collapsed">
+                                    <StackPanel x:Name="TaskTokenUsage" Spacing="4" Visibility="Collapsed">
+                                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE724;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="TaskInputUsage" Style="{StaticResource QuietTextStyle}" /><FontIcon Glyph="&#xE70F;" FontSize="13" Margin="12,0,0,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="TaskOutputUsage" Style="{StaticResource QuietTextStyle}" /></StackPanel>
+                                        <TextBlock x:Name="TaskInputCached" Style="{StaticResource QuietTextStyle}" Margin="21,0,0,0" Visibility="Collapsed" ToolTipService.ToolTip="缓存输入是输入中命中供应商缓存的部分，通常按更低价格计费。" />
+                                    </StackPanel>
+                                    <Grid x:Name="TaskCostRow" ColumnSpacing="8" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8C7;" FontSize="13" VerticalAlignment="Top" Margin="0,3,0,0" /><TextBlock x:Name="TaskUsage" Grid.Column="1" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" /></Grid>
+                                </StackPanel>
                             </StackPanel>
                             </ScrollViewer>
                                 <StackPanel x:Name="TaskButtons" Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="24,0,24,16">
@@ -311,7 +357,7 @@
                                     <StackPanel Spacing="14">
                                         <TextBlock Text="模型列表" Style="{StaticResource PanelHeadingStyle}" />
                                         <StackPanel x:Name="ModelActionButtons" Orientation="Horizontal" Spacing="8">
-                                            <Button x:Name="FetchModelsButton" Content="获取模型" Click="RefreshModels_Click" HorizontalAlignment="Left" IsEnabled="False" />
+                                            <Button x:Name="FetchModelsButton" Content="导入模型" Click="RefreshModels_Click" HorizontalAlignment="Left" IsEnabled="False" />
                                             <Button x:Name="AddModelButton" Content="添加模型" Click="NewModel_Click" HorizontalAlignment="Left" IsEnabled="False" />
                                             <Button x:Name="TestModelButton" Content="测试连接" Click="TestProvider_Click" HorizontalAlignment="Left" IsEnabled="False" ToolTipService.ToolTip="向所选模型发送简短请求，可能产生少量费用。" />
                                         </StackPanel>
@@ -344,10 +390,12 @@
                                             <Grid x:Name="ModelPriceFields" ColumnSpacing="16">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="96" /></Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                                <TextBox x:Name="ModelPriceInput" Header="输入价格 / 百万 token" PlaceholderText="未设置" />
-                                                <TextBox x:Name="ModelPriceOutput" Grid.Column="1" Header="输出价格 / 百万 token" PlaceholderText="未设置" />
-                                                <TextBox x:Name="ModelCurrency" Grid.Column="2" Header="货币" Text="USD" />
+                                                <TextBox x:Name="ModelPriceInput" Header="输入价格 / 百万 token" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
+                                                <TextBox x:Name="ModelPriceOutput" Grid.Column="1" Header="输出价格 / 百万 token" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
+                                                <ComboBox x:Name="ModelCurrency" Grid.Column="2" Header="货币" PlaceholderText="选择货币" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="ModelPriceCurrency_Changed"><x:String>美元</x:String><x:String>人民币</x:String></ComboBox>
                                             </Grid>
+                                            <TextBlock x:Name="ModelCnyPreview" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
+                                            <TextBlock x:Name="ModelExtraInfo" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                                             <Button Content="从 models.dev 填充" Click="FillModelCatalog_Click" HorizontalAlignment="Left" />
                                             <TextBlock x:Name="ModelCatalogFeedback" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                                             <StackPanel Orientation="Horizontal" Spacing="8">

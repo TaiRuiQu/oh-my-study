@@ -20,10 +20,11 @@ public sealed partial class MainWindow
         _suppressNavigation = true;
         try { Navigation.SelectedItem = Navigation.MenuItems[0]; }
         finally { _suppressNavigation = false; }
-        SettingsPanel.Visibility = Visibility.Collapsed; TasksPanel.Visibility = Visibility.Collapsed;
+        SettingsPanel.Visibility = Visibility.Collapsed; TasksPanel.Visibility = Visibility.Collapsed; PapersPanel.Visibility = Visibility.Collapsed;
         WorkspaceActions.Visibility = Visibility.Visible; WorkspaceNotice.Visibility = Visibility.Visible;
         SectionCaption.Visibility = Visibility.Visible;
-        WorkspaceGrid.Visibility = Visibility.Visible; DocumentToolbar.Visibility = Visibility.Visible;
+        WorkspaceGrid.Visibility = Visibility.Visible; DocumentToolbar.Visibility = Visibility.Visible; DocumentCommands.Visibility = Visibility.Visible;
+        WorkspaceStatus.Visibility = Visibility.Visible; SetPaperMenuDetail(true);
         ViewModel.ShowSection("materials");
         UpdateQuestionState();
     }

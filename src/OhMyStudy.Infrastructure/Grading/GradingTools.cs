@@ -17,6 +17,7 @@ public static class GradingTools
         };
         if (!referenceOnly)
         {
+            result.Add(Define("save_paper_info", "保存整份试卷的学科、得分和满分。无法确定时填null，不能猜测；空白卷得分为null。", Object(new() { ["subject"] = Nullable(String()), ["earned"] = Nullable(Number()), ["possible"] = Nullable(Number()) }, ["subject"])));
             result.Add(Define("save_question", "保存完整题目与小问。稳定draft_key重批时复用，教师和手动评分不得覆盖。", QuestionSchema()));
             foreach (var name in new[] { "python", "shell" })
                 result.Add(Define(name, name == "python" ? "使用Python进行必要计算；执行前可能等待用户批准。" : "使用Windows PowerShell进行必要计算；执行前可能等待用户批准。", Object(new() { ["code"] = String() }, ["code"])));
@@ -34,25 +35,25 @@ public static class GradingTools
     private static JsonObject Object(JsonObject properties, string[]? required = null) => new()
     { ["type"] = "object", ["properties"] = properties, ["required"] = new JsonArray((required ?? properties.Select(p => p.Key).ToArray()).Select(v => (JsonNode?)JsonValue.Create(v)).ToArray()), ["additionalProperties"] = false };
     private static JsonObject Region() => Object(new() { ["page_id"] = String(), ["x"] = Number(), ["y"] = Number(), ["width"] = Number(), ["height"] = Number() });
-    private static JsonObject Grade() => Object(new() { ["verdict"] = Enum("correct", "partial", "incorrect", "unanswered", "uncertain"), ["earned"] = Nullable(Number()), ["possible"] = Nullable(Number()), ["source"] = Enum("teacher", "ai_reference", "ai_solution", "manual"), ["reason"] = String() });
-    private static JsonObject Reference() => Object(new() { ["key"] = String(), ["number"] = String(), ["answer"] = String(), ["explanation"] = String(), ["sources"] = Array(Region()), ["matched_draft_key"] = Nullable(String()), ["uncertain_reason"] = Nullable(String()) });
-    private static JsonObject Coverage() => Object(new() { ["page_id"] = String(), ["status"] = Enum("covered", "unreadable", "no_questions"), ["question_keys"] = Array(String()), ["reason"] = String() });
+    private static JsonObject Grade() => Object(new() { ["verdict"] = Enum("correct", "partial", "incorrect", "unanswered", "uncertain"), ["earned"] = Nullable(Number()), ["possible"] = Nullable(Number()), ["source"] = Enum("teacher", "ai_reference", "ai_solution", "manual"), ["reason"] = String() }, ["verdict", "source"]);
+    private static JsonObject Reference() => Object(new() { ["key"] = String(), ["number"] = String(), ["answer"] = String(), ["explanation"] = String(), ["sources"] = Array(Region()), ["matched_draft_key"] = Nullable(String()), ["uncertain_reason"] = Nullable(String()) }, ["key", "number", "answer", "sources"]);
+    private static JsonObject Coverage() => Object(new() { ["page_id"] = String(), ["status"] = Enum("covered", "unreadable", "no_questions"), ["question_keys"] = Array(String()), ["reason"] = String() }, ["page_id", "status"]);
     public static JsonObject QuestionSchema()
     {
         var text = Object(new() { ["kind"] = Enum("text"), ["text"] = String() });
         var formula = Object(new() { ["kind"] = Enum("formula"), ["latex"] = String() });
         var table = Object(new() { ["kind"] = Enum("table"), ["rows"] = Array(Array(String())) });
-        var image = Object(new() { ["kind"] = Enum("image"), ["region"] = Region(), ["contains_handwriting"] = Bool(), ["caption"] = String() });
+        var image = Object(new() { ["kind"] = Enum("image"), ["region"] = Region(), ["contains_handwriting"] = Bool(), ["caption"] = String() }, ["kind", "region"]);
         var attempt = Object(new()
         {
             ["student_answer"] = String(),
             ["student_regions"] = Array(Region()),
-            ["teacher"] = Nullable(Object(new() { ["raw"] = String(), ["regions"] = Array(Region()), ["grade"] = Nullable(Grade()) })),
+            ["teacher"] = Nullable(Object(new() { ["raw"] = String(), ["regions"] = Array(Region()), ["grade"] = Nullable(Grade()) }, [])),
             ["reference_key"] = Nullable(String()),
             ["ai_solution"] = String(),
             ["conflict"] = Nullable(String()),
             ["grade"] = Grade()
-        });
+        }, []);
         var question = Object(new()
         {
             ["draft_key"] = String(),
@@ -69,7 +70,7 @@ public static class GradingTools
             ["uncertainties"] = Array(String()),
             ["attempt"] = Nullable(attempt),
             ["parts"] = Array(new JsonObject { ["$ref"] = "#/$defs/question" })
-        });
+        }, ["draft_key", "number", "content", "sources"]);
         // Root content is the question shape; only the recursive definition points back into $defs.
         var root = (JsonObject)question.DeepClone();
         root["$defs"] = new JsonObject { ["question"] = question };

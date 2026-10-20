@@ -83,20 +83,20 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         connection.Open();
         Execute("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version"));
-        if (version is < 0 or > 2) throw new InvalidDataException("资料库版本不受支持");
+        if (version is < 0 or > 3) throw new InvalidDataException("资料库版本不受支持");
         ValidateSchema(version);
         if (Writable)
         {
             Execute("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
-            if (version < 2)
+            if (version < 3)
             {
-                if (version != 0) BackupDatabase(dbFile + ".pre-v2-" + Guid.NewGuid().ToString("N"));
+                if (version != 0) BackupDatabase(dbFile + ".pre-v3-" + Guid.NewGuid().ToString("N"));
                 Transaction(CancellationToken.None, () =>
                 {
                     if (version == 0) Execute(Migration("001_initial.sql"));
-                    Execute(Migration("002_grading.sql"));
-                    Execute("PRAGMA user_version=2");
-                    return 0;
+                    if (version < 2) Execute(Migration("002_grading.sql"));
+                    Execute(Migration("003_paper_info.sql"));
+                    Execute("PRAGMA user_version=3"); return 0;
                 });
             }
             Directory.CreateDirectory(AssetRoot);
@@ -124,7 +124,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         }
         foreach (var table in new[] { "providers", "assets", "documents", "source_pages", "jobs", "job_events", "settings" })
             if (Scalar("SELECT name FROM sqlite_master WHERE type='table' AND name=$p0", table) is null) throw new InvalidDataException("资料库结构不完整");
-        if (version == 2)
+        if (version >= 2)
             foreach (var table in new[] { "questions", "grading_runs", "model_calls" })
                 if (Scalar("SELECT name FROM sqlite_master WHERE type='table' AND name=$p0", table) is null) throw new InvalidDataException("资料库结构不完整");
         var expected = new Dictionary<string, string[]>
@@ -137,13 +137,14 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
             ["job_events"] = ["id", "job_id", "sequence", "created_at", "kind", "payload_json"],
             ["settings"] = ["id", "settings_json"]
         };
-        if (version == 2)
+        if (version >= 2)
         {
             expected["source_pages"] = [.. expected["source_pages"], "original_asset_id", "pdf_page_index"];
             expected["questions"] = ["id", "document_id", "draft_key", "content_json", "updated_at"];
             expected["grading_runs"] = ["job_id", "document_id", "input_json", "coverage_json", "references_json"];
             expected["model_calls"] = ["job_id", "ordinal", "details_json"];
         }
+        if (version >= 3) expected["paper_info"] = ["document_id", "subject", "earned", "possible", "manual"];
         foreach (var (table, columns) in expected)
         {
             var actual = Query("SELECT name FROM pragma_table_info($p0)", r => r.GetString(0), table).ToHashSet(StringComparer.Ordinal);

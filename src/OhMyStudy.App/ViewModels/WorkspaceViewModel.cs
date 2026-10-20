@@ -50,7 +50,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     { if (SelectedQuestion.IsDirty) StatusMessage = "有未保存的修改。"; }
     public string SectionTitle { get => _sectionTitle; set { if (Set(ref _sectionTitle, value)) Raise(nameof(PageTitle)); } }
     public string DocumentTitle { get => _documentTitle; set { if (Set(ref _documentTitle, value)) Raise(nameof(PageTitle)); } }
-    public string PageTitle => _section is "settings" or "tasks" ? SectionTitle : DocumentTitle;
+    public string PageTitle => _section is "settings" or "tasks" or "papers" ? SectionTitle : DocumentTitle;
     public string TaskStatus { get => _taskStatus; private set => Set(ref _taskStatus, value); }
     public string StatusMessage { get => _statusMessage; set => Set(ref _statusMessage, value); }
     public double TaskProgress { get => _taskProgress; private set => Set(ref _taskProgress, value); }
@@ -113,6 +113,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     public void ShowSection(string tag)
     {
         _section = tag;
+        Raise(nameof(PageTitle));
         SectionTitle = tag switch { "library" => "题库", "mistakes" => "错题", "settings" => "设置", "tasks" => "任务", _ => "试卷" };
         if (tag != "settings" && tag != "tasks") RefreshQuestions();
     }

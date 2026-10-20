@@ -37,6 +37,7 @@ internal static class Program
             await DirectoryPromotionLocks();
             await PdfRelationships();
             await GradingAndJobs();
+            await PaperMetadata();
             await RetiredProviders();
             await CredentialAtomicity();
             await CopyUpgradeRecovery();
@@ -49,6 +50,27 @@ internal static class Program
     }
 
     private static LibraryOpenOptions NewOptions(string path) => new(path, LibraryOpenMode.CreateNew) { MediaProcessor = new FixtureProcessor() };
+
+    private static async Task PaperMetadata()
+    {
+        string root = Unique("paper-info"), backup = Unique("paper-info-backup"), copy = Unique("paper-info-copy");
+        string id;
+        await using (var library = await LibraryRepository.OpenAsync(NewOptions(root)))
+        {
+            var paper = await library.ImportDocumentAsync("原始标题", ImportMode.TeacherGraded, [new("paper.png", png)]); id = paper.Id;
+            await library.UpdatePaperAsync(id, "整理后的标题", "数学", 86.5, 100);
+            await Fails(() => library.UpdatePaperAsync(id, "错误标题", "数学", double.NaN, 100), "nonfinite paper score rejected");
+            var row = (await library.ListPapersAsync()).Single();
+            Check(row.Document.Name == "整理后的标题" && row.Subject == "数学" && row.Earned == 86.5 && row.Possible == 100 && row.Document.Pages.Count == 0, "paper metadata stored and lightweight rows omit source pages");
+            await library.BackupAsync(backup);
+        }
+        await LibraryRepository.RestoreBackupAsync(backup, copy);
+        foreach (string path in new[] { root, copy })
+        {
+            await using var reopened = await LibraryRepository.OpenAsync(new(path)); var row = (await reopened.ListPapersAsync()).Single();
+            Check(row.Document.Id == id && row.Subject == "数学" && row.Earned == 86.5 && row.Possible == 100, "paper metadata survives reopen and backup restore");
+        }
+    }
 
     private static async Task RetiredProviders()
     {
@@ -128,7 +150,7 @@ internal static class Program
             }
             await using (var repository = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)))
             {
-                Check((await repository.InspectAsync()).SchemaVersion == 2, $"v{version} upgraded/opened v2");
+                Check((await repository.InspectAsync()).SchemaVersion == 3, $"v{version} upgraded/opened v3");
                 Check((await repository.ListProvidersAsync()).Single().Id == Fixture<Provider>("provider").Id, "provider stable reference");
                 var document = await repository.GetDocumentAsync(Fixture<Document>("document").Id);
                 var reordered = await repository.UpdatePagesAsync(document.Id, document.Pages.AsEnumerable().Reverse().Select(p => new PageEdit { Id = p.Id, Rotation = 90 }).ToList());
@@ -136,7 +158,7 @@ internal static class Program
                 await Fails(() => LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)), "cooperating writer lease");
                 await repository.VerifyIntegrityAsync();
             }
-            if (version == 1) Check(Directory.GetFiles(path, "study.sqlite3.pre-v2-*").Length == 1, "v1 consistent preupgrade database backup");
+            if (version == 1) Check(Directory.GetFiles(path, "study.sqlite3.pre-v3-*").Length == 1, "v1 consistent preupgrade database backup");
         }
         var failed = CreateLegacy(1, true);
         await Fails(() => LibraryRepository.OpenAsync(new(failed, LibraryOpenMode.ReadWrite)), "migration conflict rejects open");
@@ -153,7 +175,7 @@ internal static class Program
             string source = CreateLegacy(version), backup = Unique("cutover-backup"), destination = Unique("cutover-copy");
             byte[] originalDatabase = File.ReadAllBytes(Path.Combine(source, "study.sqlite3"));
             var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source, backup, destination);
-            Check(migration.OriginalSchemaVersion == version && migration.CurrentSchemaVersion == 2 && migration.Documents == 1, $"v{version} copy-only migration upgrades verified destination");
+            Check(migration.OriginalSchemaVersion == version && migration.CurrentSchemaVersion == 3 && migration.Documents == 1, $"v{version} copy-only migration upgrades verified destination");
             Check(File.ReadAllBytes(Path.Combine(source, "study.sqlite3")).SequenceEqual(originalDatabase), $"v{version} source database bytes untouched");
             Check(migration.CredentialReferences == 1 && migration.ContentSha256.Length == 64, "cutover validates credential references without reading secrets");
             using var receipt = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(destination, "migration-receipt.json")));
@@ -227,11 +249,12 @@ internal static class Program
         var rawBefore = RawRows(source);
         var assetsBefore = Directory.GetFiles(Path.Combine(source, "assets")).ToDictionary(path => Path.GetFileName(path)!, File.ReadAllBytes, StringComparer.Ordinal);
         var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, backup, destination);
-        Check(migration.OriginalSchemaVersion == 2 && migration.CurrentSchemaVersion == 2 && migration.Questions == 1, "complex v2 migration includes nested question and historical runs");
+        Check(migration.OriginalSchemaVersion == 2 && migration.CurrentSchemaVersion == 3 && migration.Questions == 1, "complex v2 migration includes nested question and historical runs");
         Check(databaseBefore.SequenceEqual(File.ReadAllBytes(Path.Combine(source, "study.sqlite3"))), "complex migration leaves original database bytes unchanged");
         foreach (string path in new[] { backup, destination })
         {
             var rows = RawRows(path);
+            if (rows.TryGetValue("paper_info", out var added) && added.Count == 0 && !rawBefore.ContainsKey("paper_info")) rows.Remove("paper_info");
             Check(rows.Count == rawBefore.Count && rows.All(pair => rawBefore.TryGetValue(pair.Key, out var expected) && expected.SequenceEqual(pair.Value)),
                 "complex raw rows preserve all columns, JSON bytes, historical runs, jobs/events and extension data: " + Path.GetFileName(path));
             Check(assetsBefore.All(pair => pair.Value.SequenceEqual(File.ReadAllBytes(Path.Combine(path, "assets", pair.Key!))))

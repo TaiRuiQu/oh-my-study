@@ -150,6 +150,8 @@ public sealed partial class MainWindow
             Navigation.SelectedItem = Navigation.MenuItems[2]; await Task.Delay(100);
             checks["blank-no-false-mistake"] = ViewModel.Questions.Count == 0;
             Navigation.SelectedItem = Navigation.MenuItems[0]; await Task.Delay(150);
+            checks["paper-list-navigation"] = PapersPanel.Visibility == Visibility.Visible;
+            await LoadDocumentAsync(document);
             ViewOriginal_Click(this, new RoutedEventArgs()); await Task.Delay(100);
             await ShowSourcePageAsync(0);
             SourceViewer.ChangeView(10, 18, 1.2f, true); await Task.Delay(140);
@@ -173,12 +175,14 @@ public sealed partial class MainWindow
             var storedContext = _workspaceContexts["materials:" + document.Id];
             Navigation.SelectedItem = Navigation.MenuItems[1]; await Task.Delay(100);
             Navigation.SelectedItem = Navigation.MenuItems[0]; await Task.Delay(150);
+            checks["paper-list-navigation"] = PapersPanel.Visibility == Visibility.Visible;
+            await LoadDocumentAsync(document);
             checks["reading-context-roundtrip"] = _sourcePageIndex == 3 && Math.Abs(SourceViewer.ZoomFactor - storedView.Zoom) < .02
                 && ViewModel.SelectedQuestion.Saved?.Id == saved.Id
                 && AnswerEditor.SelectionStart == storedContext.SelectionStart && AnswerEditor.SelectionLength == storedContext.SelectionLength;
             Navigation.SelectedItem = Navigation.MenuItems[1];
             Navigation.SelectedItem = Navigation.MenuItems[2];
-            Navigation.SelectedItem = Navigation.MenuItems[0]; await Task.Delay(200);
+            Navigation.SelectedItem = Navigation.MenuItems[0]; await Task.Delay(200); await LoadDocumentAsync(document);
             checks["rapid-navigation-keeps-latest"] = ViewModel.CurrentDocument?.Id == document.Id && ViewModel.SectionTitle == "试卷" && ViewModel.Questions.Count == 1;
             for (int i = 0; i < 20; i++)
             {

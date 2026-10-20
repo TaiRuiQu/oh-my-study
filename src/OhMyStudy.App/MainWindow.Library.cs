@@ -39,7 +39,6 @@ public sealed partial class MainWindow
     private int _sourcePageIndex;
     private string? _sourcePageId;
     private bool _restoringRotation;
-    private bool _programmaticSelection;
     private bool _shutdownStarted;
     private bool _shutdownFinished;
     private bool _closeReviewOpen;
@@ -124,7 +123,7 @@ public sealed partial class MainWindow
                 if (_activeJob is { } id && _jobs is not null)
                     try { await _jobs.CancelAsync(id); await RefreshTasksAsync(); } catch { ViewModel.StatusMessage = "取消未完成，请稍后重试。"; }
             };
-            DocumentPicker.ItemsSource = _documents;
+            PaperList.ItemsSource = _filteredPapers;
             ProviderPicker.ItemsSource = _providers;
             _settings = await _library.GetSettingsAsync(_lifetime.Token);
             ExecutionModePicker.SelectedIndex = _settings.ExecutionMode switch { "sandbox" => 1, "bypass_permission" => 2, _ => 0 };
@@ -156,9 +155,7 @@ public sealed partial class MainWindow
             {
                 try { await DisposeLibrarySessionAsync(); } catch { }
                 ViewModel.SaveQuestionAsync = null; ViewModel.CancelCurrentJob = null;
-                _programmaticSelection = true;
-                try { _documents.Clear(); _providers.Clear(); }
-                finally { _programmaticSelection = false; }
+                _documents.Clear(); _providers.Clear(); _papers.Clear(); ApplyPaperFilters();
                 ViewModel.ClearLibrary(); ReleaseReadingResources();
             }
             _loadingLibrary = false;
@@ -177,20 +174,14 @@ public sealed partial class MainWindow
     {
         if (_library is null) return;
         long generation = ++_documentListGeneration;
-        var documents = await _library.ListDocumentsAsync(_lifetime.Token);
+        var summaries = await _library.ListPapersAsync(_lifetime.Token);
         if (_closed || generation != _documentListGeneration) return;
-        _programmaticSelection = true;
-        _documents.Clear(); foreach (var document in documents) _documents.Add(document);
-        DocumentPicker.SelectedItem = _documents.FirstOrDefault(d => d.Id == (selectId ?? ViewModel.CurrentDocument?.Id)) ?? _documents.FirstOrDefault();
-        _programmaticSelection = false;
-        if (DocumentPicker.SelectedItem is Document selected) await LoadDocumentAsync(selected);
-    }
-
-    private async void DocumentPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_programmaticSelection || _closed) return;
-        if (DocumentPicker.SelectedItem is Document document)
-            try { await LoadDocumentAsync(document); } catch { ViewModel.StatusMessage = "资料无法打开，请重新选择。"; }
+        _documents.Clear(); foreach (var item in summaries) _documents.Add(item.Document);
+        _papers.Clear(); _papers.AddRange(summaries.Select(item => new PaperViewModel(item)));
+        RefreshPaperSubjects(); ApplyPaperFilters();
+        string? selected = selectId ?? ViewModel.CurrentDocument?.Id;
+        if ((selectId is not null || WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == "试卷") && selected is not null && _documents.FirstOrDefault(d => d.Id == selected) is { } document)
+            await LoadDocumentAsync(document);
     }
 
     private async Task LoadDocumentAsync(Document document)
@@ -203,9 +194,7 @@ public sealed partial class MainWindow
         var result = await _library.GradingResultAsync(document.Id, _lifetime.Token);
         if (_closed || generation != _documentGeneration) return;
         ViewModel.LoadDocument(current, result.Questions);
-        _programmaticSelection = true;
-        try { DocumentPicker.SelectedItem = _documents.FirstOrDefault(item => item.Id == current.Id); }
-        finally { _programmaticSelection = false; }
+
         GradeButton.IsEnabled = current.Pages.Count > 0 && !current.PendingPdfPages;
         WorkspaceNotice.IsOpen = current.PendingPdfPages;
         WorkspaceNotice.Title = "资料尚未准备完成";
@@ -230,8 +219,8 @@ public sealed partial class MainWindow
         try { Navigation.SelectedItem = Navigation.MenuItems[1]; }
         finally { _suppressNavigation = false; }
         SettingsPanel.Visibility = TasksPanel.Visibility = DocumentToolbar.Visibility = SectionCaption.Visibility = Visibility.Collapsed;
-        WorkspaceGrid.Visibility = WorkspaceActions.Visibility = Visibility.Visible;
-        WorkspaceNotice.Visibility = WorkspaceNotice.IsOpen ? Visibility.Visible : Visibility.Collapsed;
+        WorkspaceGrid.Visibility = Visibility.Visible; WorkspaceActions.Visibility = PapersPanel.Visibility = Visibility.Collapsed;
+        WorkspaceNotice.Visibility = Visibility.Collapsed;
         ViewModel.ShowSection("library");
         if (_library is not null)
         {
@@ -514,7 +503,7 @@ public sealed partial class MainWindow
             key = WindowsCredentialStore.Read(provider.KeyRef ?? "");
             if (key is null) { ProviderFeedback.Text = "请先保存密钥。"; return; }
             using var client = new ProviderClient(provider.Protocol, provider.BaseUrl);
-            var models = provider.Models.ToDictionary(m => m.Id, StringComparer.Ordinal);
+            var models = new Dictionary<string, ModelConfig>(StringComparer.Ordinal);
             string? cursor = null;
             var visited = new HashSet<string>(StringComparer.Ordinal);
             do
@@ -522,10 +511,17 @@ public sealed partial class MainWindow
                 var page = await client.ListModelsAsync(new(Encoding.UTF8.GetString(key)), cursor, _lifetime.Token);
                 foreach (var model in page.Models) if (!models.ContainsKey(model.Id)) models[model.Id] = new() { Id = model.Id, Capabilities = model.Capabilities, Currency = "USD" };
                 cursor = page.Next;
-                if (models.Count > 500 || cursor is not null && (!visited.Add(cursor) || visited.Count > 100)) throw new InvalidDataException("模型列表过大或分页重复。");
+                if (models.Count > 10000 || cursor is not null && (!visited.Add(cursor) || visited.Count > 100)) throw new InvalidDataException("模型列表过大或分页重复。");
             } while (cursor is not null);
-            var updated = await _library.UpsertProviderAsync(provider with { Models = models.Values.ToList() }, _lifetime.Token);
-            UpdateProviderEntry(updated); UpdateModelList(updated); ProviderFeedback.Text = $"已有 {models.Count} 个模型。";
+            var candidates = models.Values.Where(m => !provider.Models.Any(old => old.Id == m.Id)).OrderBy(m => m.Label, StringComparer.CurrentCultureIgnoreCase).ToList();
+            if (candidates.Count == 0) { ProviderFeedback.Text = "没有可添加的新模型。"; return; }
+            var selection = CreateModelImportDialog(candidates);
+            if (await selection.Dialog.ShowAsync() != ContentDialogResult.Primary) { ProviderFeedback.Text = ""; return; }
+            var picked = candidates.Where(m => selection.Selected.Contains(m.Id)).ToList();
+            if (picked.Count == 0) return;
+            if (provider.Models.Count + picked.Count > 500) { ProviderFeedback.Text = "每个供应商最多保留 500 个模型，请减少选中的数量。"; return; }
+            var updated = await _library.UpsertProviderAsync(provider with { Models = [.. provider.Models, .. picked] }, _lifetime.Token);
+            UpdateProviderEntry(updated); UpdateModelList(updated); ProviderFeedback.Text = $"已添加 {picked.Count} 个模型。";
         }
         catch { ProviderFeedback.Text = "获取失败，请检查地址、密钥和网络。"; }
         finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; if (key is not null) CryptographicOperations.ZeroMemory(key); }
@@ -591,8 +587,8 @@ public sealed partial class MainWindow
         }
         var model = provider.Models.FirstOrDefault(m => provider.Id + ":" + m.Id == _settings.DefaultModel || m.Id == _settings.DefaultModel) ?? provider.Models[0];
         var availableModels = providers.SelectMany(p => p.Models.Select(m => (Provider: p, Model: m))).ToList();
-        var choice = new ComboBox { Header = "识别模型", HorizontalAlignment = HorizontalAlignment.Stretch };
-        foreach (var available in availableModels) choice.Items.Add(available.Provider.Name + " / " + available.Model.Label);
+        double modelWidth = Math.Max(200, Math.Min(460, RootGrid.ActualWidth - 96));
+        var choice = CreateFixedModelChoice(availableModels.Select(a => a.Provider.Name + " / " + a.Model.Label), modelWidth);
         choice.SelectedIndex = availableModels.FindIndex(p => p.Provider.Id == provider.Id && p.Model.Id == model.Id);
         var thinkingChoice = new ComboBox { Header = "思考", HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = 0 };
         thinkingChoice.Items.Add("默认"); foreach (var option in model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option));
@@ -659,6 +655,7 @@ public sealed partial class MainWindow
                         AppLog.Info("Job.Changed", $"Job={change.JobId}; State={change.Kind}");
                         await RefreshTasksAsync();
                         if (change.Kind is "progress" or "completed" or "failed" or "cancelled") await ReloadQuestionsAsync();
+                        if (PapersPanel.Visibility == Visibility.Visible && change.Kind is "completed" or "failed" or "cancelled") await RefreshDocumentsAsync();
                         if (change.Kind == "completed") ViewModel.StatusMessage = "识别完成，题目已加入题库。";
                         else if (change.Kind == "failed") ViewModel.StatusMessage = "识别未完成，已保存的题目会保留。可在试卷中重新识别。";
                         else if (change.Kind == "cancelled") ViewModel.StatusMessage = "已取消识别，已保存的题目会保留。";

@@ -31,7 +31,6 @@ public static class GradingValidation
             }, "判定与分数不一致；无法判定不应有确定分数");
         }
         Require(grade.Verdict != Verdict.Uncertain || grade.Earned is null, "无法判定的得分必须为空");
-        Require(grade.Verdict != Verdict.Uncertain || !string.IsNullOrWhiteSpace(grade.Reason), "无法判定需要说明原因");
     }
 
     public static void ValidateQuestion(Question question, Document document, IReadOnlyList<ReferenceAnswer> references, bool manual)
@@ -61,17 +60,15 @@ public static class GradingValidation
             Require(a.Grade.Possible is null || q.Points is null || a.Grade.Possible == q.Points, "评分满分与题目分值不一致");
             if (a.Teacher is { } t)
             {
-                Require(!string.IsNullOrWhiteSpace(t.Raw) && t.Regions.Count != 0, "教师结果必须保留原始批注和原图证据");
                 foreach (var region in t.Regions) ValidateRegion(region, doc, "material");
                 if (t.Grade is { } g)
                 {
                     ValidateGrade(g);
                     Require(g.Source == GradeSource.Teacher, "教师批改来源必须为 teacher");
-                    if (doc.Mode == ImportMode.TeacherGraded && !manual) Require(g == a.Grade, "教师模式不得覆盖已明确的教师结果");
+                    if (doc.Mode == ImportMode.TeacherGraded && !manual) Require(g.Verdict == a.Grade.Verdict && g.Earned == a.Grade.Earned && g.Possible == a.Grade.Possible && g.Source == a.Grade.Source, "教师模式不得覆盖已明确的教师结果");
                 }
             }
-            if (a.Grade.Source == GradeSource.Teacher) Require(a.Teacher?.Grade is not null, "教师评分缺少证据");
-            bool teacherPriority = doc.Mode == ImportMode.TeacherGraded && a.Teacher?.Grade is not null;
+            bool teacherPriority = doc.Mode == ImportMode.TeacherGraded && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null);
             if (!manual && !teacherPriority && refs.FirstOrDefault(r => r.MatchedDraftKey == q.DraftKey) is { } reference)
                 Require(a.ReferenceKey == reference.Key, "本题有匹配参考答案，不能绕过其评分依据");
             if (a.ReferenceKey is { } key)

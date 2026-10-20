@@ -30,6 +30,10 @@ public sealed record ModelConfig
     public required string Id { get; init; }
     public string? DisplayName { get; init; }
     public ulong? ContextWindow { get; init; }
+    public ulong? MaxOutputTokens { get; init; }
+    public List<string>? InputModalities { get; init; }
+    public List<string>? OutputModalities { get; init; }
+    public bool? Reasoning { get; init; }
     [JsonIgnore]
     public string Label => string.IsNullOrWhiteSpace(DisplayName) ? Id : DisplayName;
     public required Capabilities Capabilities { get; init; }
@@ -122,8 +126,8 @@ public sealed record TableContent : Content { public required List<List<string>>
 public sealed record ImageContent : Content
 {
     public required Region Region { get; init; }
-    public required bool ContainsHandwriting { get; init; }
-    public required string Caption { get; init; }
+    public bool ContainsHandwriting { get; init; }
+    public string Caption { get; set; } = "";
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -133,27 +137,28 @@ public sealed record Grade
     public double? Earned { get; init; }
     public double? Possible { get; init; }
     public required GradeSource Source { get; init; }
-    public required string Reason { get; init; }
+    public string Reason { get; set; } = "";
 }
 
+// Auxiliary defaults use setters: source-generated constructors otherwise assign missing init-only properties to null.
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record TeacherMark
 {
-    public required string Raw { get; init; }
-    public required List<Region> Regions { get; init; }
+    public string Raw { get; set; } = "";
+    public List<Region> Regions { get; set; } = [];
     public Grade? Grade { get; init; }
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record Attempt
 {
-    public required string StudentAnswer { get; init; }
-    public required List<Region> StudentRegions { get; init; }
+    public string StudentAnswer { get; set; } = "";
+    public List<Region> StudentRegions { get; set; } = [];
     public TeacherMark? Teacher { get; init; }
     public string? ReferenceKey { get; init; }
-    public required string AiSolution { get; init; }
+    public string AiSolution { get; set; } = "";
     public string? Conflict { get; init; }
-    public required Grade Grade { get; init; }
+    public Grade Grade { get; set; } = new() { Verdict = Verdict.Uncertain, Source = GradeSource.AiSolution, Reason = "未提供评分。" };
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -161,18 +166,18 @@ public sealed record Question
 {
     public required string DraftKey { get; init; }
     public required string Number { get; init; }
-    public required string Subject { get; init; }
-    public required string QuestionType { get; init; }
+    public string Subject { get; set; } = "";
+    public string QuestionType { get; set; } = "";
     public required List<Content> Content { get; init; }
-    public required List<string> Options { get; init; }
+    public List<string> Options { get; set; } = [];
     public double? Points { get; init; }
-    public required string StandardAnswer { get; init; }
-    public required string Explanation { get; init; }
-    public required List<string> KnowledgePoints { get; init; }
+    public string StandardAnswer { get; set; } = "";
+    public string Explanation { get; set; } = "";
+    public List<string> KnowledgePoints { get; set; } = [];
     public required List<Region> Sources { get; init; }
-    public required List<string> Uncertainties { get; init; }
+    public List<string> Uncertainties { get; set; } = [];
     public Attempt? Attempt { get; init; }
-    public required List<Question> Parts { get; init; }
+    public List<Question> Parts { get; set; } = [];
 }
 
 public sealed record SavedQuestion
@@ -189,7 +194,7 @@ public sealed record ReferenceAnswer
     public required string Key { get; init; }
     public required string Number { get; init; }
     public required string Answer { get; init; }
-    public required string Explanation { get; init; }
+    public string Explanation { get; set; } = "";
     public required List<Region> Sources { get; init; }
     public string? MatchedDraftKey { get; init; }
     public string? UncertainReason { get; init; }
@@ -200,8 +205,8 @@ public sealed record Coverage
 {
     public required string PageId { get; init; }
     public required string Status { get; init; }
-    public required List<string> QuestionKeys { get; init; }
-    public required string Reason { get; init; }
+    public List<string> QuestionKeys { get; set; } = [];
+    public string Reason { get; set; } = "";
 }
 
 public sealed record GradingResult

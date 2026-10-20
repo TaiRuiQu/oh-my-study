@@ -5,6 +5,9 @@ using OhMyStudy.App.Diagnostics;
 using OhMyStudy.Application.Jobs;
 using OhMyStudy.Domain;
 using OhMyStudy.Infrastructure.Jobs;
+using OhMyStudy.Infrastructure.Storage;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace OhMyStudy.App;
 
@@ -24,30 +27,39 @@ public sealed partial class MainWindow
             await Capture("empty");
             Check(TaskEmpty.Visibility == Visibility.Visible, "empty-state");
             await _jobs!.DisposeAsync();
-            var runner = new TaskSmokeRunner();
+            _diagnosticRate = new(7.12, "2026-10-20", false);
+            var image = await MakeSyntheticPngAsync();
+            var document = await _library!.ImportDocumentAsync("数学单元练习", ImportMode.Blank, Enumerable.Range(0, 4).Select(_ => new ImportSource("原件.png", image)).ToArray());
+            var runner = new TaskSmokeRunner { Library = _library };
             _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library!), runner, new TaskSmokeExecutor(), Path.Combine(root, "results"));
             _ = ObserveJobsAsync();
             var policy = new ExecutionPolicy { PreferredMode = ExecutionMode.RequestPermission, EffectiveMode = ExecutionMode.RequestPermission, ExecutorKind = ExecutorKind.Host, SandboxNetworking = false };
             var input = new GradingInput
             {
-                Document = new() { Id = Guid.NewGuid().ToString(), Name = "数学单元练习", Mode = ImportMode.Blank, CreatedAt = DateTimeOffset.UtcNow.ToString("O"), Pages = [], PendingPdfPages = false },
+                Document = document,
                 Provider = new() { Id = Guid.NewGuid().ToString(), Name = "示例", BaseUrl = "https://synthetic.invalid", Protocol = Protocol.Responses, Models = [] },
                 Model = new() { Id = "synthetic", Capabilities = Capabilities.Unknown, Currency = "USD" },
                 AllowUnknown = true
             };
-            for (uint i = 0; i < 4; i++) input.Document.Pages.Add(new SourcePage { Id = Guid.NewGuid().ToString(), AssetId = Guid.NewGuid().ToString(), PageIndex = i, Rotation = 0, Role = "material", PreviewStatus = "ready" });
             runner.Mode = "complete";
             var first = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input);
             await Wait(first.Id, j => j.State.IsTerminal());
             _selectedTaskId = first.Id; await RefreshTasksAsync();
             Check(TaskQuestions.Text == "3" && _taskSteps.Count == 6 && TaskProgress.Visibility == Visibility.Collapsed, "completed-metrics-and-timeline");
+            Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputCached.Text == "其中缓存输入 1,102,400", "cached-input-visible");
             await Capture("completed");
             _taskSteps["model-1"].Expand(); TaskTimelineScroll.ChangeView(null, 0, null, true); await Capture("expanded");
+            var runningDocument = await _library.ImportDocumentAsync("数学 仅试题", ImportMode.Blank, Enumerable.Range(0, 4).Select(_ => new ImportSource("原件.png", image)).ToArray());
             runner.Mode = "running";
-            var active = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "数学 仅试题" } });
+            var active = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = runningDocument });
             await Wait(active.Id, j => j.Sequence >= 8);
             _selectedTaskId = active.Id; await RefreshTasksAsync(); await Capture("running");
+            Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputUsage.Text == "输入 1,135,950", "running-usage-visible");
             Check(TaskProgress.Visibility == Visibility.Visible && TaskCancelButton.Visibility == Visibility.Visible, "live-progress-and-cancel");
+            await runner.Update!.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在核对题目", Text = "这是一段简短的模型回复。\n\n\n\n", PagesRead = 4, QuestionsSaved = 3 });
+            await RefreshTasksAsync(); _taskSteps["model-2"].Expand(); await Capture("short-reply");
+            Check(_taskSteps["model-2"].OutputFitsContent && !_taskSteps["model-2"].OutputHasTrailingBlankLines, "reply-shrinks-to-content-and-trims-blank-lines");
+            Check(FindVisualChild<Expander>(_taskSteps["model-2"].Root) is null, "reply-has-no-nested-card");
             var retained = _taskSteps["model-2"].Root;
             await runner.Update!.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在接收模型响应", Text = string.Join("\n", Enumerable.Repeat("正在核对第 4 页的跨页题目，已保存的题目可以在题库查看。", 12)), PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 8250 });
             await RefreshTasksAsync(); Check(ReferenceEquals(retained, _taskSteps["model-2"].Root), "streaming-preserves-controls");
@@ -138,10 +150,17 @@ public sealed partial class MainWindow
     private sealed class TaskSmokeRunner : IJobRunner
     {
         public string Mode { get; set; } = "complete";
+        public LibraryRepository? Library { get; init; }
         public JobContext? Update { get; private set; }
         public async Task RunAsync(Job job, JobContext context)
         {
             string mode = Mode; Update = context;
+            if (mode is "complete" or "running" && Library is not null)
+            {
+                await Library.BeginGradingAsync(job);
+                await Library.RecordModelCallAsync(job.Id, 1, ModelCall(668420, 21880, 655360, 3.41), CancellationToken.None);
+                await Library.RecordModelCallAsync(job.Id, 2, ModelCall(467530, 27749, 447040, 4.59), CancellationToken.None);
+            }
             await context.ActivityAsync(new JobActivity { Key = "model-1", Kind = "model", Title = "第 1 轮识别", Detail = "已生成 4 项操作", Text = "已找到 4 页试题。我将先读取原件，再保存识别出的题目，并核对跨页内容。", State = "completed", ElapsedMs = 2300 });
             for (int i = 1; i <= 4; i++)
                 await context.ActivityAsync(new JobActivity { Key = "read-" + i, Kind = "read_page", Title = $"阅读第 {i} 页", Detail = "已读取原件", State = "completed", PagesRead = i, ElapsedMs = 120 });
@@ -156,5 +175,13 @@ public sealed partial class MainWindow
             }
             await Task.Delay(Timeout.Infinite, context.Cancellation);
         }
+        private static JsonElement ModelCall(ulong input, ulong output, ulong cacheRead, double cost) =>
+            JsonDocument.Parse(new JsonObject
+            {
+                ["model"] = "example-model",
+                ["usage"] = new JsonObject { ["input"] = input, ["output"] = output, ["cache_read"] = cacheRead, ["cache_write"] = 0 },
+                ["estimated_cost"] = cost,
+                ["currency"] = "USD"
+            }.ToJsonString()).RootElement.Clone();
     }
 }

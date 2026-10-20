@@ -90,7 +90,8 @@ public sealed partial class MainWindow
         _questionListStacked = stacked;
         QuestionListColumn.Width = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(320);
         QuestionLayout.ColumnDefinitions[1].Width = stacked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        QuestionListRow.Height = stacked ? new GridLength(200) : new GridLength(1, GridUnitType.Star);
+        QuestionListRow.Height = stacked ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
+        QuestionList.MaxHeight = stacked ? 200 : double.PositiveInfinity;
         if (listLayoutChanged)
             DispatcherQueue.TryEnqueue(() =>
             {
@@ -110,9 +111,16 @@ public sealed partial class MainWindow
         Grid.SetColumn(DocumentCommands, narrowToolbar ? 0 : 1);
         Grid.SetRow(DocumentCommands, narrowToolbar ? 1 : 0);
         Grid.SetColumnSpan(DocumentCommands, narrowToolbar ? 2 : 1);
-        Grid.SetColumnSpan(DocumentPicker, narrowToolbar ? 2 : 1);
-        DocumentPicker.MaxWidth = narrowToolbar ? double.PositiveInfinity : 320;
-        GradeButton.Visibility = ViewModel.CurrentDocument is not null ? Visibility.Visible : Visibility.Collapsed;
+        Grid.SetColumnSpan(BackToPapersButton, narrowToolbar ? 2 : 1);
+        bool narrowPapers = RootGrid.ActualWidth < 700;
+        Grid.SetColumnSpan(PaperSearch, narrowPapers ? 3 : 1);
+        Grid.SetRow(PaperSubjectFilter, narrowPapers ? 1 : 0); Grid.SetColumn(PaperSubjectFilter, narrowPapers ? 0 : 1);
+        Grid.SetRow(PaperSort, narrowPapers ? 1 : 0); Grid.SetColumn(PaperSort, narrowPapers ? 1 : 2);
+        Grid.SetColumnSpan(PaperSort, narrowPapers ? 2 : 1);
+        PaperFilters.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+        PaperFilters.ColumnDefinitions[1].Width = narrowPapers ? new GridLength(1, GridUnitType.Star) : new GridLength(160);
+        PaperFilters.ColumnDefinitions[2].Width = narrowPapers ? new GridLength(0) : new GridLength(160);
+        GradeButton.Visibility = DocumentToolbar.Visibility == Visibility.Visible && ViewModel.CurrentDocument is not null ? Visibility.Visible : Visibility.Collapsed;
         TaskActivity.Visibility = ViewModel.IsTaskRunning ? Visibility.Visible : Visibility.Collapsed;
         ApplyTaskLayout();
         var paneMode = compact ? NavigationViewPaneDisplayMode.LeftMinimal : NavigationViewPaneDisplayMode.Left;
@@ -135,8 +143,8 @@ public sealed partial class MainWindow
         EmptyQuestionMessage.Text = ViewModel.SectionTitle == "错题" ? "批改后需要复习的题目会出现在这里。"
             : ViewModel.IsTaskRunning ? "题目识别后会自动出现在这里，可在任务中查看进度。"
             : ViewModel.CurrentDocument is not null ? "这份试卷还没有识别出题目，可在上方重新识别。"
-            : "从上方导入 PDF 或图片试卷，识别后题目会自动加入题库。";
-        GradeButton.Visibility = ViewModel.CurrentDocument is not null ? Visibility.Visible : Visibility.Collapsed;
+            : "在试卷页面导入 PDF 或图片，识别后题目会自动加入题库。";
+        GradeButton.Visibility = DocumentToolbar.Visibility == Visibility.Visible && ViewModel.CurrentDocument is not null ? Visibility.Visible : Visibility.Collapsed;
         TaskActivity.Visibility = ViewModel.IsTaskRunning && TasksPanel.Visibility != Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
     }
 

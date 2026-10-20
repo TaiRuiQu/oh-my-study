@@ -11,24 +11,11 @@ public static class ModelCatalog
 {
     public const int MaximumBytes = 32 * 1024 * 1024;
 
+    private static readonly DailyJsonFeed Feed = new("https://models.dev/api.json", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "Cache", "models.json"), MaximumBytes,
+        value => value.ValueKind == JsonValueKind.Object && value.EnumerateObject().Any(p => p.Value.ValueKind == JsonValueKind.Object && p.Value.TryGetProperty("models", out var models) && models.ValueKind == JsonValueKind.Object));
     public static async Task<List<CatalogMatch>> FindAsync(HttpClient http, string modelId, CancellationToken cancellationToken = default)
-    {
-        using var response = await http.GetAsync("https://models.dev/api.json", HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        if (response.Content.Headers.ContentLength > MaximumBytes) throw new InvalidDataException("Model catalog exceeds limit");
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        using var bytes = new MemoryStream();
-        byte[] buffer = new byte[16384];
-        while (true)
-        {
-            int count = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (count == 0) break;
-            if (bytes.Length + count > MaximumBytes) throw new InvalidDataException("Model catalog exceeds limit");
-            bytes.Write(buffer, 0, count);
-        }
-        using var json = JsonDocument.Parse(bytes.GetBuffer().AsMemory(0, (int)bytes.Length));
-        return Find(json.RootElement, modelId);
-    }
+        => Find((await Feed.GetAsync(http, cancellationToken).ConfigureAwait(false)).Value, modelId);
+    public static Task<CachedJson> GetAsync(HttpClient http, CancellationToken ct = default) => Feed.GetAsync(http, ct);
 
     public static List<CatalogMatch> Find(JsonElement catalog, string modelId)
     {
@@ -45,19 +32,35 @@ public static class ModelCatalog
             if (model.TryGetProperty("modalities", out var modes) && modes.ValueKind == JsonValueKind.Object
                 && modes.TryGetProperty("input", out var input) && input.ValueKind == JsonValueKind.Array)
                 vision = input.EnumerateArray().Any(value => value.ValueKind == JsonValueKind.String && value.GetString() == "image");
+            var thinking = new List<Thinking>(); bool budget = false;
+            if (model.TryGetProperty("reasoning_options", out var reasoning) && reasoning.ValueKind == JsonValueKind.Array)
+                foreach (var option in reasoning.EnumerateArray())
+                {
+                    if (option.ValueKind != JsonValueKind.Object) continue;
+                    if (Text(option, "type") == "budget_tokens") budget = true;
+                    if (Text(option, "type") != "effort" || !option.TryGetProperty("values", out var values) || values.ValueKind != JsonValueKind.Array) continue;
+                    foreach (var value in values.EnumerateArray())
+                        if (value.ValueKind == JsonValueKind.String && value.GetString() is { } effort && new[] { "none", "minimal", "low", "medium", "high", "xhigh", "max" }.Contains(effort))
+                            thinking.Add(new ResponsesThinking { Effort = effort });
+                }
             var config = new ModelConfig
             {
                 Id = modelId,
                 DisplayName = Text(model, "name"),
                 ContextWindow = context,
                 Currency = "USD",
+                MaxOutputTokens = model.TryGetProperty("limit", out var limits) && limits.ValueKind == JsonValueKind.Object && limits.TryGetProperty("output", out var output) && output.ValueKind == JsonValueKind.Number && output.TryGetUInt64(out var maxOutput) && maxOutput > 0 ? maxOutput : null,
+                InputModalities = Modalities(model, "input"),
+                OutputModalities = Modalities(model, "output"),
+                Reasoning = Boolean(model, "reasoning"),
                 PriceInput = Price(model, "input"),
                 PriceOutput = Price(model, "output"),
                 Capabilities = new()
                 {
                     Vision = vision,
                     Tools = Boolean(model, "tool_call"),
-                    Thinking = [],
+                    Thinking = thinking,
+                    MessagesBudget = budget,
                     Source = "models.dev"
                 }
             };
@@ -65,6 +68,20 @@ public static class ModelCatalog
         }
         return result.OrderBy(match => match.ProviderName, StringComparer.OrdinalIgnoreCase).ToList();
     }
+
+    private static List<string>? Modalities(JsonElement model, string kind) => model.TryGetProperty("modalities", out var modes) && modes.ValueKind == JsonValueKind.Object && modes.TryGetProperty(kind, out var values) && values.ValueKind == JsonValueKind.Array
+        ? values.EnumerateArray().Where(v => v.ValueKind == JsonValueKind.String).Select(v => v.GetString()!).ToList() : null;
+
+    // Catalog effort values are protocol-neutral; only expose values the selected protocol accepts.
+    public static ModelConfig ForProtocol(ModelConfig model, Protocol protocol) => model with
+    {
+        Capabilities = model.Capabilities with
+        {
+            Thinking = protocol == Protocol.Responses ? model.Capabilities.Thinking : model.Capabilities.Thinking.OfType<ResponsesThinking>()
+                .Where(t => new[] { "low", "medium", "high", "max" }.Contains(t.Effort)).Select(t => (Thinking)new AdaptiveThinking { Effort = t.Effort }).ToList(),
+            MessagesBudget = protocol == Protocol.Messages && model.Capabilities.MessagesBudget == true
+        }
+    };
 
     private static string? Text(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

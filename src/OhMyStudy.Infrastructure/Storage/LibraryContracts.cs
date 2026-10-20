@@ -32,3 +32,5 @@ public static class LibraryLimits
     public const int MaximumBatchBytes = 256 * 1024 * 1024;
     public const ulong MaximumImagePixels = 40_000_000;
 }
+
+public sealed record PaperSummary(Document Document, string? Subject, double? Earned, double? Possible, int QuestionCount);

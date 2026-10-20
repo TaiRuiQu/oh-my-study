@@ -27,6 +27,7 @@ internal static class Program
             using var assets = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "assets.synthetic.json")));
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
             await ThreeProtocolsAndModes();
+            await OptionalFields();
             await StreamingActivity();
             await CropAndCoverageRecovery();
             await CoverageAndToolValidation();
@@ -108,6 +109,26 @@ internal static class Program
         Reason = page.Role == "reference" ? "Reference answer page" : ""
     }).ToList();
 
+    private static async Task OptionalFields()
+    {
+        await using var fixture = await Fixture.Create(ImportMode.TeacherGraded, Protocol.Responses);
+        var page = fixture.Document.Pages.First(p => p.Role == "material");
+        var args = new JsonObject
+        {
+            ["draft_key"] = "minimal-q",
+            ["number"] = "1",
+            ["content"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = "一道仅有必要字段的题目。" }),
+            ["sources"] = JsonNode.Parse(DomainJson.Serialize(new List<Region> { Region(page) })),
+            ["attempt"] = new JsonObject { ["grade"] = new JsonObject { ["verdict"] = "partial", ["source"] = "teacher", ["earned"] = 1, ["possible"] = 2 } }
+        };
+        var api = new ScriptApi(Protocol.Responses, (_, _, _) => Task.FromResult<List<ToolCall>>([.. fixture.Document.Pages.Select(p => Read(p)), Call("save_question", args), Finish(Coverage(fixture.Document, "minimal-q"))]));
+        var job = await fixture.Run(api);
+        Check(job.State == JobState.Completed && api.Attempts == 1, "minimal tool fields and teacher score without evidence accepted");
+        var question = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single().Question;
+        Check(question.Subject == "" && question.Options.Count == 0 && question.Attempt!.Teacher is null && question.Attempt.Grade.Earned == 1, "omitted auxiliary fields use empty defaults without inventing evidence");
+        Check(!GradingTools.QuestionSchema()["required"]!.ToJsonString().Contains("subject"), "schema required set is core content only");
+    }
+
     private static async Task ThreeProtocolsAndModes()
     {
         foreach (var protocol in Enum.GetValues<Protocol>())
@@ -127,7 +148,7 @@ internal static class Program
                     Check(round == 2, "two model rounds for full paper");
                     Check(HasImageFeedback(protocol, request), $"{protocol}/{mode}: read_page returns native image result");
                     Check((await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Count == 0, "read-only round does not invent saved questions");
-                    return [Refs(References(fixture.Document)), Save(question), Save(question), Finish(Coverage(fixture.Document, question.DraftKey))];
+                    return [new ToolCall { Id = "paper-info", Name = "save_paper_info", Arguments = JsonDocument.Parse(mode == ImportMode.Blank ? "{\"subject\":\"数学\",\"earned\":null,\"possible\":100}" : "{\"subject\":\"数学\",\"earned\":86.5,\"possible\":100}").RootElement.Clone() }, Refs(References(fixture.Document)), Save(question), Save(question), Finish(Coverage(fixture.Document, question.DraftKey))];
                 });
                 var job = await fixture.Run(api);
                 var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
@@ -135,6 +156,14 @@ internal static class Program
                 Check(result.Questions.Count == 1 && result.Questions[0].Question.DraftKey == question.DraftKey, "duplicate tool saves upsert one stable question");
                 Check(result.Coverage.Count == 2 && result.References.Count == 1 && result.ModelCalls.Count == 2, "coverage, reference and call usage durably saved");
                 Check(result.ModelCalls.All(c => c.GetProperty("usage").GetProperty("input").GetUInt64() == 100 && c.GetProperty("estimated_cost").GetDouble() > 0), "real call usage and configured estimate");
+                var paper = (await fixture.Library.ListPapersAsync()).Single();
+                Check(paper.Subject == "数学" && paper.Possible == 100 && paper.Earned == (mode == ImportMode.Blank ? null : 86.5) && paper.QuestionCount == 1, "paper metadata saved through real tool and queue");
+                await fixture.Library.UpdatePaperAsync(fixture.Document.Id, "整理后的标题", "综合", null, 120);
+                paper = (await fixture.Library.ListPapersAsync()).Single();
+                Check(paper.Document.Name == "整理后的标题" && paper.Subject == "综合" && paper.Possible == 120 && paper.Earned is null, "manual metadata and title persist");
+                bool invalid = false;
+                try { await fixture.Library.UpdatePaperAsync(fixture.Document.Id, "", "数学", 101, 100); } catch (ArgumentException) { invalid = true; }
+                Check(invalid && (await fixture.Library.ListPapersAsync()).Single().Document.Name == "整理后的标题", "invalid metadata does not partially update");
                 var saved = result.Questions.Single().Question;
                 Check(mode == ImportMode.Blank ? saved.Attempt is null : saved.Attempt is not null, "blank/answered attempts remain distinct");
                 if (mode == ImportMode.TeacherGraded) Check(saved.Attempt!.Grade == saved.Attempt.Teacher!.Grade && saved.Attempt.Grade.Source == GradeSource.Teacher, "teacher mark has priority over matched reference");
@@ -290,7 +319,7 @@ internal static class Program
             var retry = new ScriptApi(Protocol.Responses, async (round, request, _) =>
             {
                 if (round == 1) return [.. fixture.Document.Pages.Select(p => Read(p)), Save(incoming with { Attempt = null })];
-                Check(HasToolError(Protocol.Responses, request), "regrade cannot remove protected attempt");
+                Check(HasToolError(Protocol.Responses, request), "explicit null cannot remove protected attempt");
                 Check((await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single().Question.Attempt!.Grade == protectedGrade, "failed removal retains old grade");
                 return [Save(incoming), Finish(Coverage(fixture.Document, incoming.DraftKey))];
             });

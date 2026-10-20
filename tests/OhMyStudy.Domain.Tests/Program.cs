@@ -300,8 +300,8 @@ internal sealed class CompatibilitySuite
             var attempt = question.Attempt! with { Teacher = new() { Raw = "教师批注", Regions = question.Sources, Grade = grade }, Grade = grade, ReferenceKey = null };
             var teacher = document with { Mode = ImportMode.TeacherGraded };
             GradingValidation.ValidateQuestion(question with { Attempt = attempt }, teacher, refs, false);
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Attempt = attempt with { Grade = grade with { Reason = "changed" } } }, teacher, refs, false)));
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Attempt = attempt with { Teacher = null } }, teacher, refs, false)));
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Attempt = attempt with { Grade = grade with { Verdict = Verdict.Correct, Earned = grade.Possible } } }, teacher, refs, false)));
+            GradingValidation.ValidateQuestion(question with { Attempt = attempt with { Teacher = null } }, teacher, refs, false);
         });
         Check("question", "reference_cannot_be_bypassed", () => Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Attempt = question.Attempt! with { ReferenceKey = null, Grade = question.Attempt.Grade with { Source = GradeSource.AiSolution } } }, document, refs, false))));
         Check("question", "part_scores_must_sum", () =>

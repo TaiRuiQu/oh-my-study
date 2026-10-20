@@ -8,7 +8,7 @@ public sealed partial class MainWindow
 {
     private void InitializeSettingsLayout()
     {
-        foreach (var feedback in new[] { ProviderFeedback, ModelFeedback, ModelCatalogFeedback, LibraryFeedback, ExecutionDescription, OriginalCaption })
+        foreach (var feedback in new[] { ProviderFeedback, ModelFeedback, ModelCatalogFeedback, ModelCnyPreview, ModelExtraInfo, LibraryFeedback, ExecutionDescription, OriginalCaption })
         {
             feedback.RegisterPropertyChangedCallback(TextBlock.TextProperty, OptionalTextChanged);
             OptionalTextChanged(feedback, TextBlock.TextProperty);

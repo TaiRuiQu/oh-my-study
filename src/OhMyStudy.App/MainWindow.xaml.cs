@@ -163,6 +163,10 @@ public sealed partial class MainWindow : Window
             await RunMathSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[mathIndex + 1]));
             return;
         }
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--papers-smoke") is int papersIndex && papersIndex > 0)
+        {
+            await RunPapersSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[papersIndex + 1])); return;
+        }
         else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--task-smoke") is int taskIndex && taskIndex > 0)
         {
             await RunTaskSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[taskIndex + 1]));
@@ -212,12 +216,15 @@ public sealed partial class MainWindow : Window
         }
         SectionCaption.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
-        WorkspaceActions.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
+        WorkspaceActions.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceStatus.Visibility = tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
         WorkspaceNotice.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
-        WorkspaceGrid.Visibility = settings || tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
+        WorkspaceGrid.Visibility = settings || tag is "tasks" or "materials" ? Visibility.Collapsed : Visibility.Visible;
+        PapersPanel.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         TasksPanel.Visibility = tag == "tasks" ? Visibility.Visible : Visibility.Collapsed;
-        DocumentToolbar.Visibility = !settings && tag == "materials" && !ViewModel.IsSample ? Visibility.Visible : Visibility.Collapsed;
+        DocumentToolbar.Visibility = Visibility.Collapsed;
+        SectionCaption.Visibility = Visibility.Collapsed;
+        GradeButton.Visibility = Visibility.Collapsed;
         ViewModel.ShowSection(tag);
         UpdateQuestionState();
         try
@@ -232,7 +239,7 @@ public sealed partial class MainWindow : Window
                     await RestoreWorkspaceContextAsync(tag, generation);
                     EditQuestionButton.IsEnabled = ViewModel.SelectedQuestion.Saved is not null;
                 }
-                else if (tag == "materials" && DocumentPicker.SelectedItem is OhMyStudy.Domain.Document document) await LoadDocumentAsync(document);
+                else if (tag == "materials") { await RefreshDocumentsAsync(); ShowPaperList(); }
                 else if (tag == "tasks") await RefreshTasksAsync();
             }
         }
@@ -676,10 +683,11 @@ public sealed partial class MainWindow : Window
 
     private void RestoreSample_Click(object sender, RoutedEventArgs e)
     {
-        RememberViewport(); ViewModel.LoadSample();
+        RememberViewport(); ViewModel.LoadSample(); ShowMaterialsNavigation();
+        SourcePane.Visibility = Visibility.Visible; DocumentCommands.Visibility = Visibility.Collapsed; SetPaperMenuDetail(false);
         WorkspaceNotice.Title = "示例资料"; WorkspaceNotice.Message = "可查看和编辑，修改不会保存。"; WorkspaceNotice.IsOpen = true;
         _rotation = 0;
-        GradeButton.IsEnabled = false; DocumentToolbar.Visibility = Visibility.Collapsed;
+        GradeButton.IsEnabled = false; DocumentToolbar.Visibility = Visibility.Visible;
         CancelPreviewLoad();
         ImportedImage.Source = null;
         ImportedImage.Visibility = Visibility.Collapsed;
@@ -693,7 +701,7 @@ public sealed partial class MainWindow : Window
         WorkspaceNotice.Title = "示例资料";
         WorkspaceNotice.Message = "可查看和编辑，修改不会保存。";
         UpdateSourceHighlight();
-        ViewModel.StatusMessage = "";
+        ViewModel.StatusMessage = ""; ApplyWorkspaceLayout();
     }
 
     private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -936,7 +944,7 @@ public sealed partial class MainWindow : Window
         Directory.CreateDirectory(directoryPath);
         byte[] pixels;
         int pixelWidth, pixelHeight;
-        if (element is null && Environment.GetCommandLineArgs().Any(argument => argument is "--math-smoke" or "--preview-smoke"))
+        if (element is null && Environment.GetCommandLineArgs().Any(argument => argument is "--math-smoke" or "--preview-smoke" or "--papers-smoke"))
         {
             AppWindow.Show(); Activate();
             nint window = WinRT.Interop.WindowNative.GetWindowHandle(this);

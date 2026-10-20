@@ -68,19 +68,18 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
             foreach (var key in Collect(part)) yield return key;
     }
 
-    internal static IEnumerable<string> Feedback(Question question)
+    internal sealed record FeedbackSection(string Title, string Glyph, IReadOnlyList<string> Texts);
+    internal static IEnumerable<FeedbackSection> FeedbackSections(Question question)
     {
         if (question.Attempt is { } attempt)
         {
-            yield return "作答：" + (string.IsNullOrWhiteSpace(attempt.StudentAnswer) ? "未作答" : attempt.StudentAnswer);
-            var score = attempt.Grade.Earned is { } earned && attempt.Grade.Possible is { } possible ? $"{earned:g} / {possible:g}" : "分值未确定";
-            var source = attempt.Grade.Source switch { GradeSource.Teacher => "教师", GradeSource.Manual => "手动修改", GradeSource.AiReference => "参考答案", _ => "模型解题" };
-            yield return $"评分：{score} · {source}";
-            if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return attempt.Grade.Reason;
-            if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return "教师批注：" + teacher.Raw;
-            if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return "判断差异：" + attempt.Conflict;
-            if (!string.IsNullOrWhiteSpace(attempt.AiSolution)) yield return "解题过程：" + attempt.AiSolution;
+            yield return new("作答", "\uE70F", new[] { string.IsNullOrWhiteSpace(attempt.StudentAnswer) ? attempt.Grade.Verdict == Verdict.Unanswered ? "未作答" : "未记录作答" : attempt.StudentAnswer });
+            if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return new("评分说明", "\uE9D9", new[] { attempt.Grade.Reason });
+            if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return new("教师批注", "\uE8F2", new[] { teacher.Raw });
+            if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return new("判断差异", "\uE7BA", new[] { attempt.Conflict });
+            if (!string.IsNullOrWhiteSpace(attempt.AiSolution)) yield return new("解题过程", "\uE8A5", new[] { attempt.AiSolution });
         }
-        foreach (var uncertain in question.Uncertainties) yield return "待确认：" + uncertain;
+        if (question.Uncertainties.Count > 0) yield return new("待确认", "\uE9CE", question.Uncertainties);
     }
+    internal static IEnumerable<string> Feedback(Question question) => FeedbackSections(question).SelectMany(section => section.Texts);
 }

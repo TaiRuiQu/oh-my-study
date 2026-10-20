@@ -17,6 +17,9 @@ namespace OhMyStudy.App.Services;
 public static class NativeQuestionPresenter
 {
     private static readonly NativePageImages PageImages = new();
+    private const double ContentSpacing = 10;
+    // Section titles sit one comfortable step above body text: 10 stack spacing + 14 margin.
+    private const double SectionSpacing = 14;
 
 
     public static async Task<FrameworkElement> CreateAsync(Question question, LibraryRepository library, CancellationToken cancellationToken, double availableWidth = 720, ElementTheme theme = ElementTheme.Default)
@@ -25,7 +28,7 @@ public static class NativeQuestionPresenter
         ArgumentNullException.ThrowIfNull(library);
         cancellationToken.ThrowIfCancellationRequested();
         // Await without ConfigureAwait(false): all XAML objects belong to this UI thread.
-        var panel = new StackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var panel = new StackPanel { Spacing = ContentSpacing, HorizontalAlignment = HorizontalAlignment.Stretch };
         var reading = await NativeReadingSession.CreateAsync(question, availableWidth, cancellationToken, theme);
         await AddQuestionAsync(panel, question, library, reading, cancellationToken, root: true);
         return panel;
@@ -36,7 +39,8 @@ public static class NativeQuestionPresenter
         cancellationToken.ThrowIfCancellationRequested();
         var label = question.Points is { } points ? $"{question.Number}　（{points:g} 分）" : question.Number;
         if (!root) panel.Children.Add(Text(label, heading: true));
-        else if (question.Points is { } total) panel.Children.Add(await reading.PresentAsync($"{total:g} 分", cancellationToken));
+        else if (question.Points is { } total)
+        { panel.Children.Add(LabelRow("满分 " + total.ToString("g") + " 分", "\uE9D9")); }
         foreach (var content in NativeReadingSession.Coalesce(question.Content))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -49,14 +53,44 @@ public static class NativeQuestionPresenter
             }
         }
         foreach (var option in question.Options) panel.Children.Add(await reading.PresentAsync(option, cancellationToken));
-        foreach (var feedback in NativeReadingSession.Feedback(question))
-            panel.Children.Add(await reading.PresentAsync(feedback, cancellationToken));
+        StackPanel? scorePanel = null;
+        if (question.Attempt is { } attempt)
+        {
+            var score = new StackPanel { Spacing = ContentSpacing, Margin = new Thickness(0, SectionSpacing, 0, 0) };
+            score.Children.Add(LabelRow("评分", "\uE9D9"));
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+            row.Children.Add(new TextBlock { Text = attempt.Grade.Earned is { } earned && attempt.Grade.Possible is { } possible ? $"{earned:g} / {possible:g}" : "分数未确定", FontSize = 22, FontWeight = FontWeights.SemiBold });
+            string verdict = attempt.Grade.Verdict switch { Verdict.Correct => "正确", Verdict.Partial => "部分正确", Verdict.Incorrect => "错误", Verdict.Unanswered => "未作答", _ => "待确认" };
+            row.Children.Add(LabelRow(verdict, attempt.Grade.Verdict == Verdict.Correct ? "\uE73E" : attempt.Grade.Verdict == Verdict.Incorrect ? "\uE711" : attempt.Grade.Verdict == Verdict.Partial ? "\uE7BA" : "\uE9CE"));
+            score.Children.Add(row);
+            string source = attempt.Grade.Source switch { GradeSource.Teacher => "教师评分", GradeSource.Manual => "手动评分", GradeSource.AiReference => "依据参考答案", _ => "模型评分" };
+            score.Children.Add(LabelRow(source, "\uE77B"));
+            scorePanel = score;
+        }
+        foreach (var section in NativeReadingSession.FeedbackSections(question))
+        {
+            if (section.Title == "评分说明" && scorePanel is not null)
+            { foreach (string text in section.Texts) scorePanel.Children.Add(await reading.PresentAsync(text, cancellationToken)); continue; }
+            var body = new StackPanel { Spacing = ContentSpacing, Margin = new Thickness(0, SectionSpacing, 0, 0) };
+            body.Children.Add(LabelRow(section.Title, section.Glyph));
+            foreach (string text in section.Texts) body.Children.Add(await reading.PresentAsync(text, cancellationToken));
+            panel.Children.Add(body);
+            if (section.Title == "作答" && scorePanel is not null) panel.Children.Add(scorePanel);
+        }
         foreach (var part in question.Parts)
         {
-            var nested = new StackPanel { Spacing = 8, Margin = new Thickness(16, 4, 0, 4) };
+            var nested = new StackPanel { Spacing = ContentSpacing, Margin = new Thickness(16, SectionSpacing, 0, 0) };
             await AddQuestionAsync(nested, part, library, reading.Nested(), cancellationToken);
             panel.Children.Add(nested);
         }
+    }
+
+    private static StackPanel LabelRow(string label, string glyph)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, VerticalAlignment = VerticalAlignment.Center, Opacity = .76 };
+        row.Children.Add(new FontIcon { Glyph = glyph, FontSize = 13 });
+        row.Children.Add(new TextBlock { Text = label, FontFamily = new FontFamily(DocumentTypography.InterfaceFontFamily), FontSize = 13, FontWeight = FontWeights.SemiBold });
+        return row;
     }
 
     private static TextBlock Text(string text, bool heading = false) => new()

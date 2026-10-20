@@ -12,7 +12,7 @@ public sealed partial class MainWindow
     private string? _selectedTaskId;
     private Job? _selectedTask;
     private bool _updatingTaskPicker;
-    private readonly Dictionary<string, (ListViewItem Item, TextBlock Title, TextBlock Status, ComboBoxItem Compact, TextBlock CompactTitle)> _taskItems = [];
+    private readonly Dictionary<string, (ListViewItem Item, TextBlock Title, TextBlock Status, FontIcon StatusIcon, TextBlock Time, ComboBoxItem Compact, TextBlock CompactTitle)> _taskItems = [];
     private readonly Dictionary<string, TaskStepView> _taskSteps = [];
     private string? _timelineJobId;
     private ulong _renderedTaskSequence;
@@ -80,15 +80,22 @@ public sealed partial class MainWindow
                     var title = new TextBlock { TextWrapping = TextWrapping.Wrap, MaxLines = 2, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
                     var status = new TextBlock { Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["QuietTextStyle"], TextWrapping = TextWrapping.Wrap };
                     var content = new StackPanel { Spacing = 6, Padding = new Thickness(4, 10, 4, 10) };
-                    content.Children.Add(title); content.Children.Add(status);
+                    var statusIcon = new FontIcon { FontSize = 12 }; var time = new TextBlock { Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["QuietTextStyle"] };
+                    var metadata = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7 };
+                    metadata.Children.Add(statusIcon); metadata.Children.Add(status);
+                    metadata.Children.Add(new FontIcon { Glyph = "\uE787", FontSize = 12, Margin = new Thickness(6, 0, 0, 0) }); metadata.Children.Add(time);
+                    content.Children.Add(title); content.Children.Add(metadata);
                     var item = new ListViewItem { Content = content, Tag = job.Id, HorizontalContentAlignment = HorizontalAlignment.Stretch };
                     var compactTitle = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis };
                     var compact = new ComboBoxItem { Content = compactTitle, Tag = job.Id, HorizontalContentAlignment = HorizontalAlignment.Stretch };
-                    row = (item, title, status, compact, compactTitle); _taskItems.Add(job.Id, row);
+                    row = (item, title, status, statusIcon, time, compact, compactTitle); _taskItems.Add(job.Id, row);
                 }
                 row.Title.Text = job.Input?.Document.Name ?? "资料整理";
-                row.Status.Text = $"{TaskState(job.State)} · {DateTimeOffset.FromUnixTimeMilliseconds((long)job.CreatedAt).ToLocalTime():MM/dd HH:mm}";
-                row.CompactTitle.Text = row.Title.Text + " · " + TaskState(job.State);
+                row.Status.Text = TaskState(job.State);
+                row.StatusIcon.Glyph = TaskStateGlyph(job.State);
+                row.StatusIcon.Foreground = TaskBrush(job.State is JobState.Failed or JobState.Interrupted ? "TaskErrorBrush" : "TaskAccentBrush");
+                row.Time.Text = $"{DateTimeOffset.FromUnixTimeMilliseconds((long)job.CreatedAt).ToLocalTime():MM/dd HH:mm}";
+                row.CompactTitle.Text = row.Title.Text + "（" + TaskState(job.State) + "）";
                 ToolTipService.SetToolTip(row.Compact, row.CompactTitle.Text);
                 AutomationProperties.SetName(row.Item, row.Title.Text + "，" + TaskState(job.State));
             }
@@ -146,7 +153,7 @@ public sealed partial class MainWindow
             JobState.Cancelled => "任务已取消，已保存的题目会保留。",
             JobState.Failed or JobState.Interrupted => "识别未完成，已保存的题目会保留。可在试卷中重新识别。",
             JobState.WaitingPermission => "需要你确认一项操作，确认后继续。",
-            _ => activities.Values.Last().Activity.Title + " · " + activities.Values.Last().Activity.Detail
+            _ => activities.Values.Last().Activity.Detail
         };
         TaskPages.Text = hasTrace ? $"{pages} / {selected.Input?.Document.Pages.Count ?? pages}" : "—";
         TaskQuestions.Text = hasTrace ? questions.ToString() : "—";
@@ -158,18 +165,28 @@ public sealed partial class MainWindow
         TaskProgress.Visibility = selected.State == JobState.Running ? Visibility.Visible : Visibility.Collapsed;
         TaskCancelButton.Visibility = selected.State.IsTerminal() ? Visibility.Collapsed : Visibility.Visible;
         TaskPermissionButton.Visibility = selected.PendingPermission is null ? Visibility.Collapsed : Visibility.Visible;
-        ulong inputTokens = 0, outputTokens = 0;
+        ulong inputTokens = 0, outputTokens = 0, cacheReadTokens = 0; bool inputKnown = true, outputKnown = true, cacheKnown = true;
         double cost = 0; bool priced = calls.Count > 0;
         foreach (var call in calls)
         {
             if (call.TryGetProperty("usage", out var usage))
             {
-                if (usage.TryGetProperty("input", out var a) && a.TryGetUInt64(out var ai)) inputTokens += ai;
-                if (usage.TryGetProperty("output", out var b) && b.TryGetUInt64(out var bi)) outputTokens += bi;
+                if (usage.TryGetProperty("input", out var a) && a.ValueKind == System.Text.Json.JsonValueKind.Number && a.TryGetUInt64(out var ai)) inputTokens += ai; else inputKnown = false;
+                if (usage.TryGetProperty("output", out var b) && b.ValueKind == System.Text.Json.JsonValueKind.Number && b.TryGetUInt64(out var bi)) outputTokens += bi; else outputKnown = false;
+                if (usage.TryGetProperty("cache_read", out var r) && r.ValueKind == System.Text.Json.JsonValueKind.Number && r.TryGetUInt64(out var ri)) cacheReadTokens += ri; else cacheKnown = false;
             }
+            if (!call.TryGetProperty("usage", out _)) { inputKnown = false; outputKnown = false; cacheKnown = false; }
             if (call.TryGetProperty("estimated_cost", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Number && c.TryGetDouble(out var amount)) cost += amount; else priced = false;
         }
-        TaskUsage.Text = $"用量 {inputTokens:N0} 输入 / {outputTokens:N0} 输出" + (priced ? $" · 约 {cost:0.######} {selected.Input?.Model.Currency}" : "");
+        string usageLabel = "";
+        TaskInputUsage.Text = inputKnown ? $"输入 {inputTokens:N0}" : "输入未提供"; TaskOutputUsage.Text = outputKnown ? $"输出 {outputTokens:N0}" : "输出未提供";
+        TaskInputCached.Visibility = calls.Count > 0 && inputKnown && cacheKnown && inputTokens > 0 ? Visibility.Visible : Visibility.Collapsed;
+        TaskInputCached.Text = cacheReadTokens == 0 ? "其中没有缓存输入" : $"其中缓存输入 {cacheReadTokens:N0}";
+        TaskUsageDetails.Visibility = calls.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        TaskTokenUsage.Visibility = calls.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        TaskCostRow.Visibility = priced ? Visibility.Visible : Visibility.Collapsed;
+        TaskUsage.Text = "";
+        if (priced) _ = UpdateTaskCnyCostAsync(selected.Id, generation, usageLabel, cost, selected.Input?.Model.Currency ?? "USD");
         TaskUsage.Visibility = calls.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         foreach (var (activity, time) in activities.Values)
         {
@@ -245,47 +262,66 @@ public sealed partial class MainWindow
         foreach (var step in _taskSteps.Values) step.SetOutputHeight(e.NewSize.Height);
     }
 
+    private static string TaskStateGlyph(JobState state) => state switch
+    { JobState.Completed => "\uE73E", JobState.Failed or JobState.Interrupted => "\uE7BA", JobState.Cancelled => "\uE711", JobState.WaitingPermission => "\uE8D7", _ => "\uE916" };
+
     private sealed class TaskStepView
     {
-        public Grid Root { get; } = new() { ColumnSpacing = 14, Padding = new Thickness(0, 0, 0, 16) };
-        private readonly Border _badge = new() { Width = 32, Height = 32, CornerRadius = new CornerRadius(16), VerticalAlignment = VerticalAlignment.Top };
-        private readonly FontIcon _icon = new() { FontSize = 15 };
+        public Grid Root { get; } = new() { ColumnSpacing = 14, Padding = new Thickness(0, 0, 0, 20) };
+        private readonly Border _badge = new() { Width = 28, Height = 28, CornerRadius = new CornerRadius(14), VerticalAlignment = VerticalAlignment.Top };
+        private readonly FontIcon _icon = new() { FontSize = 14 };
         private readonly TextBlock _title = new() { FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
         private readonly TextBlock _detail = new() { TextWrapping = TextWrapping.Wrap, FontSize = 13 };
-        private readonly TextBlock _time = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap };
-        private readonly TextBlock _output = new() { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, FontSize = 13, LineHeight = 22 };
-        private readonly ScrollViewer _outputScroll = new() { MaxHeight = 220, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-        private readonly Expander _expander = new() { Header = "模型回复", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Visibility = Visibility.Collapsed };
+        private readonly TextBlock _time = new() { FontSize = 12 };
+        private readonly TextBlock _state = new() { FontSize = 12 };
+        private readonly TextBlock _duration = new() { FontSize = 12 };
+        private readonly FontIcon _stateIcon = new() { FontSize = 11 };
+        private readonly StackPanel _durationGroup;
+        private readonly TextBlock _output = new() { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, FontSize = 13, LineHeight = 22, VerticalAlignment = VerticalAlignment.Top };
+        private readonly ScrollViewer _outputScroll = new() { MaxHeight = 220, VerticalAlignment = VerticalAlignment.Top, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 4, 0, 0) };
+        private readonly HyperlinkButton _toggle = new() { Content = "展开回复", HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2), MinHeight = 24, Visibility = Visibility.Collapsed };
         private bool _hadOutput;
-        public void Expand() => _expander.IsExpanded = true;
-        public void SetOutputHeight(double viewportHeight) => _outputScroll.MaxHeight = Math.Clamp(viewportHeight - 150, 32, 220);
+        private string _replyLabel = "回复";
+        public bool OutputFitsContent => _outputScroll.ActualHeight <= _output.ActualHeight + 1;
+        public bool OutputHasTrailingBlankLines => _output.Text.EndsWith("\n", StringComparison.Ordinal);
+        public void Expand() { _outputScroll.Visibility = Visibility.Visible; UpdateToggle(); }
+        private void UpdateToggle() => _toggle.Content = (_outputScroll.Visibility == Visibility.Visible ? "收起" : "展开") + _replyLabel;
+        public void SetOutputHeight(double viewportHeight) => _outputScroll.MaxHeight = Math.Clamp(viewportHeight - 150, 44, 260);
         public TaskStepView()
         {
-            Root.ColumnDefinitions.Add(new() { Width = new GridLength(32) }); Root.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+            Root.ColumnDefinitions.Add(new() { Width = new GridLength(28) }); Root.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
             _badge.Child = _icon; Root.Children.Add(_badge);
-            var line = new Border { Width = 2, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(40, 128, 128, 128)), Margin = new Thickness(0, 36, 0, -12), HorizontalAlignment = HorizontalAlignment.Center };
+            var line = new Border { Width = 1, Background = new SolidColorBrush(Windows.UI.Color.FromArgb(50, 128, 128, 128)), Margin = new Thickness(0, 34, 0, -14), HorizontalAlignment = HorizontalAlignment.Center };
             Root.Children.Insert(0, line);
-            var body = new StackPanel { Spacing = 5, Padding = new Thickness(0, 4, 0, 0) };
-            body.Children.Add(_title); body.Children.Add(_detail); body.Children.Add(_time);
-            _outputScroll.Content = _output; _expander.Content = _outputScroll;
-            body.Children.Add(_expander); Grid.SetColumn(body, 1); Root.Children.Add(body);
+            var body = new StackPanel { Spacing = 6, Padding = new Thickness(0, 3, 0, 0) };
+            var metadata = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+            metadata.Children.Add(Group(new FontIcon { Glyph = "\uE917", FontSize = 11 }, _time)); metadata.Children.Add(Group(_stateIcon, _state));
+            _durationGroup = Group(new FontIcon { Glyph = "\uE916", FontSize = 11 }, _duration); metadata.Children.Add(_durationGroup);
+            body.Children.Add(_title); body.Children.Add(_detail); body.Children.Add(metadata);
+            _outputScroll.Content = _output;
+            _toggle.Click += (_, _) => { _outputScroll.Visibility = _outputScroll.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible; UpdateToggle(); };
+            body.Children.Add(_toggle); body.Children.Add(_outputScroll); Grid.SetColumn(body, 1); Root.Children.Add(body);
         }
+        private static StackPanel Group(FontIcon icon, TextBlock text)
+        { var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 }; row.Children.Add(icon); row.Children.Add(text); return row; }
         public void Update(JobActivity step, string state, ulong time, Func<string, Brush> brush)
         {
             _badge.Background = brush("TaskAccentBackgroundBrush");
-            _icon.Foreground = brush(state == "failed" ? "TaskErrorBrush" : "TaskAccentBrush");
+            _icon.Foreground = _stateIcon.Foreground = brush(state == "failed" ? "TaskErrorBrush" : "TaskAccentBrush");
             _icon.Glyph = state is "failed" or "cancelled" ? "\uE7BA" : step.Kind switch
             { "model" => "\uE945", "read_page" => "\uE8A5", "save_question" => "\uE74E", "save_references" => "\uE8F1", "finish" => "\uE73E", "python" or "shell" => "\uE8EF", _ => "\uE9F9" };
-            _title.Text = step.Title;
-            _detail.Text = step.Detail;
-            _time.Text = $"{DateTimeOffset.FromUnixTimeMilliseconds((long)time).ToLocalTime():HH:mm:ss} · {(state == "completed" ? "已完成" : state == "failed" ? "未完成" : state == "cancelled" ? "已取消" : "进行中")}" + (step.ElapsedMs > 0 ? $" · {step.ElapsedMs / 1000d:0.0} 秒" : "");
-            _detail.Foreground = _time.Foreground = brush("TaskSecondaryBrush");
-            if (_output.Text != step.Text) _output.Text = step.Text;
-            if (!_hadOutput && !string.IsNullOrWhiteSpace(step.Text))
-            { _expander.IsExpanded = step.Kind == "model" && state == "running"; _hadOutput = true; }
-            _expander.Header = (step.Kind == "model" ? "模型回复" : "查看输出") + (step.Text.Length >= 16000 ? "（节选）" : "");
-            _expander.Visibility = string.IsNullOrWhiteSpace(step.Text) ? Visibility.Collapsed : Visibility.Visible;
-            AutomationProperties.SetName(Root, step.Title + "，" + _time.Text);
+            _title.Text = step.Title; _detail.Text = step.Detail; _detail.Visibility = string.IsNullOrWhiteSpace(step.Detail) ? Visibility.Collapsed : Visibility.Visible;
+            _time.Text = $"{DateTimeOffset.FromUnixTimeMilliseconds((long)time).ToLocalTime():HH:mm:ss}";
+            _state.Text = state switch { "completed" => "已完成", "failed" => "未完成", "cancelled" => "已取消", _ => "进行中" };
+            _stateIcon.Glyph = state switch { "completed" => "\uE73E", "failed" => "\uE7BA", "cancelled" => "\uE711", _ => "\uE916" };
+            _duration.Text = $"{step.ElapsedMs / 1000d:0.0} 秒"; _durationGroup.Visibility = step.ElapsedMs > 0 ? Visibility.Visible : Visibility.Collapsed;
+            _detail.Foreground = _time.Foreground = _state.Foreground = _duration.Foreground = brush("TaskSecondaryBrush");
+            string output = step.Text.TrimEnd(); if (_output.Text != output) _output.Text = output;
+            if (!_hadOutput && output.Length > 0) { if (step.Kind == "model" && state == "running") Expand(); _hadOutput = true; }
+            _replyLabel = (step.Kind == "model" ? "回复" : "输出") + (step.Text.Length >= 16000 ? "（节选）" : ""); UpdateToggle();
+            _toggle.Visibility = output.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+            if (output.Length == 0) _outputScroll.Visibility = Visibility.Collapsed;
+            AutomationProperties.SetName(Root, step.Title + "，" + _state.Text + "，" + _time.Text);
         }
     }
 }

@@ -37,7 +37,7 @@ public sealed partial class MainWindow
     {
         if (!File.Exists(Path.Combine(directory, ".native-writer.lock"))) return false;
         await using var existing = await LibraryRepository.OpenAsync(new(directory, LibraryOpenMode.ReadOnly), _lifetime.Token);
-        return (await existing.InspectAsync(_lifetime.Token)).SchemaVersion == 2;
+        return (await existing.InspectAsync(_lifetime.Token)).SchemaVersion is 2 or 3;
     }
 
     private async void WorkspaceNotice_CloseButtonClick(InfoBar sender, object args)
