@@ -37,6 +37,7 @@ internal static class Program
             await DirectoryPromotionLocks();
             await PdfRelationships();
             await GradingAndJobs();
+            await RetiredProviders();
             await CredentialAtomicity();
             await CopyUpgradeRecovery();
             await ComplexCopyUpgradeRecovery();
@@ -48,6 +49,34 @@ internal static class Program
     }
 
     private static LibraryOpenOptions NewOptions(string path) => new(path, LibraryOpenMode.CreateNew) { MediaProcessor = new FixtureProcessor() };
+
+    private static async Task RetiredProviders()
+    {
+        var path = Unique("retired-provider");
+        var provider = Fixture<Provider>("provider");
+        await using (var library = await LibraryRepository.OpenAsync(NewOptions(path)))
+        {
+            await library.UpsertProviderAsync(provider);
+            var retiredId = Guid.NewGuid().ToString();
+            var retired = JsonSerializer.SerializeToNode(provider, DomainJson.Context.Provider)!;
+            retired["id"] = retiredId;
+            retired["protocol"] = "gemini";
+            retired["models"] = System.Text.Json.Nodes.JsonNode.Parse("""[{"id":"retired","capabilities":{"thinking":[{"kind":"gemini_budget","tokens":-1}]}}]""");
+            var raw = retired.ToJsonString();
+            using (var db = Db(path)) Sql(db, "INSERT INTO providers(id,config_json) VALUES($p0,$p1)", retiredId, raw);
+            Check((await library.ListProvidersAsync()).Select(p => p.Id).SequenceEqual([provider.Id]), "retired protocol hidden without blocking supported providers");
+            using (var db = Db(path))
+            {
+                using var command = db.CreateCommand();
+                command.CommandText = "SELECT config_json FROM providers WHERE id=$p0";
+                command.Parameters.AddWithValue("$p0", retiredId);
+                Check((string?)command.ExecuteScalar() == raw, "retired provider record preserved exactly");
+            }
+            await Fails(() => library.UpsertProviderAsync(provider with { Protocol = (Protocol)2 }), "removed protocol cannot be saved");
+        }
+        await using var reopened = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite));
+        Check((await reopened.ListProvidersAsync()).Count == 1, "library with retired protocol reopens");
+    }
     private static SqliteConnection Db(string root)
     {
         var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path.Combine(root, "study.sqlite3"), Pooling = false }.ToString());

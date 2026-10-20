@@ -10,7 +10,8 @@ using OhMyStudy.Infrastructure.Providers;
 [assembly: SupportedOSPlatform("windows10.0.19041")]
 
 // All payloads and credentials in this runner are synthetic and stay inside fake handlers.
-if (RuntimeFeature.IsDynamicCodeSupported) throw new InvalidOperationException("Run the published Native AOT protocol executable.");
+if (RuntimeFeature.IsDynamicCodeSupported && !args.Contains("--managed-sdk-check", StringComparer.Ordinal))
+    throw new InvalidOperationException("Run the published Native AOT executable, or explicitly use --managed-sdk-check while the official Anthropic SDK requires managed execution.");
 var fixtures = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "round-trips.synthetic.json")))!;
 var completed = 0;
 await Run("native requests, images, opaque tool context and usage", NativeRoundTrips);
@@ -21,6 +22,8 @@ await Run("invalid streaming states, limits and refusals", InvalidStreams);
 await Run("models preserve metadata and unknown capabilities", Models);
 await Run("catalog exact IDs, provider prices and unknown metadata", Catalog);
 await Run("native HTTP endpoints, headers and streaming bodies", HttpFraming);
+await Run("official SDK framing: opaque context, images, native extras and terminal events", SdkFraming);
+await Run("Anthropic SDK: automatic cache, tool continuation, errors, bounds and cancellation", () => MessagesSdkRegression.RunAsync(fixtures));
 await Run("sanitized errors and bounded explicit retries", ErrorsAndRetries);
 await Run("cancellation and ambiguous failures never replay", Cancellation);
 await Run("response bounds and URL/header validation", Bounds);
@@ -103,11 +106,6 @@ Task NativeRoundTrips()
                 Check(JsonNode.DeepEquals(body["messages"]![1], JsonNode.Parse(turn.Context.GetRawText())), "Messages signature and redacted block preserved");
                 Check(body["messages"]![2]!["content"]![0]!["content"]![1]!["type"]!.GetValue<string>() == "image", "Messages result image");
                 break;
-            case Protocol.Gemini:
-                Check(JsonNode.DeepEquals(body["contents"]![1], native["candidates"]![0]!["content"]), "Gemini thought signature preserved");
-                Check(body["contents"]![2]!["parts"]![0]!["functionResponse"]!["parts"]![0]!["inlineData"]!["mimeType"]!.GetValue<string>() == "image/png", "Gemini result image");
-                Check(body["model"] is null && body["generationConfig"]!["candidateCount"]!.GetValue<int>() == 1, "Gemini native framing");
-                break;
         }
         var final = ProviderProtocol.Parse(protocol, Element(fixtures[Key(protocol)]!["final"]!));
         Check(final.Text == "完成。" && final.Calls.Count == 0, "final text");
@@ -123,9 +121,7 @@ Task Thinking()
         (Protocol.Responses, new ResponsesThinking { Effort = "max" }, "reasoning", "max"),
         (Protocol.Messages, new AdaptiveThinking { Effort = "high" }, "output_config", "high"),
         (Protocol.Messages, new AdaptiveThinking { Effort = "max" }, "output_config", "max"),
-        (Protocol.Messages, new BudgetThinking { Tokens = 2048 }, "thinking", "2048"),
-        (Protocol.Gemini, new GeminiLevelThinking { Level = "HIGH" }, "generationConfig", "HIGH"),
-        (Protocol.Gemini, new GeminiBudgetThinking { Tokens = -1 }, "generationConfig", "-1")
+        (Protocol.Messages, new BudgetThinking { Tokens = 2048 }, "thinking", "2048")
     })
     {
         var options = Options() with { Thinking = thinking };
@@ -137,13 +133,8 @@ Task Thinking()
     }
     Throws(() => ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { Thinking = new BudgetThinking { Tokens = 1023 } }, [], []));
     Throws(() => ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { Thinking = new BudgetThinking { Tokens = 4096 } }, [], []));
-    Throws(() => ProviderProtocol.BuildRequest(Protocol.Gemini, Options() with { Thinking = new GeminiBudgetThinking { Tokens = -2 } }, [], []));
-    foreach (var (protocol, field) in new[] { (Protocol.Responses, "reasoning"), (Protocol.Messages, "output_config"), (Protocol.Gemini, "contents") })
+    foreach (var (protocol, field) in new[] { (Protocol.Responses, "reasoning"), (Protocol.Messages, "output_config") })
         Throws(() => ProviderProtocol.BuildRequest(protocol, Options() with { Extra = new() { [field] = Json("{}") } }, [], []));
-    var merged = ProviderProtocol.BuildRequest(Protocol.Gemini, Options() with { Extra = new() { ["generationConfig"] = Json("{\"temperature\":0.2}") } }, [], []);
-    Check(merged["generationConfig"]!["maxOutputTokens"]!.GetValue<ulong>() == 4096 && merged["generationConfig"]!["temperature"]!.GetValue<double>() == 0.2, "Gemini deliberate merge");
-    foreach (var extra in new[] { "{\"thinkingConfig\":{}}", "{\"maxOutputTokens\":1}", "{\"candidateCount\":2}", "[]" })
-        Throws(() => ProviderProtocol.BuildRequest(Protocol.Gemini, Options() with { Extra = new() { ["generationConfig"] = Json(extra) } }, [], []));
     return Task.CompletedTask;
 }
 
@@ -152,7 +143,7 @@ Task CapabilityChecks()
     foreach (var protocol in Enum.GetValues<Protocol>())
     {
         var denied = Options() with { Model = Model.Manual("named-vision-tools-reasoning") with { Capabilities = Capabilities.Unknown with { Vision = false } } };
-        ProviderProtocol.BuildRequest(protocol, denied, ProviderProtocol.Initial(protocol, "input_image image inlineData", []), []);
+        ProviderProtocol.BuildRequest(protocol, denied, ProviderProtocol.Initial(protocol, "input_image image", []), []);
         Throws(() => ProviderProtocol.BuildRequest(protocol, denied, ProviderProtocol.Initial(protocol, "x", [Image()]), []));
         Throws(() => ProviderProtocol.BuildRequest(protocol, Options() with { AllowUnknownCapabilities = false }, [], [Tool()]));
         var turn = ProviderProtocol.Parse(protocol, Element(fixtures[Key(protocol)]!["tool"]!));
@@ -165,7 +156,6 @@ Task CapabilityChecks()
     {
         (Protocol.Responses, "[{\"type\":\"function_call\",\"arguments\":\"input_image\"}]"),
         (Protocol.Messages, "[{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"input\":{\"type\":\"image\"}}]}]"),
-        (Protocol.Gemini, "[{\"role\":\"model\",\"parts\":[{\"functionCall\":{\"args\":{\"inlineData\":{\"mimeType\":\"image/png\"}}}}]}]")
     }) ProviderProtocol.BuildRequest(protocol, Options() with { Model = Model.Manual("manual") with { Capabilities = Capabilities.Unknown with { Vision = false } } }, (JsonArray)JsonNode.Parse(history)!, []);
     return Task.CompletedTask;
 }
@@ -174,13 +164,9 @@ async Task Streams()
 {
     foreach (var protocol in Enum.GetValues<Protocol>())
     {
+        if (protocol == Protocol.Responses) continue; // SDK framing is checked over real sockets in HttpFraming and LoopbackRegression.
         var native = fixtures[Key(protocol)]!["tool"]!;
-        var data = protocol switch
-        {
-            Protocol.Responses => ": synthetic\r\n" + Sse(JsonNode.Parse("{\"type\":\"response.output_text.delta\",\"delta\":\"中文😀\"}")!) + Sse(new JsonObject { ["type"] = "response.completed", ["response"] = native.DeepClone() }),
-            Protocol.Messages => await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "messages.synthetic.sse")),
-            _ => Sse(native) + Sse(new JsonObject { ["usageMetadata"] = native["usageMetadata"]!.DeepClone() })
-        };
+        var data = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "messages.synthetic.sse"));
         var bytes = Encoding.UTF8.GetBytes(data);
         foreach (var size in new[] { 1, 2, 7, 31, bytes.Length })
         {
@@ -204,15 +190,16 @@ Task InvalidStreams()
 {
     foreach (var protocol in Enum.GetValues<Protocol>())
     {
+        if (protocol == Protocol.Responses) continue; // SDK framing rejects malformed or truncated Responses streams; see HttpFraming.
         var assembler = new ProviderStreamAssembler(protocol);
         assembler.Push(Encoding.UTF8.GetBytes("data: {\"type\":\"ping\"}\n\n"));
         Throws(() => assembler.Finish());
     }
-    var truncated = new ProviderStreamAssembler(Protocol.Responses);
+    var truncated = new ProviderStreamAssembler(Protocol.Messages);
     truncated.Push(Encoding.UTF8.GetBytes("data: {"));
     Throws(() => truncated.Finish(), ErrorKind.Incomplete);
     Throws(() => new SseDecoder().Push([0xff, (byte)'\n']), ErrorKind.Protocol);
-    Throws(() => new ProviderStreamAssembler(Protocol.Responses).Push(new byte[SseDecoder.MaximumBytes + 1]), ErrorKind.Protocol);
+    Throws(() => new ProviderStreamAssembler(Protocol.Messages).Push(new byte[SseDecoder.MaximumBytes + 1]), ErrorKind.Protocol);
     var block = JsonNode.Parse("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}")!;
     Throws(() => new ProviderStreamAssembler(Protocol.Messages).Push(Encoding.UTF8.GetBytes(Sse(block))), ErrorKind.Protocol);
     var messages = new ProviderStreamAssembler(Protocol.Messages);
@@ -220,20 +207,15 @@ Task InvalidStreams()
     messages.Push(Encoding.UTF8.GetBytes(Sse(block)));
     Throws(() => messages.Push(Encoding.UTF8.GetBytes(Sse(block))), ErrorKind.Protocol);
     Throws(() => messages.Push(Encoding.UTF8.GetBytes("data: {\"type\":\"message_stop\"}\n\n")), ErrorKind.Protocol);
-    foreach (var type in new[] { "response.refusal.delta", "response.refusal.done" })
-        Throws(() => new ProviderStreamAssembler(Protocol.Responses).Push(Encoding.UTF8.GetBytes(Sse(new JsonObject { ["type"] = type }))), ErrorKind.Refusal);
     Throws(() => ProviderProtocol.Parse(Protocol.Responses, Json("{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"refusal\"}]}]}")), ErrorKind.Refusal);
-    var gemini = fixtures["gemini"]!["final"]!.DeepClone();
-    gemini["candidates"]![0]!["finishReason"] = "MAX_TOKENS";
-    Throws(() => ProviderProtocol.Parse(Protocol.Gemini, Element(gemini)), ErrorKind.Incomplete);
     return Task.CompletedTask;
 }
 
 Task Models()
 {
-    foreach (var protocol in new[] { Protocol.Responses, Protocol.Gemini })
+    foreach (var protocol in Enum.GetValues<Protocol>())
     {
-        var page = ProviderProtocol.ParseModelPage(protocol, protocol == Protocol.Gemini ? Json("{\"models\":[{\"name\":\"models/vision-thinking-tools\"}],\"nextPageToken\":\"two\"}") : Json("{\"data\":[{\"id\":\"vision-thinking-tools\"}]}"));
+        var page = ProviderProtocol.ParseModelPage(protocol, Json("{\"data\":[{\"id\":\"vision-thinking-tools\"}]}"));
         Check(page.Models[0].Capabilities.Vision is null && page.Models[0].Capabilities.Tools is null && page.Models[0].Capabilities.Thinking.Count == 0, "names do not establish capabilities");
     }
     var messages = ProviderProtocol.ParseModelPage(Protocol.Messages, Json("""{"data":[{"id":"manual","capabilities":{"image_input":{"supported":true},"tool_use":{"supported":false},"thinking":{"types":{"enabled":{"supported":true},"adaptive":{"supported":true}}},"effort":{"high":{"supported":true},"low":{"supported":false}}}}],"has_more":true,"last_id":"manual"}"""));
@@ -241,7 +223,7 @@ Task Models()
     Check(cap.Vision == true && cap.Tools == false && cap.MessagesBudget == true && cap.Thinking.SequenceEqual([new AdaptiveThinking { Effort = "high" }]) && cap.Source == "provider_metadata", "exact API metadata only");
     Check(messages.Next == "manual", "Messages cursor");
     Throws(() => ProviderProtocol.ParseModelPage(Protocol.Messages, Json("{\"data\":[],\"has_more\":true}")), ErrorKind.Protocol);
-    Throws(() => ProviderProtocol.ParseModelPage(Protocol.Gemini, Json("{}")), ErrorKind.Protocol);
+    Throws(() => ProviderProtocol.ParseModelPage(Protocol.Responses, Json("{}")), ErrorKind.Protocol);
     return Task.CompletedTask;
 }
 
@@ -255,23 +237,23 @@ async Task HttpFraming()
             using var http = new HttpClient(new FakeHandler(async (request, token) =>
             {
                 calls++;
-                var expectedEndpoint = protocol switch { Protocol.Responses => "responses", Protocol.Messages => "messages", _ => "models/manual-model:" + (stream ? "streamGenerateContent?alt=sse" : "generateContent") };
+                var expectedEndpoint = protocol switch { Protocol.Responses => "responses", Protocol.Messages => "messages", _ => throw new InvalidOperationException() };
                 if (request.Method == HttpMethod.Post)
                 {
                     Check(request.RequestUri!.PathAndQuery == "/v1/" + expectedEndpoint, "native generation endpoint");
                     var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(token))!;
-                    Check(body[protocol switch { Protocol.Responses => "input", Protocol.Messages => "messages", _ => "contents" }] is JsonArray, "native request body");
-                    if (protocol != Protocol.Gemini) Check(body["stream"]!.GetValue<bool>() == stream, "native stream field");
+                    Check(body[protocol switch { Protocol.Responses => "input", Protocol.Messages => "messages", _ => throw new InvalidOperationException() }] is JsonArray, "native request body");
+                    Check(body["stream"]!.GetValue<bool>() == stream, "native stream field");
                 }
-                else Check(request.RequestUri!.PathAndQuery == "/v1/models?" + (protocol switch { Protocol.Responses => "after", Protocol.Messages => "after_id", _ => "pageToken" }) + "=next%20token", "encoded model cursor");
+                else Check(request.RequestUri!.PathAndQuery == "/v1/models?" + (protocol switch { Protocol.Responses => "after", Protocol.Messages => "after_id", _ => throw new InvalidOperationException() }) + "=next%20token", "encoded model cursor");
                 Check(protocol switch
                 {
                     Protocol.Responses => request.Headers.Authorization?.Scheme == "Bearer" && request.Headers.Authorization.Parameter == "synthetic-key",
                     Protocol.Messages => request.Headers.GetValues("x-api-key").Single() == "synthetic-key" && request.Headers.GetValues("anthropic-version").Single() == "2023-06-01",
-                    _ => request.Headers.GetValues("x-goog-api-key").Single() == "synthetic-key"
+                    _ => false
                 }, "native private auth header");
                 Check(!request.RequestUri!.Query.Contains("key", StringComparison.Ordinal), "credential absent from URL");
-                if (request.Method == HttpMethod.Get) return Response(protocol == Protocol.Gemini ? "{\"models\":[]}" : "{\"data\":[]}");
+                if (request.Method == HttpMethod.Get) return Response("{\"data\":[]}");
                 var final = fixtures[Key(protocol)]!["final"]!;
                 var data = !stream ? final.ToJsonString() : FinalStream(protocol, final);
                 return stream ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new ChunkStream(Encoding.UTF8.GetBytes(data), 1)) } : Response(data);
@@ -289,9 +271,48 @@ async Task HttpFraming()
 static string FinalStream(Protocol protocol, JsonNode final) => protocol switch
 {
     Protocol.Responses => Sse(new JsonObject { ["type"] = "response.output_text.delta", ["delta"] = "完成。" }) + Sse(new JsonObject { ["type"] = "response.completed", ["response"] = final.DeepClone() }),
-    Protocol.Gemini => Sse(final),
     _ => Sse(JsonNode.Parse("{\"type\":\"message_start\",\"message\":{\"content\":[],\"usage\":{\"input_tokens\":100}}}")!) + Sse(JsonNode.Parse("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}")!) + Sse(JsonNode.Parse("{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"完成。\"}}")!) + "data: {\"type\":\"content_block_stop\",\"index\":0}\n\n" + "data: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":20}}\n\n" + "data: {\"type\":\"message_stop\"}\n\n"
 };
+
+async Task SdkFraming()
+{
+    var native = fixtures["responses"]!["tool"]!;
+    var history = ProviderProtocol.Initial(Protocol.Responses, "识别整卷😀", [Image()]);
+    var turn = ProviderProtocol.Parse(Protocol.Responses, Element(native));
+    ProviderProtocol.ContinueWith(Protocol.Responses, history, turn, [new ToolResult { Call = turn.Calls[0], Text = "page 1", Images = [Image()], IsError = false }]);
+    var body = ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { Thinking = new ResponsesThinking { Effort = "xhigh" }, Extra = new() { ["instructions"] = Json("\"规则\""), ["temperature"] = Json("0.2") } }, history, [Tool()]);
+    Check(body["store"]!.GetValue<bool>() == false && body["include"]![0]!.GetValue<string>() == "reasoning.encrypted_content", "stateless native context");
+    Check(body["reasoning"]!["effort"]!.GetValue<string>() == "xhigh" && body["instructions"]!.GetValue<string>() == "规则" && body["temperature"]!.GetValue<double>() == 0.2, "typed and native parameters");
+    Check(body["tools"]![0]!["strict"]!.GetValue<bool>() == false && body["tools"]![0]!["parameters"]!["required"] is not null, "function tool schema");
+    Check(body["input"]![0]!["type"]!.GetValue<string>() == "message", "bare role message gains its kind");
+    Check(body["input"]![1]!["encrypted_content"]!.GetValue<string>() == "SYNTHETIC_OPAQUE_REASONING", "opaque reasoning copied");
+    Check(body["input"]![3]!["output"]![1]!["type"]!.GetValue<string>() == "input_image", "block-array tool output keeps its image");
+    Throws(() => ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { Extra = new() { ["store"] = Json("true") } }, history, []), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { Extra = new() { ["bad name"] = Json("1") } }, history, []), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { Thinking = new AdaptiveThinking { Effort = "high" } }, history, []), ErrorKind.InvalidRequest);
+
+    // Terminal events, refusals and truncation are classified from SDK stream updates.
+    var final = fixtures["responses"]!["final"]!;
+    foreach (var (label, events, kind) in new[]
+    {
+        ("completed", "data: " + new JsonObject { ["type"] = "response.completed", ["response"] = final.DeepClone() }.ToJsonString() + "\n\n", (ErrorKind?)null),
+        ("failed", "data: {\"type\":\"response.failed\",\"response\":{\"status\":\"failed\",\"error\":{\"code\":\"server_error\",\"message\":\"SYNTHETIC\"}}}\n\n", ErrorKind.Server),
+        ("error", "data: {\"type\":\"error\",\"code\":\"server_error\",\"message\":\"SYNTHETIC\"}\n\n", ErrorKind.Server),
+        ("incomplete", "data: {\"type\":\"response.incomplete\",\"response\":{\"status\":\"incomplete\"}}\n\n", ErrorKind.Incomplete),
+        ("refusal", "data: {\"type\":\"response.refusal.done\",\"refusal\":\"no\"}\n\n", ErrorKind.Refusal),
+        ("truncated", "data: {\"type\":\"response.output_text.delta\",\"delta\":\"部分\"}\n\n", ErrorKind.Incomplete)
+    })
+    {
+        using var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Prepare(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(events, Encoding.UTF8) }, "text/event-stream"))));
+        using var client = new ProviderClient(http, Protocol.Responses, "https://example.invalid/v1");
+        if (kind is null)
+        {
+            var result = await client.CallAsync(new("synthetic-key"), Options(true), [], []);
+            Check(result.Text == "完成。", $"{label} stream result");
+        }
+        else await ThrowsAsync(() => client.CallAsync(new("synthetic-key"), Options(true), [], []), kind);
+    }
+}
 
 async Task ErrorsAndRetries()
 {
@@ -324,8 +345,8 @@ async Task ErrorsAndRetries()
     await ThrowsAsync(() => alwaysClient.CallWithRetryAsync(new("synthetic-key"), Options(), [], [], retryPolicy), ErrorKind.Server);
     Check(count == 3, "retry stops at configured bound");
     count = 0;
-    using var nativeHttp = new HttpClient(new FakeHandler((_, _) => { count++; return Task.FromResult(Response("data: {\"error\":{\"code\":503}}\n\n")); }));
-    using var nativeClient = new ProviderClient(nativeHttp, Protocol.Gemini, "https://example.invalid/v1");
+    using var nativeHttp = new HttpClient(new FakeHandler((_, _) => { count++; return Task.FromResult(Prepare(Response("event: error\ndata: {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"SYNTHETIC\"}}\n\n"), "text/event-stream")); }));
+    using var nativeClient = new ProviderClient(nativeHttp, Protocol.Messages, "https://example.invalid/v1");
     await ThrowsAsync(() => nativeClient.CallWithRetryAsync(new("synthetic-key"), Options(true), [], [], retryPolicy), ErrorKind.Server);
     Check(count == 1, "native stream failures never replay");
 }
@@ -345,7 +366,7 @@ async Task Cancellation()
     {
         using var cancellation = new CancellationTokenSource();
         var hanging = new HangingStream();
-        using var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(hanging) })));
+        using var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Prepare(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(hanging) }, stream ? "text/event-stream" : "application/json"))));
         using var client = new ProviderClient(http, Protocol.Responses, "https://example.invalid/v1");
         var pending = client.CallAsync(new("synthetic-key"), Options(stream), [], [], cancellationToken: cancellation.Token);
         await hanging.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -361,22 +382,32 @@ async Task Cancellation()
 
 async Task Bounds()
 {
+    Throws(() => new ProviderClient((Protocol)2, "https://example.invalid/v1"), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.Initial((Protocol)2, "x", []), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.BuildRequest((Protocol)2, Options(), [], []), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.ParseModelPage((Protocol)2, Json("{\"data\":[]}")), ErrorKind.InvalidRequest);
     foreach (var uri in new[] { "http://example.invalid/v1", "https://key@example.invalid/v1", "https://example.invalid/v1?key=x", "https://example.invalid/v1#x", "file:///tmp/" })
         Throws(() => new ProviderClient(Protocol.Responses, uri), ErrorKind.InvalidRequest);
-    foreach (var header in new[] { "Authorization", "X-Api-Key", "X-Goog-Api-Key", "Host" })
+    foreach (var header in new[] { "Authorization", "X-Api-Key", "Host" })
         Throws(() => new ProviderClient(Protocol.Responses, "https://example.invalid/v1", new Dictionary<string, string> { [header] = "synthetic-key" }));
     Throws(() => new ProviderCredentials("key\r\nInjected: value"));
     Check(!new ProviderCredentials("synthetic-key").ToString().Contains("synthetic-key", StringComparison.Ordinal), "credential diagnostic redaction");
     var attempts = 0;
     using var http = new HttpClient(new FakeHandler((_, _) => { attempts++; var response = Response("{}"); response.Content.Headers.ContentLength = SseDecoder.MaximumBytes + 1L; return Task.FromResult(response); }));
-    using var client = new ProviderClient(http, Protocol.Gemini, "https://example.invalid/v1");
-    foreach (var id in new[] { "..", "../escape", "model?key=x", "models/" })
-        await ThrowsAsync(() => client.CallAsync(new("synthetic-key"), Options() with { Model = Model.Manual(id) }, [], []), ErrorKind.InvalidRequest);
-    Check(attempts == 0, "invalid model cannot send");
-    await ThrowsAsync(() => client.CallAsync(new("synthetic-key"), Options(), [], []), ErrorKind.Protocol);
-    Check(attempts == 1, "bounded successful response");
+    foreach (var protocol in new[] { Protocol.Responses, Protocol.Messages })
+    {
+        using var client = new ProviderClient(http, protocol, "https://example.invalid/v1");
+        await ThrowsAsync(() => client.CallAsync(new("synthetic-key"), Options(), [], []), ErrorKind.Protocol);
+        Check(attempts == 1, "bounded successful response");
+        attempts = 0;
+    }
 }
 static HttpResponseMessage Response(string body, int status = 200) => new((HttpStatusCode)status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+static HttpResponseMessage Prepare(HttpResponseMessage response, string contentType)
+{
+    response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+    return response;
+}
 
 sealed class FakeHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {
@@ -388,6 +419,7 @@ sealed class ChunkStream(byte[] bytes, int size) : MemoryStream(bytes)
 }
 sealed class HangingStream : Stream
 {
+    private readonly ManualResetEventSlim _release = new(false);
     public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool Disposed { get; private set; }
     public override bool CanRead => true;
@@ -395,11 +427,20 @@ sealed class HangingStream : Stream
     public override bool CanWrite => false;
     public override long Length => throw new NotSupportedException();
     public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+    public override int Read(byte[] buffer, int offset, int count) => Wait();
+    public override int Read(Span<byte> buffer) => Wait();
+    private int Wait()
+    {
+        Started.TrySetResult();
+        // A real socket read blocks until data or the connection closes; disposal closes it.
+        _release.Wait();
+        if (Disposed) throw new ObjectDisposedException(nameof(HangingStream));
+        return 0;
+    }
     public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) { Started.TrySetResult(); await Task.Delay(Timeout.Infinite, cancellationToken); return 0; }
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     public override void Flush() => throw new NotSupportedException();
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
     public override void SetLength(long value) => throw new NotSupportedException();
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    protected override void Dispose(bool disposing) { Disposed = true; base.Dispose(disposing); }
+    protected override void Dispose(bool disposing) { Disposed = true; _release.Set(); base.Dispose(disposing); }
 }

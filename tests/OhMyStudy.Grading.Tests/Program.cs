@@ -198,7 +198,7 @@ internal static class Program
     {
         Protocol.Responses => ((JsonArray)request["input"]!).OfType<JsonObject>().Any(item => item["type"]?.ToString() == "function_call_output" && item["output"] is JsonArray blocks && blocks.OfType<JsonObject>().Any(p => p["type"]?.ToString() == "input_image")),
         Protocol.Messages => ((JsonArray)request["messages"]!).OfType<JsonObject>().Any(item => item["content"] is JsonArray blocks && blocks.OfType<JsonObject>().Any(p => p["type"]?.ToString() == "tool_result" && p["content"] is JsonArray nested && nested.OfType<JsonObject>().Any(n => n["type"]?.ToString() == "image"))),
-        _ => ((JsonArray)request["contents"]!).OfType<JsonObject>().Any(item => item["parts"] is JsonArray blocks && blocks.OfType<JsonObject>().Any(p => p["functionResponse"] is JsonObject response && response["parts"] is JsonArray nested && nested.OfType<JsonObject>().Any(n => n["inlineData"] is not null)))
+        _ => throw new InvalidOperationException()
     };
     private static bool HasToolError(Protocol protocol, JsonObject request)
     {
@@ -207,7 +207,7 @@ internal static class Program
         {
             Protocol.Messages => text.Contains("\"is_error\":true", StringComparison.Ordinal),
             Protocol.Responses => text.Contains("Tool execution failed:", StringComparison.Ordinal),
-            _ => ((JsonArray)request["contents"]!).OfType<JsonObject>().Any(item => item["parts"] is JsonArray parts && parts.OfType<JsonObject>().Any(p => p["functionResponse"]?["response"]?["error"] is not null))
+            _ => throw new InvalidOperationException()
         };
     }
 
@@ -231,7 +231,7 @@ internal static class Program
 
     private static async Task CoverageAndToolValidation()
     {
-        await using var fixture = await Fixture.Create(ImportMode.AiGrading, Protocol.Gemini, materialPages: 2);
+        await using var fixture = await Fixture.Create(ImportMode.AiGrading, Protocol.Messages, materialPages: 2);
         var question = Question(fixture.Document, reference: false);
         var valid = Coverage(fixture.Document, question.DraftKey);
         // q1 spans both pages; a page that lists q1 without a source must be rejected first.
@@ -243,10 +243,10 @@ internal static class Program
             valid,
             valid.Select(c => c.PageId == fixture.Document.Pages[1].Id ? c with { Status = "unreadable", QuestionKeys = [], Reason = "" } : c).ToList()
         };
-        var api = new ScriptApi(Protocol.Gemini, async (round, request, _) =>
+        var api = new ScriptApi(Protocol.Messages, async (round, request, _) =>
         {
             if (round == 1) return [.. fixture.Document.Pages.Select(page => Read(page)), Save(question), Finish(invalid[0])];
-            Check(HasToolError(Protocol.Gemini, request), "invalid coverage returns tool error");
+            Check(HasToolError(Protocol.Messages, request), "invalid coverage returns tool error");
             Check((await fixture.Library.GradingResultAsync(fixture.Document.Id)).Coverage.Count == 0, "invalid coverage stays uncommitted");
             if (round <= invalid.Count) return [Finish(invalid[round - 1])];
             var spanning = question with { Sources = [.. question.Sources, Region(fixture.Document.Pages[1])] };
@@ -548,7 +548,6 @@ internal static class Program
             var native = Native(protocol, calls);
             string events;
             if (protocol == Protocol.Responses) events = Sse(new JsonObject { ["type"] = "response.completed", ["response"] = native });
-            else if (protocol == Protocol.Gemini) events = Sse(native);
             else
             {
                 var start = native.DeepClone().AsObject();
@@ -573,7 +572,7 @@ internal static class Program
             {
                 Protocol.Responses => new() { ["type"] = "function_call", ["id"] = "fc-" + call.Id, ["call_id"] = call.Id, ["name"] = call.Name, ["arguments"] = call.Arguments.GetRawText() },
                 Protocol.Messages => new() { ["type"] = "tool_use", ["id"] = call.Id, ["name"] = call.Name, ["input"] = JsonNode.Parse(call.Arguments.GetRawText()) },
-                _ => new() { ["functionCall"] = new JsonObject { ["id"] = call.Id, ["name"] = call.Name, ["args"] = JsonNode.Parse(call.Arguments.GetRawText()) }, ["thoughtSignature"] = "SYNTHETIC_NEVER_SEND_EXTERNALLY" }
+                _ => throw new InvalidOperationException()
             };
             blocks.Add((JsonNode)block);
         }
@@ -581,13 +580,13 @@ internal static class Program
         {
             Protocol.Responses => new JsonObject { ["type"] = "message", ["role"] = "assistant", ["content"] = new JsonArray(new JsonObject { ["type"] = "output_text", ["text"] = "Synthetic text without a save tool" }) },
             Protocol.Messages => new JsonObject { ["type"] = "text", ["text"] = "Synthetic text without a save tool" },
-            _ => new JsonObject { ["text"] = "Synthetic text without a save tool" }
+            _ => throw new InvalidOperationException()
         }));
         return protocol switch
         {
             Protocol.Responses => new() { ["status"] = "completed", ["output"] = blocks, ["usage"] = new JsonObject { ["input_tokens"] = 100, ["output_tokens"] = 30, ["total_tokens"] = 130 } },
             Protocol.Messages => new() { ["type"] = "message", ["role"] = "assistant", ["content"] = blocks, ["stop_reason"] = calls.Count == 0 ? "end_turn" : "tool_use", ["usage"] = new JsonObject { ["input_tokens"] = 100, ["output_tokens"] = 30 } },
-            _ => new() { ["candidates"] = new JsonArray(new JsonObject { ["content"] = new JsonObject { ["role"] = "model", ["parts"] = blocks }, ["finishReason"] = "STOP" }), ["usageMetadata"] = new JsonObject { ["promptTokenCount"] = 100, ["candidatesTokenCount"] = 20, ["thoughtsTokenCount"] = 10, ["totalTokenCount"] = 130 } }
+            _ => throw new InvalidOperationException()
         };
     }
     private static string Sse(JsonNode value) => "data: " + value.ToJsonString() + "\r\n\r\n";

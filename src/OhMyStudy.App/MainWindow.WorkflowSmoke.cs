@@ -253,6 +253,9 @@ public sealed partial class MainWindow
             ViewModel.StatusMessage = "";
             checks["settings-has-own-heading-and-actions"] = PageHeading.Text == "设置"
                 && WorkspaceActions.Visibility == Visibility.Collapsed && WorkspaceNotice.Visibility == Visibility.Collapsed;
+            checks["only-supported-protocol-options"] = ProtocolPicker.Items.Count == 2
+                && ((ComboBoxItem)ProtocolPicker.Items[0]).Content?.ToString() == "OpenAI Responses"
+                && ((ComboBoxItem)ProtocolPicker.Items[1]).Content?.ToString() == "Anthropic Messages";
             var settingsProvider = provider with
             {
                 Name = "示例供应商",
@@ -319,7 +322,7 @@ public sealed partial class MainWindow
             checks["library-recovery-clears-error"] = ViewModel.StatusMessage.Length == 0;
             Navigation.SelectedItem = Navigation.SettingsItem; await Task.Delay(80);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings.png"));
-            await CaptureLongSettingsPreviewAsync(reportPath);
+            await CaptureLongSettingsPreviewAsync(reportPath, checks);
             SettingsPanel.ChangeView(null, ModelSettingsCard.TransformToVisual(SettingsPanel.Content as UIElement).TransformPoint(new(0, 0)).Y, null, true);
             await Task.Delay(80);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model.png"));
@@ -370,7 +373,7 @@ public sealed partial class MainWindow
         }
     }
 
-    private async Task CaptureLongSettingsPreviewAsync(string reportPath)
+    private async Task CaptureLongSettingsPreviewAsync(string reportPath, Dictionary<string, bool> checks)
     {
         var original = (Provider)ProviderPicker.SelectedItem;
         var originalProviders = _providers.ToArray();
@@ -392,12 +395,38 @@ public sealed partial class MainWindow
                 .Concat(new[] { new ModelConfig { Id = "example-with-a-long-model-id-for-document-review", DisplayName = "资料阅读", Capabilities = Capabilities.Unknown, Currency = "USD" } }).ToList()
         };
         UpdateProviderEntry(extra); UpdateProviderEntry(preview); PopulateProviderEditor(preview);
-        await Task.Delay(80);
+        await Task.Delay(400);
         await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-long.png"));
+        var messages = original with
+        {
+            Protocol = Protocol.Messages,
+            Models = original.Models.Select(model => model with
+            {
+                Capabilities = model.Capabilities with { Thinking = [new AdaptiveThinking { Effort = "high" }, new BudgetThinking { Tokens = 2048 }] }
+            }).ToList()
+        };
+        UpdateProviderEntry(messages); PopulateProviderEditor(messages);
+        checks["messages-thinking-editor"] = ModelThinkingBudget.Visibility == Visibility.Visible && ModelThinkingBudget.Text == "2048"
+            && ModelThinkingOptions.Children.OfType<CheckBox>().Select(c => c.Content?.ToString()).SequenceEqual((string?[])["low", "medium", "high", "max"]);
+        await Task.Delay(400);
+        await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".messages-settings.png"));
+        SettingsPanel.ChangeView(null, ModelSettingsCard.TransformToVisual(SettingsPanel.Content as UIElement).TransformPoint(new(0, 0)).Y, null, true);
+        await Task.Delay(100);
+        await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".messages-model.png"));
+        RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(100);
+        await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".messages-model-dark.png"));
+        RootGrid.RequestedTheme = ElementTheme.Light;
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Task.Delay(100);
+        SettingsPanel.ChangeView(null, ModelThinkingOptions.TransformToVisual(SettingsPanel.Content as UIElement).TransformPoint(new(0, 0)).Y - 48, null, true);
+        await Task.Delay(100);
+        await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".messages-budget-compact.png"));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Task.Delay(100);
+        SettingsPanel.ChangeView(null, 0, null, true);
         _refreshingProviders = true;
         try { _providers.Remove(extra); }
         finally { _refreshingProviders = false; }
         UpdateProviderEntry(original); PopulateProviderEditor(original);
+        checks["responses-hides-thinking-budget"] = ModelThinkingBudget.Visibility == Visibility.Collapsed;
         await Task.Delay(80);
     }
 

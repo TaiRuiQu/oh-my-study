@@ -262,7 +262,7 @@ internal sealed class CompatibilitySuite
             Roundtrip(Contract<GradingInput>("grading_input")); Roundtrip(Contract<JobEvent>("job_event")); Roundtrip(saved); Roundtrip(refs); Roundtrip(coverage);
             Roundtrip(GradingResult.Empty); Roundtrip(Model.Manual("manual")); Roundtrip(AppSettings.Default);
         });
-        foreach (var thinking in new Thinking[] { new ResponsesThinking { Effort = "low" }, new AdaptiveThinking { Effort = "high" }, new BudgetThinking { Tokens = ulong.MaxValue }, new GeminiLevelThinking { Level = "high" }, new GeminiBudgetThinking { Tokens = -1 } })
+        foreach (var thinking in new Thinking[] { new ResponsesThinking { Effort = "low" }, new AdaptiveThinking { Effort = "high" }, new BudgetThinking { Tokens = ulong.MaxValue } })
             Check("json", "thinking_" + thinking.GetType().Name, () => Assert(DomainJson.Deserialize<Thinking>(DomainJson.Serialize(thinking)) == thinking));
 
         Check("coverage", "complete", () => GradingValidation.ValidateCoverage(document, coverage, [saved], false, viewed));
@@ -337,12 +337,14 @@ internal sealed class CompatibilitySuite
         Check("request", "native_thinking_budget_rules", () =>
         {
             var options = Options();
+            Assert(!Accepted(() => options.Validate((Protocol)2, false, false)));
+            Assert(!Accepted(() => DomainJson.Deserialize<Protocol>("\"gemini\"")));
+            Assert(!Accepted(() => DomainJson.Deserialize<Thinking>("{\"kind\":\"gemini_level\",\"level\":\"high\"}")));
+            Assert(!Accepted(() => DomainJson.Deserialize<Thinking>("{\"kind\":\"gemini_budget\",\"tokens\":-1}")));
             (options with { Thinking = new BudgetThinking { Tokens = 1024 } }).Validate(Protocol.Messages, false, false);
             Assert(!Accepted(() => (options with { Thinking = new BudgetThinking { Tokens = 1023 } }).Validate(Protocol.Messages, false, false)));
             Assert(!Accepted(() => (options with { Thinking = new BudgetThinking { Tokens = 16384 } }).Validate(Protocol.Messages, false, false)));
             Assert(!Accepted(() => (options with { Thinking = new BudgetThinking { Tokens = 2048 } }).Validate(Protocol.Responses, false, false)));
-            Assert(!Accepted(() => (options with { Thinking = new GeminiBudgetThinking { Tokens = -2 } }).Validate(Protocol.Gemini, false, false)));
-            (options with { Thinking = new GeminiBudgetThinking { Tokens = -1 } }).Validate(Protocol.Gemini, false, false);
         });
         Check("configuration", "provider_url_and_utf8_limits", () =>
         {

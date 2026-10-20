@@ -45,17 +45,17 @@ public sealed partial class MainWindow
         {
             Protocol.Responses => ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
             Protocol.Messages => ["low", "medium", "high", "max"],
-            _ => ["minimal", "low", "medium", "high"]
+            _ => []
         };
         var selected = model.Capabilities.Thinking.Select(t => t switch
-        { ResponsesThinking v => v.Effort, AdaptiveThinking v => v.Effort, GeminiLevelThinking v => v.Level, _ => "" })
+        { ResponsesThinking v => v.Effort, AdaptiveThinking v => v.Effort, _ => "" })
             .Where(t => t.Length > 0).ToHashSet(StringComparer.Ordinal);
         ModelThinkingOptions.Children.Clear();
         foreach (string value in presets.Concat(selected).Distinct(StringComparer.Ordinal))
             ModelThinkingOptions.Children.Add(new CheckBox { Content = value, IsChecked = selected.Contains(value), MinWidth = 96, Margin = new Thickness(0, 0, 16, 0) });
-        ModelThinkingBudget.Visibility = provider?.Protocol == Protocol.Responses ? Visibility.Collapsed : Visibility.Visible;
-        ModelThinkingBudget.Text = model.Capabilities.Thinking.FirstOrDefault(t => t is BudgetThinking or GeminiBudgetThinking) switch
-        { BudgetThinking v => v.Tokens.ToString(CultureInfo.InvariantCulture), GeminiBudgetThinking v => v.Tokens.ToString(CultureInfo.InvariantCulture), _ => "" };
+        ModelThinkingBudget.Visibility = provider?.Protocol == Protocol.Messages ? Visibility.Visible : Visibility.Collapsed;
+        ModelThinkingBudget.Text = model.Capabilities.Thinking.FirstOrDefault(t => t is BudgetThinking) switch
+        { BudgetThinking v => v.Tokens.ToString(CultureInfo.InvariantCulture), _ => "" };
         ModelEditor.Visibility = Visibility.Visible;
         _modelFormBaseline = ModelFormState();
         UpdateSettingsActionAvailability();
@@ -85,13 +85,13 @@ public sealed partial class MainWindow
             {
                 string value = (string)option.Content;
                 thinking.Add(provider.Protocol switch
-                { Protocol.Responses => new ResponsesThinking { Effort = value }, Protocol.Messages => new AdaptiveThinking { Effort = value }, _ => new GeminiLevelThinking { Level = value } });
+                { Protocol.Responses => new ResponsesThinking { Effort = value }, Protocol.Messages => new AdaptiveThinking { Effort = value }, _ => throw new ArgumentException() });
             }
-            if (provider.Protocol != Protocol.Responses && !string.IsNullOrWhiteSpace(ModelThinkingBudget.Text))
+            if (provider.Protocol == Protocol.Messages && !string.IsNullOrWhiteSpace(ModelThinkingBudget.Text))
             {
-                long budget = long.Parse(ModelThinkingBudget.Text, CultureInfo.InvariantCulture);
-                if (provider.Protocol == Protocol.Messages && budget < 1024 || provider.Protocol == Protocol.Gemini && budget < -1) throw new ArgumentException();
-                thinking.Add(provider.Protocol == Protocol.Messages ? new BudgetThinking { Tokens = (ulong)budget } : new GeminiBudgetThinking { Tokens = budget });
+                ulong budget = ulong.Parse(ModelThinkingBudget.Text, CultureInfo.InvariantCulture);
+                if (budget < 1024) throw new ArgumentException();
+                thinking.Add(new BudgetThinking { Tokens = budget });
             }
             var old = provider.Models.FirstOrDefault(m => m.Id == _selectedModelId);
             var model = new ModelConfig

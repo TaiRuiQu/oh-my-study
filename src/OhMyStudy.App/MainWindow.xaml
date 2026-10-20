@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="OhMyStudy.App.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -295,7 +295,7 @@
                                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                             <TextBox x:Name="ProviderName" Header="名称" PlaceholderText="供应商名称" />
                                             <ComboBox x:Name="ProtocolPicker" Grid.Column="1" Header="接口" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                                <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" /><ComboBoxItem Content="Google Gemini" />
+                                                <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" />
                                             </ComboBox>
                                             <TextBox x:Name="ProviderUrl" Grid.Row="1" Header="地址" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
                                             <PasswordBox x:Name="ProviderKey" Grid.Row="1" Grid.Column="1" Header="密钥" PlaceholderText="留空保留已有密钥" />

@@ -459,7 +459,7 @@ public sealed partial class MainWindow
         try
         {
             var old = _providers.FirstOrDefault(p => p.Id == _selectedProviderId);
-            var protocol = (Protocol)Math.Clamp(ProtocolPicker.SelectedIndex, 0, 2);
+            var protocol = (Protocol)ProtocolPicker.SelectedIndex;
             using var validation = new ProviderClient(protocol, ProviderUrl.Text.Trim());
             var models = old?.Models.ToList() ?? [];
             if (old is not null && old.Protocol != protocol && models.Count > 0)
@@ -643,7 +643,7 @@ public sealed partial class MainWindow
         _ => "正在识别，题目会自动加入题库。"
     };
     private static string ThinkingLabel(Thinking value) => value switch
-    { ResponsesThinking v => v.Effort, AdaptiveThinking v => v.Effort, BudgetThinking v => $"{v.Tokens} tokens", GeminiLevelThinking v => v.Level, GeminiBudgetThinking v => v.Tokens == -1 ? "自动" : $"{v.Tokens} tokens", _ => "默认" };
+    { ResponsesThinking v => v.Effort, AdaptiveThinking v => v.Effort, BudgetThinking v => $"{v.Tokens} tokens", _ => "默认" };
 
     private async Task ObserveJobsAsync()
     {

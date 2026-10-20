@@ -658,15 +658,12 @@
     ],
     "protocol": [
       "responses",
-      "messages",
-      "gemini"
+      "messages"
     ],
     "thinking_kind": [
       "responses",
       "adaptive",
-      "budget",
-      "gemini_level",
-      "gemini_budget"
+      "budget"
     ],
     "execution_mode": [
       "request_permission",

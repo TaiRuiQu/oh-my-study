@@ -10,6 +10,7 @@ public static class ConfigurationValidation
 
     public static void ValidateProvider(Provider provider)
     {
+        DomainValidationException.Require(Enum.IsDefined(provider.Protocol), "unknown protocol");
         DomainValidationException.Require(Guid.TryParse(provider.Id, out _), "invalid identifier");
         DomainValidationException.Require(Uri.TryCreate(provider.BaseUrl, UriKind.Absolute, out var url), "invalid provider base URL");
         DomainValidationException.Require(url is not null && url.Scheme is "http" or "https" && url.Host.Length > 0 && url.UserInfo.Length == 0 && url.Query.Length == 0 && url.Fragment.Length == 0,

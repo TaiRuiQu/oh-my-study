@@ -68,8 +68,7 @@
 
 ## 6. 模型供应商与思考配置
 
-- 原生支持 OpenAI Responses、Anthropic Messages、Google Gemini Generate Content 三种协议。
-- 用户提到的 Gemini 文本生成接口按 generateContent / streamGenerateContent 实现，不替换成其他协议。
+- 原生支持 OpenAI Responses、Anthropic Messages 两种协议。
 - 每个供应商有独立模型列表；用户可选择任意已配置模型，并在实际任务中设置该模型支持的思考选项。
 - 不把所有供应商、模型的思考参数强行合并成固定的“低／中／高”三档。
 - 支持默认模型及任务覆盖；支持刷新供应商模型列表、缓存列表与手动添加模型。

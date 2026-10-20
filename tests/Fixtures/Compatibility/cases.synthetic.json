@@ -128,10 +128,10 @@
     {
       "id": "thinking_uses_kind_discriminator",
       "type": "Thinking",
-      "raw_json": "{\"kind\":\"gemini_budget\",\"tokens\":-1}",
+      "raw_json": "{\"kind\":\"budget\",\"tokens\":1024}",
       "expected": {
         "accepted": true,
-        "tokens": -1
+        "tokens": 1024
       },
       "source": "src-tauri/src/ai/providers/mod.rs:Thinking"
     },
@@ -712,7 +712,7 @@
     },
     {
       "id": "native_protocol_context",
-      "expected": "Opaque Responses encrypted reasoning, Messages signatures/redacted blocks, Gemini thoughtSignature preserved exactly.",
+      "expected": "Opaque Responses encrypted reasoning, Messages signatures/redacted blocks preserved exactly.",
       "tests": [
         "src-tauri/src/ai/providers/tests.rs:native_round_trips_preserve_opaque_context_and_tool_images"
       ]
@@ -765,15 +765,6 @@
       "cache_write": 5,
       "output": 30,
       "reasoning": null,
-      "total": 130
-    },
-    "gemini_tool": {
-      "input": 100,
-      "input_uncached": 80,
-      "cache_read": 20,
-      "cache_write": null,
-      "output": 30,
-      "reasoning": 10,
       "total": 130
     }
   },

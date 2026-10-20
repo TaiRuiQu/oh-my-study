@@ -24,13 +24,15 @@ internal static class LoopbackRegression
                     {
                         Protocol.Responses => "/v1/responses",
                         Protocol.Messages => "/v1/messages",
-                        _ => "/v1/models/manual-model:" + (stream ? "streamGenerateContent?alt=sse" : "generateContent")
+                        _ => throw new InvalidOperationException()
                     };
                     Require(request.Target == endpoint, "loopback native endpoint");
-                    string name = protocol == Protocol.Responses ? "Authorization" : protocol == Protocol.Messages ? "x-api-key" : "x-goog-api-key";
+                    string name = protocol == Protocol.Responses ? "Authorization" : "x-api-key";
                     Require(request.Headers[name] == (protocol == Protocol.Responses ? "Bearer " : "") + "synthetic-loopback-key", "loopback private header");
                     var body = JsonNode.Parse(request.Body)!;
-                    Require(body[protocol switch { Protocol.Responses => "input", Protocol.Messages => "messages", _ => "contents" }] is JsonArray, "loopback JSON body");
+                    Require(body[protocol switch { Protocol.Responses => "input", Protocol.Messages => "messages", _ => throw new InvalidOperationException() }] is JsonArray, "loopback JSON body");
+                    if (protocol == Protocol.Responses) Require(body["store"]?.GetValue<bool>() == false && body["include"] is JsonArray, "loopback stateless Responses body");
+                    if (protocol == Protocol.Messages) Require(body["cache_control"]?["type"]?.ToString() == "ephemeral", "loopback automatic Messages cache");
                     await ReplyAsync(output, 200, reply, stream, null, ct);
                 });
                 using var client = new ProviderClient(protocol, server.BaseUrl);
@@ -43,11 +45,10 @@ internal static class LoopbackRegression
             {
                 Require(request.Method == "GET", "loopback model GET");
                 bool second = request.Target.Contains('?', StringComparison.Ordinal);
-                string cursorKey = protocol switch { Protocol.Responses => "after", Protocol.Messages => "after_id", _ => "pageToken" };
+                string cursorKey = protocol switch { Protocol.Responses => "after", Protocol.Messages => "after_id", _ => throw new InvalidOperationException() };
                 Require(request.Target == "/v1/models" + (second ? "?" + cursorKey + "=next%20token" : ""), "actual encoded cursor");
                 string data = protocol switch
                 {
-                    Protocol.Gemini => second ? "{\"models\":[{\"name\":\"models/two\"}]}" : "{\"models\":[{\"name\":\"models/one\"}],\"nextPageToken\":\"next token\"}",
                     Protocol.Messages => second ? "{\"data\":[{\"id\":\"two\"}],\"has_more\":false}" : "{\"data\":[{\"id\":\"one\"}],\"has_more\":true,\"last_id\":\"next token\"}",
                     _ => second ? "{\"data\":[{\"id\":\"two\"}],\"has_more\":false}" : "{\"data\":[{\"id\":\"one\"}],\"has_more\":true,\"last_id\":\"next token\"}"
                 };
@@ -62,23 +63,25 @@ internal static class LoopbackRegression
         }
 
         await using var target = new LoopbackServer((_, output, ct) => ReplyAsync(output, 200, "{}", false, null, ct));
-        await using (var redirect = new LoopbackServer((_, output, ct) => ReplyAsync(output, 307, "{}", false, target.BaseUrl, ct)))
+        foreach (var protocol in new[] { Protocol.Responses, Protocol.Messages })
         {
-            using var client = new ProviderClient(Protocol.Responses, redirect.BaseUrl);
+            await using var redirect = new LoopbackServer((_, output, ct) => ReplyAsync(output, 307, "{}", false, target.BaseUrl, ct));
+            using var client = new ProviderClient(protocol, redirect.BaseUrl);
             await RejectAsync(() => client.CallAsync(new("synthetic-loopback-key"), Options(), [], []), null);
             Require(redirect.Count == 1 && target.Count == 0, "credential redirect never followed");
             await redirect.AssertHealthyAsync();
         }
 
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using (var hanging = new LoopbackServer(async (_, output, ct) =>
+        foreach (var protocol in new[] { Protocol.Responses, Protocol.Messages })
         {
-            await output.WriteAsync(Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n"), ct);
-            await output.FlushAsync(ct); entered.TrySetResult();
-            await Task.Delay(Timeout.InfiniteTimeSpan, ct);
-        }))
-        {
-            using var client = new ProviderClient(Protocol.Responses, hanging.BaseUrl);
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await using var hanging = new LoopbackServer(async (_, output, ct) =>
+            {
+                await output.WriteAsync(Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n"), ct);
+                await output.FlushAsync(ct); entered.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
+            });
+            using var client = new ProviderClient(protocol, hanging.BaseUrl);
             using var cancelled = new CancellationTokenSource();
             var pending = client.CallAsync(new("synthetic-loopback-key"), Options(true), [], [], cancellationToken: cancelled.Token);
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -108,7 +111,7 @@ internal static class LoopbackRegression
                 + Sse(new JsonObject { ["type"] = "content_block_stop", ["index"] = 0 })
                 + Sse(new JsonObject { ["type"] = "message_delta", ["delta"] = new JsonObject { ["stop_reason"] = "end_turn" }, ["usage"] = new JsonObject { ["output_tokens"] = 1 } })
                 + Sse(new JsonObject { ["type"] = "message_stop" }),
-            _ => Sse(native)
+            _ => throw new InvalidOperationException()
         };
     }
     private static async Task ReplyAsync(NetworkStream output, int status, string text, bool chunked, string? location, CancellationToken ct)

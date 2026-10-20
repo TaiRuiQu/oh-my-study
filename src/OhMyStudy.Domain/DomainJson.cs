@@ -322,8 +322,4 @@ internal static class SerdeJson
 [JsonSerializable(typeof(AdaptiveThinking[]))]
 [JsonSerializable(typeof(List<BudgetThinking>))]
 [JsonSerializable(typeof(BudgetThinking[]))]
-[JsonSerializable(typeof(List<GeminiLevelThinking>))]
-[JsonSerializable(typeof(GeminiLevelThinking[]))]
-[JsonSerializable(typeof(List<GeminiBudgetThinking>))]
-[JsonSerializable(typeof(GeminiBudgetThinking[]))]
 public partial class DomainJsonContext : JsonSerializerContext;

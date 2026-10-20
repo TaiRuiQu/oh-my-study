@@ -2,7 +2,7 @@
 
 面向学生的原生 Windows 学习应用，支持试卷导入与批改、原件对照、题库和错题整理。当前工程采用 C# / .NET 10 / WinUI 3，提供 Native AOT（普通 / AVX-512）、非 AOT 自带运行时和依赖 .NET 的版本，均面向 Windows 10/11 x64。每种版本同时提供 portable ZIP 与MSI 安装包；下载选择见 [安装说明](docs/installation.zh-CN.md)。
 
-已实现图片与 PDF 导入、三种导入模式、三协议整卷任务、题目编辑、来源定位、备份恢复、A3/A4 题目与答案 PDF 导出，以及离线安装、升级和卸载。真实模型与样卷、干净系统、Sandbox、物理打印和辅助功能仍待用户验收；当前验证状态与待办见 [维护进度](migration-progress.md)。
+已实现图片与 PDF 导入、三种导入模式、Responses 与 Messages 整卷任务、题目编辑、来源定位、备份恢复、A3/A4 题目与答案 PDF 导出，以及离线安装、升级和卸载。真实模型与样卷、干净系统、Sandbox、物理打印和辅助功能仍待用户验收；当前验证状态与待办见 [维护进度](migration-progress.md)。
 
 ## 安装与使用
 
@@ -13,6 +13,8 @@
 ## 开发与验证
 
 环境：Windows x64、PowerShell 7、.NET SDK 10.0.402、MSVC x64 Build Tools 和 Windows SDK。版本以仓库锁文件为准。
+
+当前开发源码已接入 Anthropic 官方 SDK，并默认启用自动前缀缓存。此包暂不支持裁剪和 Native AOT；本阶段使用非 AOT 构建，例如 `dotnet build src/OhMyStudy.App -c Release -p:OhMyStudyPublishVariant=framework-dependent`。原有 AOT 验收及发布命令暂时会被明确阻止，待用户通知后换为 `TairuiQu.Anthropic.Aot` 并重新验收。切换步骤与本轮证据见 [Anthropic SDK 接入记录](docs/verification/anthropic-sdk.2026-10-20.md)。
 
 ```powershell
 ./packaging/Test-RepositoryLayout.ps1

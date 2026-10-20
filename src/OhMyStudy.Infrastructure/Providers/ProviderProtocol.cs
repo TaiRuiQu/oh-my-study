@@ -9,66 +9,24 @@ public static class ProviderProtocol
 {
     public static JsonArray Initial(Protocol protocol, string text, IReadOnlyList<Image> images)
     {
+        if (!Enum.IsDefined(protocol)) throw Invalid("unknown protocol");
         var blocks = new JsonArray();
         blocks.Add((JsonNode)(protocol switch
         {
             Protocol.Responses => new JsonObject { ["type"] = "input_text", ["text"] = text },
             Protocol.Messages => new JsonObject { ["type"] = "text", ["text"] = text },
-            _ => new JsonObject { ["text"] = text }
+            _ => throw Invalid("unknown protocol")
         }));
         foreach (var image in images) blocks.Add(ImagePart(image, protocol));
-        return new JsonArray(new JsonObject { ["role"] = "user", [protocol == Protocol.Gemini ? "parts" : "content"] = blocks });
+        return new JsonArray(new JsonObject { ["role"] = "user", ["content"] = blocks });
     }
 
+    /// <summary>Native request body. Responses and Messages are shaped by their official SDKs.</summary>
     public static JsonObject BuildRequest(Protocol protocol, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools)
     {
-        try { options.Validate(protocol, HasImages(protocol, history), tools.Count > 0); }
-        catch (DomainValidationException error) { throw Invalid(error.Message); }
-        var nativeTools = new JsonArray();
-        foreach (var tool in tools)
-            nativeTools.Add((JsonNode)(protocol switch
-            {
-                Protocol.Responses => new JsonObject { ["type"] = "function", ["name"] = tool.Name, ["description"] = tool.Description, ["parameters"] = Node(tool.Schema), ["strict"] = false },
-                Protocol.Messages => new JsonObject { ["name"] = tool.Name, ["description"] = tool.Description, ["input_schema"] = Node(tool.Schema) },
-                _ => new JsonObject { ["name"] = tool.Name, ["description"] = tool.Description, ["parametersJsonSchema"] = Node(tool.Schema) }
-            }));
-        JsonObject body;
-        switch (protocol)
-        {
-            case Protocol.Responses:
-                body = new() { ["model"] = options.Model.Id, ["input"] = history.DeepClone(), ["max_output_tokens"] = options.MaxOutputTokens, ["stream"] = options.Stream, ["store"] = false, ["include"] = new JsonArray("reasoning.encrypted_content"), ["tools"] = nativeTools };
-                if (options.Thinking is ResponsesThinking responses) body["reasoning"] = new JsonObject { ["effort"] = responses.Effort };
-                Extend(body, options.Extra, ["reasoning", "previous_response_id", "conversation"]);
-                break;
-            case Protocol.Messages:
-                body = new() { ["model"] = options.Model.Id, ["messages"] = history.DeepClone(), ["max_tokens"] = options.MaxOutputTokens, ["stream"] = options.Stream, ["tools"] = nativeTools };
-                if (options.Thinking is AdaptiveThinking adaptive)
-                {
-                    body["thinking"] = new JsonObject { ["type"] = "adaptive" };
-                    body["output_config"] = new JsonObject { ["effort"] = adaptive.Effort };
-                }
-                else if (options.Thinking is BudgetThinking budget) body["thinking"] = new JsonObject { ["type"] = "enabled", ["budget_tokens"] = budget.Tokens };
-                Extend(body, options.Extra, ["thinking", "output_config"]);
-                break;
-            case Protocol.Gemini:
-                var generation = new JsonObject { ["maxOutputTokens"] = options.MaxOutputTokens, ["candidateCount"] = 1 };
-                body = new() { ["contents"] = history.DeepClone(), ["generationConfig"] = generation };
-                if (tools.Count > 0) body["tools"] = new JsonArray(new JsonObject { ["functionDeclarations"] = nativeTools });
-                if (options.Thinking is GeminiLevelThinking level) generation["thinkingConfig"] = new JsonObject { ["thinkingLevel"] = level.Level };
-                else if (options.Thinking is GeminiBudgetThinking geminiBudget) generation["thinkingConfig"] = new JsonObject { ["thinkingBudget"] = geminiBudget.Tokens };
-                foreach (var (key, value) in options.Extra)
-                {
-                    if (key == "generationConfig")
-                    {
-                        if (value.ValueKind != JsonValueKind.Object) throw Invalid("generationConfig must be an object");
-                        Extend(generation, value.EnumerateObject().ToDictionary(p => p.Name, p => p.Value), ["thinkingConfig", "maxOutputTokens", "candidateCount"]);
-                    }
-                    else Extend(body, new Dictionary<string, JsonElement> { [key] = value }, ["tools"]);
-                }
-                break;
-            default: throw Invalid("unknown protocol");
-        }
-        return body;
+        if (protocol == Protocol.Responses) return ResponsesSdkClient.BuildBody(options, history, tools);
+        if (protocol == Protocol.Messages) return MessagesSdkClient.BuildBody(options, history, tools);
+        throw Invalid("unknown protocol");
     }
 
     public static Turn Parse(Protocol protocol, JsonElement raw)
@@ -125,30 +83,6 @@ public static class ProviderProtocol
                 var input = mi.HasValue ? checked(mi + (mr ?? 0) + (mw ?? 0)) : null;
                 normalized = new Usage { Input = input, InputUncached = mi, CacheRead = mr, CacheWrite = mw, Output = mo, Total = input.HasValue && mo.HasValue ? checked(input + mo) : null, Raw = Clone(usage) };
                 break;
-            case Protocol.Gemini:
-                var candidates = RequiredArray(raw, "candidates");
-                if (candidates.GetArrayLength() != 1) throw ProtocolError("expected exactly one Gemini candidate");
-                var candidate = candidates[0];
-                stop = Str(candidate, "finishReason");
-                if (stop != "STOP") throw Incomplete("Gemini result blocked or incomplete");
-                context = Get(candidate, "content");
-                foreach (var part in RequiredArray(context, "parts").EnumerateArray())
-                {
-                    var function = Get(part, "functionCall");
-                    if (function.ValueKind != JsonValueKind.Undefined)
-                    {
-                        var args = Get(function, "args");
-                        calls.Add(Call(Str(function, "id"), RequiredString(function, "name"), args.ValueKind == JsonValueKind.Undefined ? Element(new JsonObject()) : args));
-                    }
-                    else if (Get(part, "thought").ValueKind != JsonValueKind.True) text.Append(Str(part, "text"));
-                }
-                usage = Get(raw, "usageMetadata");
-                var gi = Count(usage, "promptTokenCount");
-                var gr = Count(usage, "cachedContentTokenCount");
-                var gc = Count(usage, "candidatesTokenCount");
-                var gt = Count(usage, "thoughtsTokenCount");
-                normalized = new Usage { Input = gi, InputUncached = gi.HasValue ? gi - Math.Min(gi.Value, gr ?? 0) : null, CacheRead = gr, Output = gc.HasValue || gt.HasValue ? checked((gc ?? 0) + (gt ?? 0)) : null, Reasoning = gt, Total = Count(usage, "totalTokenCount"), Raw = Clone(usage) };
-                break;
             default: throw Invalid("unknown protocol");
         }
         return new Turn { Protocol = protocol, Text = text.ToString(), Calls = calls, Context = context.Clone(), Usage = normalized, StopReason = stop, Raw = raw.Clone() };
@@ -156,6 +90,7 @@ public static class ProviderProtocol
 
     public static void ContinueWith(Protocol protocol, JsonArray history, Turn turn, IReadOnlyList<ToolResult> results)
     {
+        if (!Enum.IsDefined(protocol)) throw Invalid("unknown protocol");
         if (turn.Protocol != protocol) throw Invalid("wrong turn protocol");
         if (results.Count != turn.Calls.Count) throw Invalid("return exactly one result for each tool call");
         var matched = new bool[turn.Calls.Count];
@@ -180,29 +115,20 @@ public static class ProviderProtocol
         var resultsContent = new JsonArray();
         foreach (var result in results)
         {
-            if (protocol == Protocol.Gemini)
-            {
-                var response = new JsonObject { ["name"] = result.Call.Name, ["response"] = new JsonObject { [result.IsError ? "error" : "result"] = result.Text } };
-                if (result.Call.Id is not null) response["id"] = result.Call.Id;
-                if (result.Images.Count > 0) response["parts"] = new JsonArray(result.Images.Select(i => ImagePart(i, protocol)).ToArray());
-                resultsContent.Add((JsonNode)new JsonObject { ["functionResponse"] = response });
-            }
-            else
-            {
-                var blocks = new JsonArray(new JsonObject { ["type"] = protocol == Protocol.Responses ? "input_text" : "text", ["text"] = protocol == Protocol.Responses && result.IsError ? $"Tool execution failed: {result.Text}" : result.Text });
-                foreach (var image in result.Images) blocks.Add(ImagePart(image, protocol));
-                if (protocol == Protocol.Responses) appended.Add((JsonNode)new JsonObject { ["type"] = "function_call_output", ["call_id"] = result.Call.Id, ["output"] = blocks });
-                else resultsContent.Add((JsonNode)new JsonObject { ["type"] = "tool_result", ["tool_use_id"] = result.Call.Id, ["content"] = blocks, ["is_error"] = result.IsError });
-            }
+            var blocks = new JsonArray(new JsonObject { ["type"] = protocol == Protocol.Responses ? "input_text" : "text", ["text"] = protocol == Protocol.Responses && result.IsError ? $"Tool execution failed: {result.Text}" : result.Text });
+            foreach (var image in result.Images) blocks.Add(ImagePart(image, protocol));
+            if (protocol == Protocol.Responses) appended.Add((JsonNode)new JsonObject { ["type"] = "function_call_output", ["call_id"] = result.Call.Id, ["output"] = blocks });
+            else resultsContent.Add((JsonNode)new JsonObject { ["type"] = "tool_result", ["tool_use_id"] = result.Call.Id, ["content"] = blocks, ["is_error"] = result.IsError });
         }
-        if (protocol != Protocol.Responses) appended.Add((JsonNode)new JsonObject { ["role"] = "user", [protocol == Protocol.Gemini ? "parts" : "content"] = resultsContent });
+        if (protocol != Protocol.Responses) appended.Add((JsonNode)new JsonObject { ["role"] = "user", ["content"] = resultsContent });
         foreach (var item in appended) history.Add(item?.DeepClone());
     }
 
     public static ModelPage ParseModelPage(Protocol protocol, JsonElement raw)
     {
+        if (!Enum.IsDefined(protocol)) throw Invalid("unknown protocol");
         var models = new List<Model>();
-        foreach (var item in RequiredArray(raw, protocol == Protocol.Gemini ? "models" : "data").EnumerateArray())
+        foreach (var item in RequiredArray(raw, "data").EnumerateArray())
         {
             var metadata = Get(item, "capabilities");
             var thinking = new List<Thinking>();
@@ -211,9 +137,9 @@ public static class ProviderProtocol
             if (protocol == Protocol.Messages && Bool(Get(types, "adaptive"), "supported") == true && effort.ValueKind == JsonValueKind.Object)
                 foreach (var entry in effort.EnumerateObject()) if (Bool(entry.Value, "supported") == true) thinking.Add(new AdaptiveThinking { Effort = entry.Name });
             var capabilities = protocol == Protocol.Messages ? new Capabilities { Vision = Bool(Get(metadata, "image_input"), "supported"), Tools = Bool(Get(metadata, "tool_use"), "supported"), MessagesBudget = Bool(Get(types, "enabled"), "supported"), Thinking = thinking, Source = metadata.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined) ? "provider_metadata" : null } : Capabilities.Unknown;
-            models.Add(new Model { Id = RequiredString(item, protocol == Protocol.Gemini ? "name" : "id"), Capabilities = capabilities, Raw = item.Clone() });
+            models.Add(new Model { Id = RequiredString(item, "id"), Capabilities = capabilities, Raw = item.Clone() });
         }
-        var next = protocol == Protocol.Gemini ? Str(raw, "nextPageToken") : Bool(raw, "has_more") == true ? RequiredString(raw, "last_id") : null;
+        var next = Bool(raw, "has_more") == true ? RequiredString(raw, "last_id") : null;
         return new ModelPage { Models = models, Next = string.IsNullOrEmpty(next) ? null : next, Raw = raw.Clone() };
     }
 
@@ -224,28 +150,27 @@ public static class ProviderProtocol
         return usage.Input is { } input && usage.Output is { } output && inputPerMillion is { } p && outputPerMillion is { } q ? (input * p + output * q) / 1_000_000m : null;
     }
 
-    private static bool HasImages(Protocol protocol, JsonArray history)
+    internal static bool HasImages(JsonArray history) => HasImages(Protocol.Responses, history);
+    internal static bool HasImages(Protocol protocol, JsonArray history)
     {
         foreach (var message in history.OfType<JsonObject>())
         {
-            var blocks = message[protocol == Protocol.Gemini ? "parts" : protocol == Protocol.Responses && String(message["type"]) == "function_call_output" ? "output" : "content"] as JsonArray;
+            var blocks = message[protocol == Protocol.Responses && String(message["type"]) == "function_call_output" ? "output" : "content"] as JsonArray;
             if (blocks is null) continue;
             foreach (var block in blocks.OfType<JsonObject>())
             {
                 if (protocol == Protocol.Responses && String(block["type"]) == "input_image") return true;
                 if (protocol == Protocol.Messages && (String(block["type"]) == "image" || String(block["type"]) == "tool_result" && block["content"] is JsonArray nested && nested.OfType<JsonObject>().Any(b => String(b["type"]) == "image"))) return true;
-                if (protocol == Protocol.Gemini && (IsGeminiImage(block) || block["functionResponse"]?["parts"] is JsonArray parts && parts.OfType<JsonObject>().Any(IsGeminiImage))) return true;
             }
         }
         return false;
     }
-    private static bool IsGeminiImage(JsonObject part) => new[] { "inlineData", "fileData" }.Any(key => part[key] is JsonObject data && String(data["mimeType"])?.StartsWith("image/", StringComparison.Ordinal) == true);
     private static string? String(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
     private static JsonNode ImagePart(Image image, Protocol protocol) => protocol switch
     {
         Protocol.Responses => new JsonObject { ["type"] = "input_image", ["image_url"] = $"data:{image.Mime};base64,{image.Base64}" },
         Protocol.Messages => new JsonObject { ["type"] = "image", ["source"] = new JsonObject { ["type"] = "base64", ["media_type"] = image.Mime, ["data"] = image.Base64 } },
-        _ => new JsonObject { ["inlineData"] = new JsonObject { ["mimeType"] = image.Mime, ["data"] = image.Base64 } }
+        _ => throw Invalid("unknown protocol")
     };
     private static ToolCall Call(string? id, string name, JsonElement arguments)
     {
@@ -256,14 +181,6 @@ public static class ProviderProtocol
         }
         if (arguments.ValueKind != JsonValueKind.Object) throw ProtocolError("tool arguments must be a JSON object");
         return new ToolCall { Id = id, Name = name, Arguments = arguments.Clone() };
-    }
-    private static void Extend(JsonObject body, IReadOnlyDictionary<string, JsonElement> extra, string[] reserved)
-    {
-        foreach (var (key, value) in extra)
-        {
-            if (reserved.Contains(key, StringComparer.Ordinal) || body.ContainsKey(key)) throw Invalid($"native parameter collision: {key}");
-            body[key] = Node(value);
-        }
     }
     internal static JsonNode? Node(JsonElement element) => element.ValueKind == JsonValueKind.Undefined ? null : JsonNode.Parse(element.GetRawText());
     internal static JsonElement Element(JsonNode node) { using var document = JsonDocument.Parse(node.ToJsonString()); return document.RootElement.Clone(); }

@@ -1,6 +1,6 @@
 # Oh My Study 原生架构
 
-更新：2026-10-18。正式工程为 C#，旧实现仅归档于忽略的 `.reference/`，不作为后端或构建输入。当前状态与验证证据见 [维护进度](../migration-progress.md)，待验步骤见 [验收清单](acceptance.zh-CN.md)。
+更新：2026-10-20。正式工程为 C#，旧实现仅归档于忽略的 `.reference/`，不作为后端或构建输入。当前状态与验证证据见 [维护进度](../migration-progress.md)，待验步骤见 [验收清单](acceptance.zh-CN.md)。
 
 ## 分层与组合
 
@@ -9,7 +9,7 @@
 | App | WinUI/XAML、窗口、导航、表示状态、选择器、原件对照、设置、任务和应用组合 | Infrastructure、Documents；经它们使用 Application/Domain |
 | Domain | 资料、题目、来源、评分、配置、任务与协议模型，验证规则，源生成 JSON | 无其他业务工程依赖 |
 | Application | 单任务队列、持久化/执行契约、权限批准绑定、任务取消和提交屏障 | Domain |
-| Infrastructure | SQLite 仓储、资产、凭据、三协议 HTTP/SSE、整卷编排、Windows Job Object 与执行适配 | Application、Domain |
+| Infrastructure | SQLite 仓储、资产、凭据、Responses 与 Messages 客户端（使用各自官方 SDK）、整卷编排、Windows Job Object 与执行适配 | Application、Domain |
 | Documents | VelociTex 公式、Typst 文档分页、PDFium、坐标变换、字节预算缓存 | 独立服务 |
 | Setup | 清单与文件校验、按用户版本目录、原子切换、开始菜单与卸载集成、失败回退 | 独立安装工程 |
 
@@ -21,12 +21,12 @@ flowchart TD
     Application --> Domain[Domain 规则与契约]
     Infra --> Domain
     Infra --> Data[SQLite / 原件 / Windows 凭据]
-    Infra --> Models[Responses / Messages / Gemini]
+    Infra --> Models[Responses / Messages]
     Infra --> Host[Windows Job Object / 私有 Python]
     Docs --> Engines[VelociTex / PDFium / Typst 文档分页]
 ```
 
-App 当前直接组合具体仓储、队列、协议与文档服务；没有把计划中的抽象误写为已经实现的依赖反转。正式代码不使用旧 Rust 后端、Node 常驻服务、反射扫描注册或运行时代码生成。JSON 使用封闭的源生成上下文，WinUI 使用编译绑定和局部状态通知。
+App 当前直接组合具体仓储、队列、协议与文档服务；没有把计划中的抽象误写为已经实现的依赖反转。正式代码不使用旧 Rust 后端或 Node 常驻服务。业务 JSON 使用封闭的源生成上下文，WinUI 使用编译绑定和局部状态通知。Anthropic 官方 SDK 是临时例外：非 AOT 构建为其启用反射序列化，裁剪和 AOT 发布明确阻止，待替换用户提供的兼容包后恢复验收。
 
 根目录采用解决方案、集中包版本、逐工程锁文件及统一 AOT/裁剪分析。`packaging/Invoke-MigrationChecks.ps1` 串行进行 Release 锁定还原、全新发布及 EXE 实际运行；`Test-RepositoryLayout.ps1` 检查旧实现隔离。只有编译成功或设置 `PublishAot` 属性不算 Native AOT 验证通过。
 
@@ -36,7 +36,7 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 
 `JobQueue` 保持一次一个运行任务，其余排队；快照和不可复用的递增事件共同持久化，重启处理中任务与取消有明确终态。提交屏障等待已在途提交收束，拒绝取消后的迟到结果，已成功保存的题目保留。App 最小化不停止队列，关闭时等待取消和资源释放。
 
-`GradingRunner` 以整卷为上下文，组合 Responses、Messages、Gemini 原生协议与各自思考配置、SSE、工具回合、用量和价格记录。只有校验通过的工具结果进入仓储；参考答案任务限制自身工具与覆盖范围。三协议和三模式的合成链路经过真实队列、协议客户端及 SQLite；真实识别、漏题、串答和评分语义仍待授权供应商及样卷验收。
+`GradingRunner` 以整卷为上下文，组合 Responses、Messages 原生协议与各自思考配置、SSE、工具回合、用量和价格记录。Responses 的请求、认证与 SSE 帧由官方 `OpenAI` SDK（2.14.0）承担；Messages 使用官方 `Anthropic` SDK（12.58.0），请求顶层默认设置 `cache_control: {type: ephemeral}`，由供应商自动推进缓存断点，缓存读写用量仍按真实返回值记录。用户已明确允许先使用不支持 AOT 的 Anthropic 官方包，后续在用户通知后替换为保持相同接口的 `TairuiQu.Anthropic.Aot`；工程不屏蔽 AOT 告警或伪造 AOT 通过。见 [OpenAI 验收](verification/openai-sdk.2026-10-20.md) 与 [Anthropic 接入记录](verification/anthropic-sdk.2026-10-20.md)。只有校验通过的工具结果进入仓储；参考答案任务限制自身工具与覆盖范围。两种协议和三种模式的合成链路经过真实队列、协议客户端及 SQLite；真实识别、漏题、串答和评分语义仍待授权供应商及样卷验收。
 
 权限批准绑定代码、工具、参数、目录和超时，区分一次、本任务与拒绝；宿主执行使用 Windows Job Object 回收所属进程树。私有 Python 来自锁定运行时。`PolicyToolExecutor`按冻结许可分派宿主或Sandbox，后者每次调用创建独立VM，通过新`wsb` CLI明确指定随机会话ID，并只停止该ID。调用之间不保留任意环境状态；这是替代未完成旧原型的可证明归属生命周期。Windows 10、旧Windows 11或缺少CLI时不返回Ready；开始前可明确警告并冻结本机回退，Sandbox执行失败后没有宿主重放。真实会话、映射与系统矩阵仍由用户验收，不能将本机执行显示为沙箱隔离。
 
@@ -45,6 +45,8 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 `LibraryRepository` 用专用线程串行运行 SQLite，队列有界；媒体准备在另一个受限后台工作区执行。写事务在 COMMIT 前再次检查取消，提交成功后不因随后到达的取消误报未保存。支持 v1/v2 识别与事务升级、WAL、外键、资料/页序/方向、资产、供应商、设置、题目、参考答案、覆盖、模型调用及任务事件。
 
 旧 SQL 固定副本位于 `tests/Fixtures/LegacyDatabase/`，生产迁移 SQL 为 Infrastructure 内独立资源；JSON 和协议夹具分别位于 Compatibility、ProviderProtocols。保留 ID、排序、资料模式的 JSON 文本、SQL/JSON 进度尺度、PDF 原页引用、原件字节，以及 `OhMyStudy/provider/<UUID>` 和 UTF-8 凭据 blob。
+
+供应商仅支持 Responses 与 Messages。读取旧库时跳过已移除协议的配置，原始记录保留在数据库和备份中；不将旧协议映射为其他协议，也不允许新增保存。实现与回归、界面截图见 [移除 Google 模型支持](verification/google-removal.2026-10-20.md)。
 
 默认新库位于 `%LOCALAPPDATA%/OhMyStudy/Library`。旧目录解析仍指向 `%APPDATA%/io.ohmystudy.desktop`；`LibraryMigrationService`只读备份原库，恢复到新目录，仅升级副本，核对资料、题目、资产、凭据引用等指纹并写迁移收据。App在仓储、任务、设置和界面全部初始化后才原子切换库指针；中途失败释放会话并重新打开原库。不会自动就地升级用户旧库。此流程通过合成库测试，真实资料与目标安装身份由用户验收。
 

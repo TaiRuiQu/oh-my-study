@@ -61,7 +61,6 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         {
             case Protocol.Responses: extra["instructions"] = DomainJson.ToElement(instructions); break;
             case Protocol.Messages: extra["system"] = DomainJson.ToElement(instructions); break;
-            case Protocol.Gemini: extra["systemInstruction"] = Parse(new JsonObject { ["parts"] = new JsonArray(new JsonObject { ["text"] = instructions }) }); break;
         }
         var options = new RequestOptions
         {

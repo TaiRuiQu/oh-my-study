@@ -6,6 +6,8 @@
     <ProjectReference Include="../OhMyStudy.Application/OhMyStudy.Application.csproj" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Include="OpenAI" />
+    <PackageReference Include="Anthropic" />
     <EmbeddedResource Include="Storage/Migrations/*.sql" />
   </ItemGroup>
 </Project>

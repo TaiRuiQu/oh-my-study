@@ -8,7 +8,7 @@
 | `cases.synthetic.json` | JSON、评分、区域、题目/错题和执行策略边界；来源路径仅为历史标记 |
 | `assets.synthetic.json` | 4×3 PNG 与两页矢量 PDF 的 Base64、字节数及 SHA-256 |
 | `../LegacyDatabase/001_initial.sql`、`002_grading.sql` | 固定旧 schema 副本，与生产迁移 SQL 独立 |
-| `../ProviderProtocols/round-trips.synthetic.json`、`messages.synthetic.sse` | 三协议合成往返、上下文及流式事件；假签名不得发送到真实服务 |
+| `../ProviderProtocols/round-trips.synthetic.json`、`messages.synthetic.sse` | Responses 与 Messages 合成往返、上下文及流式事件；假签名不得发送到真实服务 |
 
 从仓库根执行 `./packaging/Invoke-MigrationChecks.ps1 -DesktopSmoke -WorkflowSmoke` 运行当前完整检查。旧路径字符串不作为加载源码或启动工具的路径；测试使用当前夹具目录。
 

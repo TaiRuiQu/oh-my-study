@@ -100,7 +100,17 @@ public sealed partial class LibraryRepository
     }
 
     public Task<List<Provider>> ListProvidersAsync(CancellationToken cancellationToken = default) => Run(() =>
-        Query("SELECT config_json FROM providers ORDER BY id", r => DomainJson.Deserialize<Provider>(r.GetString(0))), cancellationToken);
+        Query("SELECT config_json FROM providers ORDER BY id", r => ReadSupportedProvider(r.GetString(0))).OfType<Provider>().ToList(), cancellationToken);
+
+    private static Provider? ReadSupportedProvider(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        // Retired protocols must not prevent opening the library. Keep their records intact
+        // for backups, but never reinterpret them as a supported provider or expose their models.
+        if (document.RootElement.TryGetProperty("protocol", out var protocol) && protocol.ValueKind == JsonValueKind.String
+            && !Enum.GetValues<Protocol>().Any(value => JsonNamingPolicy.SnakeCaseLower.ConvertName(value.ToString()) == protocol.GetString())) return null;
+        return DomainJson.Deserialize<Provider>(json);
+    }
 
     public Task<Provider> UpsertProviderAsync(Provider provider, CancellationToken cancellationToken = default)
     {

@@ -69,7 +69,8 @@ public sealed class SseDecoder
     }
 }
 
-/// <summary>Native state reducer. A successful EOF requires a complete native result.</summary>
+/// <summary>Messages state reducer for decoded SDK events and synthetic SSE regressions.
+/// A successful EOF requires a complete native result. Responses uses its own SDK adapter.</summary>
 public sealed class ProviderStreamAssembler(Protocol protocol)
 {
     private readonly SseDecoder _decoder = new();
@@ -83,6 +84,7 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
 
     public IReadOnlyList<ProviderProgress> Push(ReadOnlySpan<byte> bytes)
     {
+        if (protocol != Protocol.Messages) throw Invalid("expected Messages stream");
         if (bytes.Length > SseDecoder.MaximumBytes - _bytes) throw ProtocolError("stream exceeds limit");
         _bytes += bytes.Length;
         var progress = new List<ProviderProgress>();
@@ -97,28 +99,12 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
             if (_terminal) throw ProtocolError("event received after terminal response");
             switch (protocol)
             {
-                case Protocol.Responses: Responses(value, kind, progress); break;
                 case Protocol.Messages: Messages(value, kind, progress); break;
-                case Protocol.Gemini: Gemini(value, progress); break;
                 default: throw Invalid("unknown protocol");
             }
             _events.Add(value.DeepClone());
         }
         return progress;
-    }
-
-    private void Responses(JsonObject value, string kind, List<ProviderProgress> progress)
-    {
-        switch (kind)
-        {
-            case "response.refusal.delta": case "response.refusal.done": throw new ProviderException(ErrorKind.Refusal, "provider declined the request");
-            case "response.output_text.delta": if (Text(value, "delta") is { } text) progress.Add(new(Text: text)); break;
-            case "response.output_item.added":
-                if (value["item"] is JsonObject item && Text(item, "type") == "function_call") progress.Add(new(ToolName: Text(item, "name") ?? ""));
-                break;
-            case "response.completed": _raw = value["response"]?.DeepClone() as JsonObject ?? throw ProtocolError("missing response"); _terminal = true; break;
-            case "response.incomplete": throw Incomplete("Responses stream incomplete");
-        }
     }
 
     private void Messages(JsonObject value, string kind, List<ProviderProgress> progress)
@@ -180,29 +166,23 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
         }
     }
 
-    private void Gemini(JsonObject value, List<ProviderProgress> progress)
+    /// <summary>Consumes an event already framed and decoded by the Anthropic SDK.</summary>
+    internal IReadOnlyList<ProviderProgress> PushMessageEvent(JsonObject value)
     {
-        if (value["error"] is not null) throw ProviderErrors.Classify((ushort)(Count(Element(value["error"]!), "code") ?? 400), Element(value));
-        if (value["candidates"] is JsonArray candidates)
-        {
-            if (candidates.Count != 1 || candidates[0] is not JsonObject candidate) throw ProtocolError("expected one streaming Gemini candidate");
-            if (_raw["candidates"] is not JsonArray) _raw["candidates"] = new JsonArray(new JsonObject { ["content"] = new JsonObject { ["role"] = "model", ["parts"] = new JsonArray() } });
-            var target = _raw["candidates"]![0]!;
-            if (candidate["content"] is JsonObject content && content["parts"] is JsonArray parts)
-                foreach (var part in parts.OfType<JsonObject>())
-                {
-                    if (part["thought"]?.ToString() != "true" && Text(part, "text") is { } text) progress.Add(new(Text: text));
-                    if (part["functionCall"] is JsonObject call && Text(call, "name") is { } name) progress.Add(new(ToolName: name));
-                    ((JsonArray)target["content"]!["parts"]!).Add(part.DeepClone());
-                }
-            if (candidate["finishReason"] is { } reason) target["finishReason"] = reason.DeepClone();
-        }
-        if (value["usageMetadata"] is { } usage) _raw["usageMetadata"] = usage.DeepClone();
+        if (protocol != Protocol.Messages) throw Invalid("expected Messages stream");
+        var kind = Text(value, "type") ?? throw ProtocolError("missing Messages event type");
+        if (kind == "error") throw ProviderErrors.Classify(400, Element(value));
+        if (_terminal) throw ProtocolError("event received after terminal response");
+        var progress = new List<ProviderProgress>();
+        Messages(value, kind, progress);
+        _events.Add(value.DeepClone());
+        return progress;
     }
+
     public Turn Finish()
     {
         _decoder.Finish();
-        if (protocol != Protocol.Gemini && !_terminal) throw Incomplete("stream ended before terminal event");
+        if (!_terminal) throw Incomplete("stream ended before terminal event");
         _raw["_stream_events"] = _events.DeepClone();
         return Parse(protocol, Element(_raw));
     }

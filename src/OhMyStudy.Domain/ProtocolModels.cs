@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace OhMyStudy.Domain;
 
 [JsonConverter(typeof(StrictEnumConverter<Protocol>))]
-public enum Protocol { Responses, Messages, Gemini }
+public enum Protocol { Responses, Messages }
 
 public sealed record Capabilities
 {
@@ -20,14 +20,10 @@ public sealed record Capabilities
 [JsonDerivedType(typeof(ResponsesThinking), "responses")]
 [JsonDerivedType(typeof(AdaptiveThinking), "adaptive")]
 [JsonDerivedType(typeof(BudgetThinking), "budget")]
-[JsonDerivedType(typeof(GeminiLevelThinking), "gemini_level")]
-[JsonDerivedType(typeof(GeminiBudgetThinking), "gemini_budget")]
 public abstract record Thinking;
 public sealed record ResponsesThinking : Thinking { public required string Effort { get; init; } }
 public sealed record AdaptiveThinking : Thinking { public required string Effort { get; init; } }
 public sealed record BudgetThinking : Thinking { public required ulong Tokens { get; init; } }
-public sealed record GeminiLevelThinking : Thinking { public required string Level { get; init; } }
-public sealed record GeminiBudgetThinking : Thinking { public required long Tokens { get; init; } }
 
 public sealed record Model
 {
@@ -76,18 +72,17 @@ public sealed record RequestOptions
 
     public void Validate(Protocol protocol, bool vision, bool tools)
     {
+        DomainValidationException.Require(Enum.IsDefined(protocol), "unknown protocol");
         DomainValidationException.Require(!string.IsNullOrWhiteSpace(Model.Id) && MaxOutputTokens > 0, "model and positive token limit are required");
         ValidateCapability(vision, Model.Capabilities.Vision, "vision");
         ValidateCapability(tools, Model.Capabilities.Tools, "tools");
         if (Thinking is not { } thinking) return;
         bool correctProtocol = (protocol, thinking) is
             (Protocol.Responses, ResponsesThinking) or
-            (Protocol.Messages, AdaptiveThinking or BudgetThinking) or
-            (Protocol.Gemini, GeminiLevelThinking or GeminiBudgetThinking);
+            (Protocol.Messages, AdaptiveThinking or BudgetThinking);
         bool metadataBudget = thinking is BudgetThinking && Model.Capabilities.MessagesBudget == true;
         DomainValidationException.Require(correctProtocol && (metadataBudget || Model.Capabilities.Thinking.Contains(thinking) || AllowUnknownCapabilities), "thinking configuration is unsupported or unknown");
         DomainValidationException.Require(thinking is not BudgetThinking budget || (budget.Tokens >= 1024 && budget.Tokens < MaxOutputTokens), "Messages thinking budget must be >=1024 and below max_tokens");
-        DomainValidationException.Require(thinking is not GeminiBudgetThinking gemini || gemini.Tokens >= -1, "Gemini thinking budget must be -1 or nonnegative");
     }
 
     private void ValidateCapability(bool needed, bool? capability, string name) =>
