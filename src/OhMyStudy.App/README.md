@@ -93,6 +93,6 @@ OhMyStudy.App.exe --workflow-smoke C:\absolute\evidence\workflow.json
 
 ## 公式渲染
 
-界面和打印公式统一使用 nuget.org 的 VelociTex.Core、VelociTex.Rendering.Direct2D、VelociTex.WinUI 1.0.0-rc.2。没有本地 NuGet 源、Typst 显示开关或 LaTeX → Typst 转换。Typst 仅保留 PDF 正文排版与分页职责。公式 SVG 以内容哈希命名，导出不同版本不会覆盖旧源文档引用的不同公式。
+界面和打印公式统一使用 nuget.org 的 VelociTex.Core、VelociTex.Rendering.Direct2D、VelociTex.WinUI 1.0.0-preview6。没有本地 NuGet 源、Typst 显示开关或 LaTeX → Typst 转换。Typst 仅保留 PDF 正文排版与分页职责。公式 SVG 以内容哈希命名，导出不同版本不会覆盖旧源文档引用的不同公式。
 
-`--math-smoke <绝对报告路径>` 和 `--preview-smoke <绝对报告路径>` 使用隔离资料库，自动捕获应用窗口客户区，包含 XAML 截图遗漏的原生 Composition 公式层。截图时只临时置顶本应用窗口；报告和截图存于指定目录。独立公式、段落原文与单式复制、深浅主题、宽窄窗口、取消、缓存和列表复用均有回归入口。最新本轮证据见 `docs/verification/velocitex.2026-10-19.md`。
+`--math-smoke <绝对报告路径>` 和 `--preview-smoke <绝对报告路径>` 使用隔离资料库，自动捕获应用窗口客户区，包含 XAML 截图遗漏的原生 Composition 公式层。截图时只临时置顶本应用窗口；报告和截图存于指定目录。独立公式、段落原文与单式复制、深浅主题、宽窄窗口、取消、缓存和列表复用均有回归入口。最新本轮证据见 `docs/verification/velocitex-preview6.2026-10-20.md`。

@@ -58,7 +58,7 @@ Domain 已实现旧模型的严格/宽松 JSON 行为、枚举与可空项、整
 
 导入保留 PNG/JPEG/WebP/PDF 原字节，限制页数、字节数和像素；PDF 页与原件分开关联。App 原生媒体服务按需解码，通过公共坐标变换保持旋转后的原件与来源框一致，缓存按字节及分辨率层级控制。WebP 优先系统解码，缺少可用 codec 时使用固定哈希的私有 `dwebp`，无需用户另装图片扩展。
 
-界面公式由 NuGet 的 `VelociTex.Core`、`VelociTex.Rendering.Direct2D`、`VelociTex.WinUI`（统一锁定 `1.0.0-rc.2`）直接编译原始 TeX，通过原生合成层绘制。正文行内公式共用 DirectWrite 基线，独立公式使用 MathView；题目预览、选项、表格、小问和批改反馈共用同一路径。已移除 Typst 显示回退和 LaTeX → Typst 转换器，公开包只从 nuget.org 还原，不依赖相邻源码目录。失败输入保留原文；预览显示简短失败提示。当前包不支持的命令（包括既有样例中的 `\ce`）不转换为其他引擎的语法。
+界面公式由 NuGet 的 `VelociTex.Core`、`VelociTex.Rendering.Direct2D`、`VelociTex.WinUI`（统一锁定 `1.0.0-preview6`）直接编译原始 TeX，通过原生合成层绘制。正文行内公式共用 DirectWrite 基线，独立公式使用 MathView；题目预览、选项、表格、小问和批改反馈共用同一路径。已移除 Typst 显示回退和 LaTeX → Typst 转换器，公开包只从 nuget.org 还原，不依赖相邻源码目录。失败输入保留原文；预览显示简短失败提示。当前包不支持的命令（包括既有样例中的 `\ce`）不转换为其他引擎的语法。
 
 PDF 的所有公式也由 VelociTex 导出独立 SVG 字形路径，Typst 只负责正文、表格、分页及矢量图放置；保留 A3/A4、题目/答案隔离、递归小问、题图及资源预算。公式基线与宽栏回退由宿主管理。普通正文采用系统微软雅黑，打印正文采用系统新宋体；单个界面和打印公式允许使用随包原名、原始字节的 KaTeX 字体（OFL / RFN），许可证与 KaTeX MIT 声明在发布物保留。PDFium、Typst、SQLite、dwebp 和私有 Python 仍有固定来源与哈希。缺少新宋体时导出明确失败。
 

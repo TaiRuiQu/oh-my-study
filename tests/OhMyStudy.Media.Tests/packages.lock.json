@@ -134,8 +134,8 @@
       "ohmystudy.documents": {
         "type": "Project",
         "dependencies": {
-          "VelociTex.Core": "[1.0.0-rc.2, )",
-          "VelociTex.Rendering.Direct2D": "[1.0.0-rc.2, )"
+          "VelociTex.Core": "[1.0.0-preview6, )",
+          "VelociTex.Rendering.Direct2D": "[1.0.0-preview6, )"
         }
       },
       "ohmystudy.domain": {
@@ -190,17 +190,17 @@
       },
       "VelociTex.Core": {
         "type": "CentralTransitive",
-        "requested": "[1.0.0-rc.2, )",
-        "resolved": "1.0.0-rc.2",
-        "contentHash": "wq62wtoZEh5yCKZ38ZnkGZYC3HMPKJap16luHGiSjNWkHctqntzcbW+Z5F3xlByfCK2GmySdvMBNJB1PRpTXVQ=="
+        "requested": "[1.0.0-preview6, )",
+        "resolved": "1.0.0-preview6",
+        "contentHash": "BgdQ/DgfexIHHj/1cX5o8gWMOWNAoC7A88UIejCTy42B4ART39uzwju7mqphdpYNFu3YnCN5mP5OyVZebAEu6w=="
       },
       "VelociTex.Rendering.Direct2D": {
         "type": "CentralTransitive",
-        "requested": "[1.0.0-rc.2, )",
-        "resolved": "1.0.0-rc.2",
-        "contentHash": "cY7R48B5czzp8xLM4FQdncX8oiyH+NYg0QgeaBfJ7giC6NWEaaLo31AuhmYbFqsJvbvoUJ5Wm1am/e8ytXKlcw==",
+        "requested": "[1.0.0-preview6, )",
+        "resolved": "1.0.0-preview6",
+        "contentHash": "xXIEy3/Vok0G4RHPRBfJetZtLjMpt/TZfKjQD1XNmFN4udSh3IzG868IFfGpQhaBFVGxP9ISmOHQ+JSdcEunLQ==",
         "dependencies": {
-          "VelociTex.Core": "1.0.0-rc.2"
+          "VelociTex.Core": "1.0.0-preview6"
         }
       }
     },
@@ -209,6 +209,12 @@
         "type": "Transitive",
         "resolved": "3.50.4.2",
         "contentHash": "eV9HwQ88WyoU+reGVxJz1SwME9NbYnl9h2LOY15j0LGdXN4JkTJDk8JRRg/yNgt00O3Cn5/qnska10FEZNoU5g=="
+      },
+      "VelociTex.Core": {
+        "type": "CentralTransitive",
+        "requested": "[1.0.0-preview6, )",
+        "resolved": "1.0.0-preview6",
+        "contentHash": "BgdQ/DgfexIHHj/1cX5o8gWMOWNAoC7A88UIejCTy42B4ART39uzwju7mqphdpYNFu3YnCN5mP5OyVZebAEu6w=="
       }
     }
   }
