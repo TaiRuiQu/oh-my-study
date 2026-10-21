@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using OhMyStudy.App.Diagnostics;
 using OhMyStudy.App.ViewModels;
@@ -29,6 +30,27 @@ public sealed partial class MainWindow
             Require(_filteredPapers.Count == 1 && _filteredPapers[0].Score == "86.5 / 100", "metadata-persisted");
             await LoadDocumentAsync(document); await Capture("detail");
             Require(PapersPanel.Visibility == Visibility.Collapsed && WorkspaceActions.Visibility == Visibility.Visible && DocumentToolbar.Visibility == Visibility.Visible, "open-paper");
+            var paperMenu = (MenuFlyout)PaperMoreButton.Flyout;
+            Require(paperMenu.Placement == FlyoutPlacementMode.BottomEdgeAlignedRight, "more-menu-opens-down");
+            var expectedMenu = HasSampleAction ? (string[])["管理页面", "整理参考答案", "查看示例", "删除试卷"] : ["管理页面", "整理参考答案", "删除试卷"];
+            Require(paperMenu.Items.OfType<MenuFlyoutItem>().Where(item => item.Visibility == Visibility.Visible).Select(item => item.Text)
+                .SequenceEqual(expectedMenu), "more-menu-actions");
+            paperMenu.ShowAt(PaperMoreButton); await Task.Delay(300); Require(paperMenu.IsOpen, "more-menu-open");
+            await CaptureMenu("more-menu"); paperMenu.Hide(); await Task.Delay(220);
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(400);
+            paperMenu.ShowAt(PaperMoreButton); await Task.Delay(400);
+            if (!paperMenu.IsOpen) paperMenu.ShowAt(PaperMoreButton);
+            await Task.Delay(300); Require(paperMenu.IsOpen, "more-menu-dark-open");
+            var darkPopup = VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(popup => popup.Child).OfType<FrameworkElement>().FirstOrDefault(child => child is not ContentDialog);
+            Require(darkPopup is not null, "more-menu-dark-presenter");
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".more-menu-dark-presenter.png"), darkPopup);
+            await CaptureMenu("more-menu-dark"); paperMenu.Hide(); await Task.Delay(220);
+            RootGrid.RequestedTheme = ElementTheme.Light; await Task.Delay(220);
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(900, 750)); await Capture("detail-medium");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 850)); await Capture("detail-compact");
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("detail-dark-compact"); RootGrid.RequestedTheme = ElementTheme.Light; await Task.Delay(220);
+            paperMenu.ShowAt(PaperMoreButton); await CaptureMenu("more-menu-compact"); paperMenu.Hide(); await Task.Delay(220);
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Task.Delay(220);
             EditPaperInfo_Click(this, new RoutedEventArgs()); await Task.Delay(250);
             var editor = OpenDialog(); await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".edit-info.png"), editor);
             NativeDescendants(editor).OfType<TextBox>().Single(t => t.Header as string == "标题").Text = "";
@@ -39,6 +61,27 @@ public sealed partial class MainWindow
             Require(NativeDescendants(editor).OfType<TextBlock>().Any(t => t.Text == "请输入试卷标题。"), "invalid-paper-info-keeps-dialog");
             editor.Hide(); await Task.Delay(100);
             BackToPapers_Click(this, new RoutedEventArgs()); Require(PapersPanel.Visibility == Visibility.Visible, "back-to-list");
+            var listMenu = (MenuFlyout)PaperMoreButton.Flyout;
+            if (HasSampleAction)
+            {
+                Require(listMenu.Items.OfType<MenuFlyoutItem>().Where(item => item.Visibility == Visibility.Visible).Select(item => item.Text).SequenceEqual((string[])["查看示例"]), "list-more-menu");
+                listMenu.ShowAt(PaperMoreButton); await CaptureMenu("more-menu-list"); listMenu.Hide();
+            }
+            else Require(PaperMoreButton.Visibility == Visibility.Collapsed, "list-more-hidden");
+            var contextMenu = CreatePaperContextMenu(_filteredPapers[0]);
+            Require(contextMenu.Items.OfType<MenuFlyoutItem>().Any(item => item.Text == "删除试卷"), "paper-context-menu");
+            PaperList.ScrollIntoView(_filteredPapers[0], ScrollIntoViewAlignment.Leading);
+            await Task.Delay(200); PaperList.UpdateLayout();
+            var firstRow = PaperList.ContainerFromIndex(0) as FrameworkElement;
+            Require(firstRow is not null, "paper-row-realized");
+            contextMenu.ShowAt(firstRow!, new FlyoutShowOptions { Position = new Windows.Foundation.Point(40, 24) });
+            await CaptureMenu("paper-context-menu"); contextMenu.Hide(); await Task.Delay(220);
+            var paperRow = NativeDescendants(firstRow!).OfType<FrameworkElement>().FirstOrDefault(element => element.DataContext is PaperViewModel) ?? firstRow!;
+            var requested = new Microsoft.UI.Xaml.Input.ContextRequestedEventArgs();
+            PaperRow_ContextRequested(paperRow, requested); await Task.Delay(300);
+            Require(requested.Handled && VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Any(popup => popup.Child is MenuFlyoutPresenter), "paper-context-request-opens");
+            foreach (var openPopup in VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).ToArray()) openPopup.IsOpen = false;
+            await Task.Delay(220);
             // A large presentation fixture exercises virtualized rows without generating user data.
             for (int i = 0; i < 240; i++) _papers.Add(new(new PaperSummary(document with { Id = Guid.NewGuid().ToString(), Name = i == 4 ? "这是一份标题非常长的数学试卷，包含函数、导数、数列、概率以及跨页综合题，需要完整保留标题以便整理归档" : $"{new[] { "数学", "语文", "英语", "物理" }[i % 4]} · 第 {i + 1:000} 次练习", CreatedAt = DateTimeOffset.Now.AddDays(-i).ToString("O") }, i % 7 == 0 ? null : new[] { "数学", "语文", "英语", "物理" }[i % 4], i % 3 == 0 ? null : 70 + i % 30, i % 5 == 0 ? null : 100, i % 24)));
             RefreshPaperSubjects(); ApplyPaperFilters(); WorkspaceNotice.Title = "示例资料"; WorkspaceNotice.Message = "仅供界面检查。"; WorkspaceNotice.IsOpen = true; WorkspaceNotice.Visibility = Visibility.Visible;
@@ -107,9 +150,28 @@ public sealed partial class MainWindow
             QuestionDetail.ChangeView(null, 350, null, true); await Capture("question-feedback");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("question-dark"); RootGrid.RequestedTheme = ElementTheme.Light;
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); QuestionDetail.ChangeView(null, 0, null, true); await Capture("question-compact");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); RestoreSample_Click(this, new RoutedEventArgs()); await Capture("sample");
-            Require(WorkspaceGrid.Visibility == Visibility.Visible && BackToPapersButton.Visibility == Visibility.Visible && ViewModel.IsSample, "sample-opens-from-paper-list");
-            BackToPapers_Click(this, new RoutedEventArgs()); Require(PapersPanel.Visibility == Visibility.Visible, "sample-returns-to-real-list");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+            if (HasSampleAction)
+            {
+                RestoreSample_Click(this, new RoutedEventArgs()); await Capture("sample");
+                Require(WorkspaceGrid.Visibility == Visibility.Visible && BackToPapersButton.Visibility == Visibility.Visible && ViewModel.IsSample, "sample-opens-from-paper-list");
+                BackToPapers_Click(this, new RoutedEventArgs()); Require(PapersPanel.Visibility == Visibility.Visible, "sample-returns-to-real-list");
+            }
+            var paperToDelete = _papers.First(paper => paper.Id == document.Id);
+            var cancelDeletion = DeletePaperAsync(paperToDelete);
+            await Task.Delay(500);
+            var cancelDialog = OpenDialog(); await Capture("delete-confirm");
+            cancelDialog.Hide(); await cancelDeletion;
+            Require((await _library.ListPapersAsync()).Count == 1, "delete-cancel-keeps-paper");
+            var deletion = DeletePaperAsync(paperToDelete);
+            await Task.Delay(500);
+            var confirmDialog = OpenDialog();
+            var deleteButton = NativeDescendants(confirmDialog).OfType<Button>().Single(button => button.Name == "PrimaryButton");
+            var deletePeer = new Microsoft.UI.Xaml.Automation.Peers.ButtonAutomationPeer(deleteButton);
+            ((Microsoft.UI.Xaml.Automation.Provider.IInvokeProvider)deletePeer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Invoke)).Invoke();
+            await deletion;
+            Require((await _library.ListPapersAsync()).Count == 0 && _papers.Count == 0 && PaperEmpty.Visibility == Visibility.Visible, "delete-paper");
+            await Capture("after-delete");
             exit = 0;
         }
         catch (Exception error) { AppLog.Error("PapersSmoke", error); checks.Add("FAIL " + error); }
@@ -122,6 +184,7 @@ public sealed partial class MainWindow
         }
         void Require(bool value, string label) { if (!value) throw new InvalidOperationException(label); checks.Add(label); }
         async Task Capture(string name) { await Task.Delay(500); RootGrid.UpdateLayout(); await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, "." + name + ".png")); }
+        async Task CaptureMenu(string name) { await Task.Delay(400); RootGrid.UpdateLayout(); await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, "." + name + ".png")); }
         ContentDialog OpenDialog() => VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(p => p.Child).OfType<ContentDialog>().Single();
     }
 }

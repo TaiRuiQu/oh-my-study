@@ -56,26 +56,26 @@
                         <TextBlock x:Name="PageHeading" Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <StackPanel x:Name="WorkspaceActions" Visibility="Collapsed" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Button x:Name="ImportPaperButton" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" AutomationProperties.Name="导入试卷，支持 PDF 或图片">
+                        <Button x:Name="ImportPaperButton" Click="OpenFiles_Click" AutomationProperties.Name="导入试卷，支持 PDF 或图片">
                             <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock Text="导入试卷" /></StackPanel>
                         </Button>
-                        <Button x:Name="GradeButton" Content="重新识别" Click="Grade_Click" IsEnabled="False" Visibility="Collapsed" />
-                        <Button x:Name="PaperMoreButton" AutomationProperties.Name="更多试卷操作">
+                        <Button x:Name="GradeButton" Click="Grade_Click" IsEnabled="False" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="16" /><TextBlock Text="重新识别" /></StackPanel>
+                        </Button>
+                        <Button x:Name="PaperMoreButton" AutomationProperties.Name="更多试卷操作" ToolTipService.ToolTip="更多">
                             <FontIcon Glyph="&#xE712;" FontSize="18" />
                             <Button.Flyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem x:Name="PaperAddReferenceAction" Text="添加参考答案" Click="AddReferences_Click" />
-                                    <MenuFlyoutItem x:Name="PaperPagesAction" Text="管理页面" Click="ManagePages_Click" />
-                                    <MenuFlyoutItem x:Name="PaperExportAction" Text="导出题目" Click="ExportQuestions_Click" />
-                                    <MenuFlyoutItem x:Name="PaperPrintAction" Text="打印原件" Click="PrintOriginal_Click" />
-                                    <MenuFlyoutItem x:Name="PaperReferencesAction" Text="整理参考答案" Click="ReadReferences_Click" />
-                                    <MenuFlyoutItem Text="备份资料" Click="Backup_Click" />
-                                    <MenuFlyoutItem Text="恢复备份" Click="RestoreBackup_Click" />
-                                    <MenuFlyoutItem Text="导入旧版资料" Click="MigrateLegacy_Click" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="查看示例" Click="RestoreSample_Click" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="关于 Oh My Study" Click="About_Click" />
+                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                    <MenuFlyoutItem x:Name="PaperPagesAction" Text="管理页面" Click="ManagePages_Click">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7C3;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem x:Name="PaperReferencesAction" Text="整理参考答案" Click="ReadReferences_Click">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8B7;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutSeparator x:Name="PaperDetailSeparator" />
+                                    <MenuFlyoutItem x:Name="PaperDeleteAction" Text="删除试卷" Click="DeletePaper_Click" Foreground="{ThemeResource TaskErrorBrush}">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" Foreground="{ThemeResource TaskErrorBrush}" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
                                 </MenuFlyout>
                             </Button.Flyout>
                         </Button>
@@ -85,12 +85,33 @@
                     <Grid x:Name="DocumentToolbar" ColumnSpacing="12" RowSpacing="8" Visibility="Collapsed">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <Button x:Name="BackToPapersButton" Content="返回试卷列表" Click="BackToPapers_Click" />
-                        <StackPanel x:Name="DocumentCommands" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                        <Button x:Name="EditQuestionButton" Content="编辑题目" Click="EditQuestion_Click" IsEnabled="False" />
-                        <Button Content="试卷信息" Click="EditPaperInfo_Click" />
-                        <Button Content="识别结果" Click="ViewResults_Click" />
-                        <Button x:Name="ViewOriginalButton" Content="查看原件" Click="ViewOriginal_Click" />
+                        <Button x:Name="BackToPapersButton" Click="BackToPapers_Click" ToolTipService.ToolTip="返回试卷列表">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72B;" FontSize="16" /><TextBlock Text="返回" /></StackPanel>
+                        </Button>
+                        <StackPanel x:Name="DocumentCommands" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <StackPanel x:Name="DocumentCommandGroupPrimary" Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="ViewOriginalButton" Click="ViewOriginal_Click" ToolTipService.ToolTip="查看原件">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7B3;" FontSize="16" /><TextBlock Text="查看原件" /></StackPanel>
+                                </Button>
+                                <Button x:Name="AddReferenceButton" Click="AddReferences_Click" ToolTipService.ToolTip="添加参考答案页面">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="16" /><TextBlock Text="添加参考答案" /></StackPanel>
+                                </Button>
+                                <Button x:Name="EditQuestionButton" Click="EditQuestion_Click" IsEnabled="False" ToolTipService.ToolTip="编辑当前题目 (Ctrl + E)">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE70F;" FontSize="16" /><TextBlock Text="编辑题目" /></StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <Border x:Name="DocumentCommandDivider" Width="1" Height="20" Margin="4,0" VerticalAlignment="Center" Background="{ThemeResource WorkspaceBorderBrush}" />
+                            <StackPanel x:Name="DocumentCommandGroupSecondary" Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="ViewResultsButton" Click="ViewResults_Click" ToolTipService.ToolTip="查看识别结果">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8FD;" FontSize="16" /><TextBlock Text="识别结果" /></StackPanel>
+                                </Button>
+                                <Button x:Name="PaperInfoButton" Click="EditPaperInfo_Click" ToolTipService.ToolTip="编辑试卷信息">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE946;" FontSize="16" /><TextBlock Text="试卷信息" /></StackPanel>
+                                </Button>
+                                <Button x:Name="ExportQuestionsButton" Click="ExportQuestions_Click" ToolTipService.ToolTip="导出题目">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE74E;" FontSize="16" /><TextBlock Text="导出题目" /></StackPanel>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
                     <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational" CloseButtonClick="WorkspaceNotice_CloseButtonClick"
@@ -112,7 +133,7 @@
                         <Grid>
                             <ListView x:Name="PaperList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="PaperList_ItemClick" HorizontalContentAlignment="Stretch" Padding="8" AutomationProperties.Name="试卷列表">
                                 <ListView.ItemTemplate><DataTemplate x:DataType="vm:PaperViewModel">
-                                    <Grid Padding="12,14" ColumnSpacing="16">
+                                    <Grid Padding="12,14" ColumnSpacing="16" ContextRequested="PaperRow_ContextRequested">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <StackPanel Spacing="7">
                                             <TextBlock Text="{x:Bind Title}" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />

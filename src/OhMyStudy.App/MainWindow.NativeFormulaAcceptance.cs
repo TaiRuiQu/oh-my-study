@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using OhMyStudy.App.Controls;
+using OhMyStudy.App.Diagnostics;
 using OhMyStudy.App.Services;
 using Windows.ApplicationModel.DataTransfer;
 
@@ -45,22 +46,24 @@ public sealed partial class MainWindow
             }
             checks.Add("native-paragraph-density-100-125-150-200=PASS;monitor-dpi-unchanged");
 
+            // Ctrl+C can only reach this window when it is already the active window.
+            // Never activate or topmost the app just to run this functional check: the
+            // smoke screenshots must stay usable while the app is in the background.
+            // When another window is active, record the keyboard check as skipped
+            // instead of claiming a pass; the non-keyboard checks below still run.
             nint hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            AppWindow.Show(); Activate(); NativeSetForegroundWindow(hwnd);
-            if (NativeGetForegroundWindow() != hwnd)
+            if (NativeGetForegroundWindow() == hwnd)
             {
-                uint other = NativeGetWindowThreadProcessId(NativeGetForegroundWindow(), 0), own = NativeGetCurrentThreadId();
-                bool attached = other != 0 && other != own && NativeAttachThreadInput(own, other, true);
-                try { NativeSetForegroundWindow(hwnd); } finally { if (attached) NativeAttachThreadInput(own, other, false); }
+                await Task.Delay(80);
+                if (!paragraph.Focus(FocusState.Keyboard)) throw new InvalidOperationException("The owned reading paragraph could not receive keyboard focus.");
+                DataPackage sentinel = new(); sentinel.SetText("copy acceptance sentinel"); Clipboard.SetContent(sentinel);
+                NativeSendCopy();
+                bool copied = false;
+                for (int attempt = 0; attempt < 20; attempt++) { await Task.Delay(30); if (await Clipboard.GetContent().GetTextAsync() == source) { copied = true; break; } }
+                if (!copied) throw new InvalidOperationException("Control+C did not copy the original complete paragraph.");
+                checks.Add("native-paragraph-actual-control-c=PASS");
             }
-            await Task.Delay(80);
-            if (NativeGetForegroundWindow() != hwnd || !paragraph.Focus(FocusState.Keyboard)) throw new InvalidOperationException("The owned reading paragraph could not receive keyboard focus.");
-            DataPackage sentinel = new(); sentinel.SetText("copy acceptance sentinel"); Clipboard.SetContent(sentinel);
-            NativeSendCopy();
-            bool copied = false;
-            for (int attempt = 0; attempt < 20; attempt++) { await Task.Delay(30); if (await Clipboard.GetContent().GetTextAsync() == source) { copied = true; break; } }
-            if (!copied) throw new InvalidOperationException("Control+C did not copy the original complete paragraph.");
-            checks.Add("native-paragraph-actual-control-c=PASS");
+            else checks.Add("native-paragraph-actual-control-c=SKIPPED-BACKGROUND");
             if (paragraph.ContextFlyout is not MenuFlyout menu || menu.Items.Count != 3) throw new InvalidOperationException("Whole paragraph and individual formula copy actions are missing.");
             menu.ShowAt(paragraph); await Task.Delay(60);
             var itemPeer = FrameworkElementAutomationPeer.CreatePeerForElement(menu.Items[1]);
@@ -117,7 +120,13 @@ public sealed partial class MainWindow
             if (NativeFormulaReadingSession.PendingFormulaCount != 0) throw new InvalidOperationException("Host formula queue did not drain.");
             checks.Add("native-page-workloads-and-bounded-cache=PASS");
         }
-        finally { QuestionContentHost.Content = previous; Clipboard.SetContent(savedClipboard); Clipboard.Flush(); RootGrid.UpdateLayout(); }
+        finally
+        {
+            QuestionContentHost.Content = previous;
+            try { Clipboard.SetContent(savedClipboard); Clipboard.Flush(); }
+            catch (Exception error) { AppLog.Failure("NativeFormulaAcceptance", "The previous clipboard content could not be restored: " + error.Message); }
+            RootGrid.UpdateLayout();
+        }
     }
     private static IEnumerable<DependencyObject> NativeDescendants(DependencyObject owner)
     {
@@ -136,10 +145,6 @@ public sealed partial class MainWindow
     }
     [StructLayout(LayoutKind.Explicit, Size = 40)] private struct NativeInput { [FieldOffset(0)] internal uint Type; [FieldOffset(8)] internal NativeKeyboardInput Keyboard; }
     [StructLayout(LayoutKind.Sequential)] private struct NativeKeyboardInput { internal ushort VirtualKey, Scan; internal uint Flags, Time; internal nuint ExtraInfo; }
-    [LibraryImport("user32.dll", EntryPoint = "SetForegroundWindow")][return: MarshalAs(UnmanagedType.Bool)] private static partial bool NativeSetForegroundWindow(nint hwnd);
     [LibraryImport("user32.dll", EntryPoint = "GetForegroundWindow")] private static partial nint NativeGetForegroundWindow();
-    [LibraryImport("user32.dll", EntryPoint = "GetWindowThreadProcessId")] private static partial uint NativeGetWindowThreadProcessId(nint hwnd, nint process);
-    [LibraryImport("kernel32.dll", EntryPoint = "GetCurrentThreadId")] private static partial uint NativeGetCurrentThreadId();
-    [LibraryImport("user32.dll", EntryPoint = "AttachThreadInput")][return: MarshalAs(UnmanagedType.Bool)] private static partial bool NativeAttachThreadInput(uint source, uint target, [MarshalAs(UnmanagedType.Bool)] bool attach);
     [LibraryImport("user32.dll", EntryPoint = "SendInput")] private static unsafe partial uint NativeSendInput(uint count, NativeInput* input, int size);
 }

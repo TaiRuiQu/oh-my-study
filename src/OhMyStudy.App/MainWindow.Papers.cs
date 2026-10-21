@@ -2,6 +2,9 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using OhMyStudy.App.ViewModels;
 
 namespace OhMyStudy.App;
@@ -11,6 +14,25 @@ public sealed partial class MainWindow
     private readonly List<PaperViewModel> _papers = [];
     private readonly ObservableCollection<PaperViewModel> _filteredPapers = [];
     private bool _updatingPaperFilters;
+    private bool _deletingPaper;
+#if DEBUG
+    private MenuFlyoutItem? _paperSampleAction;
+    private static readonly bool HasSampleAction = true;
+#else
+    private static readonly bool HasSampleAction = false;
+#endif
+
+    private void InitializePaperMenu()
+    {
+#if DEBUG
+        if (PaperMoreButton.Flyout is not MenuFlyout menu) return;
+        var sample = new MenuFlyoutItem { Text = "查看示例", Icon = new FontIcon { Glyph = "\uE8A5" } };
+        sample.Click += RestoreSample_Click;
+        int index = menu.Items.IndexOf(PaperDetailSeparator);
+        menu.Items.Insert(index < 0 ? menu.Items.Count : index, sample);
+        _paperSampleAction = sample;
+#endif
+    }
 
     private void ShowPaperList()
     {
@@ -18,7 +40,7 @@ public sealed partial class MainWindow
         DocumentToolbar.Visibility = Visibility.Collapsed; SourcePane.Visibility = Visibility.Collapsed;
         SettingsPanel.Visibility = Visibility.Collapsed; TasksPanel.Visibility = Visibility.Collapsed;
         WorkspaceActions.Visibility = Visibility.Visible; GradeButton.Visibility = Visibility.Collapsed;
-        PaperMoreButton.Visibility = Visibility.Visible; SetPaperMenuDetail(false);
+        SetPaperMenuDetail(false); ApplyPaperHeaderActions(false);
         SectionCaption.Visibility = Visibility.Collapsed; WorkspaceNotice.Visibility = Visibility.Collapsed;
         WorkspaceStatus.Visibility = Visibility.Visible;
         ViewModel.ShowSection("papers"); ApplyPaperFilters(); ApplyWorkspaceLayout();
@@ -26,7 +48,93 @@ public sealed partial class MainWindow
 
     private void SetPaperMenuDetail(bool detail)
     {
-        foreach (var action in new[] { PaperAddReferenceAction, PaperPagesAction, PaperExportAction, PaperPrintAction, PaperReferencesAction }) action.Visibility = detail ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var action in new FrameworkElement[] { PaperPagesAction, PaperReferencesAction, PaperDeleteAction })
+            action.Visibility = detail ? Visibility.Visible : Visibility.Collapsed;
+        PaperDetailSeparator.Visibility = detail ? Visibility.Visible : Visibility.Collapsed;
+        PaperMoreButton.Visibility = detail || HasSampleAction ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ApplyPaperHeaderActions(bool detail)
+    {
+        if (!Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("AccentButtonStyle", out var value) || value is not Style accent) return;
+        ImportPaperButton.Style = detail ? null : accent;
+        GradeButton.Style = detail ? accent : null;
+    }
+
+    private void PaperRow_ContextRequested(UIElement sender, ContextRequestedEventArgs args)
+    {
+        if (sender is not FrameworkElement { DataContext: PaperViewModel paper } element) return;
+        var flyout = CreatePaperContextMenu(paper);
+        if (args.TryGetPosition(element, out var position))
+            flyout.ShowAt(element, new FlyoutShowOptions { Position = position });
+        else
+            flyout.ShowAt(element);
+        args.Handled = true;
+    }
+
+    private MenuFlyout CreatePaperContextMenu(PaperViewModel paper)
+    {
+        var delete = new MenuFlyoutItem { Text = "删除试卷", Icon = new FontIcon { Glyph = "\uE74D" } };
+        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("TaskErrorBrush", out var value) && value is Brush brush)
+        {
+            delete.Foreground = brush;
+            if (delete.Icon is FontIcon icon) icon.Foreground = brush;
+        }
+        delete.Click += async (_, _) => await DeletePaperAsync(paper);
+        var flyout = new MenuFlyout();
+        flyout.Items.Add(delete);
+        return flyout;
+    }
+
+    private async void DeletePaper_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.CurrentDocument is not { } document) return;
+        if (_papers.FirstOrDefault(paper => paper.Id == document.Id) is { } current) await DeletePaperAsync(current);
+    }
+
+    private async Task DeletePaperAsync(PaperViewModel paper)
+    {
+        if (_deletingPaper || _closed || _library is null) return;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            RequestedTheme = RootGrid.ActualTheme,
+            Title = "删除试卷？",
+            Content = $"“{paper.Title}”以及其中的题目、参考答案会一并删除，无法恢复。",
+            PrimaryButtonText = "删除",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+        _deletingPaper = true;
+        bool open = ViewModel.CurrentDocument?.Id == paper.Id;
+        try
+        {
+            await _library.DeletePaperAsync(paper.Id, _lifetime.Token);
+            _viewports.Remove(paper.Id);
+            _workspaceContexts.Remove("materials:" + paper.Id);
+            if (open)
+            {
+                ++_documentGeneration; CancelPreviewLoad(); ReleaseReadingResources();
+                ShowPaperList();
+            }
+            try
+            {
+                await RefreshDocumentsAsync();
+                ViewModel.StatusMessage = "已删除试卷。";
+            }
+            catch { if (!_closed) ViewModel.StatusMessage = "已删除试卷，列表暂时无法更新。"; }
+        }
+        catch (OperationCanceledException) { }
+        catch (KeyNotFoundException)
+        {
+            if (open) ShowPaperList();
+            await RefreshDocumentsAsync();
+            ViewModel.StatusMessage = "试卷已不存在。";
+        }
+        catch (InvalidOperationException error) { ViewModel.StatusMessage = error.Message; }
+        catch { if (!_closed) ViewModel.StatusMessage = "未能删除试卷，请稍后重试。"; }
+        finally { _deletingPaper = false; }
     }
 
     private void BackToPapers_Click(object sender, RoutedEventArgs e) { RememberViewport(); ++_documentGeneration; CancelPreviewLoad(); ShowPaperList(); }

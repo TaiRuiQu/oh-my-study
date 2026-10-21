@@ -22,6 +22,53 @@ public sealed partial class LibraryRepository
         }), ct, true);
     }
 
+    public Task DeletePaperAsync(string id, CancellationToken ct = default)
+    {
+        ValidId(id);
+        return Run(() =>
+        {
+            var removedFiles = new List<string>();
+            Transaction(ct, () =>
+            {
+                DocumentIdle(id);
+                if (Scalar("SELECT 1 FROM documents WHERE id=$p0", id) is null) throw new KeyNotFoundException("未找到试卷");
+                var jobs = Query("SELECT job_id FROM grading_runs WHERE document_id=$p0", r => r.GetString(0), id);
+                var assets = Query("SELECT a.id,a.original_file,a.thumbnail_file FROM assets a WHERE a.id IN (SELECT asset_id FROM source_pages WHERE document_id=$p0 UNION SELECT original_asset_id FROM source_pages WHERE document_id=$p0 AND original_asset_id IS NOT NULL)",
+                    r => (Id: r.GetString(0), Original: r.GetString(1), Thumbnail: NullableText(r, 2)), id);
+                foreach (var job in jobs) Execute("DELETE FROM model_calls WHERE job_id=$p0", job);
+                Execute("DELETE FROM grading_runs WHERE document_id=$p0", id);
+                foreach (var job in jobs) Execute("DELETE FROM jobs WHERE id=$p0", job);
+                Execute("DELETE FROM questions WHERE document_id=$p0", id);
+                Execute("DELETE FROM source_pages WHERE document_id=$p0", id);
+                Execute("DELETE FROM paper_info WHERE document_id=$p0", id);
+                if (Execute("DELETE FROM documents WHERE id=$p0", id) != 1) throw new KeyNotFoundException("未找到试卷");
+                foreach (var asset in assets)
+                {
+                    if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM source_pages WHERE asset_id=$p0 OR original_asset_id=$p0", asset.Id)) > 0) continue;
+                    Execute("DELETE FROM assets WHERE id=$p0", asset.Id);
+                    removedFiles.Add(asset.Original);
+                    if (asset.Thumbnail is not null) removedFiles.Add(asset.Thumbnail);
+                }
+                return 0;
+            });
+            // The database commit owns the deletion result. Files are removed afterwards; a failure
+            // leaves an orphan that RecoverOrphanedAssetsAsync can report and remove explicitly.
+            foreach (var name in removedFiles)
+            {
+                try
+                {
+                    ValidateFileName(name); RejectLinks(AssetRoot);
+                    var path = Path.GetFullPath(Path.Combine(AssetRoot, name));
+                    if (!path.StartsWith(Path.TrimEndingDirectorySeparator(AssetRoot) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!File.Exists(path)) continue;
+                    RejectLinks(path); File.Delete(path);
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or NotSupportedException) { }
+            }
+            return 0;
+        }, ct, true);
+    }
+
     public Task<bool> SaveGradingPaperInfoAsync(string jobId, string? subject, double? earned, double? possible, CancellationToken ct = default)
     {
         ValidId(jobId); ValidatePaperInfo(subject, earned, possible);

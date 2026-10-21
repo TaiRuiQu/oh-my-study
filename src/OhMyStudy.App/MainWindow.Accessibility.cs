@@ -112,6 +112,9 @@ public sealed partial class MainWindow
         Grid.SetRow(DocumentCommands, narrowToolbar ? 1 : 0);
         Grid.SetColumnSpan(DocumentCommands, narrowToolbar ? 2 : 1);
         Grid.SetColumnSpan(BackToPapersButton, narrowToolbar ? 2 : 1);
+        bool stackedCommands = RootGrid.ActualWidth < 880;
+        DocumentCommands.Orientation = stackedCommands ? Orientation.Vertical : Orientation.Horizontal;
+        DocumentCommandDivider.Visibility = stackedCommands ? Visibility.Collapsed : Visibility.Visible;
         bool narrowPapers = RootGrid.ActualWidth < 700;
         Grid.SetColumnSpan(PaperSearch, narrowPapers ? 3 : 1);
         Grid.SetRow(PaperSubjectFilter, narrowPapers ? 1 : 0); Grid.SetColumn(PaperSubjectFilter, narrowPapers ? 0 : 1);

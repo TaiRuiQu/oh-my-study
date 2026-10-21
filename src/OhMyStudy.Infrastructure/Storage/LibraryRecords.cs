@@ -79,7 +79,7 @@ public sealed partial class LibraryRepository
             using var value = JsonDocument.Parse(json);
             if (value.RootElement.TryGetProperty("input", out var input) && input.ValueKind == JsonValueKind.Object &&
                 input.TryGetProperty("document", out var document) && document.TryGetProperty("id", out var id) && id.GetString() == documentId)
-                throw new InvalidOperationException("该材料正在处理，请先取消任务再编辑页面或结果");
+                throw new InvalidOperationException("试卷正在处理，请先取消任务后再修改。");
         }
     }
 

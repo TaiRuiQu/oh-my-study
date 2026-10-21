@@ -24,7 +24,7 @@ public sealed partial class MainWindow
         WorkspaceActions.Visibility = Visibility.Visible; WorkspaceNotice.Visibility = Visibility.Visible;
         SectionCaption.Visibility = Visibility.Visible;
         WorkspaceGrid.Visibility = Visibility.Visible; DocumentToolbar.Visibility = Visibility.Visible; DocumentCommands.Visibility = Visibility.Visible;
-        WorkspaceStatus.Visibility = Visibility.Visible; SetPaperMenuDetail(true);
+        WorkspaceStatus.Visibility = Visibility.Visible; SetPaperMenuDetail(true); ApplyPaperHeaderActions(true);
         ViewModel.ShowSection("materials");
         UpdateQuestionState();
     }

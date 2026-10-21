@@ -59,6 +59,7 @@ public sealed partial class MainWindow : Window
         _performanceReportPath = performanceReport;
         ViewModel = new WorkspaceViewModel(sample: smokeReportPath is not null);
         InitializeComponent();
+        InitializePaperMenu();
         QuestionContentHost.SizeChanged += QuestionContent_SizeChanged;
         InitializeSettingsLayout();
         InitializeWorkspaceAccessibility();
@@ -201,6 +202,7 @@ public sealed partial class MainWindow : Window
         int index = args.SelectedItem is null ? -1 : sender.MenuItems.IndexOf(args.SelectedItem);
         string tag = args.IsSettingsSelected ? "settings" : index switch { 1 => "library", 2 => "mistakes", 3 => "tasks", _ => "materials" };
         bool settings = tag == "settings";
+        bool sampleMaterials = tag == "materials" && ViewModel.IsSample;
         SourcePane.Visibility = Visibility.Collapsed;
         if (SettingsPanel.Visibility == Visibility.Visible && !settings && HasUnsavedSettingsChanges)
         {
@@ -219,8 +221,8 @@ public sealed partial class MainWindow : Window
         WorkspaceActions.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceStatus.Visibility = tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
         WorkspaceNotice.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
-        WorkspaceGrid.Visibility = settings || tag is "tasks" or "materials" ? Visibility.Collapsed : Visibility.Visible;
-        PapersPanel.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
+        WorkspaceGrid.Visibility = settings || tag is "tasks" or "materials" && !sampleMaterials ? Visibility.Collapsed : Visibility.Visible;
+        PapersPanel.Visibility = tag == "materials" && !sampleMaterials ? Visibility.Visible : Visibility.Collapsed;
         TasksPanel.Visibility = tag == "tasks" ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = Visibility.Collapsed;
         SectionCaption.Visibility = Visibility.Collapsed;
@@ -244,6 +246,7 @@ public sealed partial class MainWindow : Window
             }
         }
         catch (Exception error) { AppLog.Error("Navigation.Load", error); ViewModel.StatusMessage = "无法加载，请稍后重试。"; }
+        if (sampleMaterials) ShowMaterialsNavigation();
         ApplyWorkspaceLayout();
     }
 
@@ -944,18 +947,14 @@ public sealed partial class MainWindow : Window
         Directory.CreateDirectory(directoryPath);
         byte[] pixels;
         int pixelWidth, pixelHeight;
-        if (element is null && Environment.GetCommandLineArgs().Any(argument => argument is "--math-smoke" or "--preview-smoke" or "--papers-smoke"))
+        if (element is null)
         {
-            AppWindow.Show(); Activate();
-            nint window = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            NativeSetForegroundWindow(window);
-            NativeCaptureSetWindowPos(window, -1, 0, 0, 0, 0, 0x0043);
-            try
-            {
-                await Task.Delay(180);
-                (pixels, pixelWidth, pixelHeight) = CaptureNativeClient();
-            }
-            finally { NativeCaptureSetWindowPos(window, -2, 0, 0, 0, 0, 0x0043); }
+            // Every full-window smoke screenshot reads the window's own composed surface.
+            // PrintWindow never raises, activates or makes the window topmost, so the app
+            // may stay behind other windows while the capture runs. Element-only captures
+            // still use RenderTargetBitmap because they deliberately crop one visual.
+            await Task.Delay(180);
+            (pixels, pixelWidth, pixelHeight) = CaptureNativeClient();
         }
         else
         {

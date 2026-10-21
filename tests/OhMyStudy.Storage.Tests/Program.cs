@@ -472,6 +472,23 @@ internal static class Program
         Check(updated.Id == saved.Id && updated.Question.Attempt!.Grade.Source == GradeSource.Manual, "regrade preserves manual grade");
         await Fails(() => repository.SaveGradingQuestionAsync(rerun.Id, question with { Attempt = null }), "regrade cannot remove protected attempt");
         await Fails(() => repository.UpdatePagesAsync(job.Input.Document.Id, []), "active run blocks page edit");
+        await Fails(() => repository.DeletePaperAsync(job.Input.Document.Id), "active run blocks paper deletion");
+        var completed = rerun with { State = JobState.Completed, Sequence = 2, Progress = 100 };
+        await repository.SaveJobEventAsync(completed, Event(completed));
+        string original = Path.Combine(path, "assets", "10000000-0000-4000-8000-000000000001.png");
+        Check(File.Exists(original), "paper asset exists before deletion");
+        await repository.DeletePaperAsync(job.Input.Document.Id);
+        Check((await repository.ListPapersAsync()).Count == 0 && (await repository.GradingQuestionsAsync(job.Input.Document.Id)).Count == 0,
+            "deleting a paper removes its row and saved questions");
+        Check((await repository.LoadJobSnapshotsAsync()).Count == 0, "deleting a paper removes its task history");
+        Check(!File.Exists(original), "deleting a paper removes its managed original and thumbnail files");
+        using (var db = Db(path))
+            Check(Convert.ToInt32(Value(db, "SELECT COUNT(*) FROM grading_runs")) == 0
+                && Convert.ToInt32(Value(db, "SELECT COUNT(*) FROM questions")) == 0
+                && Convert.ToInt32(Value(db, "SELECT COUNT(*) FROM source_pages")) == 0
+                && Convert.ToInt32(Value(db, "SELECT COUNT(*) FROM assets")) == 0,
+                "deleting a paper clears related runs, questions, pages and assets");
+        await Fails(() => repository.DeletePaperAsync(job.Input.Document.Id), "deleting a missing paper is rejected");
     }
 
     private static async Task CredentialAtomicity()
