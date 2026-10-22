@@ -36,15 +36,19 @@ public sealed class HostToolExecutor(string privateRuntime, WindowsProcessRunner
         else
         {
             executable = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
-            // The approved script is loaded from a fixed request; arguments remain an array.
-            var literal = "'" + requestFile.Replace("'", "''", StringComparison.Ordinal) + "'";
+            var scriptFile = Path.Combine(results, "approved-shell.ps1");
+            var values = string.Join(',', call.Arguments.Select(PowerShellString));
+            var script = "$a=@(" + values + ");& ([scriptblock]::Create(" + PowerShellString(call.Content) + ")) @a;if(-not $?){exit 1}";
+            await File.WriteAllTextAsync(scriptFile, script, new UTF8Encoding(false), linked.Token).ConfigureAwait(false);
+            var literal = "'" + scriptFile.Replace("'", "''", StringComparison.Ordinal) + "'";
             var wrapper = "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); "
-                + "$request=([IO.File]::ReadAllText(" + literal + ")|ConvertFrom-Json); "
-                + "$arguments=@($request.arguments|ForEach-Object{[string]$_}); "
-                + "& ([scriptblock]::Create([string]$request.content)) @arguments; if(-not $?){exit 1}";
+                + "& ([scriptblock]::Create([IO.File]::ReadAllText(" + literal + "))); if(-not $?){exit 1}";
             arguments = ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Convert.ToBase64String(Encoding.Unicode.GetBytes(wrapper))];
         }
         return await _processes.RunAsync(new(executable, arguments, call.WorkingDirectory, environment,
             TimeSpan.FromMilliseconds(call.TimeoutMs)), linked.Token).ConfigureAwait(false);
     }
+
+    private static string PowerShellString(string value) =>
+        "[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)) + "'))";
 }

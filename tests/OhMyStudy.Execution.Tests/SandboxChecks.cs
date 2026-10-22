@@ -51,7 +51,7 @@ internal static class SandboxChecks
         });
         await check("sandbox-rejects-wrong-nonce-and-oversized-response", async () =>
         {
-            foreach (var mode in new[] { "nonce", "output", "identity", "status", "json", "null", "exit" })
+            foreach (var mode in new[] { "nonce", "output", "identity", "status", "json", "null", "exit", "failed-zero" })
             {
                 var id = "sandbox-bad-" + mode;
                 using var broker = new PermissionBroker(); broker.RegisterJob(id, Policy());
@@ -152,7 +152,7 @@ internal sealed class SyntheticSandbox : ISandboxControl
         if (HoldResponse) { await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken); return; }
         _message = message with
         {
-            Status = Corrupt == "status" ? "replay_on_host" : "completed",
+            Status = Corrupt == "status" ? "replay_on_host" : Corrupt == "failed-zero" ? "failed" : "completed",
             ExitCode = Corrupt == "exit" ? 7u : 0,
             Stdout = Corrupt == "null" ? null! : Corrupt == "output" ? new string('x', 2_097_153) : "before-stop"
         };

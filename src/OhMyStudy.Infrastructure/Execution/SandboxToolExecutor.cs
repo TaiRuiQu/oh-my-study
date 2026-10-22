@@ -89,7 +89,8 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
             live.Token.ThrowIfCancellationRequested();
             var response = ReadMessage(Path.Combine(root, "results", "response.json")); ValidateMessage(response, request);
             if (response.Status is not ("completed" or "failed" or "timed_out" or "output_limit")) throw new InvalidDataException("沙箱返回了无效结果。");
-            if (response.Status == "completed" && response.ExitCode != 0) throw new InvalidDataException("沙箱返回的状态不一致。");
+            if (response.Status == "completed" && response.ExitCode != 0 || response.Status == "failed" && response.ExitCode == 0)
+                throw new InvalidDataException("沙箱返回的状态不一致。");
             if (response.Stdout is null || response.Stderr is null || Encoding.UTF8.GetByteCount(response.Stdout + response.Stderr) > 1_048_576)
                 throw new InvalidDataException("沙箱返回内容过多或无效。");
             return new(response.Status, response.ExitCode, response.Stdout, response.Stderr);

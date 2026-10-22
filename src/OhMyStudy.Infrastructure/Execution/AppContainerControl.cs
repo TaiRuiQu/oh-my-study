@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text.Json;
 using OhMyStudy.Application.Jobs;
 using OhMyStudy.Domain;
@@ -77,8 +76,7 @@ public sealed class AppContainerControl : ISandboxControl
         if (_worker is not null)
         {
             try { await _worker.WaitAsync(cancellationToken).ConfigureAwait(false); }
-            catch (OperationCanceledException) when (_worker.IsCompleted) { }
-            catch (Win32Exception) when (_worker.IsCompleted) { }
+            catch (Exception) when (_worker.IsCompleted) { }
         }
         _profile.Dispose();
         _profile = null;

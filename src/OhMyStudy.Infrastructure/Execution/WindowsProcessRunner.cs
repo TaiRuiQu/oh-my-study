@@ -177,7 +177,15 @@ public sealed partial class WindowsProcessRunner
                 if (allowed > 0) saved.Write(buffer, 0, allowed);
                 if (total > limit) exceeded.Cancel();
             }
-            return Encoding.UTF8.GetString(saved.GetBuffer(), 0, (int)saved.Length);
+            var text = Encoding.UTF8.GetString(saved.GetBuffer(), 0, (int)saved.Length);
+            int bytes = 0, characters = 0;
+            foreach (var rune in text.EnumerateRunes())
+            {
+                if (bytes + rune.Utf8SequenceLength > saved.Length) break;
+                bytes += rune.Utf8SequenceLength;
+                characters += rune.Utf16SequenceLength;
+            }
+            return text[..characters];
         }
     }
 

@@ -41,7 +41,9 @@ public sealed partial class AppContainerProfile : IDisposable
         if (!writable && security.GetAccessRules(true, true, typeof(SecurityIdentifier)).OfType<FileSystemAccessRule>().Any(rule =>
             rule.IdentityReference.Value == "S-1-15-2-1" && rule.AccessControlType == AccessControlType.Allow
             && (rule.FileSystemRights & FileSystemRights.ReadAndExecute) == FileSystemRights.ReadAndExecute
-            && (rule.PropagationFlags & PropagationFlags.InheritOnly) == 0)) return;
+            && (rule.InheritanceFlags & (InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit))
+                == (InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit)
+            && rule.PropagationFlags == PropagationFlags.None)) return;
         var rule = new FileSystemAccessRule(sid, writable ? FileSystemRights.Modify : FileSystemRights.ReadAndExecute,
             InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow);
         nint descriptor = 0, label = 0;
@@ -73,21 +75,34 @@ public sealed partial class AppContainerProfile : IDisposable
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         if (_sid == 0) return;
-        while (_grants.Count > 0)
+        Exception? failure = null;
+        for (int i = _grants.Count - 1; i >= 0; i--)
         {
-            var grant = _grants[^1];
-            var info = new DirectoryInfo(RuntimePaths.CheckedDirectory(grant.Path));
-            var security = info.GetAccessControl(AccessControlSections.Access);
-            security.RemoveAccessRuleSpecific(grant.Rule);
-            info.SetAccessControl(security);
-            if (grant.Descriptor != 0)
+            var grant = _grants[i];
+            try
             {
-                uint result = Native.SetNamedSecurityInfoW(grant.Path, 1, 0x10, 0, 0, 0, grant.Label);
-                if (result != 0) throw new Win32Exception((int)result);
-                Native.LocalFree(grant.Descriptor);
+                bool exists;
+                try { _ = File.GetAttributes(grant.Path); exists = true; }
+                catch (FileNotFoundException) { exists = false; }
+                catch (DirectoryNotFoundException) { exists = false; }
+                if (exists)
+                {
+                    var info = new DirectoryInfo(RuntimePaths.CheckedDirectory(grant.Path));
+                    var security = info.GetAccessControl(AccessControlSections.Access);
+                    security.RemoveAccessRuleSpecific(grant.Rule);
+                    info.SetAccessControl(security);
+                    if (grant.Descriptor != 0)
+                    {
+                        uint result = Native.SetNamedSecurityInfoW(grant.Path, 1, 0x10, 0, 0, 0, grant.Label);
+                        if (result != 0) throw new Win32Exception((int)result);
+                    }
+                }
+                if (grant.Descriptor != 0) Native.LocalFree(grant.Descriptor);
+                _grants.RemoveAt(i);
             }
-            _grants.RemoveAt(_grants.Count - 1);
+            catch (Exception error) { failure ??= error; }
         }
+        if (failure is not null) throw new IOException("AppContainer 目录权限未能全部还原，请关闭相关程序后重试。", failure);
         int deleted = Native.DeleteAppContainerProfile(_name);
         if (deleted < 0) throw new Win32Exception(deleted & 0xffff);
         Native.FreeSid(_sid);

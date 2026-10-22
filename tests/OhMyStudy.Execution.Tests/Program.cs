@@ -176,6 +176,9 @@ await Check("process-timeout-cancel-output-limit", async () =>
     Require(result.Status == "cancelled", "cancel");
     result = await processRunner.RunAsync(Request("flood") with { OutputLimit = 8192 });
     Require(result.Status == "output_limit" && System.Text.Encoding.UTF8.GetByteCount(result.Stdout + result.Stderr) <= 8192, "bounded output");
+    result = await processRunner.RunAsync(Request("flood-unicode") with { OutputLimit = 8191 });
+    Require(result.Status == "output_limit" && System.Text.Encoding.UTF8.GetByteCount(result.Stdout + result.Stderr) <= 8191
+        && (result.Stdout.Contains("你") || result.Stderr.Contains("你")), "bounded Unicode and invalid UTF-8 output");
 });
 await Check("normal-root-exit-cleans-descendant", async () =>
 {
@@ -192,7 +195,7 @@ var runtimeArgument = Array.IndexOf(args, "--runtime");
 await AppContainerChecks.RunAsync(root, Check, Require);
 if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
 {
-    await Check("private-python-computation-and-powershell-arguments", async () =>
+    await Check("private-python-computation", async () =>
     {
         var runtime = Path.GetFullPath(args[runtimeArgument + 1]);
         var executor = new HostToolExecutor(runtime);
@@ -200,12 +203,26 @@ if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
         var call = Call("computation", "python", "import numpy,sympy,matplotlib;matplotlib.use('Agg');import matplotlib.pyplot as p; print(sympy.expand((sympy.Symbol('x')+1)**2));p.plot([0,1],[0,1]);p.savefig('plot.png');print('你好')") with { TimeoutMs = 30000 };
         var result = await executor.ExecuteAsync(broker.Request(call)!, Path.Combine(root, "python-call"), CancellationToken.None);
         Require(result.Succeeded && result.Stdout.Contains("x**2 + 2*x + 1") && result.Stdout.Contains("你好") && File.Exists(Path.Combine(root, "plot.png")), "private runtime computation");
-        // A clean Windows runner may initialize PowerShell's module cache on first use.
-        // This check covers argument passing; short deadlines are exercised separately above.
-        call = Call("computation", "shell", "param($first,$second,$third); [Console]::WriteLine(($first,$second,$third -join '|'))") with { Tool = ToolKind.Shell, TimeoutMs = 120000 };
-        result = await executor.ExecuteAsync(broker.Request(call)!, Path.Combine(root, "shell-call"), CancellationToken.None);
-        Require(result.Succeeded && result.Stdout.Contains("a b|尾\\|中文"), $"PowerShell arguments: status={result.Status}, exit={result.ExitCode}; {result.Stderr}{result.Stdout}");
     });
+    foreach (var item in new (string Id, string Code, List<string> Arguments, string Output, uint Exit)[]
+    {
+        ("arguments", "param($a,$b,$c);[Console]::WriteLine(($a,$b,$c -join '|'))", ["a b", "尾\\", "中文"], "a b|尾\\|中文", 0),
+        ("literal", "param($a,$b,$c);if($a -ne ''){throw 'empty argument changed'};[Console]::WriteLine($b);[Console]::WriteLine($c)" + new string(' ', 40000), ["", "a'\";$(throw 'must-not-run')", "line1\nline2"], "a'\";$(throw 'must-not-run')", 0),
+        ("no-arguments", "[Console]::WriteLine($args.Count)", [], "0", 0),
+        ("nonzero", "exit 7", [], "", 7),
+        ("error", "throw 'synthetic error'", [], "", 1)
+    })
+    {
+        await Check("host-powershell-" + item.Id, async () =>
+        {
+            var runtime = Path.GetFullPath(args[runtimeArgument + 1]);
+            using var broker = new PermissionBroker(); broker.RegisterJob(item.Id, Policy());
+            var call = Call(item.Id, "shell", item.Code) with { Tool = ToolKind.Shell, TimeoutMs = 120000, Arguments = item.Arguments };
+            var result = await new HostToolExecutor(runtime).ExecuteAsync(broker.Request(call)!, Path.Combine(root, "host-shell-" + item.Id), CancellationToken.None);
+            Require(result.ExitCode == item.Exit && result.Status == (item.Exit == 0 ? "completed" : "failed") && result.Stdout.Contains(item.Output),
+                $"host PowerShell {item.Id}: {result.Status}; exit={result.ExitCode}; {result.Stderr}{result.Stdout}");
+        });
+    }
     await Check("sandbox-worker-isolated-host-computation", async () =>
     {
         var runtime = Path.GetFullPath(args[runtimeArgument + 1]);
@@ -264,6 +281,13 @@ internal static class Child
             case "failure": Console.Error.WriteLine("synthetic failure"); return 7;
             case "sleep": await Task.Delay(30000); return 0;
             case "flood": while (true) Console.Write(new string('x', 8192));
+            case "flood-unicode":
+                using (var output = Console.OpenStandardOutput())
+                using (var error = Console.OpenStandardError())
+                {
+                    byte[] bytes = [0xe4, 0xbd, 0xa0, 0xf0, 0x9f, 0x99, 0x82, 0xff];
+                    while (true) { output.Write(bytes); error.Write(bytes); }
+                }
             case "spawn":
                 var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, CreateNoWindow = true };
                 start.ArgumentList.Add("--child"); start.ArgumentList.Add("sleep");

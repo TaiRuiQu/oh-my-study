@@ -45,11 +45,20 @@ def run_computation(request, runtime, inputs, results):
                    str(runtime / "execute.py"), str(computation_request)]
     elif call["tool"] == "shell":
         import base64
-        literal = "'" + str(computation_request).replace("'", "''") + "'"
+
+        def expression(value):
+            encoded = base64.b64encode(value.encode("utf-8")).decode("ascii")
+            return "[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + encoded + "'))"
+
+        arguments = ",".join(expression(value) for value in call["arguments"])
+        script = ("$a=@(" + arguments + ");& ([scriptblock]::Create(" + expression(call["content"])
+                  + ")) @a;if(-not $?){exit 1}")
+        script_path = results / "approved-shell.ps1"
+        with script_path.open("x", encoding="ascii") as stream:
+            stream.write(script)
+        literal = "'" + str(script_path).replace("'", "''") + "'"
         wrapper = ("$ErrorActionPreference='Stop';[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"
-                   "$r=([IO.File]::ReadAllText(" + literal + ")|ConvertFrom-Json);"
-                   "$a=@($r.arguments|ForEach-Object{[string]$_});"
-                   "& ([scriptblock]::Create([string]$r.content)) @a;if(-not $?){exit 1}")
+                   "& ([scriptblock]::Create([IO.File]::ReadAllText(" + literal + ")));if(-not $?){exit 1}")
         command = [str(system / "System32/WindowsPowerShell/v1.0/powershell.exe"),
                    "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand",
                    base64.b64encode(wrapper.encode("utf-16-le")).decode("ascii")]
@@ -73,7 +82,7 @@ def run_computation(request, runtime, inputs, results):
                 if total > MAX_OUTPUT:
                     exceeded.set()
 
-    process = subprocess.Popen(command, cwd=work, env=environment, stdin=subprocess.DEVNULL,
+    process = subprocess.Popen(command, cwd=work, env=environment, stdin=sys.stdin,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                creationflags=0x08000000 if os.name == "nt" else 0)
     readers = [threading.Thread(target=capture, args=(process.stdout, 0), daemon=True),
@@ -135,8 +144,11 @@ def main():
     try:
         status, code, output = run_computation(request, options.runtime, options.inputs, options.results)
         result.update(status=status, exit_code=code, stdout=output[0], stderr=output[1])
-    except Exception:
-        result.update(status="failed", exit_code=None, stdout="", stderr="运行未完成，请检查代码和输入文件。")
+    except Exception as error:
+        detail = type(error).__name__
+        if isinstance(error, OSError):
+            detail += f"; errno={error.errno}; winerror={getattr(error, 'winerror', None)}"
+        result.update(status="failed", exit_code=None, stdout="", stderr=f"运行未完成，请检查代码和输入文件。({detail})")
     atomic_json(options.results / "response.json", result)
 
 
