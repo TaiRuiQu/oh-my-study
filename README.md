@@ -24,6 +24,7 @@ AI recognition and grading require an internet connection, send materials to the
 
 ## Documentation
 
+- [Wiki](https://github.com/TaiRuiQu/oh-my-study/wiki): [Quick Start](https://github.com/TaiRuiQu/oh-my-study/wiki/Quick-Start), [Feature Guide](https://github.com/TaiRuiQu/oh-my-study/wiki/Feature-Guide), and [Tech for nerds](https://github.com/TaiRuiQu/oh-my-study/wiki/Tech-for-nerds).
 - [Installation, upgrade, and uninstallation](docs/installation.md): choosing a download, installation steps, and keeping your materials.
 - [Usage guide](docs/usage.md): model setup, exam import, question organization, PDF export, and FAQ.
 
