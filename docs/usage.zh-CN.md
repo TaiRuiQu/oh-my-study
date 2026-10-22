@@ -1,6 +1,6 @@
 # 使用指南
 
-[返回首页](../README.md) · [安装、升级与卸载](installation.zh-CN.md)
+[返回首页](../README.zh-CN.md) · [安装、升级与卸载](installation.zh-CN.md) · [English](usage.md)
 
 ## 设置模型
 

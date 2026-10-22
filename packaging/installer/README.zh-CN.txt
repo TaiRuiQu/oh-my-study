@@ -2,3 +2,5 @@
 便携版 ZIP 解压后直接运行 OhMyStudy.App.exe。
 卸载可在 Windows 设置中进行，学习资料与备份会保留。
 旧 EXE 安装需先卸载，再安装 MSI。
+
+English version: README.txt.

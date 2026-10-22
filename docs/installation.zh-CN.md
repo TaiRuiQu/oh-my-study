@@ -1,6 +1,6 @@
 # 安装、升级与卸载
 
-[返回首页](../README.md) · [使用指南](usage.zh-CN.md)
+[返回首页](../README.zh-CN.md) · [使用指南](usage.zh-CN.md) · [English](installation.md)
 
 ## 选择下载文件
 

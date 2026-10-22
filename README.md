@@ -1,29 +1,31 @@
 # Oh My Study
 
-面向学生的 Windows 学习应用，用于导入试卷、识别与批改题目、整理题库和错题，并导出复习用的 PDF。
+**English** · [中文](README.zh-CN.md)
 
-## 主要功能
+A Windows study app for students. It imports exams, recognizes and grades questions, organizes a question bank and wrong-question collection, and exports review PDFs.
 
-- 导入 PDF、PNG、JPEG 和 WebP，处理空白试卷、待批改试卷或已有教师批改的试卷。
-- 对照原件查看题目，编辑题干、答案、解析、评分和备注。
-- 在题库和错题中整理已保存的题目，查看识别任务进度与预估费用。
-- 将题目或答案与解析分别导出为 A4、A3 横向 PDF。
-- 在本地保存试卷原件和学习资料，按需更改资料库位置。
+## Key features
 
-## 开始使用
+- Import PDF, PNG, JPEG, and WebP files; work with blank exams, exams awaiting grading, or exams already graded by a teacher.
+- View questions alongside the original and edit stems, answers, explanations, scores, and notes.
+- Organize saved questions in the question bank and wrong-question collection, and view recognition task progress and estimated costs.
+- Export questions, or answers and explanations, separately as A4 or A3 landscape PDFs.
+- Store exam originals and study materials locally, and change the library location when needed.
 
-1. 从项目发布页面下载适合的 Windows 10/11 x64 版本。不确定时选择文件名含 `aot`、不含 `avx512` 的版本。
-2. 双击 `-installer.msi` 安装，或解压 `-portable.zip` 后运行 `OhMyStudy.App.exe`。
-3. 打开“设置”，添加模型供应商、密钥和模型并保存。
-4. 点击“导入试卷”，选择 PDF 或图片、试卷类型和模型，再点击“导入并识别”。
+## Getting started
 
-AI 识别与批改需要联网，会将材料发送给所选供应商，并可能产生费用。安装包附带本地排版和计算所需组件；安装与查看已保存资料不需要调用模型。AI 结果可能有误，请对照原件和参考答案核对。
+1. Download the Windows 10/11 x64 build that suits you from the project's releases page. If unsure, choose a build whose filename contains `aot` and does not contain `avx512`.
+2. Double-click the `-installer.msi` to install, or extract the `-portable.zip` and run `OhMyStudy.App.exe`.
+3. Open "Settings", add a model provider, key, and model, and save.
+4. Click "Import exam", select a PDF or image, the exam type, and a model, then click "Import and recognize".
 
-## 使用文档
+AI recognition and grading require an internet connection, send materials to the selected provider, and may incur costs. The installer bundles the components needed for local typesetting and computation; installing the app and viewing saved materials do not call a model. AI results may be wrong, so verify them against the originals and reference answers.
 
-- [安装、升级与卸载](docs/installation.zh-CN.md)：下载选择、安装步骤和资料保留。
-- [使用指南](docs/usage.zh-CN.md)：模型设置、试卷导入、题目整理、PDF 导出和常见问题。
+## Documentation
 
-## 许可证
+- [Installation, upgrade, and uninstallation](docs/installation.md): choosing a download, installation steps, and keeping your materials.
+- [Usage guide](docs/usage.md): model setup, exam import, question organization, PDF export, and FAQ.
 
-本项目采用 [GPL-3.0-or-later](LICENSE)。分发组件保留各自的许可证与声明。
+## License
+
+This project is licensed under [GPL-3.0-or-later](LICENSE). Bundled components retain their own licenses and notices.
