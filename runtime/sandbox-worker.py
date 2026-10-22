@@ -35,6 +35,9 @@ def run_computation(request, runtime, inputs, results):
         "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2",
         "PYTHONIOENCODING": "utf-8",
     }
+    for name in ("USERPROFILE", "LOCALAPPDATA", "APPDATA"):
+        if name in os.environ:
+            environment[name] = os.environ[name]
     computation_request = results / "approved-call.json"
     atomic_json(computation_request, call)
     if call["tool"] == "python":

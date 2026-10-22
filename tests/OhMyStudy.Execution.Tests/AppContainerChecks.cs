@@ -17,12 +17,13 @@ internal static partial class AppContainerChecks
         var input = Path.Combine(inputs, "资料.txt"); await File.WriteAllTextAsync(input, "合成输入");
         var secret = Path.Combine(root, "container-private.txt"); await File.WriteAllTextAsync(secret, "must-not-read");
         var immutable = Path.Combine(runtime, "immutable.txt"); await File.WriteAllTextAsync(immutable, "read-only");
+        ClearAutoInheritanceMarker(runtime);
         foreach (bool network in new[] { false, true })
         {
             await check("appcontainer-token-files-environment-and-network-" + network, async () =>
             {
                 var results = Path.Combine(root, "container-results-" + network); Directory.CreateDirectory(results);
-                var before = Access(runtime);
+                var before = new[] { Access(runtime), Access(inputs), Access(results) };
                 var id = Guid.NewGuid();
                 using (var profile = AppContainerProfile.Create(id, network))
                 {
@@ -45,7 +46,8 @@ internal static partial class AppContainerChecks
                     }
                     finally { Environment.SetEnvironmentVariable("OMS_SYNTHETIC_SECRET", null); }
                 }
-                require(Access(runtime) == before && File.ReadAllText(immutable) == "read-only" && File.ReadAllText(input) == "合成输入", "permissions or inputs changed");
+                require(new[] { Access(runtime), Access(inputs), Access(results) }.SequenceEqual(before), "directory access rules changed");
+                require(File.ReadAllText(immutable) == "read-only" && File.ReadAllText(input) == "合成输入", "inputs changed");
             });
         }
         await check("appcontainer-timeout-cancellation-and-descendant-cleanup", async () =>
@@ -89,7 +91,7 @@ internal static partial class AppContainerChecks
                 JobId = "container-worker",
                 CallId = "python",
                 Tool = ToolKind.Python,
-                Content = "from pathlib import Path;import sys,numpy,sympy,matplotlib;matplotlib.use('Agg');import matplotlib.pyplot as p;print(Path('资料.txt').read_text(encoding='utf-8'));print('|'.join(sys.argv[1:]));p.plot([0,1],[0,1]);p.savefig('plot.png')",
+                Content = "from pathlib import Path;import os,sys,numpy,sympy,matplotlib;assert all(os.environ.get(k) for k in ('USERPROFILE','LOCALAPPDATA','APPDATA'));assert 'OMS_SYNTHETIC_SECRET' not in os.environ;matplotlib.use('Agg');import matplotlib.pyplot as p;print(Path('资料.txt').read_text(encoding='utf-8'));print('|'.join(sys.argv[1:]));p.plot([0,1],[0,1]);p.savefig('plot.png')",
                 Arguments = ["中文", "a b", @"尾\"],
                 WorkingDirectory = input,
                 TimeoutMs = 120000
@@ -108,7 +110,21 @@ internal static partial class AppContainerChecks
     private static string Access(string directory)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
-        return new DirectoryInfo(directory).GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        var security = new DirectoryInfo(directory).GetAccessControl(AccessControlSections.Access);
+        return security.AreAccessRulesProtected + "|" + string.Join(";", security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+            .OfType<FileSystemAccessRule>().Select(rule => $"{rule.IdentityReference.Value}:{rule.AccessControlType}:{rule.FileSystemRights}:{rule.InheritanceFlags}:{rule.PropagationFlags}:{rule.IsInherited}"));
+    }
+
+    private static unsafe void ClearAutoInheritanceMarker(string directory)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var security = new DirectoryInfo(directory).GetAccessControl(AccessControlSections.Access);
+        var descriptor = new RawSecurityDescriptor(security.GetSecurityDescriptorBinaryForm(), 0);
+        descriptor.SetFlags(descriptor.ControlFlags & ~ControlFlags.DiscretionaryAclAutoInherited);
+        var bytes = new byte[descriptor.BinaryLength];
+        descriptor.GetBinaryForm(bytes, 0);
+        fixed (byte* pointer = bytes)
+            if (!Native.SetFileSecurityW(directory, 4, (nint)pointer)) throw new Win32Exception(Marshal.GetLastPInvokeError());
     }
 
     public static async Task<int> ProbeDescendantAsync(string[] arguments)
@@ -166,6 +182,9 @@ internal static partial class AppContainerChecks
 
     private static partial class Native
     {
+        [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static partial bool SetFileSecurityW(string name, uint information, nint descriptor);
         [StructLayout(LayoutKind.Sequential)] internal struct SidAndAttributes { public nint Sid; public uint Attributes; }
         [LibraryImport("kernel32.dll")] internal static partial nint GetCurrentProcess();
         [LibraryImport("advapi32.dll", SetLastError = true)]

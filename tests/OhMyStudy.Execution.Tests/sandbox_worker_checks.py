@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -11,12 +12,16 @@ worker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(worker)
 
 results = []
+for name in ("USERPROFILE", "LOCALAPPDATA", "APPDATA"):
+    os.environ[name] = "synthetic-" + name
+os.environ["OMS_SYNTHETIC_SECRET"] = "must-not-inherit"
 with tempfile.TemporaryDirectory(prefix="oms-sandbox-worker-") as temporary:
     root = Path(temporary)
     inputs = root / "inputs"
     inputs.mkdir()
     (inputs / "资料.txt").write_text("合成输入", encoding="utf-8")
     cases = [
+        ("python-profile-environment", "python", "import os;assert all(os.environ.get(k) == 'synthetic-' + k for k in ('USERPROFILE','LOCALAPPDATA','APPDATA'));assert 'OMS_SYNTHETIC_SECRET' not in os.environ", 5000, "completed", []),
         ("python-unicode-input-and-arguments", "python", "from pathlib import Path; import sys; print(Path('资料.txt').read_text(encoding='utf-8'));print('|'.join(sys.argv[1:]))", 5000, "completed", ["合成输入", "中文|a b|尾\\"]),
         ("python-nonzero", "python", "raise SystemExit(7)", 5000, "failed", []),
         ("python-timeout", "python", "import time;time.sleep(30)", 150, "timed_out", []),
