@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using OhMyStudy.App.Diagnostics;
 using OhMyStudy.Domain;
 using OhMyStudy.Infrastructure.Credentials;
 using OhMyStudy.Infrastructure.Providers;
@@ -41,6 +42,8 @@ public sealed partial class MainWindow
         ModelContextWindow.Text = model.ContextWindow?.ToString(CultureInfo.InvariantCulture) ?? "";
         ModelVision.IsChecked = model.Capabilities.Vision; ModelTools.IsChecked = model.Capabilities.Tools;
         ModelPriceInput.Text = model.PriceInput?.ToString(CultureInfo.InvariantCulture) ?? "";
+        ModelPriceCacheRead.Text = model.PriceCacheRead?.ToString(CultureInfo.InvariantCulture) ?? "";
+        ModelPriceCacheWrite.Text = model.PriceCacheWrite?.ToString(CultureInfo.InvariantCulture) ?? "";
         ModelPriceOutput.Text = model.PriceOutput?.ToString(CultureInfo.InvariantCulture) ?? "";
         ModelCurrency.SelectedIndex = model.Currency switch { "CNY" => 1, "USD" => 0, _ => -1 }; ModelCatalogFeedback.Text = ""; ModelFeedback.Text = "";
         var provider = ProviderPicker.SelectedItem as Provider;
@@ -105,6 +108,8 @@ public sealed partial class MainWindow
                 DisplayName = ModelDisplayName.Text.Trim(),
                 ContextWindow = string.IsNullOrWhiteSpace(ModelContextWindow.Text) ? null : ulong.Parse(ModelContextWindow.Text, CultureInfo.InvariantCulture),
                 PriceInput = Price(ModelPriceInput.Text),
+                PriceCacheRead = Price(ModelPriceCacheRead.Text),
+                PriceCacheWrite = Price(ModelPriceCacheWrite.Text),
                 PriceOutput = Price(ModelPriceOutput.Text),
                 Currency = SelectedCurrency,
                 Capabilities = (_modelMetadataDraft?.Capabilities ?? old?.Capabilities ?? Capabilities.Unknown) with
@@ -155,14 +160,16 @@ public sealed partial class MainWindow
             ModelFeedback.Text = "正在测试连接…";
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token); timeout.CancelAfter(TimeSpan.FromSeconds(30));
             using var client = new ProviderClient(provider.Protocol, provider.BaseUrl);
-            var options = new RequestOptions { Model = Model.Manual(model.Id), MaxOutputTokens = 256, Stream = false, AllowUnknownCapabilities = true, Extra = [] };
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            await client.CallWithRetryAsync(new(Encoding.UTF8.GetString(key)), options, ProviderProtocol.Initial(provider.Protocol, "Reply with OK.", []), [],
-                new ProviderRetryPolicy { MaximumAttempts = 1 }, cancellationToken: timeout.Token);
+            await client.TestConnectionAsync(new(Encoding.UTF8.GetString(key)), model.Id, timeout.Token);
             if (ProviderPicker.SelectedItem is Provider current && current.Id == provider.Id)
                 ModelFeedback.Text = $"连接成功（{model.Label}，{watch.Elapsed.TotalSeconds:F1} 秒）";
         }
-        catch { if (!_closed) ModelFeedback.Text = "连接失败，请检查已保存的地址、密钥、模型及网络。"; }
+        catch (Exception error)
+        {
+            AppLog.Error("Provider.TestConnection", error);
+            if (!_closed) ModelFeedback.Text = "连接失败，请检查已保存的地址、密钥、模型及网络。";
+        }
         finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; if (key is not null) CryptographicOperations.ZeroMemory(key); }
     }
 
@@ -210,9 +217,11 @@ public sealed partial class MainWindow
         if (model.Capabilities.Vision.HasValue) ModelVision.IsChecked = model.Capabilities.Vision;
         if (model.Capabilities.Tools.HasValue) ModelTools.IsChecked = model.Capabilities.Tools;
         // Missing metadata never clears a confirmed user value.
-        bool hasPrices = model.PriceInput.HasValue || model.PriceOutput.HasValue;
-        if (hasPrices && SelectedCurrency != "USD") { ModelPriceInput.Text = ""; ModelPriceOutput.Text = ""; }
+        bool hasPrices = model.PriceInput.HasValue || model.PriceOutput.HasValue || model.PriceCacheRead.HasValue || model.PriceCacheWrite.HasValue;
+        if (hasPrices && SelectedCurrency != "USD") { ModelPriceInput.Text = ""; ModelPriceOutput.Text = ""; ModelPriceCacheRead.Text = ""; ModelPriceCacheWrite.Text = ""; }
         if (model.PriceInput.HasValue) ModelPriceInput.Text = model.PriceInput.Value.ToString(CultureInfo.InvariantCulture);
+        if (model.PriceCacheRead.HasValue) ModelPriceCacheRead.Text = model.PriceCacheRead.Value.ToString(CultureInfo.InvariantCulture);
+        if (model.PriceCacheWrite.HasValue) ModelPriceCacheWrite.Text = model.PriceCacheWrite.Value.ToString(CultureInfo.InvariantCulture);
         if (model.PriceOutput.HasValue) ModelPriceOutput.Text = model.PriceOutput.Value.ToString(CultureInfo.InvariantCulture);
         if (hasPrices) ModelCurrency.SelectedIndex = 0;
         if (model.Reasoning == false || model.Capabilities.Thinking.Count > 0)

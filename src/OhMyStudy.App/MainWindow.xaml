@@ -286,45 +286,64 @@
                         </Grid>
                     </Border>
                     <ComboBox x:Name="TaskCompactPicker" Visibility="Collapsed" HorizontalAlignment="Stretch" SelectionChanged="TaskCompactPicker_SelectionChanged" AutomationProperties.Name="选择任务" />
-                    <Border x:Name="TaskDetail" Grid.Column="1" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
-                        <Grid RowSpacing="0">
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                            <ScrollViewer x:Name="TaskSummaryScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel x:Name="TaskSummary" Spacing="16" Padding="24,20,24,16">
-                                <Grid ColumnSpacing="14">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="44" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <Border Background="{ThemeResource TaskAccentBackgroundBrush}" CornerRadius="12" Width="44" Height="44" VerticalAlignment="Top"><FontIcon x:Name="TaskHeroIcon" Glyph="&#xE9F9;" FontSize="23" Foreground="{ThemeResource TaskAccentBrush}" /></Border>
-                                    <StackPanel Grid.Column="1" Spacing="4">
-                                        <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskTitle" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" /><TextBlock x:Name="TaskSampleMark" Grid.Column="1" Text="示例" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" VerticalAlignment="Center" /></Grid>
-                                        <TextBlock x:Name="TaskSubtitle" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Grid>
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <StackPanel Spacing="5"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8A5;" FontSize="15" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock Text="已读页面" Style="{StaticResource QuietTextStyle}" /></StackPanel><TextBlock x:Name="TaskPages" FontSize="20" FontWeight="SemiBold" /></StackPanel>
-                                    <StackPanel Grid.Column="1" Spacing="5"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8F1;" FontSize="15" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock Text="已存题目" Style="{StaticResource QuietTextStyle}" /></StackPanel><TextBlock x:Name="TaskQuestions" FontSize="20" FontWeight="SemiBold" /></StackPanel>
-                                    <StackPanel Grid.Column="2" Spacing="5"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE945;" FontSize="15" Foreground="{ThemeResource TaskAccentBrush}" /><TextBlock Text="识别轮次" Style="{StaticResource QuietTextStyle}" /></StackPanel><TextBlock x:Name="TaskRounds" FontSize="20" FontWeight="SemiBold" /></StackPanel>
-                                </Grid>
-                                <ProgressBar x:Name="TaskProgress" IsIndeterminate="True" Visibility="Collapsed" AutomationProperties.Name="任务正在处理" />
-                                <StackPanel x:Name="TaskUsageDetails" Spacing="8" Visibility="Collapsed">
-                                    <StackPanel x:Name="TaskTokenUsage" Spacing="4" Visibility="Collapsed">
-                                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE724;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="TaskInputUsage" Style="{StaticResource QuietTextStyle}" /><FontIcon Glyph="&#xE70F;" FontSize="13" Margin="12,0,0,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /><TextBlock x:Name="TaskOutputUsage" Style="{StaticResource QuietTextStyle}" /></StackPanel>
-                                        <TextBlock x:Name="TaskInputCached" Style="{StaticResource QuietTextStyle}" Margin="21,0,0,0" Visibility="Collapsed" ToolTipService.ToolTip="缓存输入是输入中命中供应商缓存的部分，通常按更低价格计费。" />
-                                    </StackPanel>
-                                    <Grid x:Name="TaskCostRow" ColumnSpacing="8" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><FontIcon Glyph="&#xE8C7;" FontSize="13" VerticalAlignment="Top" Margin="0,3,0,0" /><TextBlock x:Name="TaskUsage" Grid.Column="1" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" /></Grid>
+                    <Border x:Name="TaskDetail" Grid.Column="1" SizeChanged="TasksPanel_SizeChanged" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <ScrollViewer x:Name="TaskSummaryScroll" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel x:Name="TaskSummary" Spacing="24" Padding="24">
+                                    <Grid ColumnSpacing="24">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <FontIcon x:Name="TaskHeroIcon" Glyph="&#xE9F9;" FontSize="20" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Top" Margin="0,4,0,0" />
+                                            <StackPanel Grid.Column="1" Spacing="6">
+                                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskTitle" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" /><TextBlock x:Name="TaskSampleMark" Grid.Column="1" Text="示例" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" VerticalAlignment="Top" Margin="0,4,0,0" /></Grid>
+                                                <TextBlock x:Name="TaskSubtitle" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel x:Name="TaskButtons" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                                            <Button x:Name="TaskPermissionButton" Content="查看执行请求" Click="TaskPermission_Click" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" />
+                                            <Button x:Name="TaskCancelButton" Content="取消任务" Click="TaskCancel_Click" Visibility="Collapsed" />
+                                            <Button x:Name="TaskLibraryButton" Content="查看题库" Click="TaskLibrary_Click" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid ColumnSpacing="24">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="8"><TextBlock Text="已读页面" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskPages" FontSize="20" FontWeight="SemiBold" /></StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="8"><TextBlock Text="已存题目" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskQuestions" FontSize="20" FontWeight="SemiBold" /></StackPanel>
+                                        <Grid x:Name="TaskCostRow" Grid.Column="2" RowSpacing="8">
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <TextBlock Text="预估费用" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
+                                                <HyperlinkButton x:Name="TaskUsageButton" Content="明细" Click="TaskUsage_Click" FontSize="12" Padding="4,0" MinHeight="16">
+                                                    <FlyoutBase.AttachedFlyout>
+                                                        <Flyout x:Name="TaskUsageFlyout" Placement="Bottom">
+                                                            <StackPanel x:Name="TaskUsageDetails" Spacing="16" Width="300">
+                                                                <TextBlock Text="费用与用量" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                                <TextBlock x:Name="TaskModelCalls" Style="{StaticResource QuietTextStyle}" />
+                                                                <StackPanel x:Name="TaskTokenUsage" Spacing="8">
+                                                                    <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskInputUsage" TextWrapping="Wrap" /><TextBlock x:Name="TaskOutputUsage" Grid.Column="1" TextWrapping="Wrap" /></Grid>
+                                                                    <TextBlock x:Name="TaskInputUncached" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                                                    <TextBlock x:Name="TaskInputCached" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                                                    <TextBlock x:Name="TaskInputCacheWrite" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                                                </StackPanel>
+                                                                <TextBlock x:Name="TaskNoUsage" Text="暂无用量记录" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" />
+                                                                <TextBlock x:Name="TaskRateNote" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </Flyout>
+                                                    </FlyoutBase.AttachedFlyout>
+                                                </HyperlinkButton>
+                                            </StackPanel>
+                                            <TextBlock x:Name="TaskUsage" Grid.Row="1" Text="—" FontSize="20" FontWeight="SemiBold" />
+                                        </Grid>
+                                    </Grid>
                                 </StackPanel>
-                            </StackPanel>
                             </ScrollViewer>
-                                <StackPanel x:Name="TaskButtons" Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="24,0,24,16">
-                                    <Button x:Name="TaskPermissionButton" Content="查看执行请求" Click="TaskPermission_Click" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" />
-                                    <Button x:Name="TaskCancelButton" Content="取消任务" Click="TaskCancel_Click" Visibility="Collapsed" />
-                                    <Button Content="查看题库" Click="TaskLibrary_Click" />
-                                </StackPanel>
-                            <Border Grid.Row="2" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0">
+                            <Border Grid.Row="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0">
                                 <Grid RowSpacing="12" Padding="24,16,24,0">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="执行过程" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" /><TextBlock x:Name="TaskStateLabel" Grid.Column="1" Foreground="{ThemeResource TaskAccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Grid.Column="2" Click="TaskLatest_Click" ToolTipService.ToolTip="滚动到最新一步" AutomationProperties.Name="滚动到最新一步"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE74B;" FontSize="12" /><TextBlock Text="最新" /></StackPanel></Button></Grid>
-                                    <ScrollViewer x:Name="TaskTimelineScroll" Grid.Row="1" SizeChanged="TaskTimeline_SizeChanged" ViewChanged="TaskTimeline_ViewChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="TaskTimeline" Spacing="0" Padding="0,0,4,20" /></ScrollViewer>
+                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="执行日志" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><ProgressRing x:Name="TaskProgress" IsActive="True" Width="14" Height="14" MinWidth="14" MinHeight="14" Visibility="Collapsed" AutomationProperties.Name="任务正在处理" /><TextBlock x:Name="TaskStateLabel" Style="{StaticResource QuietTextStyle}" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Center" /></StackPanel><Button Grid.Column="3" Click="TaskLatest_Click" ToolTipService.ToolTip="滚动到最新记录" AutomationProperties.Name="滚动到最新记录"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE74B;" FontSize="12" /><TextBlock Text="最新" /></StackPanel></Button></Grid>
+                                    <ScrollViewer x:Name="TaskLogScroll" Grid.Row="1" HorizontalContentAlignment="Stretch" SizeChanged="TaskLog_SizeChanged" ViewChanged="TaskLog_ViewChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="TaskLog" Spacing="0" Padding="0,0,4,20" /></ScrollViewer>
                                 </Grid>
                             </Border>
                         </Grid>
@@ -408,12 +427,15 @@
                                             <VariableSizedWrapGrid x:Name="ModelThinkingOptions" Orientation="Horizontal" MaximumRowsOrColumns="7" />
                                             <TextBox x:Name="ModelThinkingBudget" Header="思考预算" PlaceholderText="留空不设置" />
                                             <TextBlock Text="仅选择此模型支持的强度；图片和工具能力未确认时保留横线。" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                            <TextBlock Text="价格" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                             <Grid x:Name="ModelPriceFields" ColumnSpacing="16">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="96" /></Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                                <TextBox x:Name="ModelPriceInput" Header="输入价格 / 百万 token" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
-                                                <TextBox x:Name="ModelPriceOutput" Grid.Column="1" Header="输出价格 / 百万 token" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
-                                                <ComboBox x:Name="ModelCurrency" Grid.Column="2" Header="货币" PlaceholderText="选择货币" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="ModelPriceCurrency_Changed"><x:String>美元</x:String><x:String>人民币</x:String></ComboBox>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="96" /></Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                <TextBox x:Name="ModelPriceInput" Header="输入（未命中）" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
+                                                <TextBox x:Name="ModelPriceCacheRead" Grid.Column="1" Header="输入（命中）" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
+                                                <TextBox x:Name="ModelPriceCacheWrite" Grid.Column="2" Header="缓存写入" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
+                                                <TextBox x:Name="ModelPriceOutput" Grid.Column="3" Header="输出" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
+                                                <ComboBox x:Name="ModelCurrency" Grid.Column="4" Header="货币" PlaceholderText="选择货币" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="ModelPriceCurrency_Changed"><x:String>美元</x:String><x:String>人民币</x:String></ComboBox>
                                             </Grid>
                                             <TextBlock x:Name="ModelCnyPreview" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                                             <TextBlock x:Name="ModelExtraInfo" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />

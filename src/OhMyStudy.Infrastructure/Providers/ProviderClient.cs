@@ -74,6 +74,14 @@ public sealed class ProviderClient : IModelClient, IDisposable
     public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress = null, CancellationToken cancellationToken = default)
         => CallWithRetryAsync(credentials, options, history, tools, new ProviderRetryPolicy(), progress, cancellationToken);
 
+    /// <summary>A bounded, single-attempt probe with fixed text and no document/history/tool inputs.</summary>
+    public Task<Turn> TestConnectionAsync(ProviderCredentials credentials, string modelId, CancellationToken cancellationToken = default)
+    {
+        if (_messages is not null) return _messages.TestConnectionAsync(credentials, modelId, cancellationToken);
+        var options = new RequestOptions { Model = Model.Manual(modelId), MaxOutputTokens = 256, Stream = false, AllowUnknownCapabilities = true, Extra = [] };
+        return CallAsync(credentials, options, ProviderProtocol.Initial(Protocol, "Reply with OK.", []), [], cancellationToken: cancellationToken);
+    }
+
     public async Task<Turn> CallWithRetryAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, ProviderRetryPolicy retryPolicy, Action<ProviderProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         retryPolicy.Validate();

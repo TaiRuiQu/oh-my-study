@@ -10,6 +10,8 @@ internal static class MessagesSdkRegression
 {
     public static async Task RunAsync(JsonNode fixtures)
     {
+        await GatewayDiagnostics();
+        await ConnectionProbeDetails();
         var credentials = new ProviderCredentials("synthetic-key");
         var toolReply = fixtures["messages"]!["tool"]!;
         var finalReply = fixtures["messages"]!["final"]!;
@@ -115,6 +117,121 @@ internal static class MessagesSdkRegression
         using (var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Reply("event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"content\":[]}}\n\n", true)))))
         using (var client = new ProviderClient(http, Protocol.Messages, "https://example.invalid/v1"))
             await Reject(() => client.CallAsync(credentials, Options(true), [], []), ErrorKind.Incomplete);
+    }
+
+    private static async Task GatewayDiagnostics()
+    {
+        foreach (var (status, type, message, reason, kind) in new[]
+        {
+            (400, "invalid_request_error", "Unrecognized key cache_control", "cache_control_rejected", ErrorKind.InvalidRequest),
+            (400, "invalid_request_error", "Wrong endpoint for this model", "model_endpoint_mismatch", ErrorKind.InvalidRequest),
+            (400, "unsupported_model", "Model is unavailable", "model_not_available", ErrorKind.UnsupportedParameter),
+            (400, "invalid_request_error", "output_config.effort is not supported", "thinking_effort_rejected", ErrorKind.UnsupportedParameter),
+            (400, "invalid_request_error", "thinking.budget_tokens is invalid", "thinking_budget_rejected", ErrorKind.InvalidRequest),
+            (400, "invalid_request_error", "tools.0.input_schema is invalid", "tool_schema_rejected", ErrorKind.InvalidRequest),
+            (400, "invalid_request_error", "max_tokens is too large", "output_token_limit_rejected", ErrorKind.InvalidRequest),
+            (401, "authentication_error", "Invalid credentials", "credential_rejected", ErrorKind.Authentication),
+            (402, "invalid_request_error", "Payment required", "billing_or_credit_limit", ErrorKind.Quota),
+            (403, "upgrade_required", "This plan does not include API access", "api_plan_required", ErrorKind.Authentication),
+            (404, "not_found_error", "Not found", "model_or_endpoint_not_found", ErrorKind.InvalidRequest)
+        })
+        {
+            int requests = 0;
+            var payload = new JsonObject
+            {
+                ["type"] = "error",
+                ["error"] = new JsonObject { ["type"] = type, ["message"] = message + " SYNTHETIC_SECRET_ECHO student text" }
+            };
+            using var http = new HttpClient(new FakeHandler(async (request, ct) =>
+            {
+                requests++;
+                Require(request.RequestUri!.AbsolutePath == "/provider/v1/messages", "configured Command Code prefix is appended exactly once");
+                Require(request.Headers.GetValues("x-api-key").Single() == "synthetic-key", "Messages SDK authentication remains x-api-key");
+                var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(ct))!;
+                Require(body["model"]!.ToString() == "claude-haiku-5-5"
+                    && body["thinking"]!["type"]!.ToString() == "adaptive"
+                    && body["output_config"]!["effort"]!.ToString() == "medium", "configured model and medium effort retain their native request fields");
+                var response = Reply(payload.ToJsonString(), false, status);
+                response.Headers.TryAddWithoutValidation("request-id", "req_synthetic_093f81bd");
+                return response;
+            }));
+            // This handler intercepts every request; the production-looking URL is never contacted.
+            using var client = new ProviderClient(http, Protocol.Messages, "https://api.commandcode.ai/provider/v1");
+            var error = await Reject(() => client.CallAsync(new("synthetic-key"), Options() with
+            {
+                Model = Model.Manual("claude-haiku-5-5"),
+                Thinking = new AdaptiveThinking { Effort = "medium" }
+            }, ProviderProtocol.Initial(Protocol.Messages, "Synthetic connection check", []), []), kind);
+            string logged = error.ToString();
+            Require(requests == 1 && error.Diagnostic == reason && error.RequestId == "req_synthetic_093f81bd", "rejection keeps only safe diagnostic metadata without replaying");
+            Require(logged.Contains($"HTTP={status}", StringComparison.Ordinal) && logged.Contains(reason, StringComparison.Ordinal)
+                && logged.Contains("req_synthetic_093f81bd", StringComparison.Ordinal), "exception log includes HTTP status, reason and request ID");
+            Require(!logged.Contains("SYNTHETIC_SECRET", StringComparison.Ordinal) && !logged.Contains("student text", StringComparison.Ordinal)
+                && !error.Message.Contains("req_synthetic", StringComparison.Ordinal), "raw provider messages and diagnostic metadata stay out of UI messages");
+        }
+        var invalidId = ProviderErrors.Classify(400, Json("""{"request_id":"SYNTHETIC_SECRET_ECHO","error":{"message":"SYNTHETIC_SECRET_ECHO"}}"""), requestId: "https://example.invalid/private");
+        Require(invalidId.RequestId is null && !invalidId.ToString().Contains("SYNTHETIC_SECRET", StringComparison.Ordinal), "untrusted request ID formats are dropped");
+        var bodyId = ProviderErrors.Classify(400, Json("""{"request_id":"req_synthetic_body_093f81bd","error":{}}"""));
+        Require(bodyId.RequestId == "req_synthetic_body_093f81bd", "safe body request ID is retained when the response header is absent");
+    }
+
+    private static async Task ConnectionProbeDetails()
+    {
+        const string key = "synthetic:key+/connection-secret";
+        string encoded = Uri.EscapeDataString(key), base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(key));
+        var message = "Model access denied for this account. " + key + " " + encoded + " " + base64 + "\nno injected log line";
+        int calls = 0;
+        using var http = new HttpClient(new FakeHandler(async (request, ct) =>
+        {
+            calls++;
+            if (calls == 1)
+            {
+                var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(ct))!;
+                Require(body["messages"]!.AsArray().Count == 1
+                    && body["messages"]![0]!["content"]!.AsArray().Count == 1
+                    && body["messages"]![0]!["content"]![0]!["text"]!.ToString() == "Reply with OK."
+                    && body["max_tokens"]!.GetValue<int>() == 256 && body["stream"]!.GetValue<bool>() == false
+                    && body["tools"]!.AsArray().Count == 0 && body["thinking"] is null && body["system"] is null,
+                    "detailed connection probe accepts no documents, history, tools or extra instructions");
+            }
+            return Reply(new JsonObject { ["error"] = new JsonObject { ["type"] = "permission_error", ["message"] = message } }.ToJsonString(), false, 403);
+        }));
+        using var client = new ProviderClient(http, Protocol.Messages, "https://example.invalid/provider/v1");
+        var probe = await Reject(() => client.TestConnectionAsync(new(key), "claude-haiku-5-5"), ErrorKind.Authentication);
+        Require(calls == 1 && probe.ConnectionDetail!.Contains("Model access denied for this account.", StringComparison.Ordinal), "connection probe preserves the actual rejection reason with one request");
+        string logged = probe.ToString();
+        string detail = probe.ConnectionDetail!;
+        Require(!logged.Contains(key, StringComparison.Ordinal) && !logged.Contains(encoded, StringComparison.Ordinal)
+            && !logged.Contains(base64, StringComparison.Ordinal) && !detail.Contains('\n')
+            && !probe.Message.Contains("Model access denied", StringComparison.Ordinal), "connection details redact secret representations and normalize controls without changing UI feedback");
+        var ordinary = await Reject(() => client.CallAsync(new(key), Options(), ProviderProtocol.Initial(Protocol.Messages, "Synthetic grading context", []), []), ErrorKind.Authentication);
+        Require(calls == 2 && ordinary.ConnectionDetail is null && !ordinary.ToString().Contains("Model access denied", StringComparison.Ordinal), "ordinary calls on the same client cannot retain probe-style error text");
+
+        using var htmlHttp = new HttpClient(new FakeHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Forbidden)
+        { Content = new StringContent("<html>SECRET_SENSITIVE_BODY</html>", Encoding.UTF8, "text/html") })));
+        using var htmlClient = new ProviderClient(htmlHttp, Protocol.Messages, "https://example.invalid/v1");
+        var html = await Reject(() => htmlClient.TestConnectionAsync(new(key), "synthetic-model"), ErrorKind.Authentication);
+        Require(html.ConnectionDetail!.Contains("HTML", StringComparison.Ordinal) && !html.ToString().Contains("SECRET_SENSITIVE_BODY", StringComparison.Ordinal), "HTML access rejection is distinguished without retaining HTML");
+
+        using var longHttp = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Reply(new JsonObject
+        { ["error"] = new JsonObject { ["message"] = new string('a', 2048) + key } }.ToJsonString(), false, 403))));
+        using var longClient = new ProviderClient(longHttp, Protocol.Messages, "https://example.invalid/v1");
+        var bounded = await Reject(() => longClient.TestConnectionAsync(new(key), "synthetic-model"), ErrorKind.Authentication);
+        Require(bounded.ConnectionDetail!.Length <= 1025 && !bounded.ToString().Contains(key, StringComparison.Ordinal), "connection rejection detail is bounded after redaction");
+
+        foreach (string payload in new[]
+        {
+            new JsonObject { ["message"] = "Access restricted " + key }.ToJsonString(),
+            new JsonObject { ["error"] = "Access restricted " + key }.ToJsonString(),
+            "Access restricted " + key
+        })
+        {
+            using var alternateHttp = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Reply(payload, false, 403))));
+            using var alternateClient = new ProviderClient(alternateHttp, Protocol.Messages, "https://example.invalid/v1");
+            var alternate = await Reject(() => alternateClient.TestConnectionAsync(new(key), "synthetic-model"), ErrorKind.Authentication);
+            Require(alternate.ConnectionDetail!.StartsWith("Access restricted", StringComparison.Ordinal)
+                && !alternate.ToString().Contains(key, StringComparison.Ordinal), "connection probes handle gateway JSON and plain-text rejection shapes safely");
+        }
     }
 
     private static RequestOptions Options(bool stream = false) => new() { Model = Model.Manual("manual-model"), MaxOutputTokens = 4096, Stream = stream, AllowUnknownCapabilities = true, Extra = [] };

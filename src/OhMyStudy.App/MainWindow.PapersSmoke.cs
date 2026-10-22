@@ -97,14 +97,7 @@ public sealed partial class MainWindow
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
             foreach (int page in new[] { 1, 2, 3 }) { Navigation.SelectedItem = Navigation.MenuItems[page]; await Task.Delay(220); await Capture("page-" + page); Require(WorkspaceActions.Visibility == Visibility.Collapsed, "paper-actions-hidden-" + page); }
             Navigation.SelectedItem = Navigation.SettingsItem; await Task.Delay(220); Require(WorkspaceActions.Visibility == Visibility.Collapsed, "paper-actions-hidden-settings");
-            var model = new ModelConfig { Id = "study-model", DisplayName = "示例模型", ContextWindow = 200000, PriceInput = 1.25, PriceOutput = 5, Currency = "USD", Capabilities = new() { Vision = true, Tools = true, Thinking = [new ResponsesThinking { Effort = "high" }] }, MaxOutputTokens = 32000, Reasoning = true, InputModalities = ["text", "image", "pdf"], OutputModalities = ["text"] };
-            var provider = new Provider { Id = Guid.NewGuid().ToString(), Name = "示例供应商", Protocol = Protocol.Responses, BaseUrl = "https://synthetic.invalid/v1", KeyRef = null, Models = [model] };
-            await _library.UpsertProviderAsync(provider); await RefreshProvidersAsync(); ProviderPicker.SelectedItem = _providers.Single(); PopulateModelEditor(model);
-            await UpdateModelCnyPreviewAsync(); RootGrid.UpdateLayout(); SettingsPanel.UpdateLayout();
-            double priceY = ModelPriceFields.TransformToVisual((UIElement)SettingsPanel.Content).TransformPoint(new(0, 0)).Y;
-            SettingsPanel.ChangeView(null, Math.Max(0, priceY - 100), null, true); await Capture("model-usd"); Require(ModelCnyPreview.Text.Contains("8.9"), "usd-cny-preview");
-            ModelCurrency.SelectedIndex = 1; await UpdateModelCnyPreviewAsync(); await Capture("model-cny"); Require(ModelCnyPreview.Text.Contains("¥1.25"), "cny-no-conversion");
-            _modelFormBaseline = ModelFormState();
+            var model = await CheckModelPricingAsync(Require, Capture);
             var candidates = Enumerable.Range(1, 100).Select(i => model with { Id = $"model-{i:000}", DisplayName = i == 100 ? "名称很长的模型——包含视觉、思考和工具调用，应该保持候选列表稳定" : $"示例模型 {i:000}" }).ToList();
             var selection = CreateModelImportDialog(candidates); var shown = selection.Dialog.ShowAsync(); await Task.Delay(250);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model-select.png"), selection.Dialog);

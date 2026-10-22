@@ -54,6 +54,8 @@ public static class ModelCatalog
                 OutputModalities = Modalities(model, "output"),
                 Reasoning = Boolean(model, "reasoning"),
                 PriceInput = Price(model, "input"),
+                PriceCacheRead = Price(model, "cache_read"),
+                PriceCacheWrite = Price(model, "cache_write"),
                 PriceOutput = Price(model, "output"),
                 Capabilities = new()
                 {

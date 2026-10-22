@@ -354,6 +354,14 @@ internal sealed class CompatibilitySuite
             Assert(!Accepted(() => ConfigurationValidation.ValidateProvider(provider with { Name = new string('中', 67) })));
             Assert(!Accepted(() => ConfigurationValidation.ValidateProvider(provider with { Models = [provider.Models[0], provider.Models[0]] })));
             Assert(!Accepted(() => ConfigurationValidation.ValidateProvider(provider with { Models = [provider.Models[0] with { PriceInput = double.NaN }] })));
+            foreach (double invalid in new[] { -1d, double.NaN, double.PositiveInfinity })
+            {
+                Assert(!Accepted(() => ConfigurationValidation.ValidateProvider(provider with { Models = [provider.Models[0] with { PriceCacheRead = invalid }] })));
+                Assert(!Accepted(() => ConfigurationValidation.ValidateProvider(provider with { Models = [provider.Models[0] with { PriceCacheWrite = invalid }] })));
+            }
+            var priced = provider with { Models = [provider.Models[0] with { PriceCacheRead = 0, PriceCacheWrite = 1.25 }] };
+            var restored = DomainJson.Deserialize<Provider>(DomainJson.Serialize(priced));
+            Assert(restored.Models[0].PriceCacheRead == 0 && restored.Models[0].PriceCacheWrite == 1.25);
         });
         Check("configuration", "settings_utf8_limit", () =>
         {

@@ -10,7 +10,8 @@ using OhMyStudy.Infrastructure.Providers;
 [assembly: SupportedOSPlatform("windows10.0.19041")]
 
 // All payloads and credentials in this runner are synthetic and stay inside fake handlers.
-if (RuntimeFeature.IsDynamicCodeSupported) throw new InvalidOperationException("Run the published Native AOT protocol executable.");
+if (RuntimeFeature.IsDynamicCodeSupported && !args.Contains("--managed-sdk-check", StringComparer.Ordinal))
+    throw new InvalidOperationException("Run the published Native AOT protocol executable, or explicitly select --managed-sdk-check.");
 var fixtures = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "round-trips.synthetic.json")))!;
 var completed = 0;
 await Run("native requests, images, opaque tool context and usage", NativeRoundTrips);
@@ -20,6 +21,7 @@ await Run("incremental Unicode SSE for all protocols", Streams);
 await Run("invalid streaming states, limits and refusals", InvalidStreams);
 await Run("models preserve metadata and unknown capabilities", Models);
 await Run("catalog exact IDs, provider prices and unknown metadata", Catalog);
+await Run("four-bucket pricing, missing rates and protocol accounting", Billing);
 await Run("daily persistent bounded cache, refresh and stale fallback", DailyCache);
 await Run("native HTTP endpoints, headers and streaming bodies", HttpFraming);
 await Run("official SDK framing: opaque context, images, native extras and terminal events", SdkFraming);
@@ -35,7 +37,7 @@ static Task Catalog()
     using var data = JsonDocument.Parse("""
     {
       "first": { "name": "First", "models": {
-        "exact": {"name":"Study","limit":{"context":200000},"cost":{"input":1.25,"output":0},"modalities":{"input":["text","image"]},"tool_call":true,"reasoning":true},
+        "exact": {"name":"Study","limit":{"context":200000},"cost":{"input":1.25,"cache_read":0.125,"cache_write":1.5625,"output":0},"modalities":{"input":["text","image"]},"tool_call":true,"reasoning":true},
         "exact-plus":{"cost":{"input":99}}
       }},
       "relay": { "name": "Relay", "models": {"exact":{"limit":{"context":"unknown"},"cost":{"input":-1,"output":null}}} }
@@ -45,11 +47,46 @@ static Task Catalog()
     Check(matches.Count == 2 && ModelCatalog.Find(data.RootElement, "exa").Count == 0, "exact match only");
     var first = matches.Single(m => m.ProviderId == "first").Model;
     Check(first.DisplayName == "Study" && first.ContextWindow == 200000 && first.PriceInput == 1.25 && first.PriceOutput == 0
+        && first.PriceCacheRead == 0.125 && first.PriceCacheWrite == 1.5625
         && first.Capabilities.Vision == true && first.Capabilities.Tools == true, "documented catalog fields");
     Check(first.Capabilities.Thinking.Count == 0, "reasoning boolean does not invent effort options");
     var relay = matches.Single(m => m.ProviderId == "relay").Model;
-    Check(relay.PriceInput is null && relay.PriceOutput is null && relay.ContextWindow is null
+    Check(relay.PriceInput is null && relay.PriceOutput is null && relay.PriceCacheRead is null && relay.PriceCacheWrite is null && relay.ContextWindow is null
         && relay.Capabilities.Vision is null && relay.Capabilities.Tools is null, "missing metadata stays unknown, prices remain provider-specific");
+    return Task.CompletedTask;
+}
+
+Task Billing()
+{
+    var usage = new Usage { Input = 100, InputUncached = 80, CacheRead = 15, CacheWrite = 5, Output = 30, Reasoning = 10, Raw = Json("null") };
+    Check(ProviderProtocol.EstimateCost(usage, 1m, 2m, 0.1m, 1.25m) == 0.00014775m, "cache buckets counted once, reasoning included in output");
+    Check(ProviderProtocol.EstimateCost(usage, 1m, 2m) is null, "legacy prices cannot price nonzero cache use");
+    Check(ProviderProtocol.EstimateCost(usage, 1m, 2m, null, 1.25m) is null, "missing read rate is unknown");
+    Check(ProviderProtocol.EstimateCost(usage, 1m, 2m, 0.1m, null) is null, "missing write rate is unknown");
+    Check(ProviderProtocol.EstimateCost(usage, 0m, 0m, 0m, 0m) == 0, "explicit free rates are valid");
+    Check(ProviderProtocol.EstimateCost(usage with { Input = 80, CacheRead = 0, CacheWrite = 0 }, 1m, 2m) == 0.00014m, "zero cache needs no cache prices");
+    Check(ProviderProtocol.EstimateCost(usage with { Input = 0, InputUncached = 0, CacheRead = 0, CacheWrite = 0, Output = 0 }, null, null) == 0, "zero use needs no prices");
+    foreach (var unknown in new[] { usage with { InputUncached = null }, usage with { CacheRead = null }, usage with { CacheWrite = null }, usage with { Output = null }, usage with { Input = 99 } })
+        Check(ProviderProtocol.EstimateCost(unknown, 1m, 2m, 0.1m, 1.25m) is null, "missing or inconsistent usage stays unknown");
+    Throws(() => ProviderProtocol.EstimateCost(usage, 1m, 2m, -1m, 1m), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.EstimateCost(usage, 1m, 2m, 1m, -1m), ErrorKind.InvalidRequest);
+    Check(ProviderProtocol.EstimateCost(usage, decimal.MaxValue, 2m, 1m, 1m) is null, "out of range estimate is unknown");
+    var model = new ModelConfig { Id = "billing", Currency = "USD", Capabilities = Capabilities.Unknown, PriceInput = 1, PriceOutput = 2, PriceCacheRead = 0.1, PriceCacheWrite = 1.25 };
+    Check(ProviderProtocol.EstimateCost(usage, model) == 0.00014775m, "model overload uses all prices");
+    Check(ProviderProtocol.EstimateCost(usage, model with { PriceCacheWrite = double.MaxValue }) is null, "unrepresentable rate is unknown");
+    var responses = fixtures["responses"]!["tool"]!.DeepClone();
+    responses["usage"]!["input_tokens_details"]!["cache_write_tokens"] = 5;
+    var parsed = ProviderProtocol.Parse(Protocol.Responses, Element(responses));
+    Check(parsed.Usage.Input == 100 && parsed.Usage.InputUncached == 75 && parsed.Usage.CacheWrite == 5, "Responses separates writes from total input");
+    Check(ProviderProtocol.EstimateCost(parsed.Usage, 1m, 2m, 0.1m, 1.25m) == 0.00014325m, "Responses writes priced once");
+    responses["usage"]!["input_tokens_details"]!["cache_write_tokens"] = 90;
+    Check(ProviderProtocol.EstimateCost(ProviderProtocol.Parse(Protocol.Responses, Element(responses)).Usage, model) is null, "invalid cache totals do not underflow or bill");
+    var messages = fixtures["messages"]!["tool"]!.DeepClone();
+    messages["usage"]!.AsObject().Remove("cache_read_input_tokens"); messages["usage"]!.AsObject().Remove("cache_creation_input_tokens");
+    parsed = ProviderProtocol.Parse(Protocol.Messages, Element(messages));
+    Check(parsed.Usage.CacheRead == 0 && parsed.Usage.CacheWrite == 0 && ProviderProtocol.EstimateCost(parsed.Usage, 1m, 2m) == 0.00014m, "older Messages without cache fields");
+    messages["usage"]!["cache_read_input_tokens"] = null;
+    Check(ProviderProtocol.EstimateCost(ProviderProtocol.Parse(Protocol.Messages, Element(messages)).Usage, model) is null, "explicit null cache use is unknown");
     return Task.CompletedTask;
 }
 
@@ -108,7 +145,7 @@ Task NativeRoundTrips()
         var turn = ProviderProtocol.Parse(protocol, Element(native));
         Check(turn.Calls.Count == 1 && turn.Calls[0].Arguments.GetProperty("page").GetInt32() == 1, "native tool arguments");
         Check(turn.Usage.Input == 100 && turn.Usage.Output == 30 && turn.Usage.Total == 130, "usage normalization");
-        Check(ProviderProtocol.EstimateCost(turn.Usage, 1m, 2m) == 0.00016m, "configured rate estimate");
+        Check(ProviderProtocol.EstimateCost(turn.Usage, 1m, 2m, 0.1m, 1.25m) == (protocol == Protocol.Responses ? 0.000142m : 0.00014775m), "configured four-bucket rate estimate");
         Check(ProviderProtocol.EstimateCost(turn.Usage, null, 2m) is null, "missing rates stay unknown");
         var history = ProviderProtocol.Initial(protocol, "识别整卷😀", [Image()]);
         var snapshot = history.ToJsonString();

@@ -21,13 +21,22 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
     private static readonly string[] ReservedKeys =
         ["model", "messages", "max_tokens", "stream", "tools", "thinking", "output_config", "cache_control"];
 
-    public async Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress, CancellationToken cancellationToken)
+    public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress, CancellationToken cancellationToken)
+        => CallCoreAsync(credentials, options, history, tools, progress, cancellationToken, connectionProbe: false);
+
+    public Task<Turn> TestConnectionAsync(ProviderCredentials credentials, string modelId, CancellationToken cancellationToken)
+    {
+        var options = new RequestOptions { Model = OhMyStudy.Domain.Model.Manual(modelId), MaxOutputTokens = 256, Stream = false, AllowUnknownCapabilities = true, Extra = [] };
+        return CallCoreAsync(credentials, options, ProviderProtocol.Initial(Protocol.Messages, "Reply with OK.", []), [], null, cancellationToken, connectionProbe: true);
+    }
+
+    private async Task<Turn> CallCoreAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress, CancellationToken cancellationToken, bool connectionProbe)
     {
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var request = BuildOptions(options, history, tools);
-            using var client = Client(credentials, options.Stream);
+            using var client = Client(credentials, options.Stream, connectionProbe);
             if (!options.Stream)
             {
                 var message = await client.Messages.Create(request, cancellationToken).ConfigureAwait(false);
@@ -97,14 +106,14 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
         return MessageCreateParams.FromRawUnchecked(request.RawHeaderData, request.RawQueryData, body);
     }
 
-    private AnthropicClient Client(ProviderCredentials credentials, bool stream) => new()
+    private AnthropicClient Client(ProviderCredentials credentials, bool stream, bool connectionProbe = false) => new()
     {
         ApiKey = credentials.Key,
         AuthToken = null,
         BaseUrl = baseUri.GetLeftPart(UriPartial.Authority),
         MaxRetries = 0,
         Timeout = stream ? System.Threading.Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(180),
-        HttpClient = new HttpClient(new Transport(http, baseUri, headers)) { Timeout = System.Threading.Timeout.InfiniteTimeSpan }
+        HttpClient = new HttpClient(new Transport(http, baseUri, headers, connectionProbe ? credentials.Key : null)) { Timeout = System.Threading.Timeout.InfiniteTimeSpan }
     };
 
     private static Dictionary<string, JsonElement> Properties(JsonObject node)
@@ -154,8 +163,9 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
     }
 
     /// <summary>Preserves the configured endpoint prefix, custom headers and response bounds.
-    /// HTTP rejections are sanitized before the SDK can retain their response bodies.</summary>
-    private sealed class Transport(HttpClient inner, Uri endpoint, IReadOnlyDictionary<string, string> customHeaders) : HttpMessageHandler
+    /// HTTP rejections are sanitized before the SDK can retain their response bodies.
+    /// Only the fixed, document-free connection probe can retain a key-redacted message.</summary>
+    private sealed class Transport(HttpClient inner, Uri endpoint, IReadOnlyDictionary<string, string> customHeaders, string? probeSecret) : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -181,15 +191,39 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
                 response.Content = new BoundedContent(response.Content);
                 if (response.IsSuccessStatusCode) return response;
                 JsonElement raw = default;
-                try { using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)); raw = document.RootElement.Clone(); }
+                string? errorText = null;
+                try { errorText = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false); using var document = JsonDocument.Parse(errorText); raw = document.RootElement.Clone(); }
                 catch (JsonException) { }
                 catch (ProviderException error) when (error.Kind == ErrorKind.Protocol) { }
                 var retry = response.Headers.TryGetValues("Retry-After", out var values) ? values.FirstOrDefault() : null;
-                var rejection = ProviderErrors.Classify((ushort)response.StatusCode, raw, retry);
+                var requestId = response.Headers.TryGetValues("request-id", out var requestIds) ? requestIds.FirstOrDefault() : null;
+                var rejection = ProviderErrors.Classify((ushort)response.StatusCode, raw, retry, requestId);
+                if (probeSecret is not null) rejection.ConnectionDetail = ConnectionDetail(raw, probeSecret, response.Content.Headers.ContentType?.MediaType, errorText);
                 rejection.IsHttpRejection = true;
                 throw rejection;
             }
             catch { response.Dispose(); throw; }
+        }
+
+        private static string ConnectionDetail(JsonElement body, string key, string? contentType, string? errorText)
+        {
+            var error = ProviderProtocol.Get(body, "error");
+            var message = ProviderProtocol.Str(error, "message") ?? ProviderProtocol.Str(body, "message")
+                ?? (error.ValueKind == JsonValueKind.String ? error.GetString() : null);
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                if (contentType == "text/html" || errorText?.TrimStart().StartsWith('<') == true)
+                    return "HTML access rejection; no API error message was returned.";
+                message = body.ValueKind == JsonValueKind.String ? body.GetString()
+                    : body.ValueKind == JsonValueKind.Undefined ? errorText : null;
+                if (string.IsNullOrWhiteSpace(message)) return "No API error message was returned.";
+            }
+            // This method can only run for the hard-coded OK probe. There are no document,
+            // image, history or tool inputs whose content an upstream could echo here.
+            foreach (var secret in new[] { key, Uri.EscapeDataString(key), Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(key)) }.Distinct())
+                message = message.Replace(secret, "[redacted]", StringComparison.Ordinal);
+            message = new string(message.Select(c => char.IsControl(c) || char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format ? ' ' : c).ToArray());
+            return message.Length > 1024 ? message[..1024] + "…" : message;
         }
     }
 

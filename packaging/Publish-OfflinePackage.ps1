@@ -151,7 +151,7 @@ Redistribution/license review and clean-system installation acceptance remain un
             }
         }
     }
-    foreach ($name in @('LICENSE','README.md','AGENTS.md','OhMyStudy.slnx','Directory.Build.props','Directory.Packages.props','NuGet.Config','global.json','migration-progress.md','.editorconfig','.gitattributes','.gitignore')) {
+    foreach ($name in @('LICENSE','README.md','OhMyStudy.slnx','Directory.Build.props','Directory.Packages.props','NuGet.Config','global.json','.editorconfig','.gitattributes','.gitignore')) {
         $file=Join-Path $workspace $name; if (Test-Path -LiteralPath $file -PathType Leaf) { Copy-Item -LiteralPath $file -Destination $sourceStage }
     }
     $sourceDirectory=Join-Path $package 'source'; New-Item -ItemType Directory -Path $sourceDirectory -Force | Out-Null
@@ -159,8 +159,8 @@ Redistribution/license review and clean-system installation acceptance remain un
     @'
 此 ZIP 为便携版，解压后直接运行 OhMyStudy.App.exe；需要安装向导请选择同版本的 MSI。
 资料与备份存放在用户资料目录，更新或卸载程序时会保留。
-首次导入旧资料前请退出旧版；导入会保留原资料并创建独立副本。
-本候选包的系统兼容、真实资料与打印验收由维护者继续完成。
+AI 识别与批改需要在设置中添加供应商、密钥和模型；材料会发送给所选供应商，可能产生费用。
+更新前请保存修改并关闭应用，重要资料请保留完整备份。
 '@ | Set-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Encoding utf8
     $requirements = switch ($Variant) {
         'aot-avx512' { '此版本需要支持 x86-64-v4（AVX-512 F/BW/CD/DQ/VL）的处理器和操作系统；不确定时请选择普通 AOT 版。' }

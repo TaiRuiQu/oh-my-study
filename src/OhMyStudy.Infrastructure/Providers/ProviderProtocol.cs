@@ -63,7 +63,8 @@ public static class ProviderProtocol
                 usage = Get(raw, "usage");
                 var ri = Count(usage, "input_tokens");
                 var rr = Count(Get(usage, "input_tokens_details"), "cached_tokens");
-                normalized = new Usage { Input = ri, InputUncached = ri.HasValue && rr.HasValue && ri >= rr ? ri - rr : null, CacheRead = rr, Output = Count(usage, "output_tokens"), Reasoning = Count(Get(usage, "output_tokens_details"), "reasoning_tokens"), Total = Count(usage, "total_tokens"), Raw = Clone(usage) };
+                var rw = OptionalCacheCount(Get(usage, "input_tokens_details"), "cache_write_tokens");
+                normalized = new Usage { Input = ri, InputUncached = ri.HasValue && rr.HasValue && rw.HasValue && rr <= ri && rw <= ri - rr ? ri - rr - rw : null, CacheRead = rr, CacheWrite = rw, Output = Count(usage, "output_tokens"), Reasoning = Count(Get(usage, "output_tokens_details"), "reasoning_tokens"), Total = Count(usage, "total_tokens"), Raw = Clone(usage) };
                 break;
             case Protocol.Messages:
                 var content = RequiredArray(raw, "content");
@@ -77,10 +78,10 @@ public static class ProviderProtocol
                 context = Element(new JsonObject { ["role"] = "assistant", ["content"] = Node(content) });
                 usage = Get(raw, "usage");
                 var mi = Count(usage, "input_tokens");
-                var mr = Count(usage, "cache_read_input_tokens");
-                var mw = Count(usage, "cache_creation_input_tokens");
+                var mr = OptionalCacheCount(usage, "cache_read_input_tokens");
+                var mw = OptionalCacheCount(usage, "cache_creation_input_tokens");
                 var mo = Count(usage, "output_tokens");
-                var input = mi.HasValue ? checked(mi + (mr ?? 0) + (mw ?? 0)) : null;
+                var input = mi.HasValue && mr.HasValue && mw.HasValue ? checked(mi + mr + mw) : null;
                 normalized = new Usage { Input = input, InputUncached = mi, CacheRead = mr, CacheWrite = mw, Output = mo, Total = input.HasValue && mo.HasValue ? checked(input + mo) : null, Raw = Clone(usage) };
                 break;
             default: throw Invalid("unknown protocol");
@@ -143,11 +144,29 @@ public static class ProviderProtocol
         return new ModelPage { Models = models, Next = string.IsNullOrEmpty(next) ? null : next, Raw = raw.Clone() };
     }
 
-    /// <summary>Legacy estimate using configured per-million rates, not an invoice.</summary>
-    public static decimal? EstimateCost(Usage usage, decimal? inputPerMillion, decimal? outputPerMillion)
+    // Omitted optional cache fields on older protocol responses mean no cache use;
+    // explicit null, malformed values, or missing usage remain unknown.
+    private static ulong? OptionalCacheCount(JsonElement value, string name) =>
+        value.ValueKind == JsonValueKind.Object && !value.TryGetProperty(name, out _) ? 0 : Count(value, name);
+
+    public static decimal? EstimateCost(Usage usage, ModelConfig model)
     {
-        if (inputPerMillion < 0 || outputPerMillion < 0) throw Invalid("prices must be nonnegative");
-        return usage.Input is { } input && usage.Output is { } output && inputPerMillion is { } p && outputPerMillion is { } q ? (input * p + output * q) / 1_000_000m : null;
+        static decimal? Rate(double? value) => value is { } rate && double.IsFinite(rate) ? checked((decimal)rate) : null;
+        try { return EstimateCost(usage, Rate(model.PriceInput), Rate(model.PriceOutput), Rate(model.PriceCacheRead), Rate(model.PriceCacheWrite)); }
+        catch (OverflowException) { return null; }
+    }
+
+    /// <summary>Four disjoint token buckets at configured per-million rates. Unknown is never free.</summary>
+    public static decimal? EstimateCost(Usage usage, decimal? inputPerMillion, decimal? outputPerMillion,
+        decimal? cacheReadPerMillion = null, decimal? cacheWritePerMillion = null)
+    {
+        if (inputPerMillion < 0 || outputPerMillion < 0 || cacheReadPerMillion < 0 || cacheWritePerMillion < 0)
+            throw Invalid("prices must be nonnegative");
+        if (usage.InputUncached is not { } input || usage.CacheRead is not { } read || usage.CacheWrite is not { } write
+            || usage.Output is not { } output || usage.Input is { } total && (decimal)input + read + write != total) return null;
+        static decimal? Charge(ulong tokens, decimal? rate) => tokens == 0 ? 0 : rate * tokens / 1_000_000m;
+        try { return Charge(input, inputPerMillion) + Charge(read, cacheReadPerMillion) + Charge(write, cacheWritePerMillion) + Charge(output, outputPerMillion); }
+        catch (OverflowException) { return null; }
     }
 
     internal static bool HasImages(JsonArray history) => HasImages(Protocol.Responses, history);

@@ -45,54 +45,68 @@ public sealed partial class MainWindow
             var first = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input);
             await Wait(first.Id, j => j.State.IsTerminal());
             _selectedTaskId = first.Id; await RefreshTasksAsync();
-            Check(TaskQuestions.Text == "3" && _taskSteps.Count == 6 && TaskProgress.Visibility == Visibility.Collapsed, "completed-metrics-and-timeline");
-            Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputCached.Text == "其中缓存输入 1,102,400", "cached-input-visible");
+            Check(TaskQuestions.Text == "3" && _taskSteps.Count == 3 && _taskSteps["read-1"].Title == "阅读页面（4 次）" && TaskProgress.Visibility == Visibility.Collapsed, "completed-metrics-and-grouped-log");
+            Check(!_taskSteps.Keys.Any(key => key.StartsWith("model-read-", StringComparison.Ordinal)) && _taskSteps.Values.All(view => !view.Title.Contains("轮", StringComparison.Ordinal)), "cross-turn-tools-merge-without-turn-headings");
+            Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputCached.Text == "缓存命中 1,102,400"
+                && TaskInputUncached.Text == "缓存未命中 29,454" && TaskInputCacheWrite.Text == "缓存写入 4,096", "cache-buckets-visible");
             await Capture("completed");
-            _taskSteps["model-1"].Expand(); TaskTimelineScroll.ChangeView(null, 0, null, true); await Capture("expanded");
+            Check(_taskSteps["model-1"].OutputVisible && FindVisualChild<ScrollViewer>(_taskSteps["model-1"].Root) is null, "model-reply-is-inline-prose-with-one-page-scroll");
+            TaskUsage_Click(TaskUsageButton, new RoutedEventArgs()); await Capture("usage-expanded");
+            Check(TaskUsageFlyout.IsOpen, "usage-details-open-separately");
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("usage-expanded-dark"); RootGrid.RequestedTheme = ElementTheme.Light;
+            TaskUsageFlyout.Hide();
+            Check(FindVisualChild<HyperlinkButton>(TaskLog) is null && !_taskSteps["read-1"].OutputVisible, "tool-log-has-no-output-links-or-raw-output");
+            TaskLogScroll.ChangeView(null, 0, null, true);
             var runningDocument = await _library.ImportDocumentAsync("数学 仅试题", ImportMode.Blank, Enumerable.Range(0, 4).Select(_ => new ImportSource("原件.png", image)).ToArray());
             runner.Mode = "running";
             var active = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = runningDocument });
-            await Wait(active.Id, j => j.Sequence >= 8);
+            await Wait(active.Id, j => j.Sequence >= 12);
             _selectedTaskId = active.Id; await RefreshTasksAsync(); await Capture("running");
             Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputUsage.Text == "输入 1,135,950", "running-usage-visible");
             Check(TaskProgress.Visibility == Visibility.Visible && TaskCancelButton.Visibility == Visibility.Visible, "live-progress-and-cancel");
+            await runner.Update!.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在等待模型响应", PagesRead = 4, QuestionsSaved = 3 });
+            await RefreshTasksAsync(); await Capture("waiting-no-reply");
+            Check(TaskLog.ActualWidth >= TaskLogScroll.ActualWidth - 2 && _taskSteps.Values.All(step => step.Root.ActualWidth >= TaskLog.ActualWidth - 6), "log-uses-available-width");
+            Check(_taskSteps["read-1"].Root.ActualHeight < 45 && FindVisualChild<Border>(_taskSteps["read-1"].Root) is null, "compact-grouped-action-log");
+            var retainedGroup = _taskSteps["read-1"].Root;
+            await runner.Update!.ActivityAsync(new JobActivity { Key = "read-2", Kind = "read_page", Title = "阅读第 2 页", Detail = "页面暂时无法读取，请重试。", State = "failed", PagesRead = 2, ElapsedMs = 120 });
+            await Capture("grouped-error");
+            Check(_taskSteps.ContainsKey("read-2") && _taskSteps["read-3"].Title == "阅读页面（2 次）", "failed-tool-kept-separate-in-order");
+            await runner.Update!.ActivityAsync(new JobActivity { Key = "read-2", Kind = "read_page", Title = "阅读第 2 页", Detail = "已读取原件", State = "completed", PagesRead = 2, ElapsedMs = 120 });
+            await Capture("regrouped");
+            Check(_taskSteps.Count == 4 && !_taskSteps.ContainsKey("read-2") && ReferenceEquals(retainedGroup, _taskSteps["read-1"].Root), "successful-tools-regroup-without-recreating-log");
             await runner.Update!.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在核对题目", Text = "这是一段简短的模型回复。\n\n\n\n", PagesRead = 4, QuestionsSaved = 3 });
-            await RefreshTasksAsync(); _taskSteps["model-2"].Expand(); await Capture("short-reply");
+            await RefreshTasksAsync(); await Capture("short-reply");
             Check(_taskSteps["model-2"].OutputFitsContent && !_taskSteps["model-2"].OutputHasTrailingBlankLines, "reply-shrinks-to-content-and-trims-blank-lines");
             Check(FindVisualChild<Expander>(_taskSteps["model-2"].Root) is null, "reply-has-no-nested-card");
             var retained = _taskSteps["model-2"].Root;
-            await runner.Update!.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在接收模型响应", Text = string.Join("\n", Enumerable.Repeat("正在核对第 4 页的跨页题目，已保存的题目可以在题库查看。", 12)), PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 8250 });
+            await runner.Update!.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在接收模型响应", Text = string.Join("\n", Enumerable.Repeat("正在核对第 4 页的跨页题目，已保存的题目可以在题库查看。", 20)), PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 8250 });
             await RefreshTasksAsync(); Check(ReferenceEquals(retained, _taskSteps["model-2"].Root), "streaming-preserves-controls");
             await Capture("long-output");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("dark");
             RootGrid.RequestedTheme = ElementTheme.Light;
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(900, 850)); await Capture("medium");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(900, 650)); await Capture("short");
-            Check(ActionVisible(TaskCancelButton), "short-window-cancel-visible");
-            Check(LatestHeadingVisible(), "short-window-latest-step-visible");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(720, 960)); await Capture("narrow");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("compact");
-            RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("dark-compact"); RootGrid.RequestedTheme = ElementTheme.Light;
-            Check(Grid.GetRow(TaskDetail) == 1 && TaskDetail.ActualWidth <= TasksPanel.ActualWidth + 1 && TaskCompactPicker.Visibility == Visibility.Visible && ActionVisible(TaskCancelButton), "compact-layout");
-            Check(LatestHeadingVisible(), "compact-latest-step-visible");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+            Check(ActionVisible(TaskCancelButton), "cancel-action-visible");
+            Check(LatestHeadingVisible(), "latest-record-visible");
+            TaskLogScroll.ChangeView(null, 0, null, true); await Task.Delay(150);
+            Check(!_taskFollowLatest, "reading-history-pauses-follow");
+            await runner.Update!.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在核对题目", Text = string.Join("\n", Enumerable.Repeat("正在核对第 4 页的跨页题目，已保存的题目可以在题库查看。", 22)), PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 9000 });
+            await Capture("reading-history");
+            Check(TaskLogScroll.VerticalOffset < 1 && !_taskFollowLatest, "streaming-keeps-history-reading-position");
+            TaskLatest_Click(TaskLogScroll, new RoutedEventArgs()); await Capture("latest");
+            Check(LatestHeadingVisible(), "latest-action-resumes-follow");
             await _jobs.CancelAsync(active.Id); await RefreshTasksAsync(); await Capture("cancelled");
             Check(TaskCancelButton.Visibility == Visibility.Collapsed && TaskStateLabel.Text == "已取消", "cancelled-state");
             runner.Mode = "error";
-            var failed = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "这是一份文件名称很长的数学试卷，包含跨页题目、图表与详细解答，需要在窄窗口中完整显示.pdf" } });
+            var failed = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "这是一份文件名称很长的数学试卷，包含跨页题目、图表与详细解答，需要保留完整名称以便查找.pdf" } });
             await Wait(failed.Id, j => j.State.IsTerminal()); _selectedTaskId = failed.Id;
             await RefreshTasksAsync(); await Capture("failed");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("failed-compact");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
             runner.Mode = "permission";
             var permission = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "数学辅助计算" } });
             await Wait(permission.Id, j => j.State == JobState.WaitingPermission); _selectedTaskId = permission.Id;
             await RefreshTasksAsync(); await Capture("permission");
             Check(TaskPermissionButton.Visibility == Visibility.Visible && TaskProgress.Visibility == Visibility.Collapsed, "permission-state");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("permission-compact");
-            Check(ActionVisible(TaskPermissionButton) && ActionVisible(TaskCancelButton), "compact-permission-actions-visible");
-            Check(LatestHeadingVisible(), "compact-pending-step-visible");
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+            Check(ActionVisible(TaskPermissionButton) && ActionVisible(TaskCancelButton), "permission-actions-visible");
+            Check(LatestHeadingVisible(), "pending-record-visible");
             var review = ReviewPermissionAsync(permission.Id, (await _jobs.GetAsync(permission.Id)).PendingPermission!);
             await Task.Delay(250);
             var dialog = VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(p => p.Child).OfType<ContentDialog>().Single();
@@ -109,7 +123,13 @@ public sealed partial class MainWindow
             await RefreshTasksAsync();
             Check(_taskSteps.Count > 0 && (await _library!.ListJobEventsAsync(first.Id)).Any(e => e.Kind == "activity"), "durable-history-reopened");
             Check(RootGrid.KeyboardAcceleratorPlacementMode == Microsoft.UI.Xaml.Input.KeyboardAcceleratorPlacementMode.Hidden && ToolTipService.GetToolTip(RootGrid) is null, "global-shortcut-tooltip-disabled");
-            _selectedTaskId = first.Id; await RefreshTasksAsync(); TaskTimelineScroll.ChangeView(null, 0, null, true); await Capture("final");
+            _selectedTaskId = first.Id; await RefreshTasksAsync(); TaskLogScroll.ChangeView(null, 0, null, true); await Capture("final");
+            runner.Mode = "unpriced";
+            var unpriced = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input);
+            await Wait(unpriced.Id, j => j.State.IsTerminal()); _selectedTaskId = unpriced.Id; await RefreshTasksAsync();
+            Check(TaskUsage.Text == "—" && TaskRateNote.Text == "价格或用量不完整，暂无法估算费用。", "incomplete-prices-do-not-show-partial-total");
+            TaskUsage_Click(TaskUsageButton, new RoutedEventArgs()); await Capture("usage-unknown");
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("usage-unknown-dark"); RootGrid.RequestedTheme = ElementTheme.Light; TaskUsageFlyout.Hide();
             exit = 0;
             if (Environment.GetCommandLineArgs().Contains("--inspect-ui", StringComparer.Ordinal))
             { await File.WriteAllLinesAsync(reportPath, checks.Prepend("PASS")); AppWindow.Show(); Activate(); await Task.Delay(TimeSpan.FromMinutes(10)); }
@@ -130,9 +150,9 @@ public sealed partial class MainWindow
         }
         bool LatestHeadingVisible()
         {
-            if (TaskTimeline.Children.LastOrDefault() is not FrameworkElement latest) return false;
-            double top = latest.TransformToVisual(TaskTimelineScroll).TransformPoint(new(0, 0)).Y;
-            return top >= -1 && top + 32 <= TaskTimelineScroll.ActualHeight;
+            if (TaskLog.Children.LastOrDefault() is not FrameworkElement latest) return false;
+            double top = latest.TransformToVisual(TaskLogScroll).TransformPoint(new(0, 0)).Y;
+            return top >= -1 && top + 32 <= TaskLogScroll.ActualHeight;
         }
         async Task Capture(string name) { await RefreshTasksAsync(); await Task.Delay(650); RootGrid.UpdateLayout(); await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, "." + name + ".png")); }
         async Task Wait(string id, Func<Job, bool> predicate)
@@ -155,17 +175,20 @@ public sealed partial class MainWindow
         public async Task RunAsync(Job job, JobContext context)
         {
             string mode = Mode; Update = context;
-            if (mode is "complete" or "running" && Library is not null)
+            if (mode is "complete" or "running" or "unpriced" && Library is not null)
             {
                 await Library.BeginGradingAsync(job);
-                await Library.RecordModelCallAsync(job.Id, 1, ModelCall(668420, 21880, 655360, 3.41), CancellationToken.None);
+                await Library.RecordModelCallAsync(job.Id, 1, ModelCall(668420, 21880, 655360, mode == "unpriced" ? null : 3.41), CancellationToken.None);
                 await Library.RecordModelCallAsync(job.Id, 2, ModelCall(467530, 27749, 447040, 4.59), CancellationToken.None);
             }
             await context.ActivityAsync(new JobActivity { Key = "model-1", Kind = "model", Title = "第 1 轮识别", Detail = "已生成 4 项操作", Text = "已找到 4 页试题。我将先读取原件，再保存识别出的题目，并核对跨页内容。", State = "completed", ElapsedMs = 2300 });
             for (int i = 1; i <= 4; i++)
-                await context.ActivityAsync(new JobActivity { Key = "read-" + i, Kind = "read_page", Title = $"阅读第 {i} 页", Detail = "已读取原件", State = "completed", PagesRead = i, ElapsedMs = 120 });
+            {
+                if (i > 1) await context.ActivityAsync(new JobActivity { Key = "model-read-" + i, Kind = "model", Title = $"第 {i} 轮识别", Detail = "已生成 1 项操作", Text = i == 3 ? "  \n\n" : "", State = "completed", ElapsedMs = 1200 });
+                await context.ActivityAsync(new JobActivity { Key = "read-" + i, Kind = "read_page", Title = $"阅读第 {i} 页", Detail = "已读取原件", Text = i == 1 ? "原件已读取，可以继续识别题目。" : "", State = "completed", PagesRead = i, ElapsedMs = 120 });
+            }
             await context.ActivityAsync(new JobActivity { Key = "save-1", Kind = "save_question", Title = "保存题目", Detail = "3 道题目已加入题库", State = "completed", PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 80 });
-            if (mode == "complete") return;
+            if (mode is "complete" or "unpriced") return;
             await context.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在接收模型响应", Text = "正在核对第 4 页的跨页题目。", PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 3200 });
             if (mode == "error") throw new IOException("连接中断，已保存的题目会保留。请稍后重新识别。");
             if (mode == "permission")
@@ -175,11 +198,11 @@ public sealed partial class MainWindow
             }
             await Task.Delay(Timeout.Infinite, context.Cancellation);
         }
-        private static JsonElement ModelCall(ulong input, ulong output, ulong cacheRead, double cost) =>
+        private static JsonElement ModelCall(ulong input, ulong output, ulong cacheRead, double? cost) =>
             JsonDocument.Parse(new JsonObject
             {
                 ["model"] = "example-model",
-                ["usage"] = new JsonObject { ["input"] = input, ["output"] = output, ["cache_read"] = cacheRead, ["cache_write"] = 0 },
+                ["usage"] = new JsonObject { ["input"] = input, ["input_uncached"] = input - cacheRead - 2048, ["output"] = output, ["cache_read"] = cacheRead, ["cache_write"] = 2048 },
                 ["estimated_cost"] = cost,
                 ["currency"] = "USD"
             }.ToJsonString()).RootElement.Clone();

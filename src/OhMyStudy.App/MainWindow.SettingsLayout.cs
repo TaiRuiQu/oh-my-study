@@ -41,9 +41,12 @@ public sealed partial class MainWindow
         PlaceSettingsField(ProviderKey, singleColumn ? 3 : 1, singleColumn ? 0 : 1, singleColumn ? 2 : 1, 14);
         PlaceSettingsField(ModelDisplayName, 0, 0, singleColumn ? 2 : 1, 12);
         PlaceSettingsField(ModelId, singleColumn ? 1 : 0, singleColumn ? 0 : 1, singleColumn ? 2 : 1, 12);
-        PlaceSettingsField(ModelPriceInput, 0, 0, singleColumn ? 3 : 1, 12);
-        PlaceSettingsField(ModelPriceOutput, singleColumn ? 1 : 0, singleColumn ? 0 : 1, singleColumn ? 3 : 1, 12);
-        PlaceSettingsField(ModelCurrency, singleColumn ? 2 : 0, singleColumn ? 0 : 2, singleColumn ? 3 : 1, 12);
+        bool stackPrices = detailWidth < 660;
+        PlaceSettingsField(ModelPriceInput, 0, 0, stackPrices ? 5 : 1, 12);
+        PlaceSettingsField(ModelPriceCacheRead, stackPrices ? 1 : 0, stackPrices ? 0 : 1, stackPrices ? 5 : 1, 12);
+        PlaceSettingsField(ModelPriceCacheWrite, stackPrices ? 2 : 0, stackPrices ? 0 : 2, stackPrices ? 5 : 1, 12);
+        PlaceSettingsField(ModelPriceOutput, stackPrices ? 3 : 0, stackPrices ? 0 : 3, stackPrices ? 5 : 1, 12);
+        PlaceSettingsField(ModelCurrency, stackPrices ? 4 : 0, stackPrices ? 0 : 4, stackPrices ? 5 : 1, 12);
         ModelActionButtons.Orientation = detailWidth < 320 ? Orientation.Vertical : Orientation.Horizontal;
         LibraryActionButtons.Orientation = e.NewSize.Width < 380 ? Orientation.Vertical : Orientation.Horizontal;
     }

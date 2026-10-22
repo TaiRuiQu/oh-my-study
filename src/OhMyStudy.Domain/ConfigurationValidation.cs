@@ -26,6 +26,8 @@ public static class ConfigurationValidation
                 && model.ContextWindow is not 0
                 && !string.IsNullOrWhiteSpace(model.Currency) && Encoding.UTF8.GetByteCount(model.Currency) <= 16
                 && (model.PriceInput is not { } input || double.IsFinite(input) && input >= 0)
+                && (model.PriceCacheRead is not { } read || double.IsFinite(read) && read >= 0)
+                && (model.PriceCacheWrite is not { } write || double.IsFinite(write) && write >= 0)
                 && (model.PriceOutput is not { } output || double.IsFinite(output) && output >= 0), "invalid model ID, currency or price");
     }
 }

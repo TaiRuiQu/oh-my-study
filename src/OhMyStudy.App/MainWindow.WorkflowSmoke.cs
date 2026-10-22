@@ -270,6 +270,7 @@ public sealed partial class MainWindow
             checks["provider-model-editor-populates"] = ProviderPicker.SelectedItem is Provider selectedProvider
                 && selectedProvider.Id == provider.Id && ModelDisplayName.Text == "复习助手" && ModelContextWindow.Text == "200000";
             ModelDisplayName.Text = "阅读助手"; ModelContextWindow.Text = "128000"; ModelPriceInput.Text = "1.25"; ModelPriceOutput.Text = "5";
+            ModelPriceCacheRead.Text = "0.125"; ModelPriceCacheWrite.Text = "1.5625";
             ModelVision.IsChecked = true; ModelTools.IsChecked = true;
             var maxThinking = ModelThinkingOptions.Children.OfType<CheckBox>().SingleOrDefault(c => Equals(c.Content, "max"));
             checks["model-editor-offers-max"] = maxThinking is not null;
@@ -277,7 +278,8 @@ public sealed partial class MainWindow
             await SaveModelAsync();
             var configured = (await _library.ListProvidersAsync()).Single(p => p.Id == provider.Id).Models.Single();
             checks["model-editor-saves-metadata"] = configured.DisplayName == "阅读助手" && configured.ContextWindow == 128000
-                && configured.PriceInput == 1.25 && configured.PriceOutput == 5 && configured.Capabilities.Vision == true;
+                && configured.PriceInput == 1.25 && configured.PriceCacheRead == 0.125 && configured.PriceCacheWrite == 1.5625
+                && configured.PriceOutput == 5 && configured.Capabilities.Vision == true;
             ModelPriceInput.Text = "-1"; await SaveModelAsync();
             checks["model-editor-rejects-invalid-price"] = (await _library.ListProvidersAsync()).Single(p => p.Id == provider.Id).Models.Single().PriceInput == 1.25
                 && ModelEditor.Visibility == Visibility.Visible && ModelPriceInput.Text == "-1";

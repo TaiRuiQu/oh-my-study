@@ -33,7 +33,9 @@ public sealed partial class MainWindow
         long generation = ++_pricePreviewGeneration;
         double? input = double.TryParse(ModelPriceInput.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var a) && double.IsFinite(a) && a >= 0 ? a : null;
         double? output = double.TryParse(ModelPriceOutput.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var b) && double.IsFinite(b) && b >= 0 ? b : null;
-        if (input is null && output is null) { ModelCnyPreview.Text = ""; return; }
+        double? read = double.TryParse(ModelPriceCacheRead.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var r) && double.IsFinite(r) && r >= 0 ? r : null;
+        double? write = double.TryParse(ModelPriceCacheWrite.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var w) && double.IsFinite(w) && w >= 0 ? w : null;
+        if (input is null && output is null && read is null && write is null) { ModelCnyPreview.Text = ""; return; }
         if (SelectedCurrency.Length == 0) { ModelCnyPreview.Text = "请选择货币后查看人民币估算。"; return; }
         bool usd = SelectedCurrency == "USD";
         var rate = usd ? await GetCnyRateAsync() : null;
@@ -41,13 +43,14 @@ public sealed partial class MainWindow
         if (usd && rate is null) { ModelCnyPreview.Text = "暂时无法获取汇率，人民币估算不可用。原价格已保留。"; return; }
         double factor = rate?.Rate ?? 1;
         static string Price(double? value, double factor) => value.HasValue ? $"¥{value.Value * factor:0.######}" : "未设置";
-        ModelCnyPreview.Text = $"人民币 / 百万 token：输入 {Price(input, factor)}    输出 {Price(output, factor)}" + (rate is not null ? "\n" + RateNote(rate) : "");
+        ModelCnyPreview.Text = $"人民币估算：未命中 {Price(input, factor)}    命中 {Price(read, factor)}    缓存写入 {Price(write, factor)}    输出 {Price(output, factor)}" + (rate is not null ? "\n" + RateNote(rate) : "");
     }
-    private async Task UpdateTaskCnyCostAsync(string jobId, long generation, string usage, double cost, string currency)
+    private async Task UpdateTaskCnyCostAsync(string jobId, long generation, double cost, string currency)
     {
         CnyRate? rate = currency == "USD" ? await GetCnyRateAsync() : null;
         if (_closed || generation != _taskRefreshGeneration || _selectedTaskId != jobId) return;
-        TaskUsage.Text = usage + (currency == "CNY" ? $"预估费用 ¥{cost:0.######}" : currency == "USD" && rate is not null ? $"预估费用 ¥{cost * rate.Rate:0.######}（汇率 {rate.Date}）" + (rate.IsStale ? "（缓存）" : "") : "人民币估算暂不可用");
+        TaskUsage.Text = currency == "CNY" ? $"¥{cost:0.######}" : currency == "USD" && rate is not null ? $"¥{cost * rate.Rate:0.######}" : "暂不可用";
+        TaskRateNote.Text = rate is not null ? RateNote(rate) : currency == "CNY" ? "按人民币价格估算。" : "暂时无法获取汇率，人民币估算不可用。";
         ToolTipService.SetToolTip(TaskUsage, rate is not null ? RateNote(rate) : null);
     }
 }

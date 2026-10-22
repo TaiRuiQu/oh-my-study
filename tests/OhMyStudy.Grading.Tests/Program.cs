@@ -139,6 +139,7 @@ internal static class Program
                 var api = new ScriptApi(protocol, async (round, request, token) =>
                 {
                     token.ThrowIfCancellationRequested();
+                    AssertPromptContract(protocol, request, mode, referenceOnly: false);
                     if (round == 1)
                     {
                         Check(HasSystem(protocol, request), $"{protocol}/{mode}: native whole-paper instructions");
@@ -155,7 +156,10 @@ internal static class Program
                 Check(job.State == JobState.Completed && job.Progress == 100 && api.Attempts == 2, $"{protocol}/{mode}: real queue completed");
                 Check(result.Questions.Count == 1 && result.Questions[0].Question.DraftKey == question.DraftKey, "duplicate tool saves upsert one stable question");
                 Check(result.Coverage.Count == 2 && result.References.Count == 1 && result.ModelCalls.Count == 2, "coverage, reference and call usage durably saved");
-                Check(result.ModelCalls.All(c => c.GetProperty("usage").GetProperty("input").GetUInt64() == 100 && c.GetProperty("estimated_cost").GetDouble() > 0), "real call usage and configured estimate");
+                decimal expectedCost = protocol == Protocol.Responses ? 0.0002540625m : 0.0002596875m;
+                Check(result.ModelCalls.All(c => c.GetProperty("usage").GetProperty("input").GetUInt64() == 100
+                    && c.GetProperty("estimated_cost").GetDecimal() == expectedCost
+                    && c.GetProperty("price_cache_read").GetDouble() == 0.125 && c.GetProperty("price_cache_write").GetDouble() == 1.5625), "four-bucket call cost and price snapshot durably saved");
                 var paper = (await fixture.Library.ListPapersAsync()).Single();
                 Check(paper.Subject == "数学" && paper.Possible == 100 && paper.Earned == (mode == ImportMode.Blank ? null : 86.5) && paper.QuestionCount == 1, "paper metadata saved through real tool and queue");
                 await fixture.Library.UpdatePaperAsync(fixture.Document.Id, "整理后的标题", "综合", null, 120);
@@ -223,6 +227,64 @@ internal static class Program
 
     private static bool HasSystem(Protocol protocol, JsonObject request) => protocol switch
     { Protocol.Responses => request["instructions"] is not null, Protocol.Messages => request["system"] is not null, _ => request["systemInstruction"] is not null };
+
+    private static void AssertPromptContract(Protocol protocol, JsonObject request, ImportMode mode, bool referenceOnly)
+    {
+        var instructions = request[protocol == Protocol.Responses ? "instructions" : "system"]!.GetValue<string>();
+        Check(instructions.All(char.IsAscii) && instructions.StartsWith("# Role\n", StringComparison.Ordinal), "native high-priority instructions are structured English");
+        Check(instructions.Contains("Simplified Chinese", StringComparison.Ordinal)
+            && instructions.Contains("Preserve the source language", StringComparison.Ordinal), "English instructions preserve the content-language contract");
+        var task = instructions.Split("# Current task\n", StringSplitOptions.None);
+        Check(task.Length == 2 && task[1].StartsWith(referenceOnly ? "Organize reference answers only." : mode switch
+        {
+            ImportMode.TeacherGraded => "Organize and grade the whole paper.",
+            ImportMode.Blank => "Organize a blank paper without grading.",
+            _ => "Organize and grade the whole answered paper."
+        }, StringComparison.Ordinal), "native instructions select exactly the current task mode");
+        var messages = request[protocol == Protocol.Responses ? "input" : "messages"]!.AsArray();
+        var first = messages[0]!.AsObject();
+        var input = first["content"]!.AsArray()[0]!["text"]!.GetValue<string>();
+        int contextStart = input.IndexOf('{');
+        Check(first["role"]!.GetValue<string>() == "user" && contextStart > 0 && input[..contextStart].All(char.IsAscii), "dynamic context is framed separately in a user message");
+        using var context = JsonDocument.Parse(input[contextStart..]);
+        var expectedMode = mode switch
+        {
+            ImportMode.TeacherGraded => "teacher_graded",
+            ImportMode.Blank => "blank",
+            _ => "ai_grading"
+        };
+        Check(context.RootElement.GetProperty("document").GetProperty("mode").GetString() == expectedMode
+            && context.RootElement.GetProperty("existing_questions").ValueKind == JsonValueKind.Array
+            && context.RootElement.GetProperty("references").ValueKind == JsonValueKind.Array, "typed task context remains valid JSON in both protocols");
+
+        var tools = request["tools"]!.AsArray().Select(t => t!.AsObject()).ToList();
+        Check(tools.Count == (referenceOnly ? 3 : 7), "task exposes only its supported tools");
+        foreach (var tool in tools)
+        {
+            string name = tool["name"]!.GetValue<string>();
+            string description = tool["description"]!.GetValue<string>();
+            Check(!string.IsNullOrWhiteSpace(description) && description.All(char.IsAscii), name + ": English description survives SDK serialization");
+            var schema = tool[protocol == Protocol.Responses ? "parameters" : "input_schema"]!.AsObject();
+            Check(DescribedClosedSchema(schema, schema), name + ": nested parameter descriptions, closed objects and local references survive SDK serialization");
+            if (protocol == Protocol.Responses) Check(tool["strict"]!.GetValue<bool>() == false, name + ": omission semantics remain available");
+            if (name == "save_question")
+                Check(schema["required"]!.AsArray().Select(n => n!.GetValue<string>()).ToHashSet().SetEquals(["draft_key", "number", "content", "sources"])
+                    && schema["properties"]!["attempt"]!["anyOf"]![0]!["required"]!.AsArray().Count == 0,
+                    "question and attempt auxiliary fields remain optional for regrading");
+        }
+    }
+
+    private static bool DescribedClosedSchema(JsonNode? node, JsonObject root)
+    {
+        if (node is JsonArray array) return array.All(item => DescribedClosedSchema(item, root));
+        if (node is not JsonObject obj) return true;
+        if (obj["$ref"] is { } reference && (reference.GetValue<string>() != "#/$defs/question" || root["$defs"]?["question"] is null)) return false;
+        if (obj["type"]?.ToString() == "object" && obj["additionalProperties"]?.GetValue<bool>() != false) return false;
+        if (obj["properties"] is JsonObject properties && properties.Any(p =>
+            p.Value?["description"] is not JsonValue description || !description.TryGetValue<string>(out var text)
+                || string.IsNullOrWhiteSpace(text) || !text.All(char.IsAscii))) return false;
+        return obj.All(p => DescribedClosedSchema(p.Value, root));
+    }
     private static bool HasImageFeedback(Protocol protocol, JsonObject request) => protocol switch
     {
         Protocol.Responses => ((JsonArray)request["input"]!).OfType<JsonObject>().Any(item => item["type"]?.ToString() == "function_call_output" && item["output"] is JsonArray blocks && blocks.OfType<JsonObject>().Any(p => p["type"]?.ToString() == "input_image")),
@@ -362,20 +424,24 @@ internal static class Program
 
     private static async Task ReferencesOnly()
     {
-        await using var fixture = await Fixture.Create(ImportMode.AiGrading, Protocol.Messages);
-        var api = new ScriptApi(Protocol.Messages, (round, request, _) =>
+        foreach (var protocol in Enum.GetValues<Protocol>())
         {
-            var definitions = (JsonArray)request["tools"]!;
-            Check(!definitions.OfType<JsonObject>().Any(t => t["name"]?.ToString() is "save_question" or "python" or "shell"), "reference-only schema excludes grading/execution tools");
-            if (round == 1) return Task.FromResult<List<ToolCall>>([Save(Question(fixture.Document, reference: false)), Call("python", new JsonObject { ["code"] = "print('not executed')" })]);
-            Check(HasToolError(Protocol.Messages, request), "reference-only task rejects unexpected tools");
-            var page = fixture.Document.Pages.Single(p => p.Role == "reference");
-            return Task.FromResult<List<ToolCall>>([Read(page), Refs(References(fixture.Document, match: null)), Finish([new() { PageId = page.Id, Status = "no_questions", QuestionKeys = [], Reason = "Only reference answers" }])]);
-        });
-        var job = await fixture.Run(api, DiagnosticKind.References);
-        var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
-        Check(job.State == JobState.Completed && result.Questions.Count == 0 && result.References.Count == 1 && result.Coverage.Count == 1, "reference task saves answers and reference-page-only coverage");
-        Check(fixture.Reader.Requests.Count == 1 && fixture.Executor.Calls == 0, "reference task never reads material or executes code");
+            await using var fixture = await Fixture.Create(ImportMode.AiGrading, protocol);
+            var api = new ScriptApi(protocol, (round, request, _) =>
+            {
+                AssertPromptContract(protocol, request, ImportMode.AiGrading, referenceOnly: true);
+                var definitions = (JsonArray)request["tools"]!;
+                Check(!definitions.OfType<JsonObject>().Any(t => t["name"]?.ToString() is "save_question" or "save_paper_info" or "python" or "shell"), "reference-only schema excludes grading/execution tools");
+                if (round == 1) return Task.FromResult<List<ToolCall>>([Save(Question(fixture.Document, reference: false)), Call("python", new JsonObject { ["code"] = "print('not executed')" })]);
+                Check(HasToolError(protocol, request), "reference-only task rejects unexpected tools");
+                var page = fixture.Document.Pages.Single(p => p.Role == "reference");
+                return Task.FromResult<List<ToolCall>>([Read(page), Refs(References(fixture.Document, match: null)), Finish([new() { PageId = page.Id, Status = "no_questions", QuestionKeys = [], Reason = "Only reference answers" }])]);
+            });
+            var job = await fixture.Run(api, DiagnosticKind.References);
+            var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
+            Check(job.State == JobState.Completed && result.Questions.Count == 0 && result.References.Count == 1 && result.Coverage.Count == 1, "reference task saves answers and reference-page-only coverage");
+            Check(fixture.Reader.Requests.Count == 1 && fixture.Executor.Calls == 0, "reference task never reads material or executes code");
+        }
     }
 
     private static async Task FailureRetainsSaved()
@@ -481,7 +547,7 @@ internal static class Program
             var repository = await LibraryRepository.OpenAsync(new(Path.Combine(Root, Guid.NewGuid().ToString("N")), LibraryOpenMode.CreateNew) { MediaProcessor = new PixelProcessor() });
             var sources = Enumerable.Range(0, materialPages).Select(_ => new ImportSource("synthetic material.png", png)).Append(new("synthetic reference.png", png, "reference")).ToList();
             var document = await repository.ImportDocumentAsync("Synthetic integration paper", mode, sources);
-            var model = new ModelConfig { Id = "synthetic-model", Capabilities = Capabilities.Unknown with { Vision = true, Tools = true }, PriceInput = 1.25, PriceOutput = 5, Currency = "USD" };
+            var model = new ModelConfig { Id = "synthetic-model", Capabilities = Capabilities.Unknown with { Vision = true, Tools = true }, PriceInput = 1.25, PriceCacheRead = 0.125, PriceCacheWrite = 1.5625, PriceOutput = 5, Currency = "USD" };
             return new Fixture
             {
                 Library = repository,
@@ -613,8 +679,8 @@ internal static class Program
         }));
         return protocol switch
         {
-            Protocol.Responses => new() { ["status"] = "completed", ["output"] = blocks, ["usage"] = new JsonObject { ["input_tokens"] = 100, ["output_tokens"] = 30, ["total_tokens"] = 130 } },
-            Protocol.Messages => new() { ["type"] = "message", ["role"] = "assistant", ["content"] = blocks, ["stop_reason"] = calls.Count == 0 ? "end_turn" : "tool_use", ["usage"] = new JsonObject { ["input_tokens"] = 100, ["output_tokens"] = 30 } },
+            Protocol.Responses => new() { ["status"] = "completed", ["output"] = blocks, ["usage"] = new JsonObject { ["input_tokens"] = 100, ["input_tokens_details"] = new JsonObject { ["cached_tokens"] = 20, ["cache_write_tokens"] = 5 }, ["output_tokens"] = 30, ["total_tokens"] = 130 } },
+            Protocol.Messages => new() { ["type"] = "message", ["role"] = "assistant", ["content"] = blocks, ["stop_reason"] = calls.Count == 0 ? "end_turn" : "tool_use", ["usage"] = new JsonObject { ["input_tokens"] = 80, ["cache_read_input_tokens"] = 15, ["cache_creation_input_tokens"] = 5, ["output_tokens"] = 30 } },
             _ => throw new InvalidOperationException()
         };
     }

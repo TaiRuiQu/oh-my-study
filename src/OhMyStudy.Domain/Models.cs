@@ -38,6 +38,8 @@ public sealed record ModelConfig
     public string Label => string.IsNullOrWhiteSpace(DisplayName) ? Id : DisplayName;
     public required Capabilities Capabilities { get; init; }
     public double? PriceInput { get; init; }
+    public double? PriceCacheRead { get; init; }
+    public double? PriceCacheWrite { get; init; }
     public double? PriceOutput { get; init; }
     public required string Currency { get; init; }
 }

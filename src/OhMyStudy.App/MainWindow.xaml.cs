@@ -164,6 +164,10 @@ public sealed partial class MainWindow : Window
             await RunMathSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[mathIndex + 1]));
             return;
         }
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--billing-smoke") is int billingIndex && billingIndex > 0)
+        {
+            await RunBillingSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[billingIndex + 1])); return;
+        }
         else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--papers-smoke") is int papersIndex && papersIndex > 0)
         {
             await RunPapersSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[papersIndex + 1])); return;
