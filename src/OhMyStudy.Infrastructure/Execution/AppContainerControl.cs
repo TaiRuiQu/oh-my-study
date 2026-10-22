@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text.Json;
 using OhMyStudy.Application.Jobs;
 using OhMyStudy.Domain;
@@ -73,10 +74,11 @@ public sealed class AppContainerControl : ISandboxControl
         if (_profile is null) return;
         if (id != _id) throw new InvalidOperationException("不能停止其他 AppContainer 会话。");
         _lifetime?.Cancel();
+        Exception? failure = null;
         if (_worker is not null)
         {
             try { await _worker.WaitAsync(cancellationToken).ConfigureAwait(false); }
-            catch (Exception) when (_worker.IsCompleted) { }
+            catch (Exception error) when (_worker.IsCompleted) { failure = error; }
         }
         _profile.Dispose();
         _profile = null;
@@ -85,6 +87,8 @@ public sealed class AppContainerControl : ISandboxControl
         _worker = null;
         _configuration = null;
         _id = Guid.Empty;
+        if (failure is not null && failure is not (OperationCanceledException or Win32Exception or FileNotFoundException or DirectoryNotFoundException))
+            throw new IOException("AppContainer 工作进程未能安全结束，请重新打开应用后重试。", failure);
     }
 
     private static bool Within(string a, string b) => Path.GetFullPath(a).Equals(Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase)

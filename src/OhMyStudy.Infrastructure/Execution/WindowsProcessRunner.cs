@@ -79,7 +79,8 @@ public sealed partial class WindowsProcessRunner
             {
                 var error = LastError();
                 Native.TerminateProcess(process, 1);
-                Native.WaitForSingleObject(process, 5000);
+                if (Native.WaitForSingleObject(process, 5000) != 0)
+                    throw new IOException("执行进程未能退出。", error);
                 throw error;
             }
             stdout.DisposeLocalCopyOfClientHandle();
