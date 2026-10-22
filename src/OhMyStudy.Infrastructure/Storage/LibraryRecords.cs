@@ -22,7 +22,7 @@ public sealed partial class LibraryRepository
             CreatedAt = r.GetString(3),
             PendingPdfPages = r.GetBoolean(4),
             Pages = []
-        }, id).SingleOrDefault() ?? throw new KeyNotFoundException("未找到材料");
+        }, id).SingleOrDefault() ?? throw new KeyNotFoundException("Document not found");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version"));
         var suffix = version >= 2 ? "p.original_asset_id,p.pdf_page_index" : "NULL,NULL";
         return document with
@@ -51,16 +51,16 @@ public sealed partial class LibraryRepository
         foreach (var page in pages)
         {
             ValidId(page.Id);
-            if (page.Rotation is not (0 or 90 or 180 or 270) || !unique.Add(page.Id)) throw new ArgumentException("页序或方向无效");
+            if (page.Rotation is not (0 or 90 or 180 or 270) || !unique.Add(page.Id)) throw new ArgumentException("Invalid page order or rotation");
         }
         return Run(() => Transaction(cancellationToken, () =>
         {
             DocumentIdle(documentId);
             var document = Document(documentId);
-            if (pages.Any(p => !document.Pages.Any(old => old.Id == p.Id))) throw new ArgumentException("页面不属于此材料");
+            if (pages.Any(p => !document.Pages.Any(old => old.Id == p.Id))) throw new ArgumentException("The page does not belong to this document");
             foreach (var old in document.Pages)
                 if (!unique.Contains(old.Id) && PageHasResults(documentId, old.Id))
-                    throw new InvalidOperationException("该页仍被题目或参考答案引用，请先移除引用再删除页面");
+                    throw new InvalidOperationException("This page is still referenced by questions or reference answers. Remove the references before deleting it");
             var offset = Convert.ToInt64(Scalar("SELECT COALESCE(MAX(page_index),0)+1 FROM source_pages WHERE document_id=$p0", documentId)) + pages.Length;
             Execute("UPDATE source_pages SET page_index=page_index+$p0 WHERE document_id=$p1", offset, documentId);
             foreach (var old in document.Pages)
@@ -79,7 +79,7 @@ public sealed partial class LibraryRepository
             using var value = JsonDocument.Parse(json);
             if (value.RootElement.TryGetProperty("input", out var input) && input.ValueKind == JsonValueKind.Object &&
                 input.TryGetProperty("document", out var document) && document.TryGetProperty("id", out var id) && id.GetString() == documentId)
-                throw new InvalidOperationException("试卷正在处理，请先取消任务后再修改。");
+                throw new InvalidOperationException("The exam is being processed. Cancel the task before editing.");
         }
     }
 

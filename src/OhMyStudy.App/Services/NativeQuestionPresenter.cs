@@ -37,10 +37,10 @@ public static class NativeQuestionPresenter
     private static async Task AddQuestionAsync(StackPanel panel, Question question, LibraryRepository library, NativeReadingSession reading, CancellationToken cancellationToken, bool root = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var label = question.Points is { } points ? UiText.Format("{0}　（{1:g} 分）", question.Number, points) : question.Number;
+        var label = question.Points is { } points ? UiText.Format("{0} ({1:g} points)", question.Number, points) : question.Number;
         if (!root) panel.Children.Add(Text(label, heading: true));
         else if (question.Points is { } total)
-        { panel.Children.Add(LabelRow(UiText.Format("满分 {0:g} 分", total), "\uE9D9")); }
+        { panel.Children.Add(LabelRow(UiText.Format("Maximum score: {0:g} points", total), "\uE9D9")); }
         foreach (var content in NativeReadingSession.Coalesce(question.Content))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -57,25 +57,25 @@ public static class NativeQuestionPresenter
         if (question.Attempt is { } attempt)
         {
             var score = new StackPanel { Spacing = ContentSpacing, Margin = new Thickness(0, SectionSpacing, 0, 0) };
-            score.Children.Add(LabelRow(UiText.Get("评分"), "\uE9D9"));
+            score.Children.Add(LabelRow(UiText.Get("Grading"), "\uE9D9"));
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
-            row.Children.Add(new TextBlock { Text = attempt.Grade.Earned is { } earned && attempt.Grade.Possible is { } possible ? $"{earned:g} / {possible:g}" : UiText.Get("分数未确定"), FontSize = 22, FontWeight = FontWeights.SemiBold });
-            string verdict = attempt.Grade.Verdict switch { Verdict.Correct => UiText.Get("正确"), Verdict.Partial => UiText.Get("部分正确"), Verdict.Incorrect => UiText.Get("错误"), Verdict.Unanswered => UiText.Get("未作答"), _ => UiText.Get("待确认") };
+            row.Children.Add(new TextBlock { Text = attempt.Grade.Earned is { } earned && attempt.Grade.Possible is { } possible ? $"{earned:g} / {possible:g}" : UiText.Get("Score undetermined"), FontSize = 22, FontWeight = FontWeights.SemiBold });
+            string verdict = attempt.Grade.Verdict switch { Verdict.Correct => UiText.Get("Correct"), Verdict.Partial => UiText.Get("Partially correct"), Verdict.Incorrect => UiText.Get("Incorrect"), Verdict.Unanswered => UiText.Get("Unanswered"), _ => UiText.Get("Needs review") };
             row.Children.Add(LabelRow(verdict, attempt.Grade.Verdict == Verdict.Correct ? "\uE73E" : attempt.Grade.Verdict == Verdict.Incorrect ? "\uE711" : attempt.Grade.Verdict == Verdict.Partial ? "\uE7BA" : "\uE9CE"));
             score.Children.Add(row);
-            string source = attempt.Grade.Source switch { GradeSource.Teacher => UiText.Get("教师评分"), GradeSource.Manual => UiText.Get("手动评分"), GradeSource.AiReference => UiText.Get("依据参考答案"), _ => UiText.Get("模型评分") };
+            string source = attempt.Grade.Source switch { GradeSource.Teacher => UiText.Get("Teacher grading"), GradeSource.Manual => UiText.Get("Manual grading"), GradeSource.AiReference => UiText.Get("Based on reference answers"), _ => UiText.Get("Model grading") };
             score.Children.Add(LabelRow(source, "\uE77B"));
             scorePanel = score;
         }
         foreach (var section in NativeReadingSession.FeedbackSections(question))
         {
-            if (section.Title == UiText.Get("评分说明") && scorePanel is not null)
+            if (section.Title == UiText.Get("Grading notes") && scorePanel is not null)
             { foreach (string text in section.Texts) scorePanel.Children.Add(await reading.PresentAsync(text, cancellationToken)); continue; }
             var body = new StackPanel { Spacing = ContentSpacing, Margin = new Thickness(0, SectionSpacing, 0, 0) };
             body.Children.Add(LabelRow(section.Title, section.Glyph));
             foreach (string text in section.Texts) body.Children.Add(await reading.PresentAsync(text, cancellationToken));
             panel.Children.Add(body);
-            if (section.Title == UiText.Get("作答") && scorePanel is not null) panel.Children.Add(scorePanel);
+            if (section.Title == UiText.Get("Response") && scorePanel is not null) panel.Children.Add(scorePanel);
         }
         foreach (var part in question.Parts)
         {
@@ -127,7 +127,7 @@ public static class NativeQuestionPresenter
                 Grid.SetRow(cell, row); Grid.SetColumn(cell, column); grid.Children.Add(cell);
             }
         }
-        AutomationProperties.SetName(grid, UiText.Get("表格"));
+        AutomationProperties.SetName(grid, UiText.Get("Table"));
         return new ScrollViewer { Content = grid, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalScrollMode = ScrollMode.Enabled, VerticalScrollMode = ScrollMode.Disabled };
     }
 
@@ -138,7 +138,7 @@ public static class NativeQuestionPresenter
             PageViewportTransform.ValidateRegion(new PageRect(content.Region.X, content.Region.Y, content.Region.Width, content.Region.Height));
             var documents = await library.ListDocumentsAsync(cancellationToken);
             var page = documents.SelectMany(document => document.Pages).SingleOrDefault(page => page.Id == content.Region.PageId);
-            if (page is null) return Text(UiText.Get("图片暂时无法显示。"));
+            if (page is null) return Text(UiText.Get("Image temporarily unavailable."));
             var source = await library.ReadAssetAsync(page.AssetId, cancellationToken: cancellationToken);
             var result = await PageImages.ReadAsync(source.Bytes, content.Region, page.Rotation, cancellationToken);
             var image = await ImageAsync(Convert.FromBase64String(result.Image.Base64), content.Caption, cancellationToken);
@@ -149,7 +149,7 @@ public static class NativeQuestionPresenter
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or COMException or UnauthorizedAccessException)
-        { return Text(UiText.Get("图片暂时无法显示。")); }
+        { return Text(UiText.Get("Image temporarily unavailable.")); }
     }
 
     private static async Task<UiImage> ImageAsync(byte[] png, string accessibleText, CancellationToken cancellationToken)
@@ -164,7 +164,7 @@ public static class NativeQuestionPresenter
         await bitmap.SetSourceAsync(stream).AsTask(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var image = new UiImage { Source = bitmap, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, MaxWidth = 720 };
-        AutomationProperties.SetName(image, string.IsNullOrWhiteSpace(accessibleText) ? UiText.Get("题目图片") : accessibleText);
+        AutomationProperties.SetName(image, string.IsNullOrWhiteSpace(accessibleText) ? UiText.GetByKey("S0437") : accessibleText);
         return image;
     }
 }

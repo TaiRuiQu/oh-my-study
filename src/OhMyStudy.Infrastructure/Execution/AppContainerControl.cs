@@ -30,15 +30,15 @@ public sealed class AppContainerControl : ISandboxControl
     public Task StartAsync(Guid id, string configuration, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (_profile is not null) throw new InvalidOperationException("AppContainer 正在使用中。");
+        if (_profile is not null) throw new InvalidOperationException("AppContainer is in use.");
         var settings = JsonSerializer.Deserialize(configuration, SandboxJson.Default.AppContainerConfiguration)
-            ?? throw new InvalidDataException("无效的 AppContainer 配置。");
+            ?? throw new InvalidDataException("Invalid AppContainer configuration.");
         string[] directories = [settings.Runtime, settings.Inputs, settings.Requests, settings.Results];
         foreach (var directory in directories) RuntimePaths.CheckedDirectory(directory);
         for (int i = 0; i < directories.Length; i++)
             for (int j = i + 1; j < directories.Length; j++)
                 if (Within(directories[i], directories[j]) || Within(directories[j], directories[i]))
-                    throw new InvalidDataException("沙箱目录不能重叠。");
+                    throw new InvalidDataException("Sandbox directories must not overlap.");
         RuntimePaths.CheckedFile(Path.Combine(settings.Runtime, "python.exe"));
         RuntimePaths.CheckedFile(Path.Combine(settings.Runtime, "sandbox-worker.py"));
         _profile = AppContainerProfile.Create(id, settings.Networking);
@@ -54,8 +54,8 @@ public sealed class AppContainerControl : ISandboxControl
 
     public async Task RunWorkerAsync(Guid id, string jobId, string nonce, CancellationToken cancellationToken)
     {
-        if (_profile is null || id != _id || _worker is not null) throw new InvalidOperationException("AppContainer 会话不匹配或已使用。");
-        if (!ExecutionCall.ValidId(jobId) || !ExecutionCall.ValidId(nonce)) throw new ArgumentException("无效的会话标识。");
+        if (_profile is null || id != _id || _worker is not null) throw new InvalidOperationException("The AppContainer session does not match or has already been used.");
+        if (!ExecutionCall.ValidId(jobId) || !ExecutionCall.ValidId(nonce)) throw new ArgumentException("Invalid session ID.");
         var settings = _configuration!;
         _lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var request = new ProcessRequest(Path.Combine(settings.Runtime, "python.exe"),
@@ -66,13 +66,13 @@ public sealed class AppContainerControl : ISandboxControl
         _worker = new WindowsProcessRunner().RunAsync(request, _lifetime.Token);
         var result = await _worker.ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!result.Succeeded) throw new IOException("AppContainer 工作进程未能完成，请检查运行组件后重试。");
+        if (!result.Succeeded) throw new IOException("The AppContainer worker did not complete. Check runtime components and retry.");
     }
 
     public async Task StopAsync(Guid id, CancellationToken cancellationToken)
     {
         if (_profile is null) return;
-        if (id != _id) throw new InvalidOperationException("不能停止其他 AppContainer 会话。");
+        if (id != _id) throw new InvalidOperationException("Cannot stop another AppContainer session.");
         _lifetime?.Cancel();
         Exception? failure = null;
         if (_worker is not null)
@@ -88,7 +88,7 @@ public sealed class AppContainerControl : ISandboxControl
         _configuration = null;
         _id = Guid.Empty;
         if (failure is not null && failure is not (OperationCanceledException or Win32Exception or FileNotFoundException or DirectoryNotFoundException))
-            throw new IOException("AppContainer 工作进程未能安全结束，请重新打开应用后重试。", failure);
+            throw new IOException("The AppContainer worker could not stop safely. Reopen the app and retry.", failure);
     }
 
     private static bool Within(string a, string b) => Path.GetFullPath(a).Equals(Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase)

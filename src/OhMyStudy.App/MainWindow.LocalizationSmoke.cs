@@ -26,11 +26,11 @@ public sealed partial class MainWindow
             report["headingFont"] = PageHeading.FontFamily.Source;
             report["controlFont"] = LanguagePicker.FontFamily.Source;
             checks["font"] = PageHeading.FontFamily.Source == UiText.InterfaceFontFamily && LanguagePicker.FontFamily.Source == UiText.InterfaceFontFamily;
-            checks["navigation"] = ((NavigationViewItem)Navigation.MenuItems[0]).Content?.ToString() == UiText.Get("试卷");
-            checks["settings"] = WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem).Content?.ToString() == UiText.Get("设置");
+            checks["navigation"] = ((NavigationViewItem)Navigation.MenuItems[0]).Content?.ToString() == UiText.Get("Exams");
+            checks["settings"] = WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem).Content?.ToString() == UiText.Get("Settings");
             checks["language"] = RootGrid.Language == UiText.Language && LanguagePicker.SelectedIndex > 0;
-            checks["currency"] = ((ComboBoxItem)ModelCurrency.Items[0]).Content?.ToString() == UiText.Get("美元");
-            checks["sort"] = ((ComboBoxItem)PaperSort.Items[0]).Content?.ToString() == UiText.Get("最近导入");
+            checks["currency"] = ((ComboBoxItem)ModelCurrency.Items[0]).Content?.ToString() == UiText.Get("US dollar");
+            checks["sort"] = ((ComboBoxItem)PaperSort.Items[0]).Content?.ToString() == UiText.Get("Newest first");
             foreach (int width in new[] { 1440, 820 })
             {
                 AppWindow.Resize(new SizeInt32(width, 960));
@@ -46,7 +46,7 @@ public sealed partial class MainWindow
                 string settings = Path.ChangeExtension(reportPath, $".{width}.settings.png");
                 await CaptureWorkspaceAsync(settings); captures.Add((JsonNode?)JsonValue.Create(settings));
                 checks["settings-width-" + width] = LanguagePicker.ActualWidth > 0 && LanguagePicker.ActualWidth <= SettingsPanel.ViewportWidth;
-                checks["language-header-" + width] = LanguagePicker.Header?.ToString() == UiText.Get("语言");
+                checks["language-header-" + width] = LanguagePicker.Header?.ToString() == UiText.Get("Language");
             }
             checks["sample-content-preserved"] = UiText.ActivityText("中文 English 日本語 한국어 \\(x^2\\)") == "中文 English 日本語 한국어 \\(x^2\\)";
             bool passed = checks.All(pair => pair.Value!.GetValue<bool>());

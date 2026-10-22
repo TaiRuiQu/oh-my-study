@@ -87,10 +87,13 @@ foreach (var paper in Enum.GetValues<ExamPaper>())
         if (edition == ExamEdition.Questions)
         {
             Require(!text.Contains("ANSWER_ONLY", StringComparison.Ordinal) && !text.Contains("SUBANSWER", StringComparison.Ordinal), "actual PDF answer isolation");
-            Require(text.Contains("公式超过栏宽", StringComparison.Ordinal), "long formula readable fallback");
+            Require(text.Contains("The formula exceeds the column width", StringComparison.Ordinal), "long formula readable fallback");
+            Require(text.Contains("Questions", StringComparison.Ordinal) && text.Contains("Name:", StringComparison.Ordinal), "English question headings");
         }
         else
         {
+            Require(text.Contains("Answers and explanations", StringComparison.Ordinal) && text.Contains("Answer:", StringComparison.Ordinal)
+                && text.Contains("Explanation:", StringComparison.Ordinal), "English answer headings");
             for (var index = 1; index <= questions.Count; index++) Require(text.Contains("ANSWER_ONLY_" + index, StringComparison.Ordinal), "answers retained");
             for (var index = 1; index <= 12; index++) Require(text.Contains("SUBANSWER_" + index, StringComparison.Ordinal), "part answers retained");
         }

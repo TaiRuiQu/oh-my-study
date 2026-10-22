@@ -30,16 +30,16 @@ public sealed class BundledPayload : IDisposable
                 if (!paths.Add(relative) || (entry.ExternalAttributes & 0x400) != 0 ||
                     ((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000 ||
                     entry.Length > 4L * 1024 * 1024 * 1024 || (total += entry.Length) > 8L * 1024 * 1024 * 1024)
-                    throw new InvalidDataException("安装文件损坏，请重新下载。");
+                    throw new InvalidDataException("Installation files are damaged. Download them again.");
                 if (entry.FullName.EndsWith('/')) { Directory.CreateDirectory(target); continue; }
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 using var input = entry.Open();
                 using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                 input.CopyTo(output);
-                if (output.Length != entry.Length) throw new InvalidDataException("安装文件损坏，请重新下载。");
+                if (output.Length != entry.Length) throw new InvalidDataException("Installation files are damaged. Download them again.");
             }
             if (!File.Exists(Path.Combine(payload.DirectoryPath, InstallerEngine.ManifestName)))
-                throw new InvalidDataException("安装文件不完整，请重新下载。");
+                throw new InvalidDataException("Installation files are incomplete. Download them again.");
             return payload;
         }
         catch { payload.Dispose(); throw; }

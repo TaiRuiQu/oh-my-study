@@ -139,7 +139,7 @@ public static class GradingTools
 
     internal static void Fields(JsonElement args, params string[] allowed)
     {
-        if (args.ValueKind != JsonValueKind.Object || args.EnumerateObject().Any(p => !allowed.Contains(p.Name, StringComparer.Ordinal))) throw new JsonException("工具参数不符合定义。");
+        if (args.ValueKind != JsonValueKind.Object || args.EnumerateObject().Any(p => !allowed.Contains(p.Name, StringComparer.Ordinal))) throw new JsonException("Tool arguments do not match the definition.");
     }
 }
 

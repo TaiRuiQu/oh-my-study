@@ -19,12 +19,12 @@ internal static partial class Program
             : args.Contains("--launch", StringComparer.Ordinal) || args.Length == 0 && File.Exists(Path.Combine(ownDirectory, "active.json")) ? "launch" : "install";
         try
         {
-            if (!OperatingSystem.IsWindows() || !Environment.Is64BitProcess) throw new PlatformNotSupportedException("请在64位Windows电脑上运行。");
+            if (!OperatingSystem.IsWindows() || !Environment.Is64BitProcess) throw new PlatformNotSupportedException("Run this app on a 64-bit Windows computer.");
             if (Value(args, "--wait-pid") is { } pidText && int.TryParse(pidText, out int pid))
-                try { using var parent = Process.GetProcessById(pid); if (!parent.WaitForExit(30_000)) throw new IOException("请关闭应用后重试。"); } catch (ArgumentException) { }
+                try { using var parent = Process.GetProcessById(pid); if (!parent.WaitForExit(30_000)) throw new IOException("Close the app and retry."); } catch (ArgumentException) { }
             if (operation == "uninstall" && SafePaths.Within(Environment.ProcessPath!, SafePaths.Root(root)))
             {
-                if (!quiet && MessageBox(0, "卸载 Oh My Study？你的资料会保留。", "Oh My Study", 0x24) != 6) return 0;
+                if (!quiet && MessageBox(0, "Uninstall Oh My Study? Your materials will be kept.", "Oh My Study", 0x24) != 6) return 0;
                 // A running executable cannot remove itself. The copied native helper waits for this exact caller to exit.
                 var helper = Directory.CreateTempSubdirectory("OhMyStudy-Uninstall-");
                 string copy = Path.Combine(helper.FullName, InstallerEngine.BootstrapName);
@@ -33,7 +33,7 @@ internal static partial class Program
                 foreach (string value in new[] { "--uninstall", "--root", root, "--confirmed", "--wait-pid", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture) }) start.ArgumentList.Add(value);
                 if (quiet) start.ArgumentList.Add("--quiet");
                 if (report is not null) { start.ArgumentList.Add("--report"); start.ArgumentList.Add(report); }
-                using var process = Process.Start(start) ?? throw new IOException("无法开始卸载。");
+                using var process = Process.Start(start) ?? throw new IOException("Cannot start uninstall.");
                 return 0;
             }
             var engine = new InstallerEngine();
@@ -42,29 +42,29 @@ internal static partial class Program
             {
                 string application = engine.ResolveLaunch(root);
                 using var process = Process.Start(new ProcessStartInfo(application) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(application)! });
-                if (process is null) throw new IOException("应用未能打开。");
+                if (process is null) throw new IOException("The app could not be opened.");
                 result = new(root, null, false);
             }
             else if (operation == "uninstall")
             {
-                if (!quiet && !args.Contains("--confirmed", StringComparer.Ordinal) && MessageBox(0, "卸载 Oh My Study？你的资料会保留。", "Oh My Study", 0x24) != 6) return 0;
+                if (!quiet && !args.Contains("--confirmed", StringComparer.Ordinal) && MessageBox(0, "Uninstall Oh My Study? Your materials will be kept.", "Oh My Study", 0x24) != 6) return 0;
                 result = engine.Uninstall(root);
-                if (!quiet) MessageBox(0, "已卸载，资料已保留。", "Oh My Study", 0x40);
+                if (!quiet) MessageBox(0, "Uninstalled. Your materials have been kept.", "Oh My Study", 0x40);
             }
             else
             {
-                if (!quiet && MessageBox(0, "安装 Oh My Study？安装完成后可从开始菜单打开。", "Oh My Study", 0x24) != 6) return 0;
+                if (!quiet && MessageBox(0, "Install Oh My Study? You can open it from the Start menu after installation.", "Oh My Study", 0x24) != 6) return 0;
                 string? source = Value(args, "--source");
                 using var payload = source is null ? BundledPayload.Open() : null;
                 result = engine.Install(new(source ?? payload?.DirectoryPath ?? ownDirectory, root, !args.Contains("--no-shortcuts", StringComparer.Ordinal)));
-                if (!quiet) MessageBox(0, "安装完成。请从开始菜单打开 Oh My Study。", "Oh My Study", 0x40);
+                if (!quiet) MessageBox(0, "Installation complete. Open Oh My Study from the Start menu.", "Oh My Study", 0x40);
             }
             WriteReport(report, new(true, operation, result, !RuntimeFeature.IsDynamicCodeSupported, null));
             return 0;
         }
         catch (Exception error)
         {
-            string message = error is InvalidDataException or PlatformNotSupportedException ? error.Message : "操作未完成。请关闭应用，检查安装文件和文件夹后重试。";
+            string message = error is InvalidDataException or PlatformNotSupportedException ? error.Message : "The operation did not complete. Close the app, check the installation files and folders, and retry.";
             WriteReport(report, new(false, operation, null, !RuntimeFeature.IsDynamicCodeSupported, message, error.ToString()));
             if (!quiet) MessageBox(0, message, "Oh My Study", 0x10);
             return 1;

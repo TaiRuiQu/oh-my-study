@@ -34,7 +34,7 @@ public sealed class SqliteLibrary : IDisposable
     {
         var destination = Path.GetFullPath(destinationFile);
         if (string.Equals(destination, Path.GetFullPath(Connection.DataSource), StringComparison.OrdinalIgnoreCase))
-            throw new IOException("备份文件不能覆盖源资料库");
+            throw new IOException("The backup file must not overwrite the source library");
         // Reserve a unique destination so an existing user's backup is never overwritten.
         using (new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { }
         try

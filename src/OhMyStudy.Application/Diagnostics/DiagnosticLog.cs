@@ -17,7 +17,7 @@ public sealed class DiagnosticLog
     public void Write(string eventCode, string correlationId, string outcomeCode, long elapsedMilliseconds = 0)
     {
         if (!IsCode(eventCode) || !IsCode(correlationId) || !IsCode(outcomeCode) || elapsedMilliseconds < 0)
-            throw new ArgumentException("诊断只接受标识和固定状态码。");
+            throw new ArgumentException("Diagnostics accept only identifiers and fixed status codes.");
         _entries.Enqueue(new(DateTimeOffset.UtcNow, eventCode, correlationId, outcomeCode, elapsedMilliseconds));
         while (_entries.Count > _capacity) _entries.TryDequeue(out _);
     }

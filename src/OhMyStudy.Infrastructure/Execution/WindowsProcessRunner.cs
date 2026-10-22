@@ -22,7 +22,7 @@ public sealed partial class WindowsProcessRunner
         var executable = RuntimePaths.CheckedFile(request.Executable);
         var cwd = RuntimePaths.CheckedDirectory(request.WorkingDirectory);
         var commandLine = string.Join(' ', new[] { executable }.Concat(request.Arguments).Select(QuoteArgument));
-        if (commandLine.Length > 32766 || commandLine.Contains('\0')) throw new ArgumentException("命令行过长或含无效字符。");
+        if (commandLine.Length > 32766 || commandLine.Contains('\0')) throw new ArgumentException("The command line is too long or contains invalid characters.");
         var processEnvironment = new Dictionary<string, string>(request.Environment, StringComparer.OrdinalIgnoreCase);
         if (request.AppContainer is not null)
         {
@@ -80,7 +80,7 @@ public sealed partial class WindowsProcessRunner
                 var error = LastError();
                 Native.TerminateProcess(process, 1);
                 if (Native.WaitForSingleObject(process, 5000) != 0)
-                    throw new IOException("执行进程未能退出。", error);
+                    throw new IOException("The execution process could not exit.", error);
                 throw error;
             }
             stdout.DisposeLocalCopyOfClientHandle();
@@ -111,7 +111,7 @@ public sealed partial class WindowsProcessRunner
                 // Includes descendants left behind when a root exits normally.
                 job.Dispose();
                 if (Native.WaitForSingleObject(process, 5000) != 0)
-                    throw new IOException("执行进程未能退出。");
+                    throw new IOException("The execution process could not exit.");
             }
             var logs = await Task.WhenAll(outputTask, errorTask).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
             if (!Native.GetExitCodeProcess(process, out var exitCode)) throw LastError();
@@ -123,7 +123,7 @@ public sealed partial class WindowsProcessRunner
 
     public static string QuoteArgument(string value)
     {
-        if (value.Contains('\0')) throw new ArgumentException("参数含无效字符。");
+        if (value.Contains('\0')) throw new ArgumentException("Arguments contain invalid characters.");
         var result = new StringBuilder("\"");
         int slashes = 0;
         foreach (char c in value)
@@ -156,7 +156,7 @@ public sealed partial class WindowsProcessRunner
     private static char[] EnvironmentBlock(IReadOnlyDictionary<string, string> variables)
     {
         if (variables.Any(p => string.IsNullOrWhiteSpace(p.Key) || p.Key.Contains('=') || p.Key.Contains('\0') || p.Value.Contains('\0')))
-            throw new ArgumentException("无效的环境变量。");
+            throw new ArgumentException("Invalid environment variable.");
         return (string.Join('\0', variables.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase).Select(p => p.Key + "=" + p.Value)) + "\0\0").ToCharArray();
     }
 

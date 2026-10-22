@@ -4,7 +4,7 @@ public static class RuntimePaths
 {
     public static string CheckedDirectory(string path, bool create = false)
     {
-        if (!Path.IsPathFullyQualified(path)) throw new ArgumentException("需要绝对路径。", nameof(path));
+        if (!Path.IsPathFullyQualified(path)) throw new ArgumentException("An absolute path is required.", nameof(path));
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
         var root = Path.GetPathRoot(full)!;
         var current = root;
@@ -17,7 +17,7 @@ public static class RuntimePaths
                 Directory.CreateDirectory(current);
             }
             if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("任务目录不能使用链接或重定向目录。");
+                throw new IOException("Task directories must not use links or redirected directories.");
         }
         return full;
     }
@@ -26,8 +26,8 @@ public static class RuntimePaths
     {
         var full = Path.GetFullPath(path);
         CheckedDirectory(Path.GetDirectoryName(full)!);
-        if (!File.Exists(full)) throw new FileNotFoundException("所需文件不存在。", full);
-        if ((File.GetAttributes(full) & FileAttributes.ReparsePoint) != 0) throw new IOException("不能使用链接文件。");
+        if (!File.Exists(full)) throw new FileNotFoundException("A required file is missing.", full);
+        if ((File.GetAttributes(full) & FileAttributes.ReparsePoint) != 0) throw new IOException("Linked files cannot be used.");
         return full;
     }
 }

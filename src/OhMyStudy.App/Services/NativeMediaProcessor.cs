@@ -31,8 +31,8 @@ public sealed class NativeMediaProcessor(string? pdfiumPath = null, string? webp
         var rasterizer = new PdfiumRasterizer(_pdfiumPath);
         using var document = rasterizer.Open(bytes);
         int pageCount = document.PageCount;
-        if (pageCount <= 0) throw new InvalidDataException(UiText.Get("PDF 没有可读取的页面。"));
-        if (pageCount > maximumPages) throw new InvalidDataException(UiText.Format("本次最多还能导入 {0} 页，请拆分 PDF 后重试。", maximumPages));
+        if (pageCount <= 0) throw new InvalidDataException(UiText.Get("The PDF has no readable pages."));
+        if (pageCount > maximumPages) throw new InvalidDataException(UiText.Format("You can import up to {0} more pages. Split the PDF and retry.", maximumPages));
         var prepared = new List<PreparedImage>(pageCount);
         long totalBytes = bytes.LongLength;
         for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
@@ -40,14 +40,14 @@ public sealed class NativeMediaProcessor(string? pdfiumPath = null, string? webp
             cancellationToken.ThrowIfCancellationRequested();
             var raster = document.RenderPage(pageIndex, maximumDimension: 3600, cancellationToken: cancellationToken);
             uint width = checked((uint)raster.Width), height = checked((uint)raster.Height);
-            if (raster.Stride != checked(raster.Width * 4)) throw new InvalidDataException(UiText.Get("PDF 图片布局无效。"));
+            if (raster.Stride != checked(raster.Width * 4)) throw new InvalidDataException(UiText.Get("Invalid PDF image layout."));
             byte[] png = await NativeImageCodec.EncodePngAsync(raster.Bgra32, width, height, cancellationToken).ConfigureAwait(false);
             double scale = Math.Min(1, 512d / Math.Max(width, height));
             uint thumbnailWidth = Math.Max(1, (uint)Math.Floor(width * scale)), thumbnailHeight = Math.Max(1, (uint)Math.Floor(height * scale));
             byte[] thumbnailPixels = NativeImageCodec.Resize(raster.Bgra32, width, height, thumbnailWidth, thumbnailHeight, cancellationToken);
             byte[] thumbnail = await NativeImageCodec.EncodePngAsync(thumbnailPixels, thumbnailWidth, thumbnailHeight, cancellationToken).ConfigureAwait(false);
             totalBytes = checked(totalBytes + png.LongLength + thumbnail.LongLength);
-            if (totalBytes > LibraryLimits.MaximumBatchBytes) throw new InvalidDataException(UiText.Get("处理后的资料超过 256 MB，请拆分后重试。"));
+            if (totalBytes > LibraryLimits.MaximumBatchBytes) throw new InvalidDataException(UiText.Get("Processed materials exceed 256 MB. Split them and retry."));
             prepared.Add(new(png, width, height, thumbnail));
         }
         return new PreparedMedia("application/pdf", null, null, null, prepared);

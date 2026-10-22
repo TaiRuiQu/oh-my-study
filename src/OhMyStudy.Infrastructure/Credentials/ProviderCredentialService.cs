@@ -31,7 +31,7 @@ public sealed class ProviderCredentialService(LibraryRepository repository, ICre
 
     public async Task<ProviderSaveResult> SaveAsync(Provider provider, ReadOnlyMemory<byte>? replacementSecret = null, CancellationToken cancellationToken = default)
     {
-        if (repository.IsReadOnly) throw new InvalidOperationException("资料库以只读方式打开");
+        if (repository.IsReadOnly) throw new InvalidOperationException("The library is open read-only");
         ConfigurationValidation.ValidateProvider(provider with { KeyRef = null });
         await mutation.WaitAsync(cancellationToken).ConfigureAwait(false);
         var secret = replacementSecret is { Length: > 0 } bytes ? bytes.ToArray() : null;
@@ -54,7 +54,7 @@ public sealed class ProviderCredentialService(LibraryRepository repository, ICre
                 if (fresh is not null)
                 {
                     try { await Task.Run(() => vault.Delete(fresh)).ConfigureAwait(false); }
-                    catch (Exception cleanupError) { throw new AggregateException("供应商未保存，新增凭据清理失败", commitError, cleanupError); }
+                    catch (Exception cleanupError) { throw new AggregateException("The provider was not saved and new credentials could not be cleaned up", commitError, cleanupError); }
                 }
                 throw;
             }
@@ -84,7 +84,7 @@ public sealed class ProviderCredentialService(LibraryRepository repository, ICre
 
     public async Task<bool> DeleteAsync(string providerId, CancellationToken cancellationToken = default)
     {
-        if (repository.IsReadOnly) throw new InvalidOperationException("资料库以只读方式打开");
+        if (repository.IsReadOnly) throw new InvalidOperationException("The library is open read-only");
         await mutation.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {

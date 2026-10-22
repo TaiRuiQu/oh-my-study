@@ -15,6 +15,9 @@
     <ProjectReference Include="../../src/OhMyStudy.Infrastructure/OhMyStudy.Infrastructure.csproj" />
     <ProjectReference Include="../../src/OhMyStudy.Documents/OhMyStudy.Documents.csproj" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" />
+    <Compile Include="../../src/OhMyStudy.App/Localization/GlobalUsings.cs" Link="Localization/GlobalUsings.cs" />
+    <Compile Include="../../src/OhMyStudy.App/Localization/UiText.cs" Link="Localization/UiText.cs" />
+    <EmbeddedResource Include="../../src/OhMyStudy.App/Localization/*.xml" LogicalName="OhMyStudy.App.Localization.%(Filename)%(Extension)" />
     <Compile Include="../../src/OhMyStudy.App/Services/NativePageImages.cs" Link="Services/NativePageImages.cs" />
     <Compile Include="../../src/OhMyStudy.App/Services/NativeMediaProcessor.cs" Link="Services/NativeMediaProcessor.cs" />
     <None Include="../Fixtures/Compatibility/assets.synthetic.json" Link="Fixtures/assets.synthetic.json" CopyToOutputDirectory="PreserveNewest" />

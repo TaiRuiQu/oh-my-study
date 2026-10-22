@@ -25,7 +25,14 @@ internal static class LocalizationChecks
         string path = Path.Combine(directory, "language.txt");
         try
         {
-            var source = Catalog("zh-CN");
+            var source = Catalog("en-US");
+            var legacySource = Catalog("zh-CN");
+            check("english_source_default", () =>
+            {
+                Require(UiText.Language == "en-US" && UiText.Preference == "system");
+                Require(UiText.Get("Settings") == "Settings");
+                Require(UiText.GetByKey("S0009") == "Settings");
+            });
             check("xaml_catalog_keys", () =>
             {
                 using var stream = typeof(UiText).Assembly.GetManifestResourceStream("Localization.MainWindow.xaml")!;
@@ -45,7 +52,9 @@ internal static class LocalizationChecks
                     foreach (var pair in source)
                     {
                         Require(translated[pair.Key].Length > 0);
-                        Require(UiText.Get(pair.Value) == translated[pair.Key]);
+                        string sourceKey = source.First(entry => entry.Value == pair.Value).Key;
+                        Require(UiText.Get(pair.Value) == translated[sourceKey]);
+                        Require(UiText.Get(legacySource[pair.Key]) == translated[pair.Key]);
                         Require(UiText.GetByKey(pair.Key) == translated[pair.Key]);
                         var expected = Placeholders(pair.Value);
                         Require(expected.SequenceEqual(Placeholders(translated[pair.Key])));
@@ -54,13 +63,17 @@ internal static class LocalizationChecks
                     }
                     Require(UiText.Get("unknown source") == "unknown source");
                     Require(UiText.GetByKey("unknown key") == "unknown key");
-                    Require(UiText.Format("第 {0} / {1} 页", 2, 12).Contains("12", StringComparison.Ordinal));
+                    Require(UiText.Format("Page {0} / {1}", 2, 12).Contains("12", StringComparison.Ordinal));
                     Require(!string.IsNullOrEmpty(UiText.InterfaceFontFamily));
                     if (language is "zh-CN" or "en-US") Require(UiText.ReadingFontFamily == "Microsoft YaHei UI");
                     Require(UiText.ActivityText("已阅读 2 页，已保存 15 题。") == UiText.Format("已阅读 {0} 页，已保存 {1} 题。", "2", "15"));
                     Require(UiText.ActivityText("阅读第 12 页") == UiText.Format("阅读第 {0} 页", "12"));
                     Require(UiText.ActivityText("第 4 轮识别") == UiText.Format("第 {0} 轮识别", "4"));
                     Require(UiText.ActivityText("已生成 3 项操作") == UiText.Format("已生成 {0} 项操作", "3"));
+                    Require(UiText.ActivityText("Pages read: 2. Questions saved: 15.") == UiText.Format("Pages read: {0}. Questions saved: {1}.", "2", "15"));
+                    Require(UiText.ActivityText("Read page 12") == UiText.Format("Read page {0}", "12"));
+                    Require(UiText.ActivityText("Recognition round 4") == UiText.Format("Recognition round {0}", "4"));
+                    Require(UiText.ActivityText("Actions prepared: 3") == UiText.Format("Actions prepared: {0}", "3"));
                     Require(UiText.ActivityText("中文 English 日本語 한국어") == "中文 English 日本語 한국어");
                 });
             }
@@ -68,7 +81,7 @@ internal static class LocalizationChecks
             {
                 UiText.SavePreferenceAsync(path, "en-US").GetAwaiter().GetResult();
                 UiText.Initialize(path, "zh-CN");
-                Require(UiText.Language == "en-US" && UiText.Get("设置") == "Settings");
+                Require(UiText.Language == "en-US" && UiText.Get("Settings") == "Settings");
                 UiText.SavePreferenceAsync(path, "system").GetAwaiter().GetResult();
                 UiText.Initialize(path, "ko-KR");
                 Require(UiText.Language == "ko-KR" && UiText.Preference == "system");
@@ -78,6 +91,7 @@ internal static class LocalizationChecks
                 File.Delete(path);
                 UiText.Initialize(path, "zh-CN");
                 Require(UiText.Language == "zh-CN");
+                Require(UiText.Preference == "system" && UiText.Get("Settings") == "设置");
                 try { UiText.SavePreferenceAsync(path, "invalid").GetAwaiter().GetResult(); throw new InvalidOperationException("Invalid preference accepted."); }
                 catch (ArgumentException) { }
                 Require(!Directory.EnumerateFiles(directory, "*.tmp").Any());

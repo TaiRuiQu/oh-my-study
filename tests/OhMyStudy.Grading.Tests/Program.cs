@@ -217,7 +217,7 @@ internal static class Program
         var failed = await fixture.Run(failedClient);
         var retained = (await fixture.Library.ListJobEventsAsync(failed.Id)).Where(e => e.Kind == "activity").Select(e => DomainJson.Deserialize<JobActivity>(e.Payload.GetRawText())).ToList();
         Check(failed.State == JobState.Failed && retained.Any(a => a.Text == "连接中断前已收到的公开回复"
-            && a.State == "failed" && a.Detail.Contains("网络", StringComparison.Ordinal)), "short partial response and actionable error retained on immediate transport failure");
+            && a.State == "failed" && a.Detail.Contains("network", StringComparison.Ordinal)), "short partial response and actionable error retained on immediate transport failure");
     }
 
     private static async Task MessagesThinkingContinuation()

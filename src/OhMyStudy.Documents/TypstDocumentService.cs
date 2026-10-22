@@ -39,15 +39,15 @@ public sealed partial class TypstDocumentService
     {
         using var input = File.OpenRead(path);
         var hash = Convert.ToHexStringLower(SHA256.HashData(input));
-        if (hash != expected) throw new InvalidDataException(name + "哈希不匹配，请运行原生文档工具准备脚本。 ");
+        if (hash != expected) throw new InvalidDataException(name + " hash mismatch. Run the native document tool preparation script. ");
     }
 
     public async Task<ExamExportResult> ExportExamAsync(ExamDocument document, ExamPaper paper, ExamEdition edition,
         string outputDirectory, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (document.Questions.Count is 0 or > 500) throw new ArgumentOutOfRangeException(nameof(document), "题数必须为 1 至 500。 ");
-        if (document.Title.Length > 512) throw new ArgumentException("标题过长。 ", nameof(document));
+        if (document.Questions.Count is 0 or > 500) throw new ArgumentOutOfRangeException(nameof(document), "The question count must be between 1 and 500. ");
+        if (document.Title.Length > 512) throw new ArgumentException("The title is too long. ", nameof(document));
         var directory = Path.GetFullPath(outputDirectory);
         Directory.CreateDirectory(directory);
         var name = (paper == ExamPaper.A3Landscape ? "a3-" : "a4-") + (edition == ExamEdition.Questions ? "questions" : "answers");
@@ -60,9 +60,9 @@ public sealed partial class TypstDocumentService
             .Append("\", flipped: ").Append(paper == ExamPaper.A3Landscape ? "true" : "false")
             .Append(", margin: (x: 17mm, top: 18mm, bottom: 17mm), footer: context align(center, text(size: 9pt)[#counter(page).display(\"1 / 1\", both: true)]))\n");
         source.Append("#set par(leading: 0.75em, spacing: 0.65em)\n");
-        source.Append("#let fit-formula(pic, original) = layout(size => { if measure(pic).width > size.width { block(breakable: true)[#text(size: 9pt, \"公式超过栏宽，原式如下：\") #linebreak() #text(original)] } else { align(center, pic) } })\n");
+        source.Append("#let fit-formula(pic, original) = layout(size => { if measure(pic).width > size.width { block(breakable: true)[#text(size: 9pt, \"The formula exceeds the column width. Original formula:\") #linebreak() #text(original)] } else { align(center, pic) } })\n");
         source.Append("#align(center, text(size: 18pt, weight: \"bold\", ").Append(Quote(document.Title)).Append("))\n");
-        source.Append("#align(center, text(size: 10pt, ").Append(Quote(edition == ExamEdition.Questions ? "题目卷 · 姓名：____________  日期：____________" : "答案解析册")).Append("))\n#v(4mm)\n");
+        source.Append("#align(center, text(size: 10pt, ").Append(Quote(edition == ExamEdition.Questions ? "Questions · Name: ____________  Date: ____________" : "Answers and explanations")).Append("))\n#v(4mm)\n");
         if (paper == ExamPaper.A3Landscape) source.Append("#columns(2, gutter: 12mm)[\n");
         long totalText = document.Title.Length;
         int nodes = 0;
@@ -70,22 +70,22 @@ public sealed partial class TypstDocumentService
         foreach (var question in document.Questions)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (question.Number < 1) throw new ArgumentException("题号必须为正整数。 ", nameof(document));
+            if (question.Number < 1) throw new ArgumentException("Question numbers must be positive integers. ", nameof(document));
             source.Append("#block(sticky: true, above: 3mm, below: 1mm)[#strong[").Append(question.Number).Append(".]]\n");
             AppendSegments(source, question.Body, diagnostics, question.Number, assets, ref totalText);
             AppendOptions(source, question.Options, diagnostics, question.Number, assets, ref totalText);
             if (edition == ExamEdition.Answers)
             {
                 // Neither StudentAttempt nor question-edition answer/explanation fields are read.
-                AppendTextBlock(source, "答案：" + (question.Answer ?? "未提供"), diagnostics, question.Number, assets, ref totalText);
-                if (question.Explanation is { Length: > 0 }) AppendTextBlock(source, "解析：" + question.Explanation, diagnostics, question.Number, assets, ref totalText);
+                AppendTextBlock(source, "Answer: " + (question.Answer ?? "Not provided"), diagnostics, question.Number, assets, ref totalText);
+                if (question.Explanation is { Length: > 0 }) AppendTextBlock(source, "Explanation: " + question.Explanation, diagnostics, question.Number, assets, ref totalText);
             }
             AppendParts(source, question.Parts, question.Number.ToString(CultureInfo.InvariantCulture), 0,
                 edition, diagnostics, question.Number, assets, ref totalText, ref nodes, cancellationToken);
             if (edition == ExamEdition.Questions) AppendBlank(source, question.BlankMillimetres);
         }
         if (paper == ExamPaper.A3Landscape) source.Append("]\n");
-        if (totalText > 1_000_000) throw new ArgumentException("试卷文字超过限制。 ", nameof(document));
+        if (totalText > 1_000_000) throw new ArgumentException("Exam text exceeds the limit. ", nameof(document));
         await File.WriteAllTextAsync(sourcePath, source.ToString(), new UTF8Encoding(false), cancellationToken);
         var pdf = Path.Combine(directory, name + ".pdf");
         await CompileAsync(sourcePath, pdf, cancellationToken);
@@ -100,9 +100,9 @@ public sealed partial class TypstDocumentService
 
     private static void CountText(string text, ref long total)
     {
-        if (text.Length > 32_768) throw new ArgumentException("单段文字超过 32768 字符。 ", nameof(text));
+        if (text.Length > 32_768) throw new ArgumentException("A text segment exceeds 32768 characters. ", nameof(text));
         total += text.Length;
-        if (total > 1_000_000) throw new ArgumentException("试卷文字超过限制。 ", nameof(text));
+        if (total > 1_000_000) throw new ArgumentException("Exam text exceeds the limit. ", nameof(text));
     }
 
     private static void AppendParts(StringBuilder source, IReadOnlyList<ExamPart>? parts, string parent, int depth,
@@ -110,11 +110,11 @@ public sealed partial class TypstDocumentService
         ref long total, ref int nodes, CancellationToken cancellationToken)
     {
         if (parts is null) return;
-        if (depth >= 32 || parts.Count > 100) throw new ArgumentException("小问层级或数量超过限制。");
+        if (depth >= 32 || parts.Count > 100) throw new ArgumentException("The depth or number of question parts exceeds the limit.");
         foreach (var part in parts)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (++nodes > 10_000) throw new ArgumentException("试卷小问过多。");
+            if (++nodes > 10_000) throw new ArgumentException("The exam has too many question parts.");
             string label = parent + " / " + part.Label;
             CountText(label, ref total);
             source.Append("#block(sticky: true, above: 2mm)[#strong[#text(").Append(Quote(label)).Append(")]]\n");
@@ -122,8 +122,8 @@ public sealed partial class TypstDocumentService
             AppendOptions(source, part.Options, diagnostics, question, assets, ref total);
             if (edition == ExamEdition.Answers)
             {
-                AppendTextBlock(source, "答案：" + (part.Answer ?? "未提供"), diagnostics, question, assets, ref total);
-                if (part.Explanation is { Length: > 0 }) AppendTextBlock(source, "解析：" + part.Explanation, diagnostics, question, assets, ref total);
+                AppendTextBlock(source, "Answer: " + (part.Answer ?? "Not provided"), diagnostics, question, assets, ref total);
+                if (part.Explanation is { Length: > 0 }) AppendTextBlock(source, "Explanation: " + part.Explanation, diagnostics, question, assets, ref total);
             }
             else AppendBlank(source, part.BlankMillimetres);
             AppendParts(source, part.Parts, label, depth + 1, edition, diagnostics, question, assets, ref total, ref nodes, cancellationToken);
@@ -134,7 +134,7 @@ public sealed partial class TypstDocumentService
         List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
         if (options is null) return;
-        if (options.Count > 100) throw new ArgumentException("选项数过多。");
+        if (options.Count > 100) throw new ArgumentException("Too many options.");
         foreach (var option in options) AppendTextBlock(source, option, diagnostics, question, assets, ref total);
     }
 
@@ -158,7 +158,7 @@ public sealed partial class TypstDocumentService
         {
             if (!display && formula.WidthPoints > (maximumWidth ?? assets.ColumnWidthPoints))
             {
-                diagnostics.Add(new(question, text, "公式超过栏宽，已保留原文。"));
+                diagnostics.Add(new(question, text, "The formula exceeds the column width. The original text is preserved."));
                 source.Append("#text(").Append(Quote(DocumentText.AllowWrap(text))).Append(")");
                 return;
             }
@@ -176,11 +176,11 @@ public sealed partial class TypstDocumentService
     private static void AppendSegments(StringBuilder source, IReadOnlyList<ExamSegment> segments,
         List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
-        if (segments.Count > 1000) throw new ArgumentException("单题片段过多。 ", nameof(segments));
+        if (segments.Count > 1000) throw new ArgumentException("Too many segments in one question. ", nameof(segments));
         foreach (var segment in segments)
         {
             if ((segment.Rows is not null && segment.Image is not null) || ((segment.Rows is not null || segment.Image is not null) && (segment.IsFormula || segment.Text.Length != 0)))
-                throw new ArgumentException("题目片段类型不明确。");
+                throw new ArgumentException("The question segment type is ambiguous.");
             if (segment.Rows is { } rows) AppendTable(source, rows, diagnostics, question, assets, ref total);
             else if (segment.Image is { } image)
             {
@@ -207,19 +207,19 @@ public sealed partial class TypstDocumentService
         if (rows.Count == 0) return;
         int columns = rows.Max(row => row.Count);
         if (columns == 0) return;
-        if (rows.Count > 2000 || columns > 100 || (long)rows.Count * columns > 50_000) throw new ArgumentException("表格超过限制。");
+        if (rows.Count > 2000 || columns > 100 || (long)rows.Count * columns > 50_000) throw new ArgumentException("The table exceeds the limit.");
         // Split wide tables into column panels with explicit original column numbers, preserving every cell.
         for (int start = 0; start < columns; start += 6)
         {
             int width = Math.Min(6, columns - start);
             bool wide = columns > 6;
             if (columns > 6) source.Append("#block(sticky: true)[#text(size: 9pt, ")
-                .Append(Quote($"表格：第 {start + 1}–{start + width} 列")).Append(")]\n");
+                .Append(Quote($"Table: columns {start + 1}–{start + width}")).Append(")]\n");
             source.Append("#table(columns: (").Append(wide ? "auto, " : "").Append(string.Join(", ", Enumerable.Repeat("1fr", width))).Append(",), inset: 5pt, stroke: 0.4pt + rgb(\"aaaaaa\"),\n");
             if (wide)
             {
-                source.Append("table.header(repeat: true, [行], ");
-                for (int column = start; column < start + width; column++) source.Append("[#text(").Append(Quote($"第 {column + 1} 列")).Append(")], ");
+                source.Append("table.header(repeat: true, [Row], ");
+                for (int column = start; column < start + width; column++) source.Append("[#text(").Append(Quote($"Column {column + 1}")).Append(")], ");
                 source.Append("),\n");
             }
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
@@ -253,13 +253,13 @@ public sealed partial class TypstDocumentService
             token.ThrowIfCancellationRequested();
             if (!formulas.TryGetValue((text, display), out var cached))
             {
-                if (formulas.Count >= 2048) throw new ArgumentException("试卷公式过多，请分批导出。");
+                if (formulas.Count >= 2048) throw new ArgumentException("The exam has too many formulas. Export smaller batches.");
                 string name = "formula-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes((display ? "display:" : "inline:") + text))) + ".svg";
                 bool success = VelociTexFormulaRenderer.TryWriteSvg(text, Path.Combine(directory, name), TypstToolchain.BodySizePoints, display, token, out var formula, out diagnostic);
                 if (success)
                 {
                     formulaBytes += new FileInfo(formula!.Path).Length;
-                    if (formulaBytes > 128L * 1024 * 1024) throw new ArgumentException("试卷公式总量超过限制。");
+                    if (formulaBytes > 128L * 1024 * 1024) throw new ArgumentException("The total formula content exceeds the limit.");
                 }
                 cached = (formula, diagnostic);
                 formulas.Add((text, display), cached);
@@ -271,17 +271,17 @@ public sealed partial class TypstDocumentService
         public string Add(ExamImage image)
         {
             if (image.ContainsHandwriting && edition == ExamEdition.Questions)
-                throw new InvalidDataException("题图中含有手写内容，请更换干净题图后导出题目卷。");
-            if (image.Bytes.Length is < 8 or > 64 * 1024 * 1024) throw new InvalidDataException("题图为空或超过 64 MB。");
+                throw new InvalidDataException("Some question images contain handwriting. Replace them with clean images before exporting a question paper.");
+            if (image.Bytes.Length is < 8 or > 64 * 1024 * 1024) throw new InvalidDataException("The question image is empty or larger than 64 MB.");
             string extension = image.Bytes.AsSpan().StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) ? ".png"
                 : image.Bytes[0] == 255 && image.Bytes[1] == 216 && image.Bytes[2] == 255 ? ".jpg"
-                : throw new InvalidDataException("题图必须为已解码的 PNG 或 JPEG 图片。");
+                : throw new InvalidDataException("Question images must be decoded PNG or JPEG images.");
             ValidateRasterDimensions(image.Bytes, extension);
             string name = "asset-" + Convert.ToHexStringLower(SHA256.HashData(image.Bytes)) + extension;
             if (written.Add(name))
             {
                 bytes += image.Bytes.LongLength;
-                if (written.Count > 512 || bytes > 128L * 1024 * 1024) throw new ArgumentException("题图总量超过限制。");
+                if (written.Count > 512 || bytes > 128L * 1024 * 1024) throw new ArgumentException("Total question image size exceeds the limit.");
                 File.WriteAllBytes(Path.Combine(directory, name), image.Bytes);
             }
             return name;
@@ -292,7 +292,7 @@ public sealed partial class TypstDocumentService
             uint width = 0, height = 0;
             if (extension == ".png")
             {
-                if (bytes.Length < 33 || !bytes.AsSpan(12, 4).SequenceEqual("IHDR"u8)) throw new InvalidDataException("题图文件不完整。");
+                if (bytes.Length < 33 || !bytes.AsSpan(12, 4).SequenceEqual("IHDR"u8)) throw new InvalidDataException("The question image file is incomplete.");
                 width = BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(16, 4));
                 height = BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20, 4));
             }
@@ -321,7 +321,7 @@ public sealed partial class TypstDocumentService
                 }
             }
             if (width is 0 or > 20000 || height is 0 or > 20000 || (ulong)width * height > 40_000_000)
-                throw new InvalidDataException("题图尺寸无效或超过限制。");
+                throw new InvalidDataException("Question image dimensions are invalid or exceed the limit.");
         }
     }
 
@@ -342,7 +342,7 @@ public sealed partial class TypstDocumentService
             start.ArgumentList.Add(argument);
         // Ignore machine-level Typst overrides; the template contains no packages or plugins.
         foreach (var key in start.Environment.Keys.Where(key => key.StartsWith("TYPST_", StringComparison.OrdinalIgnoreCase)).ToArray()) start.Environment.Remove(key);
-        using var process = Process.Start(start) ?? throw new IOException("无法启动 Typst。 ");
+        using var process = Process.Start(start) ?? throw new IOException("Cannot start Typst. ");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
         var errorTask = ReadLimitedAsync(process.StandardError, timeout.Token);
@@ -352,19 +352,19 @@ public sealed partial class TypstDocumentService
             await process.WaitForExitAsync(timeout.Token);
             var error = await errorTask;
             _ = await outputTask;
-            if (process.ExitCode != 0) throw new InvalidDataException("原生排版失败：" + error);
+            if (process.ExitCode != 0) throw new InvalidDataException("Native typesetting failed: " + error);
             // A family that is not installed is only a warning, and the engine would silently
             // substitute another face. Fail loudly instead, so a PDF never claims a font it lacks.
             int missing = error.IndexOf("unknown font family", StringComparison.OrdinalIgnoreCase);
             if (missing >= 0)
             {
                 string family = error[missing..].Split('\n')[0]["unknown font family".Length..].TrimStart(' ', ':', '：');
-                throw new InvalidDataException($"系统缺少排版所需字体“{family}”，请安装 Windows 自带的宋体（新宋体）后重试。");
+                throw new InvalidDataException($"The required font '{family}' is missing. Install the Windows SimSun (NSimSun) font and retry.");
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (pages == 0)
             {
-                if (!File.Exists(temporary)) throw new IOException("Typst 未生成输出。 ");
+                if (!File.Exists(temporary)) throw new IOException("Typst did not generate output. ");
                 File.Move(temporary, destination, true);
             }
             else

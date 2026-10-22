@@ -37,7 +37,7 @@ public static class VelociTexFormulaRenderer
         if (!double.IsFinite(width) || !double.IsFinite(height) || width > 32768 || height > 32768)
         {
             result = null;
-            diagnostic = "公式过大，已保留原文。";
+            diagnostic = "The formula is too large. The original text is preserved.";
             return false;
         }
         using var renderer = new WindowsMathRenderer();

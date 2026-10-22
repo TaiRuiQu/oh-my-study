@@ -24,18 +24,18 @@ public sealed partial class MainWindow
             _settingsContentCallback = item.RegisterPropertyChangedCallback(ContentControl.ContentProperty, static (sender, _) =>
             {
                 var entry = (NavigationViewItem)sender;
-                if (entry.Content is not string text || text != UiText.Get("设置")) entry.Content = UiText.Get("设置");
+                if (entry.Content is not string text || text != UiText.Get("Settings")) entry.Content = UiText.Get("Settings");
             });
         }
-        item.Content = UiText.Get("设置");
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, UiText.Get("设置"));
+        item.Content = UiText.Get("Settings");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, UiText.Get("Settings"));
     }
 
     private void InitializeWorkspaceAccessibility()
     {
         // Global accelerators must not create an implicit tooltip over the entire window.
         RootGrid.KeyboardAcceleratorPlacementMode = KeyboardAcceleratorPlacementMode.Hidden;
-        ToolTipService.SetToolTip(ImportPaperButton, UiText.Get("导入试卷 (Ctrl + O)"));
+        ToolTipService.SetToolTip(ImportPaperButton, UiText.Get("Import exam (Ctrl + O)"));
         RootGrid.SizeChanged += (_, _) => ApplyWorkspaceLayout();
         AddAccelerator(VirtualKey.O, VirtualKeyModifiers.Control, () => OpenFiles_Click(this, new RoutedEventArgs()));
         AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, async () =>
@@ -142,11 +142,11 @@ public sealed partial class MainWindow
         QuestionListHeading.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         QuestionList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         QuestionDetail.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
-        EmptyQuestionTitle.Text = ViewModel.SectionTitle == UiText.Get("错题") ? UiText.Get("还没有错题") : ViewModel.IsTaskRunning ? UiText.Get("正在识别题目") : UiText.Get("还没有题目");
-        EmptyQuestionMessage.Text = ViewModel.SectionTitle == UiText.Get("错题") ? UiText.Get("批改后需要复习的题目会出现在这里。")
-            : ViewModel.IsTaskRunning ? UiText.Get("题目识别后会自动出现在这里，可在任务中查看进度。")
-            : ViewModel.CurrentDocument is not null ? UiText.Get("这份试卷还没有识别出题目，可在上方重新识别。")
-            : UiText.Get("在试卷页面导入 PDF 或图片，识别后题目会自动加入题库。");
+        EmptyQuestionTitle.Text = ViewModel.SectionTitle == UiText.Get("Mistakes") ? UiText.Get("No mistakes yet") : ViewModel.IsTaskRunning ? UiText.Get("Recognizing questions") : UiText.Get("No questions yet");
+        EmptyQuestionMessage.Text = ViewModel.SectionTitle == UiText.Get("Mistakes") ? UiText.Get("Questions to review after grading will appear here.")
+            : ViewModel.IsTaskRunning ? UiText.Get("Recognized questions appear here automatically. Check progress in Tasks.")
+            : ViewModel.CurrentDocument is not null ? UiText.Get("No questions were recognized in this exam. Try recognition again above.")
+            : UiText.Get("Import a PDF or image in Exams. Recognized questions join your question bank automatically.");
         GradeButton.Visibility = DocumentToolbar.Visibility == Visibility.Visible && ViewModel.CurrentDocument is not null ? Visibility.Visible : Visibility.Collapsed;
         TaskActivity.Visibility = ViewModel.IsTaskRunning && TasksPanel.Visibility != Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
     }

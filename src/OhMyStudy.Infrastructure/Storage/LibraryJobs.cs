@@ -19,9 +19,9 @@ public sealed partial class LibraryRepository
         var id = snapshot.GetProperty("id").GetString()!; ValidId(id);
         var sequence = jobEvent.GetProperty("sequence").GetUInt64();
         if (sequence > long.MaxValue || jobEvent.GetProperty("job_id").GetString() != id || snapshot.GetProperty("sequence").GetUInt64() != sequence)
-            throw new ArgumentException("任务快照与事件不一致");
+            throw new ArgumentException("The task snapshot does not match the event");
         var progress = snapshot.GetProperty("progress").GetDouble();
-        if (!double.IsFinite(progress) || progress is < 0 or > 100) throw new ArgumentException("任务进度无效");
+        if (!double.IsFinite(progress) || progress is < 0 or > 100) throw new ArgumentException("Invalid task progress");
         var eventId = jobEvent.TryGetProperty("id", out var eventIdElement) ? eventIdElement.GetString()! : NewId();
         var kind = snapshot.GetProperty("kind").GetString()!; var state = snapshot.GetProperty("state").GetString()!;
         var created = snapshot.GetProperty("created_at").GetRawText(); var updated = snapshot.GetProperty("updated_at").GetRawText();
@@ -30,7 +30,7 @@ public sealed partial class LibraryRepository
         return Run(() => Transaction(cancellationToken, () =>
         {
             var previous = Scalar("SELECT MAX(sequence) FROM job_events WHERE job_id=$p0", id);
-            if (previous is not null && (long)sequence <= Convert.ToInt64(previous)) throw new InvalidOperationException("任务事件序号必须递增");
+            if (previous is not null && (long)sequence <= Convert.ToInt64(previous)) throw new InvalidOperationException("Task event sequence numbers must increase");
             Execute("INSERT INTO jobs(id,kind,state,created_at,updated_at,progress,message,snapshot_json) VALUES($p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7) ON CONFLICT(id) DO UPDATE SET state=excluded.state,updated_at=excluded.updated_at,progress=excluded.progress,message=excluded.message,snapshot_json=excluded.snapshot_json", id, kind, state, created, updated, progress / 100, message, snapshotJson);
             Execute("INSERT INTO job_events(id,job_id,sequence,created_at,kind,payload_json) VALUES($p0,$p1,$p2,$p3,$p4,$p5)", eventId, id, (long)sequence, eventCreated, eventKind, eventJson);
             return 0;
@@ -49,17 +49,17 @@ public sealed partial class LibraryRepository
     public Task<string> VerifyIntegrityAsync(CancellationToken cancellationToken = default) => Run(() =>
     {
         VerifyDatabase(connection);
-        if (Writable && Convert.ToString(Scalar("PRAGMA journal_mode")) != "wal") throw new InvalidDataException("资料库日志模式无效");
+        if (Writable && Convert.ToString(Scalar("PRAGMA journal_mode")) != "wal") throw new InvalidDataException("Invalid library journal mode");
         return "SQLite integrity_check=ok; foreign_keys=on; foreign_key_check=ok";
     }, cancellationToken);
 
     private static void VerifyDatabase(Microsoft.Data.Sqlite.SqliteConnection database)
     {
         using var command = database.CreateCommand(); command.CommandText = "PRAGMA integrity_check";
-        if (Convert.ToString(command.ExecuteScalar()) != "ok") throw new InvalidDataException("资料库校验失败");
+        if (Convert.ToString(command.ExecuteScalar()) != "ok") throw new InvalidDataException("Library verification failed");
         command.CommandText = "PRAGMA foreign_key_check";
         using var reader = command.ExecuteReader();
-        if (reader.Read()) throw new InvalidDataException("资料库关联校验失败");
+        if (reader.Read()) throw new InvalidDataException("Library relationship verification failed");
     }
 
     public Task<LibraryInspection> InspectAsync(CancellationToken cancellationToken = default) => Run(() =>

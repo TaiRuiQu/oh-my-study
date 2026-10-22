@@ -50,7 +50,7 @@ public sealed record ExecutionPolicy
             EffectiveMode = effective,
             ExecutorKind = effective == ExecutionMode.Sandbox ? ExecutorKind.AppContainer : ExecutorKind.Host,
             FallbackReason = fallback ? capability.Reason : null,
-            Warning = fallback ? $"{capability.Reason}。本次代码与命令将在本机使用当前账户权限执行，可访问该账户的文件和网络。本机执行／未隔离。" : null,
+            Warning = fallback ? $"{capability.Reason}. Code and commands will run locally with the current account's permissions and can access its files and network. Local execution / not isolated." : null,
             SandboxNetworking = networking
         };
     }

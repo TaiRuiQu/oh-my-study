@@ -12,14 +12,14 @@ public sealed class HostToolExecutor(string privateRuntime, WindowsProcessRunner
     public async Task<ToolExecutionResult> ExecuteAsync(AuthorizedCall authorization, string resultsDirectory, CancellationToken cancellationToken)
     {
         if (authorization.Mode == ExecutionMode.Sandbox)
-            throw new InvalidOperationException("沙箱执行不可转到本机重试。");
+            throw new InvalidOperationException("Sandbox execution cannot fall back to local execution.");
         var call = authorization.Consume();
         call.Validate();
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, authorization.Revocation);
         linked.Token.ThrowIfCancellationRequested();
         var parent = RuntimePaths.CheckedDirectory(Path.GetDirectoryName(resultsDirectory)!, create: true);
         var results = Path.Combine(parent, Path.GetFileName(resultsDirectory));
-        if (Directory.Exists(results)) throw new IOException("调用目录已存在，不能重放。");
+        if (Directory.Exists(results)) throw new IOException("The call directory already exists. Calls cannot be replayed.");
         RuntimePaths.CheckedDirectory(results, create: true);
         string requestFile = Path.Combine(results, "request.json");
         await File.WriteAllTextAsync(requestFile, DomainJson.Serialize(call), new UTF8Encoding(false), linked.Token).ConfigureAwait(false);

@@ -32,12 +32,12 @@ public sealed class WindowsInstallationIntegration : IInstallationIntegration
         SafePaths.AssertUnlinked(recordPath); SafePaths.AssertUnlinked(ShortcutDirectory, recursive: true);
         byte[]? priorRecord = File.Exists(recordPath) ? File.ReadAllBytes(recordPath) : null;
         var prior = priorRecord is null ? null : JsonSerializer.Deserialize(priorRecord, IntegrationJson.Default.IntegrationRecord);
-        if (prior is not null && !prior.Root.Equals(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("开始菜单记录不匹配。");
+        if (prior is not null && !prior.Root.Equals(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("The Start menu record does not match.");
         Dictionary<string, (object, RegistryValueKind)>? registryBefore;
         using (var existing = Registry.CurrentUser.OpenSubKey(RegistryPath))
         {
             if (existing?.GetValue("InstallLocation") is string location && !location.Equals(root, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("此用户已安装在其他位置，请先卸载原安装。");
+                throw new InvalidDataException("This user already has an installation elsewhere. Uninstall it first.");
             registryBefore = existing?.GetValueNames().ToDictionary(name => name, name => (existing.GetValue(name)!, existing.GetValueKind(name)), StringComparer.Ordinal);
         }
         var added = new List<string>();
@@ -51,7 +51,7 @@ public sealed class WindowsInstallationIntegration : IInstallationIntegration
         try
         {
             if (prior is null && Directory.Exists(ShortcutDirectory) && Directory.EnumerateFileSystemEntries(ShortcutDirectory).Any())
-                throw new InvalidDataException("开始菜单已有同名文件，请先移走后重试。");
+                throw new InvalidDataException("The Start menu already contains files with this name. Move them away and retry.");
             if (prior is not null)
             {
                 ValidateLink(LaunchLink, prior.LaunchSha256); ValidateLink(UninstallLink, prior.UninstallSha256);
@@ -86,7 +86,7 @@ public sealed class WindowsInstallationIntegration : IInstallationIntegration
         if (File.Exists(recordPath))
         {
             var record = JsonSerializer.Deserialize(File.ReadAllBytes(recordPath), IntegrationJson.Default.IntegrationRecord);
-            if (record is null || !record.Root.Equals(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("开始菜单记录不匹配。");
+            if (record is null || !record.Root.Equals(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("The Start menu record does not match.");
             foreach (var (path, hash) in new[] { (LaunchLink, record.LaunchSha256), (UninstallLink, record.UninstallSha256) })
                 if (File.Exists(path) && Hash(path) == hash) File.Delete(path);
             File.Delete(recordPath);
@@ -105,7 +105,7 @@ public sealed class WindowsInstallationIntegration : IInstallationIntegration
         foreach (var pair in values) key.SetValue(pair.Key, pair.Value.Item1, pair.Value.Item2);
     }
     private static string Hash(string path) { SafePaths.AssertUnlinked(path); using var file = File.OpenRead(path); return Convert.ToHexStringLower(SHA256.HashData(file)); }
-    private static void ValidateLink(string path, string expected) { if (File.Exists(path) && Hash(path) != expected) throw new InvalidDataException("开始菜单快捷方式已变化，请移走后重试。"); }
+    private static void ValidateLink(string path, string expected) { if (File.Exists(path) && Hash(path) != expected) throw new InvalidDataException("The Start menu shortcut has changed. Move it away and retry."); }
     private sealed class Transaction(Action rollback) : IIntegrationTransaction
     {
         private bool committed;

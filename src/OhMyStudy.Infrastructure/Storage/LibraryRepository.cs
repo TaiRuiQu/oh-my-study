@@ -56,14 +56,14 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         var dbFile = LegacyLibraryLocation.DatabaseFile(Root);
         if (options.Mode == LibraryOpenMode.CreateNew)
         {
-            if (File.Exists(dbFile)) throw new IOException("资料库已存在，请明确选择打开方式");
+            if (File.Exists(dbFile)) throw new IOException("The library already exists. Choose how to open it");
             var existing = Root;
-            while (!Directory.Exists(existing)) existing = Path.GetDirectoryName(existing) ?? throw new DirectoryNotFoundException("资料目录无效");
+            while (!Directory.Exists(existing)) existing = Path.GetDirectoryName(existing) ?? throw new DirectoryNotFoundException("Invalid library directory");
             RejectLinks(existing);
             Directory.CreateDirectory(Root);
         }
         if (!Directory.Exists(Root) || !File.Exists(dbFile) && options.Mode != LibraryOpenMode.CreateNew)
-            throw new DirectoryNotFoundException("未找到资料库");
+            throw new DirectoryNotFoundException("Library not found");
         RejectLinks(Root);
         if (File.Exists(dbFile)) RejectLinks(dbFile);
         if (Writable)
@@ -83,7 +83,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         connection.Open();
         Execute("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version"));
-        if (version is < 0 or > 3) throw new InvalidDataException("资料库版本不受支持");
+        if (version is < 0 or > 3) throw new InvalidDataException("Unsupported library version");
         ValidateSchema(version);
         if (Writable)
         {
@@ -102,7 +102,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
             Directory.CreateDirectory(AssetRoot);
             RejectLinks(AssetRoot);
         }
-        else if (version == 0) throw new InvalidDataException("资料库尚未初始化");
+        else if (version == 0) throw new InvalidDataException("The library has not been initialized");
     }
 
     private static string Migration(string name)
@@ -119,14 +119,14 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         if (version == 0)
         {
             if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")) != 0)
-                throw new InvalidDataException("未标版本的资料库包含未知表，拒绝自动升级");
+                throw new InvalidDataException("The unversioned library contains unknown tables. Automatic upgrade refused");
             return;
         }
         foreach (var table in new[] { "providers", "assets", "documents", "source_pages", "jobs", "job_events", "settings" })
-            if (Scalar("SELECT name FROM sqlite_master WHERE type='table' AND name=$p0", table) is null) throw new InvalidDataException("资料库结构不完整");
+            if (Scalar("SELECT name FROM sqlite_master WHERE type='table' AND name=$p0", table) is null) throw new InvalidDataException("The library schema is incomplete");
         if (version >= 2)
             foreach (var table in new[] { "questions", "grading_runs", "model_calls" })
-                if (Scalar("SELECT name FROM sqlite_master WHERE type='table' AND name=$p0", table) is null) throw new InvalidDataException("资料库结构不完整");
+                if (Scalar("SELECT name FROM sqlite_master WHERE type='table' AND name=$p0", table) is null) throw new InvalidDataException("The library schema is incomplete");
         var expected = new Dictionary<string, string[]>
         {
             ["providers"] = ["id", "config_json"],
@@ -148,7 +148,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         foreach (var (table, columns) in expected)
         {
             var actual = Query("SELECT name FROM pragma_table_info($p0)", r => r.GetString(0), table).ToHashSet(StringComparer.Ordinal);
-            if (columns.Any(c => !actual.Contains(c))) throw new InvalidDataException("资料库字段不完整");
+            if (columns.Any(c => !actual.Contains(c))) throw new InvalidDataException("Library fields are incomplete");
         }
     }
 
@@ -163,7 +163,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
                 if (process.Id == Environment.ProcessId) continue;
                 var name = process.ProcessName;
                 if (name.Equals("oh-my-study", StringComparison.OrdinalIgnoreCase) || name.Equals("oh_my_study", StringComparison.OrdinalIgnoreCase))
-                    throw new IOException("请先退出旧版应用，再打开资料库进行编辑");
+                    throw new IOException("Exit the older app before opening the library for editing");
             }
         }
     }
@@ -171,7 +171,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
     private Task<T> Run<T>(Func<T> action, CancellationToken cancellationToken = default, bool write = false)
     {
         if (Volatile.Read(ref disposed) != 0) return Task.FromException<T>(new ObjectDisposedException(nameof(LibraryRepository)));
-        if (write && !Writable) return Task.FromException<T>(new InvalidOperationException("资料库以只读方式打开"));
+        if (write && !Writable) return Task.FromException<T>(new InvalidOperationException("The library is open read-only"));
         var result = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
@@ -181,7 +181,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
                 try { cancellationToken.ThrowIfCancellationRequested(); result.TrySetResult(action()); }
                 catch (OperationCanceledException) { result.TrySetCanceled(cancellationToken); }
                 catch (Exception error) { result.TrySetException(error); }
-            })) throw new InvalidOperationException("保存队列已满，请稍后重试");
+            })) throw new InvalidOperationException("The save queue is full. Retry later");
         }
         catch (OperationCanceledException) { result.TrySetCanceled(cancellationToken); }
         catch (Exception error) { result.TrySetException(error); }
@@ -218,11 +218,11 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
     private static uint? NullableUInt(SqliteDataReader reader, int index) => reader.IsDBNull(index) ? null : checked((uint)reader.GetInt64(index));
     private static string NewId() => Guid.NewGuid().ToString("D");
     private static string Now() => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffffzzz", System.Globalization.CultureInfo.InvariantCulture);
-    private static void ValidId(string id) { if (!Guid.TryParse(id, out _)) throw new ArgumentException("无效的标识"); }
+    private static void ValidId(string id) { if (!Guid.TryParse(id, out _)) throw new ArgumentException("Invalid ID"); }
     internal static void RejectLinks(string path)
     {
         for (FileSystemInfo? item = File.Exists(path) ? new FileInfo(path) : new DirectoryInfo(path); item is not null; item = item is FileInfo file ? file.Directory : ((DirectoryInfo)item).Parent)
-            if ((item.Attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("资料路径不能包含链接或重解析点");
+            if ((item.Attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("Library paths must not contain links or reparse points");
     }
 
     public void Dispose()

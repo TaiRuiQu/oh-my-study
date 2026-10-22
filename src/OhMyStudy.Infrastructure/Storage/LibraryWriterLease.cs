@@ -12,7 +12,7 @@ public sealed class LibraryWriterLease : IDisposable
         if (!Directory.Exists(path)) throw new DirectoryNotFoundException(path);
         for (DirectoryInfo? current = new(path); current is not null; current = current.Parent)
             if ((current.Attributes & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("资料目录不能包含重解析点");
+                throw new IOException("Library directories must not contain reparse points");
         try
         {
             return new(new FileStream(Path.Combine(path, ".native-writer.lock"),
@@ -20,7 +20,7 @@ public sealed class LibraryWriterLease : IDisposable
         }
         catch (IOException exception)
         {
-            throw new IOException("资料库正在被另一个原生客户端使用，或无法获取写入锁", exception);
+            throw new IOException("The library is in use by another native client, or the write lock could not be acquired", exception);
         }
     }
 

@@ -11,23 +11,23 @@ public sealed class SandboxMappings
 
     public static SandboxMappings ForTask(string privateRuntime, string taskRoot, string jobId)
     {
-        if (!ExecutionCall.ValidId(jobId)) throw new ArgumentException("无效的任务标识。");
+        if (!ExecutionCall.ValidId(jobId)) throw new ArgumentException("Invalid task ID.");
         var root = RuntimePaths.CheckedDirectory(taskRoot);
         var task = RuntimePaths.CheckedDirectory(Path.Combine(root, jobId));
         var paths = new[] { RuntimePaths.CheckedDirectory(privateRuntime), RuntimePaths.CheckedDirectory(Path.Combine(task, "inputs")),
             RuntimePaths.CheckedDirectory(Path.Combine(task, "requests")), RuntimePaths.CheckedDirectory(Path.Combine(task, "results")) };
         for (int i = 0; i < paths.Length; i++)
         {
-            if (paths[i].StartsWith(@"\\", StringComparison.Ordinal)) throw new IOException("AppContainer 需要本地目录。");
+            if (paths[i].StartsWith(@"\\", StringComparison.Ordinal)) throw new IOException("AppContainer requires a local directory.");
             for (int j = i + 1; j < paths.Length; j++)
-                if (Within(paths[i], paths[j]) || Within(paths[j], paths[i])) throw new IOException("沙箱映射目录不能重叠。");
+                if (Within(paths[i], paths[j]) || Within(paths[j], paths[i])) throw new IOException("Sandbox mapping directories must not overlap.");
         }
         return new(paths);
     }
 
     public string ToConfiguration(string jobId, string nonce, bool networking)
     {
-        if (!ExecutionCall.ValidId(jobId) || !ExecutionCall.ValidId(nonce)) throw new ArgumentException("无效的会话标识。");
+        if (!ExecutionCall.ValidId(jobId) || !ExecutionCall.ValidId(nonce)) throw new ArgumentException("Invalid session ID.");
         return JsonSerializer.Serialize(new AppContainerConfiguration(_directories[0], _directories[1], _directories[2], _directories[3], networking),
             SandboxJson.Default.AppContainerConfiguration);
     }

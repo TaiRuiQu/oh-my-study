@@ -17,19 +17,19 @@ public sealed partial class MainWindow
             var folder = await PickFolderAsync();
             if (folder is null) return;
             if (!File.Exists(LegacyLibraryLocation.DatabaseFile(folder.Path)))
-            { LibraryFeedback.Text = UiText.Get("此文件夹没有资料库，请选择之前的保存位置。"); return; }
+            { LibraryFeedback.Text = UiText.Get("This folder has no library. Choose your previous save location."); return; }
             if (!await CanOpenExistingLibraryAsync(folder.Path))
-            { LibraryFeedback.Text = UiText.Get("请从资料页的更多菜单选择“恢复备份”或“导入旧版资料”。"); return; }
+            { LibraryFeedback.Text = UiText.Get("Choose Restore backup or Import legacy materials from the material page's More menu."); return; }
             if (Path.GetFullPath(folder.Path).TrimEnd(Path.DirectorySeparatorChar).Equals(
                 Path.GetFullPath(_libraryDirectory).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase) && _library is not null) return;
             _changingLibrary = true; Navigation.IsEnabled = false;
             if (await SwitchLibraryAsync(folder.Path))
             {
                 Navigation.SelectedItem = Navigation.SettingsItem;
-                LibraryFeedback.Text = UiText.Get("已打开资料库。");
+                LibraryFeedback.Text = UiText.Get("Library opened.");
             }
         }
-        catch { LibraryFeedback.Text = UiText.Get("无法打开，请检查文件夹并结束当前任务后重试。"); }
+        catch { LibraryFeedback.Text = UiText.Get("Could not open. Check the folder and finish the current task before retrying."); }
         finally { _changingLibrary = false; Navigation.IsEnabled = true; }
     }
 
@@ -42,9 +42,9 @@ public sealed partial class MainWindow
 
     private async void WorkspaceNotice_CloseButtonClick(InfoBar sender, object args)
     {
-        if (sender.Title != UiText.Get("发现旧版资料") || _library is null) return;
+        if (sender.Title != UiText.Get("Legacy materials found") || _library is null) return;
         try { await ChangeSettingsAsync(current => current with { LegacyNoticeDismissed = true }); }
-        catch { ViewModel.StatusMessage = UiText.Get("提示已关闭，但未能记住此选择。"); }
+        catch { ViewModel.StatusMessage = UiText.Get("Notice dismissed, but the choice could not be saved."); }
     }
 
     private async void OpenLibraryFolder_Click(object sender, RoutedEventArgs e)
@@ -52,9 +52,9 @@ public sealed partial class MainWindow
         try
         {
             var folder = await Windows.Storage.StorageFolder.GetFolderFromPathAsync(_libraryDirectory);
-            if (!await Windows.System.Launcher.LaunchFolderAsync(folder)) LibraryFeedback.Text = UiText.Get("无法打开文件夹，请按上方路径查找。");
+            if (!await Windows.System.Launcher.LaunchFolderAsync(folder)) LibraryFeedback.Text = UiText.Get("Could not open the folder. Use the path shown above.");
         }
-        catch { LibraryFeedback.Text = UiText.Get("无法打开文件夹，请检查保存位置。"); }
+        catch { LibraryFeedback.Text = UiText.Get("Could not open the folder. Check the save location."); }
     }
 
     private async void ChangeLibrary_Click(object sender, RoutedEventArgs e)
@@ -62,28 +62,28 @@ public sealed partial class MainWindow
         if (_changingLibrary || _library is null) return;
         try
         {
-            if (_modelRequestRunning) { LibraryFeedback.Text = UiText.Get("请等待模型请求结束后再更改位置。"); return; }
+            if (_modelRequestRunning) { LibraryFeedback.Text = UiText.Get("Wait for the model request to finish before changing location."); return; }
             if (_jobs is not null && (await _jobs.ListAsync()).Any(job => !job.State.IsTerminal()))
-            { LibraryFeedback.Text = UiText.Get("请先结束当前任务。"); return; }
-            if (ViewModel.HasUnsavedChanges || HasUnsavedSettingsChanges) { LibraryFeedback.Text = UiText.Get("请先保存修改后再更改位置。"); return; }
+            { LibraryFeedback.Text = UiText.Get("Finish the current task first."); return; }
+            if (ViewModel.HasUnsavedChanges || HasUnsavedSettingsChanges) { LibraryFeedback.Text = UiText.Get("Save your changes before changing location."); return; }
             var folder = await PickFolderAsync();
             if (folder is null) return;
             string destination = Path.Combine(folder.Path, "OhMyStudy资料库");
             var dialog = new ContentDialog
             {
                 XamlRoot = RootGrid.XamlRoot,
-                Title = UiText.Get("更改资料库位置"),
-                Content = UiText.Get("现有资料将复制到以下位置，今后导入也保存在这里。原资料库会保留。\n\n") + destination,
-                PrimaryButtonText = UiText.Get("复制并切换"),
-                CloseButtonText = UiText.Get("取消"),
+                Title = UiText.Get("Change library location"),
+                Content = UiText.Get("Materials will be copied to the location below, which will also store future imports. The original library will be preserved.\n\n") + destination,
+                PrimaryButtonText = UiText.Get("Copy and switch"),
+                CloseButtonText = UiText.Get("Cancel"),
                 DefaultButton = ContentDialogButton.Primary
             };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
             if (Directory.Exists(destination) || File.Exists(destination))
-            { LibraryFeedback.Text = UiText.Get("目标资料库已存在，请选择其他文件夹。"); return; }
+            { LibraryFeedback.Text = UiText.Get("The destination library already exists. Choose another folder."); return; }
             await CopyAndSwitchLibraryAsync(destination);
         }
-        catch { LibraryFeedback.Text = _library is null ? UiText.Get("无法打开资料库，请重新启动应用。") : UiText.Get("更改失败，当前资料仍可使用。请检查目标位置与剩余空间。"); }
+        catch { LibraryFeedback.Text = _library is null ? UiText.Get("Could not open the library. Restart the app.") : UiText.Get("Location change failed. Current materials remain usable. Check the destination and free space."); }
     }
 
     private async Task CopyAndSwitchLibraryAsync(string destination)
@@ -102,10 +102,10 @@ public sealed partial class MainWindow
                 var library = _library ?? throw new IOException();
                 if (ViewModel.HasUnsavedChanges || HasUnsavedSettingsChanges || _jobs is not null && (await _jobs.ListAsync()).Any(job => !job.State.IsTerminal()))
                     throw new InvalidOperationException();
-                LibraryFeedback.Text = UiText.Get("正在复制资料…");
+                LibraryFeedback.Text = UiText.Get("Copying materials…");
                 await library.BackupAsync(destination, _lifetime.Token);
-                if (!await SwitchLibraryAsync(destination)) { LibraryFeedback.Text = UiText.Get("已保留副本，未切换资料库。"); return; }
-                LibraryFeedback.Text = UiText.Get("保存位置已更改，原资料库已保留。");
+                if (!await SwitchLibraryAsync(destination)) { LibraryFeedback.Text = UiText.Get("Copy preserved. Library was not switched."); return; }
+                LibraryFeedback.Text = UiText.Get("Save location changed. The original library is preserved.");
             }
             finally { _settingsGate.Release(); }
         }

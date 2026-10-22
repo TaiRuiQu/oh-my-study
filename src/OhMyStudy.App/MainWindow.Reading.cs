@@ -59,7 +59,7 @@ public sealed partial class MainWindow
         var key = new PageCacheKey(page.AssetId, level, 0);
         if (_pageCache.TryGet(key, out var existing)) return existing!;
         var asset = await library.ReadAssetAsync(page.AssetId, cancellationToken: ct);
-        if (asset.Mime == "application/pdf") throw new IOException(UiText.Get("请重新打开或导入这份资料。"));
+        if (asset.Mime == "application/pdf") throw new IOException(UiText.Get("Reopen or import this material again."));
         var raster = await _readingImages.RasterForUiAsync(asset.Bytes, level, ct);
         ct.ThrowIfCancellationRequested();
         _pageCache.Set(key, raster);
@@ -121,7 +121,7 @@ public sealed partial class MainWindow
         }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }
-        catch { ViewModel.StatusMessage = UiText.Get("页面放大失败，可缩小后重试。"); }
+        catch { ViewModel.StatusMessage = UiText.Get("Could not zoom in. Try a smaller zoom."); }
         finally
         {
             if (ReferenceEquals(_resolutionCancellation, cancellation)) { _resolutionCancellation = null; _requestedRasterLevel = 0; }

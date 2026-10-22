@@ -19,10 +19,10 @@ public sealed record RasterizedPage(int Width, int Height, int Stride, byte[] Bg
 
 public sealed class PdfReadException(uint errorCode) : IOException(errorCode switch
 {
-    4 => "PDF 需要密码，请先另存为不加密的文件后重试。",
-    3 => "PDF 文件已损坏或格式不完整，请重新下载或另存为 PDF 后重试。",
-    6 => "PDF 的加密方式暂不支持，请另存为不加密的文件后重试。",
-    _ => "PDF 无法读取，请重新下载或另存后重试。"
+    4 => "This PDF requires a password. Save an unencrypted copy and retry.",
+    3 => "The PDF is damaged or incomplete. Download it again or save a new PDF and retry.",
+    6 => "This PDF encryption is unsupported. Save an unencrypted copy and retry.",
+    _ => "The PDF cannot be read. Download it again or save a new copy and retry."
 })
 {
     public uint ErrorCode { get; } = errorCode;
@@ -43,11 +43,11 @@ public sealed partial class PdfiumRasterizer
         {
             if (loadedPath is not null)
             {
-                if (!string.Equals(loadedPath, path, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("PDFium 已从另一位置加载。 ");
+                if (!string.Equals(loadedPath, path, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("PDFium is already loaded from another location. ");
                 return;
             }
             using var stream = File.OpenRead(path);
-            if (Convert.ToHexStringLower(SHA256.HashData(stream)) != NativeSha256) throw new InvalidDataException("PDFium 库哈希不匹配。 ");
+            if (Convert.ToHexStringLower(SHA256.HashData(stream)) != NativeSha256) throw new InvalidDataException("The PDFium library hash does not match. ");
             var module = NativeLibrary.Load(path);
             NativeLibrary.SetDllImportResolver(typeof(PdfiumRasterizer).Assembly,
                 (name, _, _) => name == Native.LibraryName ? module : nint.Zero);
@@ -60,13 +60,13 @@ public sealed partial class PdfiumRasterizer
     public PdfiumDocument Open(string path)
     {
         var file = new FileInfo(Path.GetFullPath(path));
-        if (!file.Exists || file.Length is <= 0 or > 536_870_912) throw new InvalidDataException("PDF 文件不存在、为空或超过 512 MiB。 ");
+        if (!file.Exists || file.Length is <= 0 or > 536_870_912) throw new InvalidDataException("The PDF file is missing, empty, or larger than 512 MiB. ");
         return Open(File.ReadAllBytes(file.FullName));
     }
 
     public unsafe PdfiumDocument Open(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length is <= 0 or > 536_870_912) throw new InvalidDataException("PDF 数据为空或超过 512 MiB。 ");
+        if (bytes.Length is <= 0 or > 536_870_912) throw new InvalidDataException("PDF data is empty or larger than 512 MiB. ");
         lock (Gate)
         {
             var data = NativeMemory.Alloc((nuint)bytes.Length);
@@ -129,21 +129,21 @@ public sealed class PdfiumDocument : IDisposable
             RequireOpen();
             if (pageIndex < 0 || pageIndex >= PdfiumRasterizer.Native.GetPageCount(document)) throw new ArgumentOutOfRangeException(nameof(pageIndex));
             var page = PdfiumRasterizer.Native.LoadPage(document, pageIndex);
-            if (page == nint.Zero) throw new InvalidDataException("PDFium 无法打开页面。 ");
+            if (page == nint.Zero) throw new InvalidDataException("PDFium cannot open the page. ");
             try
             {
                 var widthPoints = PdfiumRasterizer.Native.GetPageWidth(page);
                 var heightPoints = PdfiumRasterizer.Native.GetPageHeight(page);
-                if (!double.IsFinite(widthPoints) || !double.IsFinite(heightPoints) || widthPoints <= 0 || heightPoints <= 0) throw new InvalidDataException("PDF 页面尺寸无效。 ");
+                if (!double.IsFinite(widthPoints) || !double.IsFinite(heightPoints) || widthPoints <= 0 || heightPoints <= 0) throw new InvalidDataException("Invalid PDF page dimensions. ");
                 var width = widthPoints;
                 var height = heightPoints;
                 if (quarterTurns % 2 == 1) (width, height) = (height, width);
                 var scale = maximumDimension / Math.Max(width, height);
                 var pixelsWide = Math.Max(1, (int)Math.Round(width * scale));
                 var pixelsHigh = Math.Max(1, (int)Math.Round(height * scale));
-                if ((long)pixelsWide * pixelsHigh > 40_000_000) throw new InvalidDataException("PDF 栅格超过 4000 万像素。 ");
+                if ((long)pixelsWide * pixelsHigh > 40_000_000) throw new InvalidDataException("The PDF raster exceeds 40 million pixels. ");
                 var bitmap = PdfiumRasterizer.Native.CreateBitmap(pixelsWide, pixelsHigh, 1);
-                if (bitmap == nint.Zero) throw new OutOfMemoryException("无法分配 PDF 栅格。 ");
+                if (bitmap == nint.Zero) throw new OutOfMemoryException("Cannot allocate the PDF raster. ");
                 try
                 {
                     PdfiumRasterizer.Native.FillRect(bitmap, 0, 0, pixelsWide, pixelsHigh, 0xffffffff);
@@ -168,15 +168,15 @@ public sealed class PdfiumDocument : IDisposable
             RequireOpen();
             if (pageIndex < 0 || pageIndex >= PdfiumRasterizer.Native.GetPageCount(document)) throw new ArgumentOutOfRangeException(nameof(pageIndex));
             var page = PdfiumRasterizer.Native.LoadPage(document, pageIndex);
-            if (page == nint.Zero) throw new InvalidDataException("PDF 页面无法读取。 ");
+            if (page == nint.Zero) throw new InvalidDataException("The PDF page cannot be read. ");
             try
             {
                 var textPage = PdfiumRasterizer.Native.LoadTextPage(page);
-                if (textPage == nint.Zero) throw new InvalidDataException("PDF 文字无法读取。 ");
+                if (textPage == nint.Zero) throw new InvalidDataException("The PDF text cannot be read. ");
                 try
                 {
                     var count = PdfiumRasterizer.Native.CountChars(textPage);
-                    if (count is < 0 or > 2_000_000) throw new InvalidDataException("页面文字数无效。 ");
+                    if (count is < 0 or > 2_000_000) throw new InvalidDataException("Invalid page character count. ");
                     var characters = new char[checked(count + 1)];
                     fixed (char* buffer = characters)
                     {

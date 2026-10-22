@@ -160,7 +160,7 @@ public sealed record Attempt
     public string? ReferenceKey { get; init; }
     public string AiSolution { get; set; } = "";
     public string? Conflict { get; init; }
-    public Grade Grade { get; set; } = new() { Verdict = Verdict.Uncertain, Source = GradeSource.AiSolution, Reason = "未提供评分。" };
+    public Grade Grade { get; set; } = new() { Verdict = Verdict.Uncertain, Source = GradeSource.AiSolution, Reason = "No grade provided." };
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

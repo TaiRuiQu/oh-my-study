@@ -18,11 +18,11 @@ public static class LibraryMigrationService
         string source = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceDirectory)), backup = Path.TrimEndingDirectorySeparator(Path.GetFullPath(backupDirectory)), destination = Path.TrimEndingDirectorySeparator(Path.GetFullPath(newLibraryDirectory));
         foreach (string path in new[] { backup, destination })
             if (path.Equals(source, StringComparison.OrdinalIgnoreCase) || path.StartsWith(source + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                throw new IOException("请为备份和新资料选择独立目录。");
+                throw new IOException("Select separate directories for the backup and the new library.");
         if (backup.Equals(destination, StringComparison.OrdinalIgnoreCase) || backup.StartsWith(destination + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
             || destination.StartsWith(backup + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-            throw new IOException("备份与新资料不能互相包含。");
-        if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("新资料位置已存在。");
+            throw new IOException("The backup and new library directories must not contain each other.");
+        if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("The new library location already exists.");
         await using (var original = await LibraryRepository.OpenAsync(new(source), cancellationToken).ConfigureAwait(false))
         {
             await original.VerifyIntegrityAsync(cancellationToken).ConfigureAwait(false);
@@ -43,7 +43,7 @@ public static class LibraryMigrationService
             await copy.VerifyIntegrityAsync(cancellationToken).ConfigureAwait(false);
             currentVersion = (await copy.InspectAsync(cancellationToken).ConfigureAwait(false)).SchemaVersion;
             var actual = await FingerprintAsync(copy, cancellationToken).ConfigureAwait(false);
-            if (actual != expected) throw new InvalidDataException("新资料校验失败。请保留原资料与备份，重新选择新目录恢复。");
+            if (actual != expected) throw new InvalidDataException("New library verification failed. Keep the original library and backup, and restore to a different directory.");
         }
         cancellationToken.ThrowIfCancellationRequested();
         var result = new LibraryMigrationResult(backup, destination, originalVersion, currentVersion, expected.Documents,

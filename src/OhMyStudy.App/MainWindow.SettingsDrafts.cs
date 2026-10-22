@@ -42,10 +42,10 @@ public sealed partial class MainWindow
             var dialog = new ContentDialog
             {
                 XamlRoot = RootGrid.XamlRoot,
-                Title = UiText.Get("有未保存的设置"),
-                Content = modelOnly ? UiText.Get("继续后，未保存的模型修改会丢失。") : UiText.Get("继续后，未保存的供应商和模型修改会丢失。"),
-                PrimaryButtonText = UiText.Get("放弃修改"),
-                CloseButtonText = UiText.Get("返回"),
+                Title = UiText.Get("Unsaved settings"),
+                Content = modelOnly ? UiText.Get("Continuing will discard unsaved model changes.") : UiText.Get("Continuing will discard unsaved provider and model changes."),
+                PrimaryButtonText = UiText.Get("Discard changes"),
+                CloseButtonText = UiText.Get("Back"),
                 DefaultButton = ContentDialogButton.Close
             };
             return await dialog.ShowAsync() == ContentDialogResult.Primary;

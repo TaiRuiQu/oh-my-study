@@ -22,13 +22,13 @@ public sealed partial class MainWindow
         try
         {
             await UiText.SavePreferenceAsync(LanguagePreferencePath, preference, _lifetime.Token);
-            LanguageFeedback.Text = UiText.Get("语言已保存，重新启动应用后生效。未保存的修改请先保存。");
+            LanguageFeedback.Text = UiText.Get("Language saved. Restart the app to apply it. Save any edits first.");
         }
         catch (OperationCanceledException) when (_closed) { }
         catch
         {
             InitializeLanguagePicker();
-            LanguageFeedback.Text = UiText.Get("语言设置未能保存，请重试。");
+            LanguageFeedback.Text = UiText.Get("Language preference could not be saved. Try again.");
         }
         finally { LanguagePicker.IsEnabled = true; }
     }

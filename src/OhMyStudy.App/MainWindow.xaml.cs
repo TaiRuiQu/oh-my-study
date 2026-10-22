@@ -257,7 +257,7 @@ public sealed partial class MainWindow : Window
                 else if (tag == "tasks") await RefreshTasksAsync();
             }
         }
-        catch (Exception error) { AppLog.Error("Navigation.Load", error); ViewModel.StatusMessage = UiText.Get("无法加载，请稍后重试。"); }
+        catch (Exception error) { AppLog.Error("Navigation.Load", error); ViewModel.StatusMessage = UiText.Get("Could not load. Try again later."); }
         if (sampleMaterials) ShowMaterialsNavigation();
         ApplyWorkspaceLayout();
     }
@@ -304,7 +304,7 @@ public sealed partial class MainWindow : Window
         var question = ViewModel.SelectedQuestion.Saved;
         if (question is null || _library is null) { QuestionContentHost.Content = null; return; }
         _questionPresentationWidth = Math.Max(110, QuestionContentHost.ActualWidth);
-        if (clear) QuestionContentHost.Content = new TextBlock { Text = UiText.Get("正在加载题目…") };
+        if (clear) QuestionContentHost.Content = new TextBlock { Text = UiText.Get("Loading question…") };
         try
         {
             var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme);
@@ -315,7 +315,7 @@ public sealed partial class MainWindow : Window
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { AppLog.Error("Question.Present", error); if (!_closed && generation == _questionPresentationGeneration) QuestionContentHost.Content = new TextBlock { Text = UiText.Get("题目内容暂时无法显示。") }; }
+        catch (Exception error) { AppLog.Error("Question.Present", error); if (!_closed && generation == _questionPresentationGeneration) QuestionContentHost.Content = new TextBlock { Text = UiText.Get("Question content is temporarily unavailable.") }; }
     }
 
     private void UpdateSourceHighlight()
@@ -362,12 +362,12 @@ public sealed partial class MainWindow : Window
                 var point = PageTransform.TransformPoint(new Windows.Foundation.Point((region.X + region.Width / 2) * _pageWidth, (region.Y + region.Height / 2) * _pageHeight));
                 SourceViewer.ChangeView(Math.Max(0, point.X * SourceViewer.ZoomFactor - SourceViewer.ViewportWidth / 2), Math.Max(0, point.Y * SourceViewer.ZoomFactor - SourceViewer.ViewportHeight / 2), null, true);
             }
-            catch { ViewModel.StatusMessage = UiText.Get("无法定位原件，请重新打开资料。"); }
+            catch { ViewModel.StatusMessage = UiText.Get("Could not locate the original. Reopen the material."); }
             return;
         }
         if (_hasImportedImage)
         {
-            ViewModel.StatusMessage = UiText.Get("当前题目没有对应的原件位置。");
+            ViewModel.StatusMessage = UiText.Get("This question has no corresponding source location.");
             return;
         }
         // Source highlight rotates together with the page. Transform the center before scrolling.
@@ -435,7 +435,7 @@ public sealed partial class MainWindow : Window
         if (_openingFile) return;
         if (_library is null && !ViewModel.IsSample)
         {
-            ViewModel.StatusMessage = UiText.Get("请先在设置中选择可用的资料库，再导入文件。");
+            ViewModel.StatusMessage = UiText.Get("Select an available library in Settings before importing.");
             Navigation.SelectedItem = Navigation.SettingsItem; return;
         }
         _openingFile = true;
@@ -451,7 +451,7 @@ public sealed partial class MainWindow : Window
         catch (Exception exception)
         {
             SmokeStartupDiagnostics.Log("OpenFile", exception);
-            ViewModel.StatusMessage = UiText.Get("无法打开文件，请重新选择。");
+            ViewModel.StatusMessage = UiText.Get("Could not open the file. Select it again.");
         }
         finally { _openingFile = false; }
     }
@@ -461,7 +461,7 @@ public sealed partial class MainWindow : Window
         if (e.DataView.Contains(StandardDataFormats.StorageItems))
         {
             e.AcceptedOperation = DataPackageOperation.Copy;
-            e.DragUIOverride.Caption = UiText.Get("导入图片或 PDF");
+            e.DragUIOverride.Caption = UiText.Get("Import image or PDF");
         }
     }
 
@@ -470,7 +470,7 @@ public sealed partial class MainWindow : Window
         if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
         if (_library is null && !ViewModel.IsSample)
         {
-            ViewModel.StatusMessage = UiText.Get("请先在设置中选择可用的资料库，再导入文件。");
+            ViewModel.StatusMessage = UiText.Get("Select an available library in Settings before importing.");
             Navigation.SelectedItem = Navigation.SettingsItem; return;
         }
         var deferral = e.GetDeferral();
@@ -484,7 +484,7 @@ public sealed partial class MainWindow : Window
             }
             if (items.Count != 1 || !items[0].IsOfType(StorageItemTypes.File))
             {
-                ViewModel.StatusMessage = UiText.Get("请一次拖入一个文件。");
+                ViewModel.StatusMessage = UiText.Get("Drop one file at a time.");
                 return;
             }
             await PreviewFileAsync(WinRT.CastExtensions.As<StorageFile>(items[0]));
@@ -492,7 +492,7 @@ public sealed partial class MainWindow : Window
         catch (Exception exception)
         {
             SmokeStartupDiagnostics.Log("DropFile", exception);
-            ViewModel.StatusMessage = UiText.Get("无法打开文件，请重新选择。");
+            ViewModel.StatusMessage = UiText.Get("Could not open the file. Select it again.");
         }
         finally { deferral.Complete(); }
     }
@@ -506,7 +506,7 @@ public sealed partial class MainWindow : Window
         }
         if (!new[] { ".png", ".jpg", ".jpeg", ".webp" }.Contains(file.FileType, StringComparer.OrdinalIgnoreCase))
         {
-            ViewModel.StatusMessage = UiText.Get("请选择 PNG、JPEG、WebP 图片或 PDF。");
+            ViewModel.StatusMessage = UiText.Get("Choose a PNG, JPEG, WebP image, or PDF.");
             return;
         }
         CancelPreviewLoad();
@@ -515,7 +515,7 @@ public sealed partial class MainWindow : Window
         if (_closed || generation != _previewGeneration) return;
         if (properties.Size > 64UL * 1024 * 1024)
         {
-            ViewModel.StatusMessage = UiText.Get("文件过大，请选择 64 MB 以内的图片。");
+            ViewModel.StatusMessage = UiText.Get("File too large. Choose an image under 64 MB.");
             return;
         }
         using var stream = await file.OpenAsync(FileAccessMode.Read);
@@ -527,7 +527,7 @@ public sealed partial class MainWindow : Window
         uint height = decoder.PixelHeight;
         if (width == 0 || height == 0 || width > 20_000 || height > 20_000 || (ulong)width * height > 40_000_000)
         {
-            ViewModel.StatusMessage = UiText.Get("图片太大，请缩小或裁剪后重试。");
+            ViewModel.StatusMessage = UiText.Get("Image too large. Resize or crop it and retry.");
             return;
         }
         double scale = Math.Min(1, 1600d / Math.Max(width, height));
@@ -552,8 +552,8 @@ public sealed partial class MainWindow : Window
         PdfPageControls.Visibility = Visibility.Collapsed;
         SetPageDimensions(image.PixelWidth, image.PixelHeight);
         OriginalCaption.Text = file.Name;
-        WorkspaceNotice.Title = UiText.Get("示例题目");
-        WorkspaceNotice.Message = UiText.Get("与当前原件无关，修改不会保存。");
+        WorkspaceNotice.Title = UiText.Get("Sample questions");
+        WorkspaceNotice.Message = UiText.Get("Unrelated to the current original. Changes will not be saved.");
         UpdateSourceHighlight();
         FitPage();
         ViewModel.StatusMessage = "";
@@ -572,7 +572,7 @@ public sealed partial class MainWindow : Window
         CancelPreviewLoad();
         _previewCancellation = null;
         UpdatePdfControls(false);
-        ViewModel.StatusMessage = UiText.Get("已取消加载。");
+        ViewModel.StatusMessage = UiText.Get("Loading canceled.");
     }
 
     private async void PreviousPdfPage_Click(object sender, RoutedEventArgs e)
@@ -590,7 +590,7 @@ public sealed partial class MainWindow : Window
     private void UpdatePdfControls(bool loading)
     {
         PdfPageControls.Visibility = loading || _pdfPath is not null ? Visibility.Visible : Visibility.Collapsed;
-        PdfPageLabel.Text = loading ? UiText.Get("正在加载页面…") : UiText.Format("第 {0} / {1} 页", _pdfPageIndex + 1, _pdfPageCount);
+        PdfPageLabel.Text = loading ? UiText.Get("Loading page…") : UiText.Format("Page {0} / {1}", _pdfPageIndex + 1, _pdfPageCount);
         PreviousPdfPage.IsEnabled = !loading && _pdfPageIndex > 0;
         NextPdfPage.IsEnabled = !loading && _pdfPageIndex + 1 < _pdfPageCount;
         CancelPreview.IsEnabled = loading;
@@ -603,7 +603,7 @@ public sealed partial class MainWindow : Window
         using var cancellation = new CancellationTokenSource();
         _previewCancellation = cancellation;
         UpdatePdfControls(true);
-        ViewModel.StatusMessage = UiText.Get("正在打开…");
+        ViewModel.StatusMessage = UiText.Get("Opening…");
         try
         {
             var rendered = await Task.Run(() =>
@@ -611,11 +611,11 @@ public sealed partial class MainWindow : Window
                 cancellation.Token.ThrowIfCancellationRequested();
                 var file = new FileInfo(Path.GetFullPath(path));
                 if (!file.Exists || file.Length is <= 0 or > 64L * 1024 * 1024)
-                    throw new PreviewInputException(UiText.Get("请选择非空且不超过 64 MB 的 PDF 文件。"));
+                    throw new PreviewInputException(UiText.Get("Choose a nonempty PDF no larger than 64 MB."));
                 var rasterizer = new PdfiumRasterizer(Path.Combine(AppContext.BaseDirectory, "native", "pdfium.dll"));
                 using var document = rasterizer.Open(file.FullName);
                 int count = document.PageCount;
-                if (count is < 1 or > 12) throw new PreviewInputException(UiText.Get("请选择 1 至 12 页的 PDF 文件。"));
+                if (count is < 1 or > 12) throw new PreviewInputException(UiText.Get("Choose a PDF with 1 to 12 pages."));
                 var page = document.RenderPage(pageIndex, 1600, 0, cancellation.Token);
                 return (PageCount: count, Page: page);
             }, cancellation.Token);
@@ -635,8 +635,8 @@ public sealed partial class MainWindow : Window
             _rasterHeight = rendered.Page.Height;
             SetPageDimensions(rendered.Page.Width, rendered.Page.Height);
             OriginalCaption.Text = Path.GetFileName(path);
-            WorkspaceNotice.Title = UiText.Get("示例题目");
-            WorkspaceNotice.Message = UiText.Get("与当前原件无关，修改不会保存。");
+            WorkspaceNotice.Title = UiText.Get("Sample questions");
+            WorkspaceNotice.Message = UiText.Get("Unrelated to the current original. Changes will not be saved.");
             UpdateSourceHighlight();
             FitPage();
             ViewModel.StatusMessage = "";
@@ -644,7 +644,7 @@ public sealed partial class MainWindow : Window
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = UiText.Get("已取消加载。");
+            if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = UiText.Get("Loading canceled.");
             return false;
         }
         catch (PreviewInputException exception)
@@ -655,7 +655,7 @@ public sealed partial class MainWindow : Window
         catch (Exception exception)
         {
             SmokeStartupDiagnostics.Log("PreviewPdf", exception);
-            if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = UiText.Get("无法打开这份 PDF，请检查文件是否完整或换一份重试。");
+            if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = UiText.Get("Could not open this PDF. Check that it is complete or try another file.");
             return false;
         }
         finally
@@ -671,7 +671,7 @@ public sealed partial class MainWindow : Window
     private static async Task<BitmapImage> CreateRasterImageAsync(RasterizedPage page)
     {
         if (page.Stride != checked(page.Width * 4) || page.Bgra32.Length != checked(page.Stride * page.Height))
-            throw new InvalidDataException(UiText.Get("PDF 栅格行布局无效。 "));
+            throw new InvalidDataException(UiText.Get("Invalid PDF raster row layout. "));
         // Encode only to an in-memory stream. User pages are never written to a temporary disk file.
         using var stream = new InMemoryRandomAccessStream();
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.BmpEncoderId, stream);
@@ -686,7 +686,7 @@ public sealed partial class MainWindow : Window
 
     private void SetPageDimensions(double width, double height)
     {
-        if (width <= 0 || height <= 0) throw new InvalidDataException(UiText.Get("页面尺寸无效。 "));
+        if (width <= 0 || height <= 0) throw new InvalidDataException(UiText.Get("Invalid page dimensions. "));
         _pageWidth = PageWidth;
         _pageHeight = PageWidth * height / width;
         PaperPage.Width = _pageWidth;
@@ -700,7 +700,7 @@ public sealed partial class MainWindow : Window
     {
         RememberViewport(); ViewModel.LoadSample(); ShowMaterialsNavigation();
         SourcePane.Visibility = Visibility.Visible; DocumentCommands.Visibility = Visibility.Collapsed; SetPaperMenuDetail(false);
-        WorkspaceNotice.Title = UiText.Get("示例资料"); WorkspaceNotice.Message = UiText.Get("可查看和编辑，修改不会保存。"); WorkspaceNotice.IsOpen = true;
+        WorkspaceNotice.Title = UiText.Get("Sample materials"); WorkspaceNotice.Message = UiText.Get("You can view and edit this sample. Changes will not be saved."); WorkspaceNotice.IsOpen = true;
         _rotation = 0;
         GradeButton.IsEnabled = false; DocumentToolbar.Visibility = Visibility.Visible;
         CancelPreviewLoad();
@@ -713,8 +713,8 @@ public sealed partial class MainWindow : Window
         PdfPageControls.Visibility = Visibility.Collapsed;
         SetPageDimensions(PageWidth, PageHeight);
         OriginalCaption.Text = "";
-        WorkspaceNotice.Title = UiText.Get("示例资料");
-        WorkspaceNotice.Message = UiText.Get("可查看和编辑，修改不会保存。");
+        WorkspaceNotice.Title = UiText.Get("Sample materials");
+        WorkspaceNotice.Message = UiText.Get("You can view and edit this sample. Changes will not be saved.");
         UpdateSourceHighlight();
         ViewModel.StatusMessage = ""; ApplyWorkspaceLayout();
     }
@@ -737,8 +737,8 @@ public sealed partial class MainWindow : Window
             XamlRoot = RootGrid.XamlRoot,
             Title = "Oh My Study",
             RequestedTheme = RootGrid.ActualTheme,
-            Content = UiText.Get("整理资料，梳理错题，轻松复习。"),
-            CloseButtonText = UiText.Get("知道了"),
+            Content = UiText.Get("Organize materials, review mistakes, and study with ease."),
+            CloseButtonText = UiText.Get("Got it"),
             DefaultButton = ContentDialogButton.Close
         };
         await dialog.ShowAsync();
@@ -774,22 +774,22 @@ public sealed partial class MainWindow : Window
                 AppTitleBar.IsPaneToggleButtonVisible && !Navigation.IsPaneToggleButtonVisible;
             Navigation.SelectedItem = Navigation.MenuItems[1];
             await Task.Delay(30);
-            bool libraryNavigation = ViewModel.SectionTitle == "题库" && ViewModel.Questions.Count == 500;
+            bool libraryNavigation = ViewModel.SectionTitle == "Question bank" && ViewModel.Questions.Count == 500;
             string libraryDetail = $"library: {ViewModel.SectionTitle}, {ViewModel.Questions.Count}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
             Navigation.SelectedItem = Navigation.MenuItems[2];
             await Task.Delay(30);
-            bool mistakeNavigation = ViewModel.SectionTitle == "错题" && ViewModel.Questions.Count is > 0 and < 500;
+            bool mistakeNavigation = ViewModel.SectionTitle == "Mistakes" && ViewModel.Questions.Count is > 0 and < 500;
             string mistakeDetail = $"mistakes: {ViewModel.SectionTitle}, {ViewModel.Questions.Count}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
             Navigation.SelectedItem = Navigation.SettingsItem;
             await Task.Delay(30);
             bool settingsNavigation = SettingsPanel.Visibility == Visibility.Visible &&
                 Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(
-                    WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem)) == "设置";
+                    WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem)) == "Settings";
             string settingsDetail = $"settings: {SettingsPanel.Visibility}, {Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem))}";
             Navigation.SelectedItem = Navigation.MenuItems[0];
             await Task.Delay(30);
             report.NativeNavigation = libraryNavigation && mistakeNavigation && settingsNavigation &&
-                WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == "试卷";
+                WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == "Exams";
             report.NavigationDetails = [libraryDetail, mistakeDetail, settingsDetail, $"returned: {ViewModel.SectionTitle}, {WorkspaceGrid.Visibility}"];
             var selected = ViewModel.SelectedQuestion;
             string originalAnswer = selected.Answer;
@@ -850,7 +850,7 @@ public sealed partial class MainWindow : Window
             await Task.Delay(60);
             ViewModel.CancelTaskCommand.Execute(null);
             await task;
-            report.Cancellation = !ViewModel.IsTaskRunning && ViewModel.TaskStatus.Contains("已取消", StringComparison.Ordinal);
+            report.Cancellation = !ViewModel.IsTaskRunning && ViewModel.TaskStatus.Contains("Canceled", StringComparison.Ordinal);
             if (_smokePreviewPdfPath is not null)
             {
                 report.PdfLoaded = await PreviewPdfAsync(_smokePreviewPdfPath, 0);
@@ -944,7 +944,7 @@ public sealed partial class MainWindow : Window
                 }
             }
             finally { manager.PrintTaskRequested -= requested; }
-            if (!report.PrintSupported) report.PrintError = UiText.Get("Windows 当前报告不支持打印；仅验证了原生 API，不代表系统或实物打印通过。");
+            if (!report.PrintSupported) report.PrintError = UiText.Get("Windows reports printing is unavailable; only native API checks ran, not system or physical printing verification.");
         }
         catch (Exception exception)
         {
@@ -955,7 +955,7 @@ public sealed partial class MainWindow : Window
 
     private async Task CaptureWorkspaceAsync(string path, FrameworkElement? element = null)
     {
-        string directoryPath = Path.GetDirectoryName(path) ?? throw new InvalidOperationException(UiText.Get("截图需要绝对路径。"));
+        string directoryPath = Path.GetDirectoryName(path) ?? throw new InvalidOperationException(UiText.Get("An absolute path is required for screenshots."));
         Directory.CreateDirectory(directoryPath);
         byte[] pixels;
         int pixelWidth, pixelHeight;

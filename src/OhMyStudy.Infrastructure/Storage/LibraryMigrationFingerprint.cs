@@ -39,7 +39,7 @@ public sealed partial class LibraryRepository
                         case double value: Add("real"); AddBytes(BitConverter.GetBytes(value)); break;
                         case string value: Add("text"); Add(value); break;
                         case byte[] value: Add("blob"); AddBytes(value); break;
-                        default: throw new InvalidDataException("资料包含无法核对的字段。");
+                        default: throw new InvalidDataException("The library contains fields that cannot be verified.");
                     }
             }
             Add("end-table");

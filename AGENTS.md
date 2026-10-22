@@ -12,6 +12,7 @@ Oh My Study is a Windows study app built with C# 14, .NET 10, and WinUI. It impo
 ## Code philosophy
 
 - Prefer simple, explicit code and small, cohesive changes. Reuse existing patterns before adding abstractions or dependencies.
+- Use English for source text and diagnostics. Keep translations in localization catalogs and preserve multilingual fixtures and legacy identifiers.
 - Keep domain rules in `Domain`, orchestration and contracts in `Application`, external integrations and storage in `Infrastructure`, document processing in `Documents`, and UI in `App`. Installer behavior belongs in `Setup`.
 - Maintain Native AOT and trimming compatibility. Use source-generated JSON serialization and avoid reflection-dependent designs; fix compatibility warnings rather than suppressing them.
 - Follow `.editorconfig`: UTF-8, LF, four-space C# indentation, and two-space project/config indentation. Respect nullable annotations and existing naming conventions.

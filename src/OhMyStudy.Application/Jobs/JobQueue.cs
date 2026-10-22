@@ -41,12 +41,12 @@ public sealed class JobQueue : IAsyncDisposable
     public static async Task<JobQueue> CreateAsync(IJobStore store, IJobRunner runner, IToolExecutor executor,
         string resultsRoot, CancellationToken cancellationToken = default)
     {
-        if (!Path.IsPathFullyQualified(resultsRoot)) throw new ArgumentException("任务目录必须是绝对路径。", nameof(resultsRoot));
+        if (!Path.IsPathFullyQualified(resultsRoot)) throw new ArgumentException("The task directory must be an absolute path.", nameof(resultsRoot));
         Directory.CreateDirectory(resultsRoot);
         var queue = new JobQueue(store, runner, executor, resultsRoot);
         foreach (var old in await store.LoadJobsAsync(cancellationToken).ConfigureAwait(false))
         {
-            if (queue._jobs.ContainsKey(old.Id)) throw new InvalidDataException("重复的任务标识。");
+            if (queue._jobs.ContainsKey(old.Id)) throw new InvalidDataException("Duplicate task ID.");
             var job = Snapshot(old);
             if (!job.State.IsTerminal())
             {
@@ -54,8 +54,8 @@ public sealed class JobQueue : IAsyncDisposable
                 {
                     State = JobState.Interrupted,
                     PendingPermission = null,
-                    Message = "任务因应用重启而中断。",
-                    Error = "上次任务未完成，未自动重新执行。"
+                    Message = "Task interrupted by an app restart.",
+                    Error = "The previous task did not complete and was not restarted automatically."
                 });
                 await store.CommitAsync(job, Event(job, "interrupted"), cancellationToken).ConfigureAwait(false);
             }
@@ -72,11 +72,11 @@ public sealed class JobQueue : IAsyncDisposable
         try
         {
             Healthy();
-            if (_jobs.Values.Count(j => !j.State.IsTerminal()) >= 128) throw new InvalidOperationException("等待的任务过多，请稍后再试。");
+            if (_jobs.Values.Count(j => !j.State.IsTerminal()) >= 128) throw new InvalidOperationException("Too many tasks are waiting. Retry later.");
             if (input is not null && _jobs.Values.Any(j => !j.State.IsTerminal() && j.Input?.Document.Id == input.Document.Id))
-                throw new InvalidOperationException("这份资料已有未完成的任务。");
+                throw new InvalidOperationException("This document already has an unfinished task.");
             if (kind is DiagnosticKind.Grading or DiagnosticKind.References && input is null)
-                throw new ArgumentException("整卷任务缺少资料。");
+                throw new ArgumentException("The whole-paper task is missing its document.");
             ulong now = Now();
             var job = new Job
             {
@@ -87,7 +87,7 @@ public sealed class JobQueue : IAsyncDisposable
                 UpdatedAt = now,
                 Sequence = 1,
                 Progress = 0,
-                Message = "已加入队列。",
+                Message = "Added to queue.",
                 ExecutionPolicy = policy,
                 PendingPermission = null,
                 Error = null,
@@ -98,7 +98,7 @@ public sealed class JobQueue : IAsyncDisposable
             await PersistAsync(job, "queued", cancellationToken).ConfigureAwait(false);
             _broker.RegisterJob(job.Id, policy);
             _controls[job.Id] = new();
-            if (!_pending.Writer.TryWrite(job.Id)) throw new InvalidOperationException("任务队列已停止。");
+            if (!_pending.Writer.TryWrite(job.Id)) throw new InvalidOperationException("The task queue has stopped.");
             return Snapshot(job);
         }
         finally { _gate.Release(); }
@@ -143,7 +143,7 @@ public sealed class JobQueue : IAsyncDisposable
             if (job.State.IsTerminal()) return Snapshot(job);
             bool queued = job.State == JobState.Queued;
             control?.Permission?.TrySetCanceled();
-            job = Bump(job with { State = JobState.Cancelled, PendingPermission = null, Message = "任务已取消。" });
+            job = Bump(job with { State = JobState.Cancelled, PendingPermission = null, Message = "Task canceled." });
             await PersistAsync(job, "cancelled", CancellationToken.None).ConfigureAwait(false);
             if (queued && _controls.TryRemove(id, out var removed)) removed.Dispose();
             return Snapshot(job);
@@ -159,7 +159,7 @@ public sealed class JobQueue : IAsyncDisposable
             Healthy();
             var job = Get(id);
             if (job.State != JobState.WaitingPermission || !_controls.TryGetValue(id, out var control) || control.Permission is null)
-                throw new InvalidOperationException("执行请求已失效。");
+                throw new InvalidOperationException("The execution request is no longer valid.");
             control.Cancellation.Token.ThrowIfCancellationRequested();
             var approved = _broker.Decide(id, digest, choice);
             var denied = choice == PermissionChoice.Deny;
@@ -167,8 +167,8 @@ public sealed class JobQueue : IAsyncDisposable
             {
                 State = denied ? JobState.Failed : JobState.Running,
                 PendingPermission = null,
-                Message = denied ? "已拒绝执行。" : "继续处理。",
-                Error = denied ? "用户拒绝执行。" : null
+                Message = denied ? "Execution denied." : "Continuing.",
+                Error = denied ? "The user denied execution." : null
             });
             await PersistAsync(job, denied ? "permission_denied" : "permission_allowed", CancellationToken.None).ConfigureAwait(false);
             if (denied) control.Cancel();
@@ -207,7 +207,7 @@ public sealed class JobQueue : IAsyncDisposable
         try
         {
             control = EnsureLive(id);
-            if (call.JobId != id) throw new InvalidOperationException("调用不属于当前任务。");
+            if (call.JobId != id) throw new InvalidOperationException("The call does not belong to the current task.");
             approved = _broker.Request(call);
             if (approved is null)
             {
@@ -216,7 +216,7 @@ public sealed class JobQueue : IAsyncDisposable
                 var job = Bump(Get(id) with
                 {
                     State = JobState.WaitingPermission,
-                    Message = "等待执行许可。",
+                    Message = "Waiting for execution permission.",
                     PendingPermission = new PermissionReview { Call = call, Digest = call.Digest() }
                 });
                 await PersistAsync(job, "permission_requested", CancellationToken.None).ConfigureAwait(false);
@@ -225,7 +225,7 @@ public sealed class JobQueue : IAsyncDisposable
         finally { _gate.Release(); }
         if (permission is not null) approved = await permission.WaitAsync(control.Cancellation.Token).ConfigureAwait(false);
         control.Cancellation.Token.ThrowIfCancellationRequested();
-        if (approved is null) throw new OperationCanceledException("执行未获允许。", control.Cancellation.Token);
+        if (approved is null) throw new OperationCanceledException("Execution was not approved.", control.Cancellation.Token);
         // The executor enforces the frozen environment and never replays a failed sandbox call on host.
         return await _executor.ExecuteAsync(approved, Path.Combine(_resultsRoot, id, call.CallId), control.Cancellation.Token).ConfigureAwait(false);
     }
@@ -242,7 +242,7 @@ public sealed class JobQueue : IAsyncDisposable
             {
                 if (Get(id).State != JobState.Queued || !_controls.TryGetValue(id, out control!)) continue;
                 if (control.Cancellation.IsCancellationRequested) continue;
-                job = Bump(Get(id) with { State = JobState.Running, Message = "正在处理。" });
+                job = Bump(Get(id) with { State = JobState.Running, Message = "Processing." });
                 await PersistAsync(job, "started", CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception error) { StopOnFailure(error); break; }
@@ -276,8 +276,8 @@ public sealed class JobQueue : IAsyncDisposable
                 State = state,
                 Progress = failure is null ? 100 : job.Progress,
                 PendingPermission = null,
-                Message = failure is null ? "已完成。" : failure == "cancelled" ? "已取消。" : "处理未完成，可检查设置后重试。",
-                Error = failure == "failed" ? "任务失败；已保存的结果会保留。" : null
+                Message = failure is null ? "Completed." : failure == "cancelled" ? "Canceled." : "Processing incomplete. Check settings and retry.",
+                Error = failure == "failed" ? "The task failed. Saved results will be kept." : null
             });
             await PersistAsync(job, failure ?? "completed", CancellationToken.None).ConfigureAwait(false);
         }
@@ -289,7 +289,7 @@ public sealed class JobQueue : IAsyncDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(activity.Key);
         if (activity.Key.Length > 128 || activity.Title.Length > 200 || activity.Detail.Length > 1000 || activity.Text.Length > 16000)
-            throw new ArgumentException("任务步骤超过长度限制。", nameof(activity));
+            throw new ArgumentException("The task activity exceeds the length limit.", nameof(activity));
         await _gate.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -304,7 +304,7 @@ public sealed class JobQueue : IAsyncDisposable
         var item = Event(job, kind);
         if (payload is { } value) item = item with { Payload = value };
         try { await _store.CommitAsync(job, item, cancellationToken).ConfigureAwait(false); }
-        catch (Exception error) { StopOnFailure(error); throw new IOException("任务记录未能保存，队列已停止。", error); }
+        catch (Exception error) { StopOnFailure(error); throw new IOException("Task records could not be saved. The queue has stopped.", error); }
         _jobs[job.Id] = job;
         foreach (var subscriber in _subscribers.Values) subscriber.Writer.TryWrite(item);
     }
@@ -314,16 +314,16 @@ public sealed class JobQueue : IAsyncDisposable
         _fatal ??= error; _stopping = true; _pending.Writer.TryComplete();
         foreach (var (id, control) in _controls) { _broker.Close(id); control.Cancel(); control.Permission?.TrySetCanceled(); }
     }
-    private void Healthy() { ThrowFatal(); if (_stopping) throw new InvalidOperationException("应用正在退出。"); }
-    private void ThrowFatal() { if (_fatal is not null) throw new IOException("任务队列已停止，请重新打开应用。", _fatal); }
+    private void Healthy() { ThrowFatal(); if (_stopping) throw new InvalidOperationException("The app is exiting."); }
+    private void ThrowFatal() { if (_fatal is not null) throw new IOException("The task queue has stopped. Reopen the app.", _fatal); }
     private Control EnsureLive(string id)
     {
         Healthy();
-        if (Get(id).State.IsTerminal() || !_controls.TryGetValue(id, out var control)) throw new OperationCanceledException("任务已停止。");
+        if (Get(id).State.IsTerminal() || !_controls.TryGetValue(id, out var control)) throw new OperationCanceledException("The task has stopped.");
         control.Cancellation.Token.ThrowIfCancellationRequested();
         return control;
     }
-    private Job Get(string id) => _jobs.TryGetValue(id, out var job) ? job : throw new KeyNotFoundException("找不到任务。");
+    private Job Get(string id) => _jobs.TryGetValue(id, out var job) ? job : throw new KeyNotFoundException("Task not found.");
     private static Job Snapshot(Job job) => DomainJson.Deserialize<Job>(DomainJson.Serialize(job));
     private static ulong Now() => checked((ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
     private static Job Bump(Job job) => job with { Sequence = checked(job.Sequence + 1), UpdatedAt = Now() };

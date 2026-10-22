@@ -25,10 +25,10 @@ public sealed partial class MainWindow
             var dialog = new ContentDialog
             {
                 XamlRoot = RootGrid.XamlRoot,
-                Title = UiText.Get("编辑题目"),
+                Title = UiText.Get("Edit question"),
                 Content = new ScrollViewer { Content = fields, MaxHeight = 620 },
-                PrimaryButtonText = UiText.Get("保存"),
-                CloseButtonText = UiText.Get("取消"),
+                PrimaryButtonText = UiText.Get("Save"),
+                CloseButtonText = UiText.Get("Cancel"),
                 DefaultButton = ContentDialogButton.Primary
             };
             dialog.PrimaryButtonClick += async (_, args) =>
@@ -40,21 +40,21 @@ public sealed partial class MainWindow
                     var update = editor.Read();
                     var result = await library.EditQuestionAsync(saved.Id, update, _lifetime.Token);
                     selected.AcceptSaved(result);
-                    try { await ReloadQuestionsAsync(); ViewModel.StatusMessage = UiText.Get("已保存。"); }
-                    catch { ViewModel.StatusMessage = UiText.Get("已保存，请重新打开资料查看最新内容。"); }
+                    try { await ReloadQuestionsAsync(); ViewModel.StatusMessage = UiText.Get("Saved."); }
+                    catch { ViewModel.StatusMessage = UiText.Get("Saved. Reopen the material to see the latest content."); }
                 }
                 catch (Exception exception)
                 {
                     args.Cancel = true;
                     error.Text = exception is DomainValidationException or FormatException or OverflowException
-                        ? UiText.Get("未保存。请检查题号、分数、小问合计和来源范围。") : UiText.Get("未保存，请等待任务结束后重试。");
+                        ? UiText.Get("Not saved. Check question numbers, scores, subquestion totals, and source regions.") : UiText.Get("Not saved. Wait for the task to finish and retry.");
                     error.Visibility = Visibility.Visible;
                 }
                 finally { dialog.IsPrimaryButtonEnabled = true; deferral.Complete(); }
             };
             await dialog.ShowAsync();
         }
-        catch { ViewModel.StatusMessage = UiText.Get("题目无法打开，请重新选择。"); }
+        catch { ViewModel.StatusMessage = UiText.Get("Could not open this question. Select it again."); }
         finally { _questionEditorOpen = false; }
     }
 
@@ -75,51 +75,51 @@ public sealed partial class MainWindow
         public QuestionFields(Question question, Document document, int depth = 0)
         {
             _original = question;
-            _number = AddText(Panel, UiText.Get("题号"), question.Number);
-            _subject = AddText(Panel, UiText.Get("学科"), question.Subject);
-            _type = AddText(Panel, UiText.Get("题型"), question.QuestionType);
+            _number = AddText(Panel, UiText.Get("Question number"), question.Number);
+            _subject = AddText(Panel, UiText.Get("Subject"), question.Subject);
+            _type = AddText(Panel, UiText.Get("Question type"), question.QuestionType);
             _content = new(question.Content, value => ContentField(value, document));
-            AddSection(Panel, UiText.Get("题干"), _content.Panel);
-            AddButton(_content.Actions, UiText.Get("添加文字"), () => _content.Add(new TextContent { Text = "" }));
-            AddButton(_content.Actions, UiText.Get("添加公式"), () => _content.Add(new FormulaContent { Latex = "" }));
-            AddButton(_content.Actions, UiText.Get("添加表格"), () => _content.Add(new TableContent { Rows = [[""]] }));
+            AddSection(Panel, UiText.Get("Question text"), _content.Panel);
+            AddButton(_content.Actions, UiText.Get("Add text"), () => _content.Add(new TextContent { Text = "" }));
+            AddButton(_content.Actions, UiText.Get("Add formula"), () => _content.Add(new FormulaContent { Latex = "" }));
+            AddButton(_content.Actions, UiText.Get("Add table"), () => _content.Add(new TableContent { Rows = [[""]] }));
             var material = document.Pages.FirstOrDefault(p => p.Role == "material");
             if (material is not null)
-                AddButton(_content.Actions, UiText.Get("添加配图"), () => _content.Add(new ImageContent { Caption = "", ContainsHandwriting = false, Region = FullPage(material.Id) }));
+                AddButton(_content.Actions, UiText.Get("Add image"), () => _content.Add(new ImageContent { Caption = "", ContainsHandwriting = false, Region = FullPage(material.Id) }));
             _options = new(question.Options, value =>
             {
                 var field = new TextBox { Text = value, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
                 return new(field, () => field.Text);
             });
-            AddSection(Panel, UiText.Get("选项"), _options.Panel);
-            AddButton(_options.Actions, UiText.Get("添加选项"), () => _options.Add(""));
-            _answer = AddText(Panel, UiText.Get("标准答案"), question.StandardAnswer, true);
-            _explanation = AddText(Panel, UiText.Get("解析"), question.Explanation, true);
-            _knowledge = AddText(Panel, UiText.Get("知识点（每行一项）"), string.Join("\n", question.KnowledgePoints), true);
-            _points = AddText(Panel, UiText.Get("满分（未知留空）"), ScoreText(question.Points));
+            AddSection(Panel, UiText.Get("Options"), _options.Panel);
+            AddButton(_options.Actions, UiText.Get("Add option"), () => _options.Add(""));
+            _answer = AddText(Panel, UiText.Get("Standard answer"), question.StandardAnswer, true);
+            _explanation = AddText(Panel, UiText.Get("Explanation"), question.Explanation, true);
+            _knowledge = AddText(Panel, UiText.Get("Topics (one per line)"), string.Join("\n", question.KnowledgePoints), true);
+            _points = AddText(Panel, UiText.Get("Maximum score (leave blank if unknown)"), ScoreText(question.Points));
             _sources = RegionList(question.Sources, document, "material");
-            AddSection(Panel, UiText.Get("题目来源"), _sources.Panel);
-            _uncertainties = AddText(Panel, UiText.Get("待确认内容（每行一项）"), string.Join("\n", question.Uncertainties), true);
+            AddSection(Panel, UiText.Get("Question source"), _sources.Panel);
+            _uncertainties = AddText(Panel, UiText.Get("Items to review (one per line)"), string.Join("\n", question.Uncertainties), true);
             if (question.Attempt is { } attempt)
             {
-                _student = AddText(Panel, UiText.Get("学生作答"), attempt.StudentAnswer, true);
+                _student = AddText(Panel, UiText.Get("Student answer"), attempt.StudentAnswer, true);
                 _studentRegions = RegionList(attempt.StudentRegions, document, "material");
-                AddSection(Panel, UiText.Get("作答来源"), _studentRegions.Panel);
-                _verdict = new ComboBox { Header = UiText.Get("判定"), HorizontalAlignment = HorizontalAlignment.Stretch };
-                foreach (var label in new[] { UiText.Get("正确"), UiText.Get("部分正确"), UiText.Get("错误"), UiText.Get("未作答"), UiText.Get("待确认") }) _verdict.Items.Add(label);
+                AddSection(Panel, UiText.Get("Answer source"), _studentRegions.Panel);
+                _verdict = new ComboBox { Header = UiText.Get("Verdict"), HorizontalAlignment = HorizontalAlignment.Stretch };
+                foreach (var label in new[] { UiText.Get("Correct"), UiText.Get("Partially correct"), UiText.Get("Incorrect"), UiText.Get("Unanswered"), UiText.Get("Needs review") }) _verdict.Items.Add(label);
                 _verdict.SelectedIndex = (int)attempt.Grade.Verdict; Panel.Children.Add(_verdict);
-                _earned = AddText(Panel, UiText.Get("得分（无法判定留空）"), ScoreText(attempt.Grade.Earned));
-                _reason = AddText(Panel, UiText.Get("评分说明"), attempt.Grade.Reason, true);
-                _solution = AddText(Panel, UiText.Get("解题过程"), attempt.AiSolution, true);
+                _earned = AddText(Panel, UiText.Get("Score (leave blank if undetermined)"), ScoreText(attempt.Grade.Earned));
+                _reason = AddText(Panel, UiText.Get("Grading notes"), attempt.Grade.Reason, true);
+                _solution = AddText(Panel, UiText.Get("Solution steps"), attempt.AiSolution, true);
                 if (attempt.Teacher is { } teacher)
-                    Panel.Children.Add(new TextBlock { Text = UiText.Get("教师批注：") + teacher.Raw, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+                    Panel.Children.Add(new TextBlock { Text = UiText.Get("Teacher annotations: ") + teacher.Raw, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
                 if (!string.IsNullOrWhiteSpace(attempt.Conflict))
-                    Panel.Children.Add(new TextBlock { Text = UiText.Get("判断差异：") + attempt.Conflict, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+                    Panel.Children.Add(new TextBlock { Text = UiText.Get("Grading differences: ") + attempt.Conflict, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
             }
             _parts = new(question.Parts, part =>
             {
                 QuestionFields? nested = null;
-                var expander = new Expander { Header = UiText.Format("小问 {0}", part.Number), HorizontalAlignment = HorizontalAlignment.Stretch };
+                var expander = new Expander { Header = UiText.Format("Subquestion {0}", part.Number), HorizontalAlignment = HorizontalAlignment.Stretch };
                 expander.Expanding += (_, _) =>
                 {
                     nested ??= new QuestionFields(part, document, depth + 1);
@@ -127,9 +127,9 @@ public sealed partial class MainWindow
                 };
                 return new(expander, () => nested?.Read() ?? part);
             });
-            AddSection(Panel, UiText.Get("小问"), _parts.Panel);
+            AddSection(Panel, UiText.Get("Subquestion"), _parts.Panel);
             if (depth < 8)
-                AddButton(_parts.Actions, UiText.Get("添加小问"), () => _parts.Add(NewPart(question, document, (_parts.Count + 1).ToString(CultureInfo.InvariantCulture))));
+                AddButton(_parts.Actions, UiText.Get("Add subquestion"), () => _parts.Add(NewPart(question, document, (_parts.Count + 1).ToString(CultureInfo.InvariantCulture))));
         }
 
         public Question Read()
@@ -184,9 +184,9 @@ public sealed partial class MainWindow
             var buttons = new StackPanel { Spacing = 6, Orientation = Orientation.Horizontal };
             var border = new Border { Child = content, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Padding = new Thickness(10), BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["CardStrokeColorDefaultBrush"] };
             content.Children.Add(field.Element); content.Children.Add(buttons);
-            AddButton(buttons, UiText.Get("上移"), () => Move(border, -1));
-            AddButton(buttons, UiText.Get("下移"), () => Move(border, 1));
-            AddButton(buttons, UiText.Get("删除"), () => { _items.RemoveAll(item => ReferenceEquals(item.Container, border)); _rows.Children.Remove(border); });
+            AddButton(buttons, UiText.Get("Move up"), () => Move(border, -1));
+            AddButton(buttons, UiText.Get("Move down"), () => Move(border, 1));
+            AddButton(buttons, UiText.Get("Delete"), () => { _items.RemoveAll(item => ReferenceEquals(item.Container, border)); _rows.Children.Remove(border); });
             _items.Add((border, field)); _rows.Children.Add(border);
         }
         private void Move(Border border, int delta)
@@ -205,10 +205,10 @@ public sealed partial class MainWindow
         switch (content)
         {
             case TextContent text:
-                var textBox = AddText(panel, UiText.Get("文字"), text.Text, true);
+                var textBox = AddText(panel, UiText.Get("Text"), text.Text, true);
                 return new(panel, () => text with { Text = textBox.Text });
             case FormulaContent formula:
-                var formulaBox = AddText(panel, UiText.Get("公式"), formula.Latex, true);
+                var formulaBox = AddText(panel, UiText.Get("Formula"), formula.Latex, true);
                 return new(panel, () => formula with { Latex = formulaBox.Text });
             case TableContent table:
                 var rows = new EditorList<List<string>>(table.Rows, row =>
@@ -218,18 +218,18 @@ public sealed partial class MainWindow
                         var cell = new TextBox { Text = value, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
                         return new(cell, () => cell.Text);
                     });
-                    AddButton(cells.Actions, UiText.Get("添加单元格"), () => cells.Add(""));
+                    AddButton(cells.Actions, UiText.Get("Add cell"), () => cells.Add(""));
                     return new(cells.Panel, cells.Read);
                 });
-                AddButton(rows.Actions, UiText.Get("添加行"), () => rows.Add([""]));
-                AddSection(panel, UiText.Get("表格"), rows.Panel);
+                AddButton(rows.Actions, UiText.Get("Add row"), () => rows.Add([""]));
+                AddSection(panel, UiText.Get("Table"), rows.Panel);
                 return new(panel, () => table with { Rows = rows.Read() });
             case ImageContent image:
-                var caption = AddText(panel, UiText.Get("配图说明"), image.Caption, true);
-                var handwriting = new CheckBox { Content = UiText.Get("含手写内容"), IsChecked = image.ContainsHandwriting }; panel.Children.Add(handwriting);
+                var caption = AddText(panel, UiText.Get("Image caption"), image.Caption, true);
+                var handwriting = new CheckBox { Content = UiText.Get("Contains handwriting"), IsChecked = image.ContainsHandwriting }; panel.Children.Add(handwriting);
                 var region = RegionField(image.Region, document, "material"); panel.Children.Add(region.Element);
                 return new(panel, () => image with { Caption = caption.Text, ContainsHandwriting = handwriting.IsChecked == true, Region = region.Read() });
-            default: throw new InvalidOperationException(UiText.Get("无法编辑此内容。"));
+            default: throw new InvalidOperationException(UiText.Get("This content cannot be edited."));
         }
     }
 
@@ -237,20 +237,20 @@ public sealed partial class MainWindow
     {
         var list = new EditorList<Region>(regions, region => RegionField(region, document, role));
         if (document.Pages.FirstOrDefault(page => page.Role == role) is { } page)
-            AddButton(list.Actions, UiText.Get("添加来源"), () => list.Add(FullPage(page.Id)));
+            AddButton(list.Actions, UiText.Get("Add source"), () => list.Add(FullPage(page.Id)));
         return list;
     }
     private static EditorField<Region> RegionField(Region region, Document document, string role)
     {
         var panel = new StackPanel { Spacing = 8 };
         var pages = document.Pages.Where(page => page.Role == role).ToList();
-        var pageChoice = new ComboBox { Header = UiText.Get("原件页"), HorizontalAlignment = HorizontalAlignment.Stretch };
-        foreach (var page in pages) pageChoice.Items.Add(UiText.Format("第 {0} 页", page.PageIndex + 1));
+        var pageChoice = new ComboBox { Header = UiText.Get("Original page"), HorizontalAlignment = HorizontalAlignment.Stretch };
+        foreach (var page in pages) pageChoice.Items.Add(UiText.Format("Page {0}", page.PageIndex + 1));
         pageChoice.SelectedIndex = pages.FindIndex(page => page.Id == region.PageId); panel.Children.Add(pageChoice);
-        var x = AddText(panel, UiText.Get("左距（%）"), ScoreText(region.X * 100));
-        var y = AddText(panel, UiText.Get("上距（%）"), ScoreText(region.Y * 100));
-        var width = AddText(panel, UiText.Get("宽度（%）"), ScoreText(region.Width * 100));
-        var height = AddText(panel, UiText.Get("高度（%）"), ScoreText(region.Height * 100));
+        var x = AddText(panel, UiText.Get("Left (%)"), ScoreText(region.X * 100));
+        var y = AddText(panel, UiText.Get("Top (%)"), ScoreText(region.Y * 100));
+        var width = AddText(panel, UiText.Get("Width (%)"), ScoreText(region.Width * 100));
+        var height = AddText(panel, UiText.Get("Height (%)"), ScoreText(region.Height * 100));
         return new(panel, () => region with
         {
             PageId = pageChoice.SelectedIndex < 0 ? region.PageId : pages[pageChoice.SelectedIndex].Id,
@@ -292,7 +292,7 @@ public sealed partial class MainWindow
             StudentAnswer = "",
             StudentRegions = [],
             AiSolution = "",
-            Grade = new Grade { Verdict = Verdict.Uncertain, Source = GradeSource.Manual, Reason = UiText.Get("待确认") }
+            Grade = new Grade { Verdict = Verdict.Uncertain, Source = GradeSource.Manual, Reason = UiText.Get("Needs review") }
         }
     };
 }

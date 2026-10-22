@@ -23,10 +23,10 @@ public sealed partial class LibraryRepository
     {
         var destination = Path.GetFullPath(destinationDirectory);
         if (destination.StartsWith(Root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || destination.Equals(Root, StringComparison.OrdinalIgnoreCase))
-            throw new IOException("备份目录需位于资料库之外");
+            throw new IOException("The backup directory must be outside the library");
         return Run(() =>
         {
-            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("备份位置已存在，请选择新目录");
+            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("The backup location already exists. Select a new directory");
             var parent = Path.GetDirectoryName(destination)!; RejectLinks(parent);
             var stage = Path.Combine(parent, ".study-backup-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(stage);
@@ -63,7 +63,7 @@ public sealed partial class LibraryRepository
                         var path = SafeAssetFile(name);
                         var output = Path.Combine(stage, "assets", name);
                         using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        if (input.Length is < 1 or > LibraryLimits.MaximumAssetBytes) throw new InvalidDataException("备份原件大小无效");
+                        if (input.Length is < 1 or > LibraryLimits.MaximumAssetBytes) throw new InvalidDataException("Invalid backup original file size");
                         using (var file = new FileStream(output, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { input.CopyTo(file); file.Flush(true); }
                         copied.Add((name, HashFile(output)));
                     }
@@ -81,7 +81,7 @@ public sealed partial class LibraryRepository
                         json.WriteEndArray(); json.WriteEndObject(); json.Flush();
                     }
                     manifest.Flush(true);
-                    if (manifest.Length > 8 * 1024 * 1024) throw new InvalidOperationException("备份清单超过当前恢复支持的大小");
+                    if (manifest.Length > 8 * 1024 * 1024) throw new InvalidOperationException("The backup manifest exceeds the size supported for restoration");
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 PromoteBackupDirectory(stage, destination, cancellationToken);
@@ -98,38 +98,38 @@ public sealed partial class LibraryRepository
             SqliteLibrary.Initialize();
             var backup = Path.GetFullPath(backupDirectory); var destination = Path.GetFullPath(newLibraryDirectory);
             RejectLinks(backup);
-            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("恢复位置已存在，请选择新目录");
+            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("The restore location already exists. Select a new directory");
             var parent = Path.GetDirectoryName(destination)!; RejectLinks(parent);
             var manifestPath = Path.Combine(backup, "backup.json"); RejectLinks(manifestPath);
-            if (new FileInfo(manifestPath).Length > 8 * 1024 * 1024) throw new InvalidDataException("备份清单过大");
+            if (new FileInfo(manifestPath).Length > 8 * 1024 * 1024) throw new InvalidDataException("The backup manifest is too large");
             using var manifest = JsonDocument.Parse(File.ReadAllBytes(manifestPath));
             var root = manifest.RootElement;
-            if (root.GetProperty("format").GetInt32() != 1) throw new InvalidDataException("备份格式不受支持");
+            if (root.GetProperty("format").GetInt32() != 1) throw new InvalidDataException("Unsupported backup format");
             var databasePath = Path.Combine(backup, "study.sqlite3"); RejectLinks(databasePath);
-            if (!HashFile(databasePath).Equals(root.GetProperty("database_sha256").GetString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("备份资料库校验失败");
+            if (!HashFile(databasePath).Equals(root.GetProperty("database_sha256").GetString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Backup library verification failed");
             var stage = Path.Combine(parent, ".study-restore-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(stage);
             try
             {
                 Directory.CreateDirectory(Path.Combine(stage, "assets"));
                 File.Copy(databasePath, Path.Combine(stage, "study.sqlite3"), false);
-                if (!HashFile(Path.Combine(stage, "study.sqlite3")).Equals(root.GetProperty("database_sha256").GetString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("复制后的资料库校验失败");
+                if (!HashFile(Path.Combine(stage, "study.sqlite3")).Equals(root.GetProperty("database_sha256").GetString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Copied library verification failed");
                 var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var item in root.GetProperty("files").EnumerateArray())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var name = item.GetProperty("name").GetString()!; ValidateFileName(name);
-                    if (!names.Add(name)) throw new InvalidDataException("备份清单重复");
+                    if (!names.Add(name)) throw new InvalidDataException("Duplicate backup manifest entry");
                     var source = Path.Combine(backup, "assets", name); RejectLinks(source);
-                    if (new FileInfo(source).Length is < 1 or > LibraryLimits.MaximumAssetBytes) throw new InvalidDataException("备份原件大小无效");
+                    if (new FileInfo(source).Length is < 1 or > LibraryLimits.MaximumAssetBytes) throw new InvalidDataException("Invalid backup original file size");
                     var output = Path.Combine(stage, "assets", name); File.Copy(source, output, false);
-                    if (!HashFile(output).Equals(item.GetProperty("sha256").GetString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("备份原件校验失败");
+                    if (!HashFile(output).Equals(item.GetProperty("sha256").GetString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Backup original file verification failed");
                 }
                 using (var database = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path.Combine(stage, "study.sqlite3"), Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString()))
                 {
                     database.Open(); VerifyDatabase(database);
                     using var command = database.CreateCommand(); command.CommandText = "SELECT original_file FROM assets UNION SELECT thumbnail_file FROM assets WHERE thumbnail_file IS NOT NULL";
                     using var reader = command.ExecuteReader();
-                    while (reader.Read()) if (!names.Contains(reader.GetString(0))) throw new InvalidDataException("备份缺少原件");
+                    while (reader.Read()) if (!names.Contains(reader.GetString(0))) throw new InvalidDataException("The backup is missing an original file");
                 }
                 cancellationToken.ThrowIfCancellationRequested(); PromoteBackupDirectory(stage, destination, cancellationToken);
             }
@@ -148,7 +148,7 @@ public sealed partial class LibraryRepository
         {
             cancellationToken.ThrowIfCancellationRequested();
             RejectLinks(stage); RejectLinks(Path.GetDirectoryName(destination)!);
-            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("目标位置已存在");
+            if (Directory.Exists(destination) || File.Exists(destination)) throw new IOException("The destination already exists");
             try { Directory.Move(stage, destination); return; }
             catch (Exception error) when (attempt < 8 && (error is IOException or UnauthorizedAccessException)
                 && (error.HResult & 0xffff) is 5 or 32 or 33)

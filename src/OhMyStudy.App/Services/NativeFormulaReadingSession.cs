@@ -94,7 +94,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                 if (_preview && result.Document is null)
                 {
                     PreviewHeights.Set((source, Math.Floor(_width)), 20, source.Length * 2L + 64);
-                    return Plain(UiText.Get("预览暂时无法显示"));
+                    return Plain(UiText.Get("Preview unavailable"));
                 }
                 if (_preview && result.Document is { } large && (Math.Max(large.LogicalSize.Height, large.InkBounds.Y + large.InkBounds.Height) - Math.Min(0, large.InkBounds.Y) + 2 > 46
                     || Math.Max(large.LogicalSize.Width, large.InkBounds.X + large.InkBounds.Width) - Math.Min(0, large.InkBounds.X) + 2 > _width))

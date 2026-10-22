@@ -22,10 +22,10 @@ public sealed partial class LibraryRepository
     private GradingInput CheckRun(string jobId)
     {
         var result = Query("SELECT j.state,r.input_json FROM jobs j JOIN grading_runs r ON r.job_id=j.id WHERE j.id=$p0", r => (State: r.GetString(0), Json: r.GetString(1)), jobId).SingleOrDefault();
-        if (result.State != "RUNNING") throw new InvalidOperationException("任务不是运行状态，拒绝结果写入");
+        if (result.State != "RUNNING") throw new InvalidOperationException("The task is not running. Results cannot be written");
         var input = DomainJson.Deserialize<GradingInput>(result.Json);
         if (!JsonEqual(DomainJson.Serialize(Document(input.Document.Id)), DomainJson.Serialize(input.Document)))
-            throw new InvalidOperationException("材料页序或方向已改变，请重新开始整卷任务");
+            throw new InvalidOperationException("Document page order or rotation has changed. Restart the whole-paper task");
         return input;
     }
 
@@ -43,7 +43,7 @@ public sealed partial class LibraryRepository
 
     public Task BeginGradingAsync(Job job, CancellationToken cancellationToken = default)
     {
-        var input = job.Input ?? throw new ArgumentException("任务输入缺失");
+        var input = job.Input ?? throw new ArgumentException("Task input is missing");
         var json = DomainJson.Serialize(input);
         return Run(() => Transaction(cancellationToken, () => Execute("INSERT INTO grading_runs(job_id,document_id,input_json) VALUES($p0,$p1,$p2)", job.Id, input.Document.Id, json)), cancellationToken, true);
     }
@@ -69,7 +69,7 @@ public sealed partial class LibraryRepository
             ValidateAi(next, input.Document, references);
             var incoming = GradingValidation.QuestionKeys(next).ToHashSet(StringComparer.Ordinal);
             if (existing.Where(q => q.Question.DraftKey != next.DraftKey).Any(q => GradingValidation.QuestionKeys(q.Question).Any(incoming.Contains)))
-                throw new InvalidOperationException("小问的稳定键与其他题冲突");
+                throw new InvalidOperationException("A part's stable key conflicts with another question");
             return WriteQuestion(input.Document.Id, next, previous?.Id);
         }), cancellationToken, true);
     }
@@ -80,11 +80,11 @@ public sealed partial class LibraryRepository
     private static Question Preserve(Question next, Question old, bool teacherMode)
     {
         if (old.Parts.Any(p => Protected(p, teacherMode) && !next.Parts.Any(n => n.DraftKey == p.DraftKey)))
-            throw new InvalidOperationException("不能在重批中移除已有教师或手动评分的小问，请保留原结构");
+            throw new InvalidOperationException("Regrading cannot remove parts with teacher or manual grades. Preserve the original structure");
         if (old.Attempt is { } previous)
         {
             var preserve = previous.Grade.Source == GradeSource.Manual || teacherMode && (previous.Grade.Source == GradeSource.Teacher || previous.Teacher?.Grade is not null);
-            if (preserve && next.Attempt is null) throw new InvalidOperationException("不能在重批中移除已有教师或手动评分");
+            if (preserve && next.Attempt is null) throw new InvalidOperationException("Regrading cannot remove existing teacher or manual grades");
             if (next.Attempt is { } attempt)
             {
                 if (previous.Grade.Source == GradeSource.Manual) next = next with { Attempt = attempt with { Grade = previous.Grade } };
@@ -97,7 +97,7 @@ public sealed partial class LibraryRepository
     private static void CheckManual(Question question, Question? old)
     {
         if (question.Attempt?.Grade.Source == GradeSource.Manual && old?.Attempt?.Grade.Source != GradeSource.Manual)
-            throw new InvalidOperationException("AI 不能生成手动批改来源");
+            throw new InvalidOperationException("AI cannot generate a manual grading source");
         foreach (var part in question.Parts) CheckManual(part, old?.Parts.FirstOrDefault(p => p.DraftKey == part.DraftKey));
     }
 
@@ -114,18 +114,18 @@ public sealed partial class LibraryRepository
         {
             var stored = DomainJson.Deserialize<List<ReferenceAnswer>>(json); var input = CheckRun(jobId);
             var keys = new HashSet<string>(StringComparer.Ordinal); var matches = new HashSet<string>(StringComparer.Ordinal);
-            if (stored.Count > 1000) throw new ArgumentException("参考答案数量超过限制");
+            if (stored.Count > 1000) throw new ArgumentException("The number of reference answers exceeds the limit");
             foreach (var reference in stored)
             {
                 if (string.IsNullOrWhiteSpace(reference.Key) || !keys.Add(reference.Key) || reference.Sources.Count == 0 || string.IsNullOrWhiteSpace(reference.Answer))
-                    throw new ArgumentException("参考答案需有唯一键、正文与原图来源");
+                    throw new ArgumentException("Reference answers require unique keys, content, and original image sources");
                 if (reference.MatchedDraftKey is { } match)
-                { if (!matches.Add(match)) throw new ArgumentException("同一题目不能匹配多条参考答案"); }
-                else if (string.IsNullOrWhiteSpace(reference.UncertainReason)) throw new ArgumentException("未匹配的参考答案需要说明原因");
+                { if (!matches.Add(match)) throw new ArgumentException("A question cannot match multiple reference answers"); }
+                else if (string.IsNullOrWhiteSpace(reference.UncertainReason)) throw new ArgumentException("Unmatched reference answers require a reason");
                 foreach (var source in reference.Sources) GradingValidation.ValidateRegion(source, input.Document, "reference");
             }
             foreach (var question in Questions(input.Document.Id))
-                if (ReferenceKeys(question.Question).Any(key => !keys.Contains(key))) throw new InvalidOperationException("已有批改引用的参考答案键不能丢弃");
+                if (ReferenceKeys(question.Question).Any(key => !keys.Contains(key))) throw new InvalidOperationException("Reference keys used by existing grades must be preserved");
             return Execute("UPDATE grading_runs SET references_json=$p0 WHERE job_id=$p1", json, jobId);
         }), cancellationToken, true);
     }
@@ -146,11 +146,11 @@ public sealed partial class LibraryRepository
             GradingValidation.ValidateCoverage(input.Document, DomainJson.Deserialize<List<Coverage>>(json), questions, referenceOnly, viewedCopy);
             if (!referenceOnly)
             {
-                if (!questions.Select(q => q.Question.DraftKey).ToHashSet().SetEquals(saved)) throw new InvalidOperationException("本轮必须保存全部题目，已有题不能被静默遗漏");
+                if (!questions.Select(q => q.Question.DraftKey).ToHashSet().SetEquals(saved)) throw new InvalidOperationException("This round must save all questions. Existing questions must not be silently omitted");
                 foreach (var question in questions) GradingValidation.ValidateQuestion(question.Question, input.Document, references, true);
             }
             var allKeys = questions.SelectMany(q => GradingValidation.QuestionKeys(q.Question)).ToHashSet();
-            if (references.Any(r => r.MatchedDraftKey is { } key && !allKeys.Contains(key))) throw new InvalidOperationException("参考答案引用了未保存的题目");
+            if (references.Any(r => r.MatchedDraftKey is { } key && !allKeys.Contains(key))) throw new InvalidOperationException("A reference answer points to an unsaved question");
             return Execute("UPDATE grading_runs SET coverage_json=$p0 WHERE job_id=$p1", json, jobId);
         }), cancellationToken, true);
     }
@@ -187,10 +187,10 @@ public sealed partial class LibraryRepository
         {
             var row = Query("SELECT document_id,draft_key FROM questions WHERE id=$p0", r => (DocumentId: r.GetString(0), Key: r.GetString(1)), id).Single();
             DocumentIdle(row.DocumentId); var next = DomainJson.Deserialize<Question>(json);
-            if (next.DraftKey != row.Key) throw new InvalidOperationException("不能修改题目的稳定键");
+            if (next.DraftKey != row.Key) throw new InvalidOperationException("A question's stable key cannot be changed");
             next = Manual(next);
             var existing = Questions(row.DocumentId); var incoming = GradingValidation.QuestionKeys(next).ToHashSet();
-            if (existing.Where(q => q.Id != id).Any(q => GradingValidation.QuestionKeys(q.Question).Any(incoming.Contains))) throw new InvalidOperationException("小问的稳定键与其他题冲突");
+            if (existing.Where(q => q.Id != id).Any(q => GradingValidation.QuestionKeys(q.Question).Any(incoming.Contains))) throw new InvalidOperationException("A part's stable key conflicts with another question");
             GradingValidation.ValidateQuestion(next, Document(row.DocumentId), References(row.DocumentId), true);
             return WriteQuestion(row.DocumentId, next, id);
         }), cancellationToken, true);

@@ -114,7 +114,7 @@ internal static class SandboxChecks
             using var broker = new PermissionBroker(); broker.RegisterJob("sandbox-stop-fail", Policy()); broker.RegisterJob("sandbox-after-fail", Policy());
             var control = new SyntheticSandbox { FailStop = true }; var executor = new SandboxToolExecutor(runtime, control);
             try { await executor.ExecuteAsync(broker.Request(Call("sandbox-stop-fail"))!, Path.Combine(root, "sandbox-stop-fail"), CancellationToken.None); throw new Exception("cleanup failure accepted"); }
-            catch (IOException error) { require(error.Message.Contains("重新打开"), "missing recovery action"); }
+            catch (IOException error) { require(error.Message.Contains("Reopen", StringComparison.Ordinal), "missing recovery action"); }
             try { await executor.ExecuteAsync(broker.Request(Call("sandbox-after-fail"))!, Path.Combine(root, "sandbox-after-fail"), CancellationToken.None); throw new Exception("start after failed cleanup"); }
             catch (IOException) { }
             require(control.Starts == 1, "new AppContainer after uncertain teardown");

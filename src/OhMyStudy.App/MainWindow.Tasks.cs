@@ -91,7 +91,7 @@ public sealed partial class MainWindow
                     var compact = new ComboBoxItem { Content = compactTitle, Tag = job.Id, HorizontalContentAlignment = HorizontalAlignment.Stretch };
                     row = (item, title, status, statusIcon, time, compact, compactTitle); _taskItems.Add(job.Id, row);
                 }
-                row.Title.Text = job.Input?.Document.Name ?? UiText.Get("资料整理");
+                row.Title.Text = job.Input?.Document.Name ?? UiText.Get("Organize materials");
                 row.Status.Text = TaskState(job.State);
                 row.StatusIcon.Glyph = TaskStateGlyph(job.State);
                 row.StatusIcon.Foreground = TaskBrush(job.State is JobState.Failed or JobState.Interrupted ? "TaskErrorBrush" : "TaskAccentBrush");
@@ -147,20 +147,20 @@ public sealed partial class MainWindow
         int pages = activities.Values.Max(v => v.Activity.PagesRead);
         int questions = activities.Values.Max(v => v.Activity.QuestionsSaved);
         bool hasTrace = events.Any(e => e.Kind == "activity");
-        TaskTitle.Text = selected.Input?.Document.Name ?? UiText.Get("资料整理");
+        TaskTitle.Text = selected.Input?.Document.Name ?? UiText.Get("Organize materials");
         TaskSubtitle.Text = selected.State switch
         {
-            JobState.Completed => UiText.Get("识别完成，题目已加入题库。"),
-            JobState.Cancelled => UiText.Get("任务已取消，已保存的题目会保留。"),
-            JobState.Failed => activities.Values.LastOrDefault(item => item.Activity.State == "failed").Activity?.Detail ?? UiText.Get("识别未完成，已保存的题目会保留。可在试卷中重新识别。"),
-            JobState.Interrupted => UiText.Get("识别已中断，已保存的题目会保留。可在试卷中重新识别。"),
-            JobState.WaitingPermission => UiText.Get("需要你确认一项操作，确认后继续。"),
+            JobState.Completed => UiText.Get("Recognition complete. Questions added to the question bank."),
+            JobState.Cancelled => UiText.Get("Task canceled. Saved questions are preserved."),
+            JobState.Failed => activities.Values.LastOrDefault(item => item.Activity.State == "failed").Activity?.Detail ?? UiText.Get("Recognition incomplete. Saved questions are preserved. Try recognition again in Exams."),
+            JobState.Interrupted => UiText.Get("Recognition interrupted. Saved questions are preserved. Try again in Exams."),
+            JobState.WaitingPermission => UiText.Get("Confirm an action to continue."),
             _ => activities.Values.Last().Activity.Detail
         };
         TaskSubtitle.Text = UiText.ActivityText(TaskSubtitle.Text);
         TaskPages.Text = hasTrace ? $"{pages} / {selected.Input?.Document.Pages.Count ?? pages}" : "—";
         TaskQuestions.Text = hasTrace ? questions.ToString() : "—";
-        TaskModelCalls.Text = UiText.Format("模型调用 {0} 次", Math.Max(calls.Count, activities.Values.Count(v => v.Activity.Kind == "model")));
+        TaskModelCalls.Text = UiText.Format("Model calls: {0}", Math.Max(calls.Count, activities.Values.Count(v => v.Activity.Kind == "model")));
         TaskStateLabel.Text = TaskState(selected.State);
         TaskStateLabel.Foreground = TaskBrush(selected.State is JobState.Failed or JobState.Interrupted ? "TaskErrorBrush" : "TaskAccentBrush");
         TaskHeroIcon.Glyph = selected.State switch { JobState.Completed => "\uE73E", JobState.Failed or JobState.Interrupted => "\uE7BA", JobState.Cancelled => "\uE711", _ => "\uE9F9" };
@@ -184,14 +184,14 @@ public sealed partial class MainWindow
             if (!call.TryGetProperty("usage", out _)) { inputKnown = false; outputKnown = false; cacheKnown = false; uncachedKnown = false; cacheWriteKnown = false; }
             if (call.TryGetProperty("estimated_cost", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Number && c.TryGetDouble(out var amount)) cost += amount; else priced = false;
         }
-        TaskInputUsage.Text = inputKnown ? UiText.Format("输入 {0:N0}", inputTokens) : UiText.Get("输入未提供"); TaskOutputUsage.Text = outputKnown ? UiText.Format("输出 {0:N0}", outputTokens) : UiText.Get("输出未提供");
-        TaskInputUncached.Text = uncachedKnown ? UiText.Format("缓存未命中 {0:N0}", uncachedTokens) : UiText.Get("缓存未命中用量未提供");
-        TaskInputCached.Text = cacheKnown ? UiText.Format("缓存命中 {0:N0}", cacheReadTokens) : UiText.Get("缓存命中用量未提供");
-        TaskInputCacheWrite.Text = cacheWriteKnown ? UiText.Format("缓存写入 {0:N0}", cacheWriteTokens) : UiText.Get("缓存写入用量未提供");
+        TaskInputUsage.Text = inputKnown ? UiText.Format("Input {0:N0}", inputTokens) : UiText.Get("Input usage not provided"); TaskOutputUsage.Text = outputKnown ? UiText.Format("Output {0:N0}", outputTokens) : UiText.Get("Output usage not provided");
+        TaskInputUncached.Text = uncachedKnown ? UiText.Format("Uncached {0:N0}", uncachedTokens) : UiText.Get("Uncached usage not provided");
+        TaskInputCached.Text = cacheKnown ? UiText.Format("Cache read {0:N0}", cacheReadTokens) : UiText.Get("Cache read usage not provided");
+        TaskInputCacheWrite.Text = cacheWriteKnown ? UiText.Format("Cache write {0:N0}", cacheWriteTokens) : UiText.Get("Cache write usage not provided");
         TaskNoUsage.Visibility = calls.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         TaskTokenUsage.Visibility = calls.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         TaskUsage.Text = "—";
-        TaskRateNote.Text = priced ? UiText.Get("正在计算费用…") : calls.Count > 0 ? UiText.Get("价格或用量不完整，暂无法估算费用。") : UiText.Get("暂无费用记录");
+        TaskRateNote.Text = priced ? UiText.Get("Calculating cost…") : calls.Count > 0 ? UiText.Get("Cannot estimate cost: pricing or usage details are incomplete.") : UiText.Get("No cost records yet");
         if (priced) _ = UpdateTaskCnyCostAsync(selected.Id, generation, cost, selected.Input?.Model.Currency ?? "USD");
         var effectiveActivities = activities.Values.Select(item =>
         {
@@ -238,13 +238,13 @@ public sealed partial class MainWindow
                 var members = activities.Skip(start).Take(count).Select(item => item.Activity).ToArray();
                 string title = first.Kind switch
                 {
-                    "read_page" => UiText.Get("阅读页面"),
-                    "save_question" => UiText.Get("保存题目"),
-                    "save_references" => UiText.Get("保存参考答案"),
-                    "python" or "shell" => UiText.Get("运行辅助计算"),
+                    "read_page" => UiText.Get("Read pages"),
+                    "save_question" => UiText.Get("Save questions"),
+                    "save_references" => UiText.Get("Save reference answers"),
+                    "python" or "shell" => UiText.Get("Run calculations"),
                     _ => UiText.ActivityText(first.Title)
                 };
-                entries.Add((first with { Title = UiText.Format("{0}（{1} 次）", title, count), Detail = "", Text = "", ElapsedMs = members.Sum(item => item.ElapsedMs) }, time,
+                entries.Add((first with { Title = UiText.Format("{0} (×{1})", title, count), Detail = "", Text = "", ElapsedMs = members.Sum(item => item.ElapsedMs) }, time,
                     string.Join("\n", members.Select(item => UiText.ActivityText(item.Title) + (string.IsNullOrWhiteSpace(item.Detail) ? "" : ": " + UiText.ActivityText(item.Detail))))));
             }
             start = end;
@@ -265,19 +265,19 @@ public sealed partial class MainWindow
     }
     private static string TaskState(JobState state) => state switch
     {
-        JobState.Queued => UiText.Get("等待中"),
-        JobState.Running => UiText.Get("正在识别"),
-        JobState.WaitingPermission => UiText.Get("等待确认"),
-        JobState.Completed => UiText.Get("已完成"),
-        JobState.Failed => UiText.Get("未完成"),
-        JobState.Cancelled => UiText.Get("已取消"),
-        _ => UiText.Get("已中断")
+        JobState.Queued => UiText.Get("Queued"),
+        JobState.Running => UiText.Get("Recognizing"),
+        JobState.WaitingPermission => UiText.Get("Awaiting confirmation"),
+        JobState.Completed => UiText.Get("Completed"),
+        JobState.Failed => UiText.Get("Incomplete"),
+        JobState.Cancelled => UiText.Get("Canceled"),
+        _ => UiText.Get("Interrupted")
     };
     private async void TaskCancel_Click(object sender, RoutedEventArgs e)
     {
         if (_selectedTask is not { } job || _jobs is null) return;
         try { await _jobs.CancelAsync(job.Id); await RefreshTasksAsync(); }
-        catch (Exception error) { AppLog.Error("Task.Cancel", error); ViewModel.StatusMessage = UiText.Get("无法取消，请重试。"); }
+        catch (Exception error) { AppLog.Error("Task.Cancel", error); ViewModel.StatusMessage = UiText.Get("Could not cancel. Try again."); }
     }
     private async void TaskPermission_Click(object sender, RoutedEventArgs e)
     { if (_selectedTask?.PendingPermission is { } review) await ReviewPermissionAsync(_selectedTask.Id, review); }
@@ -363,8 +363,8 @@ public sealed partial class MainWindow
             _icon.Glyph = error ? "\uE7BA" : step.Kind switch
             { "model" => "\uE945", "read_page" => "\uE8A5", "save_question" => "\uE74E", "save_references" => "\uE8F1", "finish" => "\uE73E", "python" or "shell" => "\uE8EF", _ => "\uE9F9" };
             string output = model ? step.Text.TrimEnd() : "";
-            string stateLabel = state switch { "completed" => UiText.Get("已完成"), "failed" => UiText.Get("失败"), "cancelled" => UiText.Get("已取消"), "waiting" => UiText.Get("等待确认"), _ => UiText.Get("进行中") };
-            _title.Text = (model ? UiText.Get("识别") : UiText.ActivityText(step.Title)) + (model && step.Text.Length >= 16000 ? UiText.Get("（输出节选）") : "");
+            string stateLabel = state switch { "completed" => UiText.Get("Completed"), "failed" => UiText.Get("Failed"), "cancelled" => UiText.Get("Canceled"), "waiting" => UiText.Get("Awaiting confirmation"), _ => UiText.Get("In progress") };
+            _title.Text = (model ? UiText.Get("Recognition") : UiText.ActivityText(step.Title)) + (model && step.Text.Length >= 16000 ? UiText.Get(" (output excerpt)") : "");
             _state.Text = state == "completed" ? "" : "  " + stateLabel;
             _heading.Foreground = secondary;
             _state.Foreground = error ? brush("TaskErrorBrush") : secondary;
@@ -375,7 +375,7 @@ public sealed partial class MainWindow
             _output.Visibility = output.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             // Short actions read as log lines; model replies read as continuous prose.
             Root.Padding = new Thickness(0, 0, 0, 8);
-            ToolTipService.SetToolTip(_heading, tooltip ?? (model && step.Text.Length >= 16000 ? UiText.Get("输出节选") : null));
+            ToolTipService.SetToolTip(_heading, tooltip ?? (model && step.Text.Length >= 16000 ? UiText.Get("Output excerpt") : null));
             AutomationProperties.SetHelpText(Root, tooltip ?? "");
             AutomationProperties.SetName(Root, _title.Text + (state == "completed" ? "" : "，" + stateLabel));
         }

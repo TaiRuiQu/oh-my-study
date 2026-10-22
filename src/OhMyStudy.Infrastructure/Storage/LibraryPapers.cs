@@ -13,7 +13,7 @@ public sealed partial class LibraryRepository
     public Task UpdatePaperAsync(string id, string name, string? subject, double? earned, double? possible, CancellationToken ct = default)
     {
         ValidId(id); ValidatePaperInfo(subject, earned, possible);
-        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 240) throw new ArgumentException("标题需为 1–240 个字。");
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 240) throw new ArgumentException("Titles must be between 1 and 240 characters.");
         return Run(() => Transaction(ct, () =>
         {
             DocumentIdle(id);
@@ -31,7 +31,7 @@ public sealed partial class LibraryRepository
             Transaction(ct, () =>
             {
                 DocumentIdle(id);
-                if (Scalar("SELECT 1 FROM documents WHERE id=$p0", id) is null) throw new KeyNotFoundException("未找到试卷");
+                if (Scalar("SELECT 1 FROM documents WHERE id=$p0", id) is null) throw new KeyNotFoundException("Exam not found");
                 var jobs = Query("SELECT job_id FROM grading_runs WHERE document_id=$p0", r => r.GetString(0), id);
                 var assets = Query("SELECT a.id,a.original_file,a.thumbnail_file FROM assets a WHERE a.id IN (SELECT asset_id FROM source_pages WHERE document_id=$p0 UNION SELECT original_asset_id FROM source_pages WHERE document_id=$p0 AND original_asset_id IS NOT NULL)",
                     r => (Id: r.GetString(0), Original: r.GetString(1), Thumbnail: NullableText(r, 2)), id);
@@ -41,7 +41,7 @@ public sealed partial class LibraryRepository
                 Execute("DELETE FROM questions WHERE document_id=$p0", id);
                 Execute("DELETE FROM source_pages WHERE document_id=$p0", id);
                 Execute("DELETE FROM paper_info WHERE document_id=$p0", id);
-                if (Execute("DELETE FROM documents WHERE id=$p0", id) != 1) throw new KeyNotFoundException("未找到试卷");
+                if (Execute("DELETE FROM documents WHERE id=$p0", id) != 1) throw new KeyNotFoundException("Exam not found");
                 foreach (var asset in assets)
                 {
                     if (Convert.ToInt64(Scalar("SELECT COUNT(*) FROM source_pages WHERE asset_id=$p0 OR original_asset_id=$p0", asset.Id)) > 0) continue;
@@ -75,7 +75,7 @@ public sealed partial class LibraryRepository
         return Run(() => Transaction(ct, () =>
         {
             var input = CheckRun(jobId);
-            if (input.Document.Mode == ImportMode.Blank && earned is not null) throw new DomainValidationException("空白试卷不能填写得分。");
+            if (input.Document.Mode == ImportMode.Blank && earned is not null) throw new DomainValidationException("Blank exams cannot have earned points.");
             return WritePaperInfo(input.Document.Id, subject, earned, possible, false) > 0;
         }), ct, true);
     }
@@ -87,6 +87,6 @@ public sealed partial class LibraryRepository
     {
         if (subject?.Trim().Length > 60 || earned is { } e && (!double.IsFinite(e) || e < 0)
             || possible is { } p && (!double.IsFinite(p) || p < 0) || earned > possible)
-            throw new ArgumentException("请检查学科和分数，得分不能超过满分。");
+            throw new ArgumentException("Check the subject and scores. Earned points cannot exceed possible points.");
     }
 }

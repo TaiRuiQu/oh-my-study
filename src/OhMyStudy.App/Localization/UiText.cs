@@ -6,8 +6,10 @@ namespace OhMyStudy.App.Localization;
 
 public static partial class UiText
 {
-    private static readonly Dictionary<string, string> Sources = Load("zh-CN");
-    private static readonly Dictionary<string, string> Keys = Sources.ToDictionary(pair => pair.Value, pair => pair.Key, StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> Sources = Load("en-US");
+    private static readonly Dictionary<string, string> Keys = Sources.Concat(Load("zh-CN"))
+        .GroupBy(pair => pair.Value, StringComparer.Ordinal)
+        .ToDictionary(group => group.Key, group => group.First().Key, StringComparer.Ordinal);
     private static Dictionary<string, string> _translations = Load("en-US");
 
     public static string Language { get; private set; } = "en-US";
@@ -72,27 +74,27 @@ public static partial class UiText
     public static string ActivityText(string source)
     {
         string translated = Get(source);
-        if (translated != source || Language == "zh-CN") return translated;
+        if (translated != source) return translated;
         var match = ProgressMessage().Match(source);
-        if (match.Success) return Format("已阅读 {0} 页，已保存 {1} 题。", match.Groups[1].Value, match.Groups[2].Value);
+        if (match.Success) return Format("Pages read: {0}. Questions saved: {1}.", match.Groups[1].Value, match.Groups[2].Value);
         match = RoundMessage().Match(source);
-        if (match.Success) return Format("第 {0} 轮识别", match.Groups[1].Value);
+        if (match.Success) return Format("Recognition round {0}", match.Groups[1].Value);
         match = ReadPageMessage().Match(source);
-        if (match.Success) return Format("阅读第 {0} 页", match.Groups[1].Value);
+        if (match.Success) return Format("Read page {0}", match.Groups[1].Value);
         match = PreparedActionsMessage().Match(source);
-        return match.Success ? Format("已生成 {0} 项操作", match.Groups[1].Value) : source;
+        return match.Success ? Format("Actions prepared: {0}", match.Groups[1].Value) : source;
     }
 
-    [GeneratedRegex(@"\A已阅读 ([0-9]+) 页，已保存 ([0-9]+) 题。\z", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A(?:Pages read: |已阅读 )([0-9]+)(?:\. Questions saved: | 页，已保存 )([0-9]+)(?:\.| 题。)\z", RegexOptions.CultureInvariant)]
     private static partial Regex ProgressMessage();
 
-    [GeneratedRegex(@"\A第 ([0-9]+) 轮识别\z", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A(?:Recognition round |第 )([0-9]+)(?: 轮识别)?\z", RegexOptions.CultureInvariant)]
     private static partial Regex RoundMessage();
 
-    [GeneratedRegex(@"\A阅读第 ([0-9]+) 页\z", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A(?:Read page |阅读第 )([0-9]+)(?: 页)?\z", RegexOptions.CultureInvariant)]
     private static partial Regex ReadPageMessage();
 
-    [GeneratedRegex(@"\A已生成 ([0-9]+) 项操作\z", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A(?:Actions prepared: |已生成 )([0-9]+)(?: 项操作)?\z", RegexOptions.CultureInvariant)]
     private static partial Regex PreparedActionsMessage();
 
     private static Dictionary<string, string> Load(string language)

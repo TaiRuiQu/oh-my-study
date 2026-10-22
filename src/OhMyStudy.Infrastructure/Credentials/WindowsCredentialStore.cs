@@ -18,14 +18,14 @@ public static partial class WindowsCredentialStore
     {
         if (!reference.StartsWith(Prefix, StringComparison.Ordinal) ||
             !Guid.TryParse(reference[Prefix.Length..], out _))
-            throw new ArgumentException("无效的凭据引用", nameof(reference));
+            throw new ArgumentException("Invalid credential reference", nameof(reference));
     }
 
     public static unsafe void Save(string reference, ReadOnlySpan<byte> utf8Secret)
     {
         ValidateReference(reference);
         if (utf8Secret.IsEmpty || utf8Secret.Length > 2560 || utf8Secret.Contains((byte)0))
-            throw new ArgumentException("密钥为空或超过 Windows 凭据长度限制", nameof(utf8Secret));
+            throw new ArgumentException("The key is empty or exceeds the Windows credential length limit", nameof(utf8Secret));
         // Validate UTF-8 without ever logging a secret or storing it in diagnostic objects.
         _ = new UTF8Encoding(false, true).GetCharCount(utf8Secret);
         fixed (char* target = reference)
@@ -58,14 +58,14 @@ public static partial class WindowsCredentialStore
         {
             var credential = *(NativeCredential*)pointer;
             if (credential.CredentialBlobSize > 2560)
-                throw new InvalidDataException("凭据格式损坏，请重新配置");
+                throw new InvalidDataException("The credential format is damaged. Configure it again");
             var bytes = new ReadOnlySpan<byte>((void*)credential.CredentialBlob,
                 checked((int)credential.CredentialBlobSize)).ToArray();
             try { _ = new UTF8Encoding(false, true).GetCharCount(bytes); }
             catch (DecoderFallbackException)
             {
                 CryptographicOperations.ZeroMemory(bytes);
-                throw new InvalidDataException("凭据格式损坏，请重新配置");
+                throw new InvalidDataException("The credential format is damaged. Configure it again");
             }
             return bytes;
         }
@@ -79,7 +79,7 @@ public static partial class WindowsCredentialStore
             ThrowNativeError();
     }
 
-    private static void ThrowNativeError() => throw new Win32Exception(Marshal.GetLastPInvokeError(), "Windows 凭据存储不可用");
+    private static void ThrowNativeError() => throw new Win32Exception(Marshal.GetLastPInvokeError(), "Windows Credential Manager is unavailable");
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeCredential

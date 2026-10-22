@@ -78,7 +78,7 @@ public sealed class PageViewportTransform
 
     public static void ValidateRotation(ushort rotation)
     {
-        if (rotation is not (0 or 90 or 180 or 270)) throw new ArgumentOutOfRangeException(nameof(rotation), "只支持 0、90、180 或 270 度。");
+        if (rotation is not (0 or 90 or 180 or 270)) throw new ArgumentOutOfRangeException(nameof(rotation), "Only 0, 90, 180, or 270 degrees are supported.");
     }
 
     public static void ValidateRegion(PageRect region)
@@ -86,6 +86,6 @@ public sealed class PageViewportTransform
         if (!double.IsFinite(region.X) || !double.IsFinite(region.Y) || !double.IsFinite(region.Width) || !double.IsFinite(region.Height)
             || region.X < 0 || region.Y < 0 || region.X >= 1 || region.Y >= 1 || region.Width <= 0 || region.Height <= 0
             || region.X + region.Width > 1.000001 || region.Y + region.Height > 1.000001)
-            throw new ArgumentOutOfRangeException(nameof(region), "来源区域超出原图。");
+            throw new ArgumentOutOfRangeException(nameof(region), "The source region is outside the original image.");
     }
 }

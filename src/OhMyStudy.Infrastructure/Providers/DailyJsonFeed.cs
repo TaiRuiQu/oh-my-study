@@ -33,7 +33,7 @@ public sealed class DailyJsonFeed(string url, string cacheFile, int maximumBytes
             if (cached is { IsStale: false }) return cached;
             string attemptFile = cacheFile + ".attempt";
             if (File.Exists(attemptFile) && (await File.ReadAllTextAsync(attemptFile, ct).ConfigureAwait(false)) == day)
-                return cached ?? throw new IOException("今日获取未完成，请稍后或明天重试。");
+                return cached ?? throw new IOException("Today's fetch did not complete. Retry later or tomorrow.");
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(cacheFile))!);
             await File.WriteAllTextAsync(attemptFile, day, ct).ConfigureAwait(false);
             try

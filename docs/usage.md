@@ -8,7 +8,7 @@ The interface supports Simplified Chinese, English, Japanese, and Korean. This g
 
 In **Settings → Appearance → Language**, choose **Follow Windows**, **简体中文**, **English**, **日本語**, or **한국어**. Save any edits and restart the app to apply the language. This preference is stored on this computer independently of your library. Unsupported Windows languages fall back to English; Chinese Windows locales use Simplified Chinese.
 
-English and Chinese typography remain the primary focus. Interface fonts follow the selected language, and longer labels adapt to narrower windows. Changing the interface language does not translate imported materials, edits, or model responses. PDF output retains the existing Chinese/English typesetting and mathematics support; Japanese and Korean interface support does not add Japanese or Korean print fonts.
+English and Chinese typography remain the primary focus. Interface fonts follow the selected language, and longer labels adapt to narrower windows. Changing the interface language does not translate imported materials, edits, or model responses. PDF headings and generated labels use English, while question content keeps its original language. PDF output retains the existing Chinese/English typesetting and mathematics support; Japanese and Korean interface support does not add Japanese or Korean print fonts.
 
 ## Setting up models
 

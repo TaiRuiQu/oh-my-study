@@ -11,16 +11,16 @@ public sealed partial class MainWindow
     {
         var selected = new HashSet<string>(StringComparer.Ordinal);
         double width = Math.Max(200, Math.Min(480, RootGrid.ActualWidth - 96));
-        var search = new TextBox { PlaceholderText = UiText.Get("搜索模型名称或 ID") };
+        var search = new TextBox { PlaceholderText = UiText.Get("Search model name or ID") };
         var count = new TextBlock();
         var list = new ListView { SelectionMode = ListViewSelectionMode.Multiple, MaxHeight = Math.Max(140, Math.Min(360, RootGrid.ActualHeight - 330)), HorizontalContentAlignment = HorizontalAlignment.Stretch };
         // A compiled template avoids reflection and keeps each row inside the fixed dialog width.
         list.ItemTemplate = (DataTemplate)RootGrid.Resources["ImportModelTemplate"];
         var body = new StackPanel { Spacing = 12, Width = width }; body.Children.Add(search); body.Children.Add(count); body.Children.Add(list);
-        var empty = new TextBlock { Text = UiText.Get("没有找到模型，试试其他关键词。"), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed }; body.Children.Add(empty);
-        var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, RequestedTheme = RootGrid.ActualTheme, Title = UiText.Get("选择要添加的模型"), Content = body, PrimaryButtonText = UiText.Get("添加"), CloseButtonText = UiText.Get("取消"), IsPrimaryButtonEnabled = false };
+        var empty = new TextBlock { Text = UiText.Get("No models found. Try different keywords."), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed }; body.Children.Add(empty);
+        var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, RequestedTheme = RootGrid.ActualTheme, Title = UiText.Get("Select models to add"), Content = body, PrimaryButtonText = UiText.Get("Add"), CloseButtonText = UiText.Get("Cancel"), IsPrimaryButtonEnabled = false };
         bool filtering = false;
-        void UpdateCount() { count.Text = UiText.Format("{0} 个模型，已选 {1} 个", list.Items.Count, selected.Count); dialog.IsPrimaryButtonEnabled = selected.Count > 0; }
+        void UpdateCount() { count.Text = UiText.Format("Models: {0} · Selected: {1}", list.Items.Count, selected.Count); dialog.IsPrimaryButtonEnabled = selected.Count > 0; }
         void Filter()
         {
             filtering = true;
@@ -47,7 +47,7 @@ public sealed partial class MainWindow
 
     private static ComboBox CreateFixedModelChoice(IEnumerable<string> labels, double width)
     {
-        var choice = new ComboBox { Header = UiText.Get("识别模型"), Width = width, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var choice = new ComboBox { Header = UiText.Get("Recognition model"), Width = width, HorizontalAlignment = HorizontalAlignment.Stretch };
         var style = new Style(typeof(ComboBoxItem));
         style.Setters.Add(new Setter(FrameworkElement.WidthProperty, width));
         style.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));

@@ -39,22 +39,22 @@ public sealed class InstallerEngine
     public InstallResult Install(InstallOptions options)
     {
         string source = SafePaths.Root(options.Source), root = SafePaths.Root(options.Root);
-        if (SafePaths.Within(source, root) || SafePaths.Within(root, source)) throw new InvalidDataException("安装位置不能与安装文件夹重叠。");
+        if (SafePaths.Within(source, root) || SafePaths.Within(root, source)) throw new InvalidDataException("The installation location must not overlap the installation source folder.");
         var package = ReadPackage(source);
-        if (!package.Manifest.Files.Any(file => file.Path.Equals(BootstrapName, StringComparison.OrdinalIgnoreCase))) throw new InvalidDataException("安装文件不完整，请重新解压。");
+        if (!package.Manifest.Files.Any(file => file.Path.Equals(BootstrapName, StringComparison.OrdinalIgnoreCase))) throw new InvalidDataException("Installation files are incomplete. Extract them again.");
         VerifyFiles(source, package.Manifest);
         SafePaths.AssertUnlinked(root);
         bool exists = Directory.Exists(root);
         if (exists && !File.Exists(Path.Combine(root, MarkerName)) && Directory.EnumerateFileSystemEntries(root).Any(path => Path.GetFileName(path) != ".install.lock"))
-            throw new InvalidDataException("安装位置已有其他文件，请选择空文件夹。");
+            throw new InvalidDataException("The installation location contains other files. Select an empty folder.");
         Directory.CreateDirectory(root);
         using var installLock = Lock(root);
-        if (File.Exists(Path.Combine(root, UninstallName))) throw new InvalidDataException("上次卸载尚未完成，请重新运行卸载后再安装。");
+        if (File.Exists(Path.Combine(root, UninstallName))) throw new InvalidDataException("The previous uninstall is incomplete. Run it again before installing.");
         string markerPath = Path.Combine(root, MarkerName), activePath = Path.Combine(root, ActiveName);
         byte[]? oldMarker = ReadOptional(markerPath), oldActive = ReadOptional(activePath);
         InstallMarker? marker = oldMarker is null ? null : DeserializeMarker(oldMarker);
         if (marker is not null) ValidateMarker(root, marker);
-        if (marker is not null && marker.Integrated != options.Integrate) throw new InvalidDataException("请沿用原有安装方式升级。");
+        if (marker is not null && marker.Integrated != options.Integrate) throw new InvalidDataException("Use the original installation mode to upgrade.");
         string version = package.Hash;
         string versions = SafePaths.Child(root, "versions");
         SafePaths.AssertUnlinked(versions);
@@ -130,12 +130,12 @@ public sealed class InstallerEngine
         UninstallJournal journal;
         if (File.Exists(journalPath))
         {
-            if (new FileInfo(journalPath).Length > 67_108_864) throw new InvalidDataException("卸载记录无效。");
-            journal = JsonSerializer.Deserialize(File.ReadAllBytes(journalPath), SetupJson.Default.UninstallJournal) ?? throw new InvalidDataException("卸载记录无效。");
+            if (new FileInfo(journalPath).Length > 67_108_864) throw new InvalidDataException("Invalid uninstall record.");
+            journal = JsonSerializer.Deserialize(File.ReadAllBytes(journalPath), SetupJson.Default.UninstallJournal) ?? throw new InvalidDataException("Invalid uninstall record.");
             if (journal.Product != Product || journal.MarkerBytes is null || journal.Versions is null || journal.Versions.Count > 1000)
-                throw new InvalidDataException("卸载记录无效。");
+                throw new InvalidDataException("Invalid uninstall record.");
             if (File.Exists(markerPath) && !File.ReadAllBytes(markerPath).AsSpan().SequenceEqual(journal.MarkerBytes))
-                throw new InvalidDataException("安装记录已变化，已停止卸载。");
+                throw new InvalidDataException("The installation record has changed. Uninstall stopped.");
         }
         else
         {
@@ -155,10 +155,10 @@ public sealed class InstallerEngine
         foreach (var recorded in journal.Versions)
         {
             string version = recorded.Version;
-            if (!IsHash(version) || !marker.Versions.Contains(version, StringComparer.Ordinal)) throw new InvalidDataException("卸载记录无效。");
+            if (!IsHash(version) || !marker.Versions.Contains(version, StringComparer.Ordinal)) throw new InvalidDataException("Invalid uninstall record.");
             string directory = SafePaths.Child(root, "versions/" + version);
             var package = ParsePackage(directory, recorded.ManifestBytes);
-            if (package.Hash != version) throw new InvalidDataException("卸载清单已变化，已停止操作。");
+            if (package.Hash != version) throw new InvalidDataException("The uninstall manifest has changed. Operation stopped.");
             foreach (var file in package.Manifest.Files)
             {
                 string path = SafePaths.Child(directory, file.Path);
@@ -177,7 +177,7 @@ public sealed class InstallerEngine
         if (!File.Exists(journalPath))
         {
             byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(journal, SetupJson.Default.UninstallJournal);
-            if (bytes.Length > 67_108_864) throw new InvalidDataException("卸载记录超过限制。");
+            if (bytes.Length > 67_108_864) throw new InvalidDataException("The uninstall record exceeds the limit.");
             AtomicWrite(journalPath, bytes);
         }
         if (marker.Integrated) integration.Remove(root);
@@ -205,14 +205,14 @@ public sealed class InstallerEngine
     public string ResolveLaunch(string installRoot)
     {
         string root = SafePaths.Root(installRoot); SafePaths.AssertUnlinked(root);
-        if (File.Exists(Path.Combine(root, UninstallName))) throw new InvalidDataException("卸载尚未完成，请重新运行卸载。");
+        if (File.Exists(Path.Combine(root, UninstallName))) throw new InvalidDataException("Uninstall is incomplete. Run it again.");
         var marker = ReadMarker(root); ValidateMarker(root, marker);
         string activePath = SafePaths.Child(root, ActiveName); SafePaths.AssertUnlinked(activePath);
-        var active = JsonSerializer.Deserialize(File.ReadAllBytes(activePath), SetupJson.Default.ActiveInstallation) ?? throw new InvalidDataException("请重新安装应用。");
-        if (!IsHash(active.Version) || !marker.Versions.Contains(active.Version, StringComparer.Ordinal) || active.EntryPoint != "OhMyStudy.App.exe") throw new InvalidDataException("请重新安装应用。");
+        var active = JsonSerializer.Deserialize(File.ReadAllBytes(activePath), SetupJson.Default.ActiveInstallation) ?? throw new InvalidDataException("Reinstall the app.");
+        if (!IsHash(active.Version) || !marker.Versions.Contains(active.Version, StringComparer.Ordinal) || active.EntryPoint != "OhMyStudy.App.exe") throw new InvalidDataException("Reinstall the app.");
         string version = SafePaths.Child(root, "versions/" + active.Version);
         var package = ReadPackage(version);
-        if (package.Hash != active.Version) throw new InvalidDataException("安装文件已变化，请重新安装。");
+        if (package.Hash != active.Version) throw new InvalidDataException("Installation files have changed. Reinstall the app.");
         string executable = SafePaths.Child(version, active.EntryPoint);
         VerifyFile(executable, package.Manifest.Files.Single(file => file.Path == active.EntryPoint));
         return executable;
@@ -230,19 +230,19 @@ public sealed class InstallerEngine
     }
     private static InstallMarker DeserializeMarker(byte[] bytes)
     {
-        if (bytes.Length > 1_048_576) throw new InvalidDataException("安装记录无效。");
-        return JsonSerializer.Deserialize(bytes, SetupJson.Default.InstallMarker) ?? throw new InvalidDataException("安装记录无效。");
+        if (bytes.Length > 1_048_576) throw new InvalidDataException("Invalid installation record.");
+        return JsonSerializer.Deserialize(bytes, SetupJson.Default.InstallMarker) ?? throw new InvalidDataException("Invalid installation record.");
     }
     private static void ValidateMarker(string root, InstallMarker marker)
     {
         if (marker.Product != Product || !IsHash(marker.BootstrapSha256) || marker.Versions is null || marker.Versions.Count > 1000 || marker.Versions.Any(version => !IsHash(version)))
-            throw new InvalidDataException("此文件夹不是已安装的 Oh My Study。");
+            throw new InvalidDataException("This folder is not an Oh My Study installation.");
         SafePaths.AssertUnlinked(root, recursive: true);
     }
     private static PackageManifest VerifyInstalledVersion(string directory, string version)
     {
         var package = ReadPackage(directory);
-        if (package.Hash != version) throw new InvalidDataException("安装记录已变化，已停止操作。");
+        if (package.Hash != version) throw new InvalidDataException("The installation record has changed. Operation stopped.");
         VerifyFiles(directory, package.Manifest);
         return package.Manifest;
     }
@@ -251,25 +251,25 @@ public sealed class InstallerEngine
         SafePaths.AssertUnlinked(source, recursive: true);
         string path = SafePaths.Child(source, ManifestName);
         long length = new FileInfo(path).Length;
-        if (length is <= 0 or > 16_777_216) throw new InvalidDataException("安装文件清单无效。");
+        if (length is <= 0 or > 16_777_216) throw new InvalidDataException("Invalid installation manifest.");
         byte[] bytes = File.ReadAllBytes(path);
         return ParsePackage(source, bytes);
     }
     private static (PackageManifest Manifest, byte[] Bytes, string Hash) ParsePackage(string source, byte[] bytes)
     {
-        if (bytes.Length is <= 0 or > 16_777_216) throw new InvalidDataException("安装文件清单无效。");
-        var manifest = JsonSerializer.Deserialize(bytes, SetupJson.Default.PackageManifest) ?? throw new InvalidDataException("安装文件清单无效。");
+        if (bytes.Length is <= 0 or > 16_777_216) throw new InvalidDataException("Invalid installation manifest.");
+        var manifest = JsonSerializer.Deserialize(bytes, SetupJson.Default.PackageManifest) ?? throw new InvalidDataException("Invalid installation manifest.");
         if (manifest.SchemaVersion != 1 || manifest.Architecture != "win-x64" || manifest.EntryPoint != "OhMyStudy.App.exe" || manifest.Files is null || manifest.Files.Count is 0 or > 50_000)
-            throw new InvalidDataException("安装文件清单不受支持。");
+            throw new InvalidDataException("Unsupported installation manifest.");
         long total = 0;
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in manifest.Files)
         {
             _ = SafePaths.Child(source, file.Path);
             if (!paths.Add(file.Path) || file.Path.Equals(ManifestName, StringComparison.OrdinalIgnoreCase) || !IsHash(file.Sha256) || file.Bytes is < 0 or > 2_147_483_648 || (total += file.Bytes) > 8_589_934_592)
-                throw new InvalidDataException("安装文件清单无效。");
+                throw new InvalidDataException("Invalid installation manifest.");
         }
-        if (!paths.Contains(manifest.EntryPoint)) throw new InvalidDataException("缺少应用文件。");
+        if (!paths.Contains(manifest.EntryPoint)) throw new InvalidDataException("Application files are missing.");
         return (manifest, bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)));
     }
     private static void VerifyFiles(string source, PackageManifest manifest)
@@ -281,7 +281,7 @@ public sealed class InstallerEngine
         SafePaths.AssertUnlinked(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (stream.Length != file.Bytes || !Convert.ToHexStringLower(SHA256.HashData(stream)).Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("安装文件校验失败，请重新解压或下载。");
+            throw new InvalidDataException("Installation file verification failed. Extract or download the files again.");
     }
     private static bool IsHash(string? value) => value is { Length: 64 } && value.All(character => char.IsAsciiHexDigit(character));
     private static byte[]? ReadOptional(string path) { SafePaths.AssertUnlinked(path); return File.Exists(path) ? File.ReadAllBytes(path) : null; }
@@ -356,20 +356,20 @@ public static class SafePaths
 {
     public static string Root(string path)
     {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) throw new InvalidDataException("请使用完整文件夹路径。");
+        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) throw new InvalidDataException("Use a fully qualified folder path.");
         string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
-        if (root.Equals(Path.GetPathRoot(root), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("不能使用磁盘根目录。");
+        if (root.Equals(Path.GetPathRoot(root), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("A drive root cannot be used.");
         return root;
     }
     public static bool Within(string path, string root) => path.Equals(root, StringComparison.OrdinalIgnoreCase) || path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     public static string Child(string root, string relative)
     {
-        if (string.IsNullOrEmpty(relative) || relative.Length > 1024 || relative.Contains('\\') || relative.Contains(':') || Path.IsPathRooted(relative)) throw new InvalidDataException("安装文件路径无效。");
+        if (string.IsNullOrEmpty(relative) || relative.Length > 1024 || relative.Contains('\\') || relative.Contains(':') || Path.IsPathRooted(relative)) throw new InvalidDataException("Invalid installation file path.");
         foreach (string segment in relative.Split('/'))
             if (segment is "" or "." or ".." || segment.EndsWith('.') || segment.EndsWith(' ') || segment.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
-                || IsDeviceName(segment)) throw new InvalidDataException("安装文件路径无效。");
+                || IsDeviceName(segment)) throw new InvalidDataException("Invalid installation file path.");
         string full = Path.GetFullPath(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)));
-        if (!Within(full, root) || full.Equals(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("安装文件路径超出文件夹。");
+        if (!Within(full, root) || full.Equals(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("The installation file path is outside the folder.");
         return full;
     }
     private static bool IsDeviceName(string segment)
@@ -382,7 +382,7 @@ public static class SafePaths
         string full = Path.GetFullPath(path);
         for (string? current = full; current is not null; current = Path.GetDirectoryName(current))
         {
-            try { if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0) throw new InvalidDataException("安装位置包含链接，请使用普通文件夹。"); }
+            try { if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0) throw new InvalidDataException("The installation location contains links. Use a regular folder."); }
             catch (FileNotFoundException) { }
             catch (DirectoryNotFoundException) { }
         }

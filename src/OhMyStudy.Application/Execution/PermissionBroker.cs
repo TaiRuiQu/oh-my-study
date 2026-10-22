@@ -30,7 +30,7 @@ public sealed class AuthorizedCall
     {
         _revocation.ThrowIfCancellationRequested();
         if (Interlocked.Exchange(ref _consumed, 1) != 0)
-            throw new InvalidOperationException("执行许可已使用。");
+            throw new InvalidOperationException("The execution permission has already been used.");
         return Call;
     }
 }
@@ -50,7 +50,7 @@ public sealed class PermissionBroker : IDisposable
         lock (_sync)
         {
             if (!ValidId(id) || _jobs.ContainsKey(id) || _stopped.ContainsKey(id))
-                throw new InvalidOperationException("无效或已使用的任务标识。");
+                throw new InvalidOperationException("Invalid or already used task ID.");
             _jobs.Add(id, (policy, new CancellationTokenSource()));
         }
     }
@@ -62,9 +62,9 @@ public sealed class PermissionBroker : IDisposable
         lock (_sync)
         {
             if (!_jobs.TryGetValue(call.JobId, out var job) || _stopped.ContainsKey(call.JobId))
-                throw new InvalidOperationException("任务已停止或未注册。");
-            if (_waiting.ContainsKey(call.JobId)) throw new InvalidOperationException("任务正在等待执行许可。");
-            if (!_used.Add((call.JobId, call.CallId))) throw new InvalidOperationException("调用标识已使用，不能重放。");
+                throw new InvalidOperationException("The task has stopped or is not registered.");
+            if (_waiting.ContainsKey(call.JobId)) throw new InvalidOperationException("The task is waiting for execution permission.");
+            if (!_used.Add((call.JobId, call.CallId))) throw new InvalidOperationException("The call ID has already been used. Calls cannot be replayed.");
             if (job.Policy.EffectiveMode != ExecutionMode.RequestPermission || _taskGrants.Contains(call.JobId))
                 return new(snapshot, job.Policy.EffectiveMode, job.Live.Token, job.Policy.SandboxNetworking);
             _waiting.Add(call.JobId, snapshot);
@@ -76,9 +76,9 @@ public sealed class PermissionBroker : IDisposable
     {
         lock (_sync)
         {
-            if (!_waiting.TryGetValue(jobId, out var call)) throw new InvalidOperationException("执行请求已失效。");
+            if (!_waiting.TryGetValue(jobId, out var call)) throw new InvalidOperationException("The execution request is no longer valid.");
             if (!string.Equals(call.Digest(), digest, StringComparison.Ordinal))
-                throw new InvalidOperationException("待执行内容已变化，请重新查看。");
+                throw new InvalidOperationException("The pending execution content has changed. Review it again.");
             _waiting.Remove(jobId);
             if (choice == PermissionChoice.Deny)
             {

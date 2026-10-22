@@ -22,7 +22,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             await library.VerifyIntegrityAsync(context.Cancellation).ConfigureAwait(false);
             return;
         }
-        var input = job.Input ?? throw new ArgumentException("整卷输入缺失。");
+        var input = job.Input ?? throw new ArgumentException("Whole-paper input is missing.");
         bool referenceOnly = job.Kind == DiagnosticKind.References;
         var credentials = (credentialReader ?? ReadCredentials)(input.Provider);
         var client = (clientFactory ?? (provider => new ProviderClient(provider.Protocol, provider.BaseUrl)))(input.Provider);
@@ -32,8 +32,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
 
     private static ProviderCredentials ReadCredentials(Provider provider)
     {
-        var bytes = WindowsCredentialStore.Read(provider.KeyRef ?? throw new InvalidOperationException("请先设置模型密钥。"))
-            ?? throw new InvalidOperationException("请重新设置模型密钥。");
+        var bytes = WindowsCredentialStore.Read(provider.KeyRef ?? throw new InvalidOperationException("Set the model key first."))
+            ?? throw new InvalidOperationException("Configure the model key again.");
         try { return new(new UTF8Encoding(false, true).GetString(bytes)); }
         finally { CryptographicOperations.ZeroMemory(bytes); }
     }
@@ -79,9 +79,9 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             {
                 Key = "model-configuration",
                 Kind = "model",
-                Title = "检查模型配置",
+                Title = "Check model configuration",
                 State = "failed",
-                Detail = "模型配置不支持本次任务。请检查图片、工具和所选思考选项；能力未确认时可在开始任务前勾选允许尝试。"
+                Detail = "This model configuration does not support the task. Check image, tool, and reasoning options. For unverified capabilities, allow trying the model before starting."
             }).ConfigureAwait(false);
             throw;
         }
@@ -92,7 +92,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         for (uint ordinal = 1; ordinal <= 60; ordinal++)
         {
             cancellation.ThrowIfCancellationRequested();
-            await context.ProgressAsync(Math.Min(90, ordinal), $"已阅读 {viewed.Count} 页，已保存 {saved.Count} 题。").ConfigureAwait(false);
+            await context.ProgressAsync(Math.Min(90, ordinal), $"Pages read: {viewed.Count}. Questions saved: {saved.Count}.").ConfigureAwait(false);
             var turn = await ModelActivity.CallAsync(context, ordinal,
                 progress => client.CallAsync(credentials, options, history, definitions, progress, cancellation)).ConfigureAwait(false);
             decimal? estimated = ProviderProtocol.EstimateCost(turn.Usage, input.Model);
@@ -118,14 +118,14 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     {
                         Key = $"model-{ordinal}",
                         Kind = "model",
-                        Title = $"第 {ordinal} 轮识别",
+                        Title = $"Recognition round {ordinal}",
                         State = "failed",
-                        Detail = "模型连续回复文字但未执行保存，请更换模型或调整思考设置后重试。",
+                        Detail = "The model replied without saving results. Change the model or reasoning settings and retry.",
                         Text = turn.Text.Length > 16000 ? turn.Text[..16000] : turn.Text,
                         PagesRead = viewed.Count,
                         QuestionsSaved = saved.Count
                     }).ConfigureAwait(false);
-                    throw new InvalidOperationException("模型没有保存结果，任务未完成。");
+                    throw new InvalidOperationException("The model did not save results. The task is incomplete.");
                 }
                 if (input.Provider.Protocol == Protocol.Messages) history.Add(JsonNode.Parse(turn.Context.GetRawText()));
                 else foreach (var item in turn.Context.EnumerateArray()) history.Add(JsonNode.Parse(item.GetRawText()));
@@ -150,16 +150,16 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     Kind = call.Name,
                     Title = call.Name switch
                     {
-                        "read_page" => pageIndex >= 0 ? $"阅读第 {pageIndex + 1} 页" : "阅读页面",
-                        "save_paper_info" => "整理试卷信息",
-                        "save_question" => "保存题目",
-                        "save_references" => "整理参考答案",
-                        "finish" => "核对整卷结果",
-                        "python" or "shell" => "运行辅助计算",
-                        _ => "检查操作"
+                        "read_page" => pageIndex >= 0 ? $"Read page {pageIndex + 1}" : "Read pages",
+                        "save_paper_info" => "Organize exam details",
+                        "save_question" => "Save questions",
+                        "save_references" => "Organize reference answers",
+                        "finish" => "Check exam results",
+                        "python" or "shell" => "Run calculations",
+                        _ => "Check action"
                     },
                     PageId = pageIndex >= 0 ? pageId : null,
-                    Detail = "正在处理",
+                    Detail = "Processing",
                     PagesRead = viewed.Count,
                     QuestionsSaved = saved.Count
                 };
@@ -169,7 +169,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 bool error = false;
                 try
                 {
-                    if (finished) throw new InvalidOperationException("finish后不能继续调用工具。");
+                    if (finished) throw new InvalidOperationException("Tools cannot be called after finish.");
                     switch (call.Name)
                     {
                         case "read_page":
@@ -197,7 +197,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                             await context.CommitAsync(token => library.SaveGradingReferencesAsync(job.Id, refs, token)).ConfigureAwait(false);
                             result = new() { ["saved"] = true }; break;
                         case "finish":
-                            if (index + 1 != turn.Calls.Count) throw new InvalidOperationException("finish必须是最后一个工具调用。");
+                            if (index + 1 != turn.Calls.Count) throw new InvalidOperationException("finish must be the last tool call.");
                             GradingTools.Fields(call.Arguments, "coverage");
                             var coverage = DomainJson.Deserialize<List<Coverage>>(call.Arguments.GetProperty("coverage").GetRawText());
                             await context.CommitAsync(token => library.FinishGradingAsync(job.Id, coverage, viewed, referenceOnly, saved, token)).ConfigureAwait(false);
@@ -218,27 +218,27 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                             // The directory is application-owned; it is never taken from model arguments.
                             RuntimePathsForTask(execution.WorkingDirectory);
                             var executionResult = await context.ExecuteAsync(execution).ConfigureAwait(false);
-                            if (!executionResult.Succeeded) throw new InvalidOperationException("代码执行未完成。");
+                            if (!executionResult.Succeeded) throw new InvalidOperationException("Code execution did not complete.");
                             result = new() { ["stdout"] = executionResult.Stdout }; break;
-                        default: throw new InvalidOperationException("当前任务不允许此工具。");
+                        default: throw new InvalidOperationException("This tool is not allowed for the current task.");
                     }
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception caught) when (caught is DomainValidationException or JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException)
                 {
                     // Tool validation is useful feedback to the model; transport, credentials and IO failures do not loop.
-                    result = new() { ["error"] = caught is DomainValidationException ? caught.Message : "工具参数或业务约束不符合要求，请按定义修正。" };
+                    result = new() { ["error"] = caught is DomainValidationException ? caught.Message : "Tool arguments or business constraints are invalid. Correct them according to the definitions." };
                     error = true;
                 }
                 string detail = error ? result["error"]!.GetValue<string>() : call.Name switch
                 {
-                    "read_page" => call.Arguments.TryGetProperty("crop", out var cropValue) && cropValue.ValueKind == JsonValueKind.Object ? "已查看页面局部" : "已读取原件",
-                    "save_paper_info" => result["saved"]!.GetValue<bool>() ? "试卷信息已保存" : "已保留手动填写的试卷信息",
-                    "save_question" => "题目已加入题库",
-                    "save_references" => "参考答案已保存",
-                    "finish" => "页面覆盖与保存结果核对完成",
-                    "python" or "shell" => "辅助计算已完成",
-                    _ => "操作完成"
+                    "read_page" => call.Arguments.TryGetProperty("crop", out var cropValue) && cropValue.ValueKind == JsonValueKind.Object ? "Page region viewed" : "Original read",
+                    "save_paper_info" => result["saved"]!.GetValue<bool>() ? "Exam details saved" : "Manual exam details preserved",
+                    "save_question" => "Question added to question bank",
+                    "save_references" => "Reference answers saved",
+                    "finish" => "Page coverage and saved results verified",
+                    "python" or "shell" => "Calculation completed",
+                    _ => "Action completed"
                 };
                 string stepText = call.Name is "python" or "shell" && !error ? result["stdout"]?.GetValue<string>() ?? "" : "";
                 await context.ActivityAsync(activity with
@@ -250,33 +250,33 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     QuestionsSaved = saved.Count,
                     ElapsedMs = stepClock.ElapsedMilliseconds
                 }).ConfigureAwait(false);
-                await context.ProgressAsync(Math.Min(90, ordinal), $"已阅读 {viewed.Count} 页，已保存 {saved.Count} 题。").ConfigureAwait(false);
+                await context.ProgressAsync(Math.Min(90, ordinal), $"Pages read: {viewed.Count}. Questions saved: {saved.Count}.").ConfigureAwait(false);
                 feedback.Add(new() { Call = call, Text = result.ToJsonString(), Images = attachments, IsError = error });
             }
             if (finished) return;
             ProviderProtocol.ContinueWith(input.Provider.Protocol, history, turn, feedback);
         }
-        throw new InvalidOperationException("任务达到调用次数上限，已保存的结果会保留。");
+        throw new InvalidOperationException("The task reached the call limit. Saved results will be kept.");
     }
 
     private async Task<JsonObject> ReadPageAsync(GradingInput input, JsonElement arguments, HashSet<string> viewed, List<Image> attachments, CancellationToken cancellationToken)
     {
         GradingTools.Fields(arguments, "page_id", "crop", "rotation");
         var id = arguments.GetProperty("page_id").GetString();
-        var page = input.Document.Pages.FirstOrDefault(p => p.Id == id) ?? throw new DomainValidationException("来源页不属于本资料。");
-        if (page.PreviewStatus != "ready") throw new DomainValidationException("页面尚未读取。");
+        var page = input.Document.Pages.FirstOrDefault(p => p.Id == id) ?? throw new DomainValidationException("The source page does not belong to this document.");
+        if (page.PreviewStatus != "ready") throw new DomainValidationException("The page has not been read.");
         Region? crop = arguments.TryGetProperty("crop", out var cropJson) && cropJson.ValueKind != JsonValueKind.Null ? DomainJson.Deserialize<Region>(cropJson.GetRawText()) : null;
         if (crop is not null)
         {
-            if (crop.PageId != page.Id) throw new DomainValidationException("裁片与来源页不一致。");
+            if (crop.PageId != page.Id) throw new DomainValidationException("The crop does not match the source page.");
             GradingValidation.ValidateRegion(crop, input.Document, page.Role);
         }
         ushort rotation = page.Rotation;
         if (arguments.TryGetProperty("rotation", out var rotationJson) && rotationJson.ValueKind != JsonValueKind.Null)
         {
-            if (rotationJson.ValueKind != JsonValueKind.Number || !rotationJson.TryGetUInt16(out rotation)) throw new DomainValidationException("方向必须为0、90、180或270度。");
+            if (rotationJson.ValueKind != JsonValueKind.Number || !rotationJson.TryGetUInt16(out rotation)) throw new DomainValidationException("Rotation must be 0, 90, 180, or 270 degrees.");
         }
-        if (rotation is not (0 or 90 or 180 or 270)) throw new DomainValidationException("方向必须为0、90、180或270度。");
+        if (rotation is not (0 or 90 or 180 or 270)) throw new DomainValidationException("Rotation must be 0, 90, 180, or 270 degrees.");
         var asset = await library.ReadAssetAsync(page.AssetId, cancellationToken: cancellationToken).ConfigureAwait(false);
         var image = await images.ReadAsync(asset.Bytes, crop, rotation, cancellationToken).ConfigureAwait(false);
         attachments.Add(image.Image);

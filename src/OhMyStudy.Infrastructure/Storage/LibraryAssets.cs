@@ -8,14 +8,14 @@ public sealed partial class LibraryRepository
     private sealed record PreparedAsset(string Id, string Mime, byte[] Bytes, uint? Width, uint? Height,
         byte[]? Thumbnail, string Role, bool OriginalOnly = false, string? OriginalId = null, uint? PdfPageIndex = null)
     {
-        public string OriginalFile => Id + (Mime switch { "image/png" => ".png", "image/jpeg" => ".jpg", "image/webp" => ".webp", "application/pdf" => ".pdf", _ => throw new InvalidDataException("不支持的文件类型") });
+        public string OriginalFile => Id + (Mime switch { "image/png" => ".png", "image/jpeg" => ".jpg", "image/webp" => ".webp", "application/pdf" => ".pdf", _ => throw new InvalidDataException("Unsupported file type") });
         public string? ThumbnailFile => Thumbnail is null ? null : Id + ".thumb.png";
     }
 
     public async Task<Document> ImportDocumentAsync(string name, ImportMode mode, IReadOnlyList<ImportSource> sources, CancellationToken cancellationToken = default)
     {
-        if (!Writable) throw new InvalidOperationException("资料库以只读方式打开");
-        if (string.IsNullOrWhiteSpace(name) || Encoding.UTF8.GetByteCount(name) > 512) throw new ArgumentException("材料名称需为 1 至 512 字节");
+        if (!Writable) throw new InvalidOperationException("The library is open read-only");
+        if (string.IsNullOrWhiteSpace(name) || Encoding.UTF8.GetByteCount(name) > 512) throw new ArgumentException("Document names must be between 1 and 512 bytes");
         var prepared = await PrepareAsync(sources, LibraryLimits.MaximumPages, cancellationToken).ConfigureAwait(false);
         return await Run(() => WriteImport(NewId(), name, mode, prepared, cancellationToken), cancellationToken, true).ConfigureAwait(false);
     }
@@ -23,19 +23,19 @@ public sealed partial class LibraryRepository
     public async Task<Document> AppendDocumentSourcesAsync(string documentId, IReadOnlyList<ImportSource> sources, CancellationToken cancellationToken = default)
     {
         ValidId(documentId);
-        if (!Writable) throw new InvalidOperationException("资料库以只读方式打开");
+        if (!Writable) throw new InvalidOperationException("The library is open read-only");
         var prepared = await PrepareAsync(sources, LibraryLimits.MaximumPages, cancellationToken).ConfigureAwait(false);
         return await Run(() => WriteImport(documentId, null, default, prepared, cancellationToken), cancellationToken, true).ConfigureAwait(false);
     }
 
     private async Task<List<PreparedAsset>> PrepareAsync(IReadOnlyList<ImportSource> sources, int maximumPages, CancellationToken cancellationToken)
     {
-        var processor = options.MediaProcessor ?? throw new InvalidOperationException("文件处理功能尚未配置");
-        if (sources.Count is < 1 or > LibraryLimits.MaximumPages) throw new ArgumentException("一次请选择 1 至 12 个文件");
-        if (sources.Sum(s => (long)s.Bytes.Length) > LibraryLimits.MaximumBatchBytes) throw new ArgumentException("本批文件超过 256 MiB");
+        var processor = options.MediaProcessor ?? throw new InvalidOperationException("File processing has not been configured");
+        if (sources.Count is < 1 or > LibraryLimits.MaximumPages) throw new ArgumentException("Select between 1 and 12 files at a time");
+        if (sources.Sum(s => (long)s.Bytes.Length) > LibraryLimits.MaximumBatchBytes) throw new ArgumentException("This batch exceeds 256 MiB");
         foreach (var input in sources)
             if (input.Bytes.Length is < 1 or > LibraryLimits.MaximumAssetBytes || input.Role is not ("material" or "reference"))
-                throw new ArgumentException("文件大小或页面用途无效");
+                throw new ArgumentException("Invalid file size or page role");
         var submitted = sources.ToArray();
         await mediaGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -49,11 +49,11 @@ public sealed partial class LibraryRepository
                     cancellationToken.ThrowIfCancellationRequested();
                     var magic = DetectMime(source.Bytes);
                     var media = await processor.PrepareAsync(source with { Bytes = source.Bytes.ToArray() }, maximumPages - count, cancellationToken).ConfigureAwait(false);
-                    if (media.Mime != magic) throw new InvalidDataException("文件格式校验失败");
+                    if (media.Mime != magic) throw new InvalidDataException("File format verification failed");
                     var id = NewId();
                     if (magic == "application/pdf")
                     {
-                        if (media.PdfPages is not { Count: > 0 }) throw new InvalidDataException("PDF 没有可读取的页面");
+                        if (media.PdfPages is not { Count: > 0 }) throw new InvalidDataException("The PDF has no readable pages");
                         result.Add(new(id, magic, source.Bytes, null, null, null, source.Role, true));
                         for (var index = 0; index < media.PdfPages.Count; index++)
                         {
@@ -66,13 +66,13 @@ public sealed partial class LibraryRepository
                     {
                         ValidateImage(media.Width, media.Height);
                         if (magic == "image/png") ValidatePng(source.Bytes, media.Width!.Value, media.Height!.Value);
-                        if (media.ThumbnailPng is null) throw new InvalidDataException("未生成页面预览");
+                        if (media.ThumbnailPng is null) throw new InvalidDataException("No page preview was generated");
                         ValidateThumbnail(media.ThumbnailPng);
                         result.Add(new(id, magic, source.Bytes, media.Width, media.Height, media.ThumbnailPng, source.Role)); count++;
                     }
-                    if (count > maximumPages) throw new ArgumentException("材料和参考答案合计最多 12 页，整批未导入");
+                    if (count > maximumPages) throw new ArgumentException("Materials and reference answers may total at most 12 pages. The batch was not imported");
                     if (result.Sum(a => (long)a.Bytes.Length + (a.Thumbnail?.Length ?? 0)) > LibraryLimits.MaximumBatchBytes)
-                        throw new ArgumentException("原件和页面缓存合计超过 256 MiB，整批未导入");
+                        throw new ArgumentException("Original files and page caches exceed 256 MiB in total. The batch was not imported");
                 }
                 return result;
             }, cancellationToken).ConfigureAwait(false);
@@ -86,25 +86,25 @@ public sealed partial class LibraryRepository
         if (bytes.StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })) return "image/png";
         if (bytes.StartsWith(new byte[] { 255, 216, 255 })) return "image/jpeg";
         if (bytes.Length >= 12 && bytes[..4].SequenceEqual("RIFF"u8) && bytes.Slice(8, 4).SequenceEqual("WEBP"u8)) return "image/webp";
-        throw new InvalidDataException("请选择 JPEG、PNG、WebP 或 PDF 文件");
+        throw new InvalidDataException("Select JPEG, PNG, WebP, or PDF files");
     }
     private static void ValidateImage(uint? width, uint? height)
     {
         if (width is null or 0 or > 20000 || height is null or 0 or > 20000 || (ulong)width.Value * height.Value > LibraryLimits.MaximumImagePixels)
-            throw new InvalidDataException("图片不得超过 4000 万像素或单边 20000 像素");
+            throw new InvalidDataException("Images must not exceed 40 million pixels or 20000 pixels on either side");
     }
     private static void ValidatePng(byte[] bytes, uint width, uint height)
     {
         if (bytes.Length is < 24 or > LibraryLimits.MaximumAssetBytes || DetectMime(bytes) != "image/png" ||
             System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(16, 4)) != width ||
-            System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20, 4)) != height) throw new InvalidDataException("页面图像无效");
+            System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20, 4)) != height) throw new InvalidDataException("Invalid page image");
     }
     private static void ValidateThumbnail(byte[] bytes)
     {
-        if (bytes.Length < 24) throw new InvalidDataException("预览图像无效");
+        if (bytes.Length < 24) throw new InvalidDataException("Invalid preview image");
         var width = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(16, 4));
         var height = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20, 4));
-        if (width is 0 or > 512 || height is 0 or > 512) throw new InvalidDataException("预览图像尺寸无效");
+        if (width is 0 or > 512 || height is 0 or > 512) throw new InvalidDataException("Invalid preview image dimensions");
         ValidatePng(bytes, width, height);
     }
 
@@ -117,7 +117,7 @@ public sealed partial class LibraryRepository
             {
                 if (name is null) { DocumentIdle(id); _ = Document(id); }
                 var start = Convert.ToInt32(Scalar("SELECT COUNT(*) FROM source_pages WHERE document_id=$p0", id));
-                if (start + assets.Count(a => !a.OriginalOnly) > LibraryLimits.MaximumPages) throw new InvalidOperationException("材料和参考答案合计最多 12 页");
+                if (start + assets.Count(a => !a.OriginalOnly) > LibraryLimits.MaximumPages) throw new InvalidOperationException("Materials and reference answers may total at most 12 pages");
                 foreach (var asset in assets)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -142,7 +142,7 @@ public sealed partial class LibraryRepository
     public Task<Asset> GetAssetAsync(string assetId, CancellationToken cancellationToken = default)
     { ValidId(assetId); return Run(() => Asset(assetId), cancellationToken); }
     private Asset Asset(string id) => Query("SELECT id,mime,byte_size,width,height FROM assets WHERE id=$p0", r => new Asset
-    { Id = r.GetString(0), Mime = r.GetString(1), ByteSize = checked((ulong)r.GetInt64(2)), Width = NullableUInt(r, 3), Height = NullableUInt(r, 4) }, id).SingleOrDefault() ?? throw new KeyNotFoundException("未找到原件");
+    { Id = r.GetString(0), Mime = r.GetString(1), ByteSize = checked((ulong)r.GetInt64(2)), Width = NullableUInt(r, 3), Height = NullableUInt(r, 4) }, id).SingleOrDefault() ?? throw new KeyNotFoundException("Original file not found");
 
     public Task<AssetData> ReadAssetAsync(string assetId, bool thumbnail = false, CancellationToken cancellationToken = default)
     { ValidId(assetId); return Run(() => ReadAsset(assetId, thumbnail), cancellationToken); }
@@ -150,11 +150,11 @@ public sealed partial class LibraryRepository
     {
         var asset = Asset(id);
         var name = Scalar(thumbnail ? "SELECT thumbnail_file FROM assets WHERE id=$p0" : "SELECT original_file FROM assets WHERE id=$p0", id) as string
-            ?? throw new InvalidOperationException("预览尚未生成，原件仍可读取");
+            ?? throw new InvalidOperationException("The preview is not ready. The original file can still be read");
         var path = SafeAssetFile(name); var size = new FileInfo(path).Length;
-        if (size is < 1 or > LibraryLimits.MaximumAssetBytes || !thumbnail && (ulong)size != asset.ByteSize) throw new InvalidDataException("原件大小与记录不一致");
+        if (size is < 1 or > LibraryLimits.MaximumAssetBytes || !thumbnail && (ulong)size != asset.ByteSize) throw new InvalidDataException("The original file size does not match its record");
         var bytes = File.ReadAllBytes(path);
-        if (bytes.Length != size) throw new IOException("读取时文件发生变化");
+        if (bytes.Length != size) throw new IOException("The file changed while being read");
         return new(thumbnail ? "image/png" : asset.Mime, bytes);
     }
 
@@ -162,7 +162,7 @@ public sealed partial class LibraryRepository
     {
         ValidateFileName(name); RejectLinks(AssetRoot);
         var path = Path.GetFullPath(Path.Combine(AssetRoot, name));
-        if (!File.Exists(path)) throw new FileNotFoundException("未找到原件");
+        if (!File.Exists(path)) throw new FileNotFoundException("Original file not found");
         RejectLinks(path); return path;
     }
     private static void ValidateFileName(string name)
@@ -170,9 +170,9 @@ public sealed partial class LibraryRepository
         var stem = name.Split('.')[0].ToUpperInvariant();
         if (string.IsNullOrWhiteSpace(name) || name is "." or ".." || name.IndexOfAny(['/', '\\', ':']) >= 0 ||
             name != Path.GetFileName(name) || name.EndsWith('.') || name.EndsWith(' ') || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-            throw new IOException("原件路径无效");
+            throw new IOException("Invalid original file path");
         if (stem is "CON" or "PRN" or "AUX" or "NUL" || stem.Length == 4 && (stem.StartsWith("COM", StringComparison.Ordinal) || stem.StartsWith("LPT", StringComparison.Ordinal)) && stem[3] is >= '1' and <= '9')
-            throw new IOException("原件路径无效");
+            throw new IOException("Invalid original file path");
     }
     private void WriteNew(string name, byte[] bytes, List<string> created)
     {
@@ -207,7 +207,7 @@ public sealed partial class LibraryRepository
     public async Task<Document> ParsePendingPdfsAsync(string documentId, CancellationToken cancellationToken = default)
     {
         ValidId(documentId);
-        if (!Writable) throw new InvalidOperationException("资料库以只读方式打开");
+        if (!Writable) throw new InvalidOperationException("The library is open read-only");
         var original = await GetDocumentAsync(documentId, cancellationToken).ConfigureAwait(false);
         if (!original.PendingPdfPages) return original;
         var prepared = new Dictionary<string, List<PreparedAsset>>(StringComparer.Ordinal);
@@ -219,7 +219,7 @@ public sealed partial class LibraryRepository
         }
         var originalSizes = await Run(() => original.Pages.Sum(p => checked((long)Asset(p.AssetId).ByteSize)), cancellationToken).ConfigureAwait(false);
         if (originalSizes + prepared.Values.SelectMany(a => a).Sum(a => (long)a.Bytes.Length + (a.Thumbnail?.Length ?? 0)) > LibraryLimits.MaximumBatchBytes)
-            throw new InvalidOperationException("原件和页面缓存合计超过 256 MiB，旧材料未修改");
+            throw new InvalidOperationException("Original files and page caches exceed 256 MiB in total. Existing materials were not changed");
         return await Run(() =>
         {
             var created = new List<string>();
@@ -228,8 +228,8 @@ public sealed partial class LibraryRepository
                 return Transaction(cancellationToken, () =>
                 {
                     DocumentIdle(documentId);
-                    if (!JsonEqual(DomainJson.Serialize(original), DomainJson.Serialize(Document(documentId)))) throw new InvalidOperationException("材料已改变，请重试");
-                    if (original.Pages.Sum(p => prepared.TryGetValue(p.Id, out var images) ? images.Count : 1) > LibraryLimits.MaximumPages) throw new InvalidOperationException("PDF 解析后超过 12 页，请重新分批导入");
+                    if (!JsonEqual(DomainJson.Serialize(original), DomainJson.Serialize(Document(documentId)))) throw new InvalidOperationException("The document has changed. Retry");
+                    if (original.Pages.Sum(p => prepared.TryGetValue(p.Id, out var images) ? images.Count : 1) > LibraryLimits.MaximumPages) throw new InvalidOperationException("The parsed PDF exceeds 12 pages. Import smaller batches");
                     Execute("UPDATE source_pages SET page_index=page_index+1000 WHERE document_id=$p0", documentId);
                     var ordinal = 0;
                     foreach (var page in original.Pages)

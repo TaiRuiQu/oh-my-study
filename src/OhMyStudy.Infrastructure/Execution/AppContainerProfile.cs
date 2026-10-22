@@ -22,8 +22,8 @@ public sealed partial class AppContainerProfile : IDisposable
 
     public static AppContainerProfile Create(Guid id, bool networking = false)
     {
-        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041)) throw new PlatformNotSupportedException("此系统不支持 AppContainer 运行。");
-        if (id == Guid.Empty) throw new ArgumentException("无效的沙箱标识。", nameof(id));
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041)) throw new PlatformNotSupportedException("This system does not support AppContainer execution.");
+        if (id == Guid.Empty) throw new ArgumentException("Invalid sandbox ID.", nameof(id));
         var name = "OhMyStudy.Execution." + id.ToString("N");
         int result = Native.CreateAppContainerProfile(name, name, name, 0, 0, out var sid);
         if (result < 0) throw new Win32Exception(result & 0xffff);
@@ -35,7 +35,7 @@ public sealed partial class AppContainerProfile : IDisposable
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         var sid = new SecurityIdentifier(Sid);
         var path = RuntimePaths.CheckedDirectory(directory);
-        if (path.StartsWith(@"\\", StringComparison.Ordinal)) throw new IOException("AppContainer 需要本地目录。");
+        if (path.StartsWith(@"\\", StringComparison.Ordinal)) throw new IOException("AppContainer requires a local directory.");
         var info = new DirectoryInfo(path);
         var security = info.GetAccessControl(AccessControlSections.Access);
         if (!writable && security.GetAccessRules(true, true, typeof(SecurityIdentifier)).OfType<FileSystemAccessRule>().Any(rule =>
@@ -102,7 +102,7 @@ public sealed partial class AppContainerProfile : IDisposable
             }
             catch (Exception error) { failure ??= error; }
         }
-        if (failure is not null) throw new IOException("AppContainer 目录权限未能全部还原，请关闭相关程序后重试。", failure);
+        if (failure is not null) throw new IOException("AppContainer directory permissions could not be fully restored. Close related programs and retry.", failure);
         int deleted = Native.DeleteAppContainerProfile(_name);
         if (deleted < 0) throw new Win32Exception(deleted & 0xffff);
         Native.FreeSid(_sid);
