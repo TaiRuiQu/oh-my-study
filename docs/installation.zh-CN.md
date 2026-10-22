@@ -2,6 +2,8 @@
 
 [返回首页](../README.zh-CN.md) · [使用指南](usage.zh-CN.md) · [English](installation.md)
 
+界面支持简体中文、英语、日语和韩语，切换方法见[语言与排版](usage.zh-CN.md#语言与排版)。
+
 ## 选择下载文件
 
 应用面向 Windows 10/11 x64。每种版本提供两种下载格式：
@@ -10,6 +12,7 @@
 | --- | --- |
 | `-installer.msi` | 使用安装向导，添加开始菜单入口，可选择桌面快捷方式 |
 | `-portable.zip` | 解压后直接运行，不添加系统安装项 |
+| `-from-版本-patch.msp` | 可选补丁，仅更新指定基线版本、相同构建类型的 MSI 安装 |
 
 根据文件名中的版本标识选择：
 
@@ -21,6 +24,8 @@
 | `framework-dependent` | 需要先安装 Microsoft .NET 10 x64 Runtime，安装器不会自动下载 |
 
 安装包包含本地排版、图片处理和计算所需组件，无需自行安装 Python、Node.js 或 TeX。AI 功能仍需要网络、供应商密钥和可用模型。
+
+正式安装包不包含调试符号、Python 字节码缓存和依赖库测试套件，但保留计算所需的运行辅助模块。内置的 Windows 界面组件、PDF 工具和数值计算库仍会占用一定下载体积。
 
 ## 使用安装向导
 
@@ -44,6 +49,21 @@
 先保存修改并关闭应用，再运行新版 MSI。升级保留学习资料，默认沿用原安装位置和桌面快捷方式选项。四种版本作为同一个应用安装，可在升级时切换，不并排安装；安装器会拒绝降级。
 
 需要修复安装时，可重新运行原 MSI。更新便携版时，将新版完整解压到单独的文件夹，再运行新版应用。
+
+发布页如有 MSP，先确认文件名中的 `from-版本` 和构建类型与已安装的原 MSI 一致。关闭应用后双击 MSP，批准 Windows 管理员权限请求；保留原 MSI 以便修复或撤销补丁。补丁可在控制面板“程序和功能 → 查看已安装的更新”中卸载。MSP 不适用于便携版、首次安装或构建类型切换，不匹配时使用新版完整 MSI。更改文件布局（包括首次清理旧安装中的 PDB）也必须先使用完整 MSI。
+
+静默安装或应用补丁时，必须先以管理员身份打开 PowerShell。`/qn` 不会显示权限请求；普通权限可能导致 1925、2502 或 2503。不要通过修改 Windows Installer 或临时目录的权限来处理。安装失败时保留 `/L*v` 日志，先查看最终错误前出现的错误原因：
+
+```powershell
+msiexec /i "C:\Downloads\OhMyStudy-installer.msi" /qn /norestart /L*v "$env:TEMP\OhMyStudy-install.log"
+msiexec /p "C:\Downloads\OhMyStudy-patch.msp" REINSTALL=ALL REINSTALLMODE=omus /qn /norestart /L*v "$env:TEMP\OhMyStudy-patch.log"
+```
+
+开发者可用 `./packaging/Build-MspPackage.ps1 -BaselineMsi <原始MSI> -UpdateMsi <新版MSI> -OutputFile <补丁.msp>` 生成补丁；也可给 `Publish-OfflinePackage.ps1` 或 `Invoke-CI.ps1 -Phase Build` 传入 `-BaselineMsi`。构建要求版本递增、类型相同且组件、文件和安装布局一致，否则拒绝生成并提示使用完整 MSI。原始 MSI 不会被修改。首次使用需用当前打包脚本生成的完整 MSI 作为基线。MSP 会省略未变化的依赖；实际大小取决于变化的文件，不能保证每次都很小。
+
+手动触发 CI 时可填写 `baseline_tag`，下载相应发行版的同类型 MSI 并核对发布的 SHA-256，然后为四种构建生成补丁。发布清单和校验文件会包含补丁及其基线身份。未填写时仍只构建全量 MSI 和 ZIP。本地安装回归测试会请求 UAC；`./packaging/tests/Test-MsiInstaller.ps1 -BuildOnly` 仅检查补丁构建，不执行安装。
+
+连续发布累积补丁时，继续使用同一个原始 MSI 作为 `baseline_tag`，这样已应用较早补丁的安装也能更新。不要把带有新产品标识的新版全量 MSI 当作同一补丁系列的新基线；用户实际安装新版全量 MSI 后，才改用该 MSI 对应的补丁系列。
 
 如果安装过旧 EXE 版本，请先退出应用，通过 Windows 设置或旧版卸载入口卸载旧版，再安装 MSI。旧版卸载会保留学习资料；安装新版不等于已转换旧版资料，请先保留完整备份。
 

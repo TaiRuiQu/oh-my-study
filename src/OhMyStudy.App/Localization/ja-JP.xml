@@ -1,0 +1,660 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources language="ja-JP">
+    <text key="S0000" xml:space="preserve">コピー</text>
+    <text key="S0001" xml:space="preserve">数式 {0} をコピー</text>
+    <text key="S0002" xml:space="preserve">Ctrl+C で全体をコピーできます。個別の数式はメニューからコピーできます。</text>
+    <text key="S0003" xml:space="preserve">ここでは問題を編集できません。</text>
+    <text key="S0004" xml:space="preserve">数式</text>
+    <text key="S0005" xml:space="preserve">問題のメニューから数式をコピーしてください。</text>
+    <text key="S0006" xml:space="preserve">ここでは数式を編集できません。</text>
+    <text key="S0007" xml:space="preserve">読み込み中…</text>
+    <text key="S0008" xml:space="preserve">プレビューを表示できません</text>
+    <text key="S0009" xml:space="preserve">設定</text>
+    <text key="S0010" xml:space="preserve">試験をインポート (Ctrl + O)</text>
+    <text key="S0011" xml:space="preserve">間違えた問題</text>
+    <text key="S0012" xml:space="preserve">間違えた問題はまだありません</text>
+    <text key="S0013" xml:space="preserve">問題を認識中</text>
+    <text key="S0014" xml:space="preserve">問題はまだありません</text>
+    <text key="S0015" xml:space="preserve">採点後に復習が必要な問題がここに表示されます。</text>
+    <text key="S0016" xml:space="preserve">認識された問題は自動で表示されます。進捗はタスクで確認できます。</text>
+    <text key="S0017" xml:space="preserve">この試験の問題はまだ認識されていません。上部から再認識できます。</text>
+    <text key="S0018" xml:space="preserve">試験ページで PDF や画像をインポートすると、認識された問題が問題集に追加されます。</text>
+    <text key="S0019" xml:space="preserve">為替レート {0}：1 米ドル = {1:0.####} 人民元</text>
+    <text key="S0020" xml:space="preserve">（キャッシュ）</text>
+    <text key="S0021" xml:space="preserve">通貨を選択すると人民元換算を表示します。</text>
+    <text key="S0022" xml:space="preserve">為替レートを取得できません。人民元換算は表示できませんが、元の価格は保持されています。</text>
+    <text key="S0023" xml:space="preserve">未設定</text>
+    <text key="S0024" xml:space="preserve">人民元換算：未キャッシュ {0}    キャッシュ {1}    書き込み {2}    出力 {3}</text>
+    <text key="S0025" xml:space="preserve">利用できません</text>
+    <text key="S0026" xml:space="preserve">人民元の価格に基づく見積もりです。</text>
+    <text key="S0027" xml:space="preserve">為替レートを取得できず、人民元換算を表示できません。</text>
+    <text key="S0028" xml:space="preserve">エクスポートする前に変更を保存してください。</text>
+    <text key="S0029" xml:space="preserve">問題</text>
+    <text key="S0030" xml:space="preserve">先に問題を整理して保存してください。</text>
+    <text key="S0031" xml:space="preserve">先にライブラリを開いてください。</text>
+    <text key="S0032" xml:space="preserve">用紙</text>
+    <text key="S0033" xml:space="preserve">A3 横</text>
+    <text key="S0034" xml:space="preserve">内容</text>
+    <text key="S0035" xml:space="preserve">解答と解説</text>
+    <text key="S0036" xml:space="preserve">表示中の {0} 問をエクスポートします。</text>
+    <text key="S0037" xml:space="preserve">問題をエクスポート</text>
+    <text key="S0038" xml:space="preserve">続行</text>
+    <text key="S0039" xml:space="preserve">キャンセル</text>
+    <text key="S0040" xml:space="preserve">手書きを含む問題画像があります。問題用紙の出力前に手書きのない画像に変更してください。</text>
+    <text key="S0041" xml:space="preserve">エクスポート中…</text>
+    <text key="S0042" xml:space="preserve">元の問題番号：{0}</text>
+    <text key="S0043" xml:space="preserve">（{0:g} 点）</text>
+    <text key="S0044" xml:space="preserve">PDF を保存しました。</text>
+    <text key="S0045" xml:space="preserve">PDF を保存しました。一部の数式は原文のままです。確認してください。</text>
+    <text key="S0046" xml:space="preserve">エクスポートをキャンセルしました。</text>
+    <text key="S0047" xml:space="preserve">問題画像</text>
+    <text key="S0048" xml:space="preserve">問題や画像範囲が出力上限を超えています。確認して分割出力してください。</text>
+    <text key="S0049" xml:space="preserve">出力できませんでした。保存先を確認するか、アプリを再インストールしてください。</text>
+    <text key="S0050" xml:space="preserve">問題画像の元ページがありません。</text>
+    <text key="S0051" xml:space="preserve">問題を完全に読み取れません。</text>
+    <text key="S0052" xml:space="preserve">小問の階層が深すぎます。</text>
+    <text key="S0053" xml:space="preserve">問題画像が上限を超えています。分割出力してください。</text>
+    <text key="S0054" xml:space="preserve">問題や参考解答が参照しているページは削除できません。</text>
+    <text key="S0055" xml:space="preserve">参考解答</text>
+    <text key="S0056" xml:space="preserve">資料</text>
+    <text key="S0057" xml:space="preserve">{0} ページ · {1} · {2}°</text>
+    <text key="S0058" xml:space="preserve">上へ</text>
+    <text key="S0059" xml:space="preserve">下へ</text>
+    <text key="S0060" xml:space="preserve">左に回転</text>
+    <text key="S0061" xml:space="preserve">右に回転</text>
+    <text key="S0062" xml:space="preserve">削除</text>
+    <text key="S0063" xml:space="preserve">このページは問題や参考解答から参照されています。</text>
+    <text key="S0064" xml:space="preserve">ページを整理</text>
+    <text key="S0065" xml:space="preserve">保存</text>
+    <text key="S0066" xml:space="preserve">ページを保存しました。</text>
+    <text key="S0067" xml:space="preserve">保存できませんでした。タスク終了後に再試行してください。</text>
+    <text key="S0068" xml:space="preserve">このコンピューターでは現在印刷できません。</text>
+    <text key="S0069" xml:space="preserve">印刷を準備中…</text>
+    <text key="S0070" xml:space="preserve">印刷画面を開けません。プリンターを確認してください。</text>
+    <text key="S0071" xml:space="preserve">印刷画面でプリンターと用紙を選択してください。</text>
+    <text key="S0072" xml:space="preserve">印刷を準備できません。原本とプリンターを確認してください。</text>
+    <text key="S0073" xml:space="preserve">プリンターに送信しました。</text>
+    <text key="S0074" xml:space="preserve">印刷をキャンセルしました。</text>
+    <text key="S0075" xml:space="preserve">印刷できませんでした。プリンターを確認してください。</text>
+    <text key="S0076" xml:space="preserve">印刷が終了しました。</text>
+    <text key="S0077" xml:space="preserve">問題を編集</text>
+    <text key="S0078" xml:space="preserve">保存しました。</text>
+    <text key="S0079" xml:space="preserve">保存しました。資料を開き直すと最新の内容が表示されます。</text>
+    <text key="S0080" xml:space="preserve">保存できません。問題番号、点数、小問の合計、参照範囲を確認してください。</text>
+    <text key="S0081" xml:space="preserve">保存できません。タスク終了後に再試行してください。</text>
+    <text key="S0082" xml:space="preserve">問題を開けません。選択し直してください。</text>
+    <text key="S0083" xml:space="preserve">問題番号</text>
+    <text key="S0084" xml:space="preserve">科目</text>
+    <text key="S0085" xml:space="preserve">問題形式</text>
+    <text key="S0086" xml:space="preserve">問題文</text>
+    <text key="S0087" xml:space="preserve">テキストを追加</text>
+    <text key="S0088" xml:space="preserve">数式を追加</text>
+    <text key="S0089" xml:space="preserve">表を追加</text>
+    <text key="S0090" xml:space="preserve">画像を追加</text>
+    <text key="S0091" xml:space="preserve">選択肢</text>
+    <text key="S0092" xml:space="preserve">選択肢を追加</text>
+    <text key="S0093" xml:space="preserve">正答</text>
+    <text key="S0094" xml:space="preserve">解説</text>
+    <text key="S0095" xml:space="preserve">学習項目（1 行に 1 項目）</text>
+    <text key="S0096" xml:space="preserve">満点（不明な場合は空欄）</text>
+    <text key="S0097" xml:space="preserve">問題の参照元</text>
+    <text key="S0098" xml:space="preserve">要確認事項（1 行に 1 項目）</text>
+    <text key="S0099" xml:space="preserve">生徒の解答</text>
+    <text key="S0100" xml:space="preserve">解答の参照元</text>
+    <text key="S0101" xml:space="preserve">判定</text>
+    <text key="S0102" xml:space="preserve">正解</text>
+    <text key="S0103" xml:space="preserve">部分正解</text>
+    <text key="S0104" xml:space="preserve">不正解</text>
+    <text key="S0105" xml:space="preserve">未解答</text>
+    <text key="S0106" xml:space="preserve">要確認</text>
+    <text key="S0107" xml:space="preserve">得点（判定不能の場合は空欄）</text>
+    <text key="S0108" xml:space="preserve">採点の説明</text>
+    <text key="S0109" xml:space="preserve">解答手順</text>
+    <text key="S0110" xml:space="preserve">教師の注記：</text>
+    <text key="S0111" xml:space="preserve">判定の相違：</text>
+    <text key="S0112" xml:space="preserve">小問 </text>
+    <text key="S0113" xml:space="preserve">小問</text>
+    <text key="S0114" xml:space="preserve">小問を追加</text>
+    <text key="S0115" xml:space="preserve">削除</text>
+    <text key="S0116" xml:space="preserve">テキスト</text>
+    <text key="S0117" xml:space="preserve">セルを追加</text>
+    <text key="S0118" xml:space="preserve">行を追加</text>
+    <text key="S0119" xml:space="preserve">表</text>
+    <text key="S0120" xml:space="preserve">画像の説明</text>
+    <text key="S0121" xml:space="preserve">手書きを含む</text>
+    <text key="S0122" xml:space="preserve">この内容は編集できません。</text>
+    <text key="S0123" xml:space="preserve">参照元を追加</text>
+    <text key="S0124" xml:space="preserve">原本ページ</text>
+    <text key="S0125" xml:space="preserve">ページ </text>
+    <text key="S0126" xml:space="preserve"> </text>
+    <text key="S0127" xml:space="preserve">左位置（%）</text>
+    <text key="S0128" xml:space="preserve">上位置（%）</text>
+    <text key="S0129" xml:space="preserve">幅（%）</text>
+    <text key="S0130" xml:space="preserve">高さ（%）</text>
+    <text key="S0131" xml:space="preserve">言語を保存しました。編集内容を保存し、アプリを再起動すると反映されます。</text>
+    <text key="S0132" xml:space="preserve">言語設定を保存できません。再試行してください。</text>
+    <text key="S0133" xml:space="preserve">先に編集画面を保存するか閉じてください。</text>
+    <text key="S0134" xml:space="preserve">現在の画面を閉じてから終了してください。</text>
+    <text key="S0135" xml:space="preserve">タスクを終了中…</text>
+    <text key="S0136" xml:space="preserve">回転を保存できません。タスク終了後に再試行してください。</text>
+    <text key="S0137" xml:space="preserve">保存先にアクセスできません。</text>
+    <text key="S0138" xml:space="preserve">キャンセルが完了しませんでした。後で再試行してください。</text>
+    <text key="S0139" xml:space="preserve">インポートした資料がここに表示されます。</text>
+    <text key="S0140" xml:space="preserve">旧バージョンの資料が見つかりました</text>
+    <text key="S0141" xml:space="preserve">「その他」からインポートできます。元の資料は保持されます。</text>
+    <text key="S0142" xml:space="preserve">ライブラリを開けません。保存先を確認するか、設定で既存のライブラリを選択してください。</text>
+    <text key="S0143" xml:space="preserve">試験</text>
+    <text key="S0144" xml:space="preserve">資料の準備ができていません</text>
+    <text key="S0145" xml:space="preserve">ファイルを開き直すかインポートし直してください。</text>
+    <text key="S0146" xml:space="preserve">{0} / {1} ページ</text>
+    <text key="S0147" xml:space="preserve">ページを開けません。再選択または再インポートしてください。</text>
+    <text key="S0148" xml:space="preserve">一度に 12 ページまでインポートできます。</text>
+    <text key="S0149" xml:space="preserve">インポート中…</text>
+    <text key="S0150" xml:space="preserve">1 ファイル 64 MB、合計 256 MB が上限です。分割して再試行してください。</text>
+    <text key="S0151" xml:space="preserve">参考解答を追加しました。再整理できます。</text>
+    <text key="S0152" xml:space="preserve">インポートをキャンセルしました。</text>
+    <text key="S0153" xml:space="preserve">試験を取り込み、認識を開始しました。問題集を開き直して更新してください。</text>
+    <text key="S0154" xml:space="preserve">試験を保存しましたが、認識を開始できませんでした。試験から再認識してください。</text>
+    <text key="S0155" xml:space="preserve">必要なファイルがないか破損しています。再インストールしてください。</text>
+    <text key="S0156" xml:space="preserve">インポート失敗：</text>
+    <text key="S0157" xml:space="preserve">PDF を処理できません。再インストールしてください。</text>
+    <text key="S0158" xml:space="preserve">読み込みまたは保存できません。アクセス権を確認してください。</text>
+    <text key="S0159" xml:space="preserve">試験を読み込みまたは保存できません。ファイルと保存先を確認してください。</text>
+    <text key="S0160" xml:space="preserve">インポートできません。ファイルを選択し直してください。</text>
+    <text key="S0161" xml:space="preserve">先に資料を選択してください。</text>
+    <text key="S0162" xml:space="preserve">ファイルを開けません。再試行してください。</text>
+    <text key="S0163" xml:space="preserve">モデルがありません。一覧を取得するか手動で追加してください。</text>
+    <text key="S0164" xml:space="preserve">モデルを追加する前にプロバイダーを保存してください。</text>
+    <text key="S0165" xml:space="preserve">先に利用できるライブラリを選択してください。</text>
+    <text key="S0166" xml:space="preserve">モデルがあるプロバイダーの接続方式は変更できません。新規に追加してください。</text>
+    <text key="S0167" xml:space="preserve">保存しましたが、古いキーを削除できません。後で再度保存してください。</text>
+    <text key="S0168" xml:space="preserve">モデルがあるプロバイダー</text>
+    <text key="S0169" xml:space="preserve">保存できません。名前、アドレス、キーを確認してください。</text>
+    <text key="S0170" xml:space="preserve">プロバイダーを削除しますか？</text>
+    <text key="S0171" xml:space="preserve">既存の資料と採点記録は保持されます。</text>
+    <text key="S0172" xml:space="preserve">プロバイダーを削除しましたが、キーを削除できませんでした。</text>
+    <text key="S0173" xml:space="preserve">削除しました。</text>
+    <text key="S0174" xml:space="preserve">削除できません。後で再試行してください。</text>
+    <text key="S0175" xml:space="preserve">先にキーを保存してください。</text>
+    <text key="S0176" xml:space="preserve">モデル一覧が大きすぎるか、ページが重複しています。</text>
+    <text key="S0177" xml:space="preserve">追加できる新しいモデルはありません。</text>
+    <text key="S0178" xml:space="preserve">各プロバイダーは最大 500 モデルです。選択数を減らしてください。</text>
+    <text key="S0179" xml:space="preserve">{0} モデルを追加しました。</text>
+    <text key="S0180" xml:space="preserve">取得できません。アドレス、キー、ネットワークを確認してください。</text>
+    <text key="S0181" xml:space="preserve">サンドボックスを利用できない場合は開始前に通知します。</text>
+    <text key="S0182" xml:space="preserve">コードやコマンドを実行する前に許可を求めます。</text>
+    <text key="S0183" xml:space="preserve">コードやコマンドは現在のアカウントのファイルとネットワークにアクセスできます。</text>
+    <text key="S0184" xml:space="preserve">設定を保存できません。</text>
+    <text key="S0185" xml:space="preserve">設定を保存できません。再試行してください。</text>
+    <text key="S0186" xml:space="preserve">キューに追加しました。</text>
+    <text key="S0187" xml:space="preserve">開始できません。モデル設定を確認するか、現在のタスク終了後に再試行してください。</text>
+    <text key="S0188" xml:space="preserve">先に認識モデルを設定してください</text>
+    <text key="S0189" xml:space="preserve">認識にはモデルとキーが必要です。設定後に試験を取り込むと問題が自動追加されます。</text>
+    <text key="S0190" xml:space="preserve">設定へ</text>
+    <text key="S0191" xml:space="preserve">未インポートです。先にモデルを設定してください。</text>
+    <text key="S0192" xml:space="preserve">先に設定でモデルとキーを追加してください。</text>
+    <text key="S0193" xml:space="preserve">思考</text>
+    <text key="S0194" xml:space="preserve">既定</text>
+    <text key="S0195" xml:space="preserve">機能が未確認のモデルの試用を許可</text>
+    <text key="S0196" xml:space="preserve">試験の種類</text>
+    <text key="S0197" xml:space="preserve">未解答の試験</text>
+    <text key="S0198" xml:space="preserve">解答済み・採点が必要</text>
+    <text key="S0199" xml:space="preserve">教師による採点済み</text>
+    <text key="S0200" xml:space="preserve">サンドボックスを利用できません。コードとコマンドは本機で実行され、現在のアカウントのファイルとネットワークにアクセスできます。</text>
+    <text key="S0201" xml:space="preserve">資料は選択したモデルに送信され、料金が発生する場合があります。</text>
+    <text key="S0202" xml:space="preserve">試験をインポート</text>
+    <text key="S0203" xml:space="preserve">参考解答を整理</text>
+    <text key="S0204" xml:space="preserve">再認識</text>
+    <text key="S0205" xml:space="preserve">インポートして認識</text>
+    <text key="S0206" xml:space="preserve">開始</text>
+    <text key="S0207" xml:space="preserve">タスクキューの準備ができていません。</text>
+    <text key="S0208" xml:space="preserve">認識が完了し、問題集に追加しました。</text>
+    <text key="S0209" xml:space="preserve">認識が完了していません。保存済みの問題は保持されます。試験から再認識できます。</text>
+    <text key="S0210" xml:space="preserve">認識をキャンセルしました。保存済みの問題は保持されます。</text>
+    <text key="S0211" xml:space="preserve">認識中です。問題は自動で問題集に追加されます。</text>
+    <text key="S0212" xml:space="preserve">状態を更新できません。タスクページを開き直してください。</text>
+    <text key="S0213" xml:space="preserve">タスクの状態を更新できません。</text>
+    <text key="S0214" xml:space="preserve">このタスクの以降の呼び出しも許可</text>
+    <text key="S0215" xml:space="preserve">本機で実行され、現在のアカウントのファイルとネットワークにアクセスできます。</text>
+    <text key="S0216" xml:space="preserve">{0} · 最大 {1:0.###} 秒
+ディレクトリ：{2}
+引数：{3}</text>
+    <text key="S0217" xml:space="preserve">実行を許可しますか？</text>
+    <text key="S0218" xml:space="preserve">許可</text>
+    <text key="S0219" xml:space="preserve">拒否</text>
+    <text key="S0220" xml:space="preserve">後で</text>
+    <text key="S0221" xml:space="preserve">実行リクエストが変更されました。再確認してください。</text>
+    <text key="S0222" xml:space="preserve">バックアップを保存しました。</text>
+    <text key="S0223" xml:space="preserve">バックアップできません。空き容量のあるフォルダーを選択してください。</text>
+    <text key="S0224" xml:space="preserve">バックアップを復元しました。</text>
+    <text key="S0225" xml:space="preserve">復元できません。完全なバックアップフォルダーを選択してください。</text>
+    <text key="S0226" xml:space="preserve">復元できません。現在の資料は利用可能です。バックアップを確認してください。</text>
+    <text key="S0227" xml:space="preserve">旧バージョンの資料をインポートしました。元の資料は保持されています。</text>
+    <text key="S0228" xml:space="preserve">旧アプリを終了し、資料フォルダーを選択してください。</text>
+    <text key="S0229" xml:space="preserve">現在の資料は利用可能です。旧アプリを終了し、資料フォルダーを確認してください。</text>
+    <text key="S0230" xml:space="preserve">モデルのリクエスト終了をお待ちください。</text>
+    <text key="S0231" xml:space="preserve">先に現在のタスクを終了してください。</text>
+    <text key="S0232" xml:space="preserve">ライブラリを開けません。</text>
+    <text key="S0233" xml:space="preserve">切り替えできませんでした。元の資料を開き直しました。</text>
+    <text key="S0234" xml:space="preserve">未保存の変更</text>
+    <text key="S0235" xml:space="preserve">終了すると、資料や設定の未保存の変更が失われます。</text>
+    <text key="S0236" xml:space="preserve">ライブラリを切り替えると、資料や設定の未保存の変更が失われます。</text>
+    <text key="S0237" xml:space="preserve">終了</text>
+    <text key="S0238" xml:space="preserve">切り替え</text>
+    <text key="S0239" xml:space="preserve">戻る</text>
+    <text key="S0240" xml:space="preserve">このフォルダーにライブラリがありません。以前の保存先を選択してください。</text>
+    <text key="S0241" xml:space="preserve">資料ページの「その他」から「バックアップを復元」か「旧資料をインポート」を選択してください。</text>
+    <text key="S0242" xml:space="preserve">ライブラリを開きました。</text>
+    <text key="S0243" xml:space="preserve">開けません。フォルダーを確認し、現在のタスクを終了してください。</text>
+    <text key="S0244" xml:space="preserve">通知を閉じましたが、選択を保存できませんでした。</text>
+    <text key="S0245" xml:space="preserve">フォルダーを開けません。上のパスから確認してください。</text>
+    <text key="S0246" xml:space="preserve">フォルダーを開けません。保存先を確認してください。</text>
+    <text key="S0247" xml:space="preserve">保存先の変更はモデルのリクエスト終了後に行ってください。</text>
+    <text key="S0248" xml:space="preserve">保存先を変更する前に変更を保存してください。</text>
+    <text key="S0249" xml:space="preserve">ライブラリの場所を変更</text>
+    <text key="S0250" xml:space="preserve">資料を以下にコピーし、今後の取り込み先として使用します。元のライブラリは保持されます。
+
+</text>
+    <text key="S0251" xml:space="preserve">コピーして切り替え</text>
+    <text key="S0252" xml:space="preserve">保存先にライブラリが存在します。別のフォルダーを選択してください。</text>
+    <text key="S0253" xml:space="preserve">ライブラリを開けません。アプリを再起動してください。</text>
+    <text key="S0254" xml:space="preserve">変更できません。現在の資料は利用可能です。保存先と空き容量を確認してください。</text>
+    <text key="S0255" xml:space="preserve">資料をコピー中…</text>
+    <text key="S0256" xml:space="preserve">コピーは保持されました。ライブラリは切り替えていません。</text>
+    <text key="S0257" xml:space="preserve">保存先を変更しました。元のライブラリは保持されています。</text>
+    <text key="S0258" xml:space="preserve">モデル名または ID を検索</text>
+    <text key="S0259" xml:space="preserve">モデルが見つかりません。別のキーワードをお試しください。</text>
+    <text key="S0260" xml:space="preserve">追加するモデルを選択</text>
+    <text key="S0261" xml:space="preserve">追加</text>
+    <text key="S0262" xml:space="preserve">モデル：{0} · 選択済み：{1}</text>
+    <text key="S0263" xml:space="preserve">認識モデル</text>
+    <text key="S0264" xml:space="preserve">先にプロバイダーを保存してください。</text>
+    <text key="S0265" xml:space="preserve">モデルを保存しました。</text>
+    <text key="S0266" xml:space="preserve">保存できません。ID と通貨を確認してください。ウィンドウと予算は整数、価格は 0 以上が必要です。</text>
+    <text key="S0267" xml:space="preserve">モデルを削除しますか？</text>
+    <text key="S0268" xml:space="preserve">既存の資料と整理結果は保持されます。</text>
+    <text key="S0269" xml:space="preserve">モデルを削除しました。</text>
+    <text key="S0270" xml:space="preserve">削除が完了しませんでした。再試行してください。</text>
+    <text key="S0271" xml:space="preserve">保存済みのモデルを選択してください。</text>
+    <text key="S0272" xml:space="preserve">接続をテスト中…</text>
+    <text key="S0273" xml:space="preserve">接続成功（{0}、{1:F1} 秒）</text>
+    <text key="S0274" xml:space="preserve">接続できません。保存済みのアドレス、キー、モデル、ネットワークを確認してください。</text>
+    <text key="S0275" xml:space="preserve">取得中…</text>
+    <text key="S0276" xml:space="preserve">一致する ID がありません。手動で入力してください。</text>
+    <text key="S0277" xml:space="preserve">情報の取得元</text>
+    <text key="S0278" xml:space="preserve">モデル ID の完全一致で照合します。料金はプロバイダーにより異なり、実際の請求が優先されます。</text>
+    <text key="S0279" xml:space="preserve">モデル情報を入力</text>
+    <text key="S0280" xml:space="preserve">入力</text>
+    <text key="S0281" xml:space="preserve">models.dev / {0} より（{1:yyyy/MM/dd}）</text>
+    <text key="S0282" xml:space="preserve">、キャッシュを使用中</text>
+    <text key="S0283" xml:space="preserve">、未保存</text>
+    <text key="S0284" xml:space="preserve">現在取得できません。手動入力するか、明日再更新してください。</text>
+    <text key="S0285" xml:space="preserve">画像</text>
+    <text key="S0286" xml:space="preserve">音声</text>
+    <text key="S0287" xml:space="preserve">動画</text>
+    <text key="S0288" xml:space="preserve">入力：</text>
+    <text key="S0289" xml:space="preserve">出力：</text>
+    <text key="S0290" xml:space="preserve">最大出力：{0:N0} トークン</text>
+    <text key="S0291" xml:space="preserve">思考に対応</text>
+    <text key="S0292" xml:space="preserve">思考に非対応</text>
+    <text key="S0293" xml:space="preserve">試験を削除</text>
+    <text key="S0294" xml:space="preserve">試験を削除しますか？</text>
+    <text key="S0295" xml:space="preserve">「{0}」とその問題・参考解答を完全に削除します。元に戻せません。</text>
+    <text key="S0296" xml:space="preserve">試験を削除しました。</text>
+    <text key="S0297" xml:space="preserve">試験を削除しましたが、一覧を更新できません。</text>
+    <text key="S0298" xml:space="preserve">この試験は存在しません。</text>
+    <text key="S0299" xml:space="preserve">試験を削除できません。後で再試行してください。</text>
+    <text key="S0300" xml:space="preserve">すべての科目</text>
+    <text key="S0301" xml:space="preserve">試験：{0} 件</text>
+    <text key="S0302" xml:space="preserve">試験：{0} / {1} 件</text>
+    <text key="S0303" xml:space="preserve">試験はまだありません</text>
+    <text key="S0304" xml:space="preserve">試験が見つかりません</text>
+    <text key="S0305" xml:space="preserve">PDF や試験画像をインポートして始めましょう。</text>
+    <text key="S0306" xml:space="preserve">別のキーワードや科目をお試しください。</text>
+    <text key="S0307" xml:space="preserve">試験を開けません。後で再試行してください。</text>
+    <text key="S0308" xml:space="preserve">タイトル</text>
+    <text key="S0309" xml:space="preserve">例：数学、国語、英語</text>
+    <text key="S0310" xml:space="preserve">得点</text>
+    <text key="S0311" xml:space="preserve">未確定</text>
+    <text key="S0312" xml:space="preserve">満点</text>
+    <text key="S0313" xml:space="preserve">試験の情報</text>
+    <text key="S0314" xml:space="preserve">情報を保存しました。試験を開き直して確認してください。</text>
+    <text key="S0315" xml:space="preserve">試験のタイトルを入力してください。</text>
+    <text key="S0316" xml:space="preserve">有効な点数を入力してください。得点は満点を超えられません。</text>
+    <text key="S0317" xml:space="preserve">保存できません。認識終了後に再試行してください。</text>
+    <text key="S0318" xml:space="preserve">この資料を開き直すか再インポートしてください。</text>
+    <text key="S0319" xml:space="preserve">拡大できません。縮小して再試行してください。</text>
+    <text key="S0320" xml:space="preserve">整理結果</text>
+    <text key="S0321" xml:space="preserve">閉じる</text>
+    <text key="S0322" xml:space="preserve">参考解答はまだありません。</text>
+    <text key="S0323" xml:space="preserve">対応する問題 </text>
+    <text key="S0324" xml:space="preserve"> </text>
+    <text key="S0325" xml:space="preserve">未対応</text>
+    <text key="S0326" xml:space="preserve">要確認：</text>
+    <text key="S0327" xml:space="preserve">解答の元ページを表示</text>
+    <text key="S0328" xml:space="preserve">ページ別の結果</text>
+    <text key="S0329" xml:space="preserve">ページ別の結果はまだありません。</text>
+    <text key="S0330" xml:space="preserve">確認済み </text>
+    <text key="S0331" xml:space="preserve"> 問・小問</text>
+    <text key="S0332" xml:space="preserve">読み取り不能</text>
+    <text key="S0333" xml:space="preserve">問題なし</text>
+    <text key="S0334" xml:space="preserve">元ページがありません</text>
+    <text key="S0335" xml:space="preserve">結果を開けません。再試行してください。</text>
+    <text key="S0336" xml:space="preserve">元ページがありません。</text>
+    <text key="S0337" xml:space="preserve">未保存の設定</text>
+    <text key="S0338" xml:space="preserve">続行するとモデルの未保存の変更が失われます。</text>
+    <text key="S0339" xml:space="preserve">続行するとプロバイダーとモデルの未保存の変更が失われます。</text>
+    <text key="S0340" xml:space="preserve">変更を破棄</text>
+    <text key="S0341" xml:space="preserve">資料の整理</text>
+    <text key="S0342" xml:space="preserve">タスクをキャンセルしました。保存済みの問題は保持されます。</text>
+    <text key="S0343" xml:space="preserve">認識が中断されました。保存済みの問題は保持されます。試験から再認識できます。</text>
+    <text key="S0344" xml:space="preserve">操作を確認すると続行します。</text>
+    <text key="S0345" xml:space="preserve">モデル呼び出し：{0} 回</text>
+    <text key="S0346" xml:space="preserve">入力 {0:N0}</text>
+    <text key="S0347" xml:space="preserve">入力使用量の情報なし</text>
+    <text key="S0348" xml:space="preserve">出力 {0:N0}</text>
+    <text key="S0349" xml:space="preserve">出力使用量の情報なし</text>
+    <text key="S0350" xml:space="preserve">未キャッシュ {0:N0}</text>
+    <text key="S0351" xml:space="preserve">未キャッシュ使用量の情報なし</text>
+    <text key="S0352" xml:space="preserve">キャッシュ読み取り {0:N0}</text>
+    <text key="S0353" xml:space="preserve">キャッシュ読み取り使用量の情報なし</text>
+    <text key="S0354" xml:space="preserve">キャッシュ書き込み {0:N0}</text>
+    <text key="S0355" xml:space="preserve">キャッシュ書き込み使用量の情報なし</text>
+    <text key="S0356" xml:space="preserve">費用を計算中…</text>
+    <text key="S0357" xml:space="preserve">価格または使用量の情報が不完全なため費用を見積もれません。</text>
+    <text key="S0358" xml:space="preserve">費用の記録はありません</text>
+    <text key="S0359" xml:space="preserve">ページを読む</text>
+    <text key="S0360" xml:space="preserve">問題を保存</text>
+    <text key="S0361" xml:space="preserve">参考解答を保存</text>
+    <text key="S0362" xml:space="preserve">補助計算を実行</text>
+    <text key="S0363" xml:space="preserve">{0}（{1} 回）</text>
+    <text key="S0364" xml:space="preserve">待機中</text>
+    <text key="S0365" xml:space="preserve">認識中</text>
+    <text key="S0366" xml:space="preserve">確認待ち</text>
+    <text key="S0367" xml:space="preserve">完了</text>
+    <text key="S0368" xml:space="preserve">未完了</text>
+    <text key="S0369" xml:space="preserve">キャンセル済み</text>
+    <text key="S0370" xml:space="preserve">中断</text>
+    <text key="S0371" xml:space="preserve">キャンセルできません。再試行してください。</text>
+    <text key="S0372" xml:space="preserve">失敗</text>
+    <text key="S0373" xml:space="preserve">処理中</text>
+    <text key="S0374" xml:space="preserve">認識</text>
+    <text key="S0375" xml:space="preserve">（出力の抜粋）</text>
+    <text key="S0376" xml:space="preserve">出力の抜粋</text>
+    <text key="S0377" xml:space="preserve">読み込めません。後で再試行してください。</text>
+    <text key="S0378" xml:space="preserve">問題を読み込み中…</text>
+    <text key="S0379" xml:space="preserve">問題を現在表示できません。</text>
+    <text key="S0380" xml:space="preserve">原本の位置を確認できません。資料を開き直してください。</text>
+    <text key="S0381" xml:space="preserve">この問題に対応する原本の位置がありません。</text>
+    <text key="S0382" xml:space="preserve">取り込む前に、設定で利用できるライブラリを選択してください。</text>
+    <text key="S0383" xml:space="preserve">ファイルを開けません。選択し直してください。</text>
+    <text key="S0384" xml:space="preserve">画像または PDF をインポート</text>
+    <text key="S0385" xml:space="preserve">ファイルは 1 つずつドロップしてください。</text>
+    <text key="S0386" xml:space="preserve">PNG、JPEG、WebP 画像または PDF を選択してください。</text>
+    <text key="S0387" xml:space="preserve">ファイルが大きすぎます。64 MB 以下の画像を選択してください。</text>
+    <text key="S0388" xml:space="preserve">画像が大きすぎます。縮小またはトリミングしてください。</text>
+    <text key="S0389" xml:space="preserve">サンプル問題</text>
+    <text key="S0390" xml:space="preserve">現在の原本とは関係ありません。変更は保存されません。</text>
+    <text key="S0391" xml:space="preserve">読み込みをキャンセルしました。</text>
+    <text key="S0392" xml:space="preserve">ページを読み込み中…</text>
+    <text key="S0393" xml:space="preserve">開いています…</text>
+    <text key="S0394" xml:space="preserve">空ではない 64 MB 以下の PDF を選択してください。</text>
+    <text key="S0395" xml:space="preserve">1～12 ページの PDF を選択してください。</text>
+    <text key="S0396" xml:space="preserve">PDF を開けません。破損がないか確認するか、別のファイルをお試しください。</text>
+    <text key="S0397" xml:space="preserve">PDF のラスター行配置が無効です。 </text>
+    <text key="S0398" xml:space="preserve">ページサイズが無効です。 </text>
+    <text key="S0399" xml:space="preserve">サンプル資料</text>
+    <text key="S0400" xml:space="preserve">表示と編集ができますが、変更は保存されません。</text>
+    <text key="S0401" xml:space="preserve">資料を整理し、間違えた問題を復習して、学習をもっと快適に。</text>
+    <text key="S0402" xml:space="preserve">わかりました</text>
+    <text key="S0403" xml:space="preserve">Windows が印刷非対応を報告しています。ネイティブ API のみ確認し、システム・実機の印刷は未検証です。</text>
+    <text key="S0404" xml:space="preserve">スクリーンショットには絶対パスが必要です。</text>
+    <text key="S0405" xml:space="preserve">PDF に読み取れるページがありません。</text>
+    <text key="S0406" xml:space="preserve">あと {0} ページまで取り込めます。PDF を分割してください。</text>
+    <text key="S0407" xml:space="preserve">PDF の画像配置が無効です。</text>
+    <text key="S0408" xml:space="preserve">処理後の資料が 256 MB を超えています。分割してください。</text>
+    <text key="S0409" xml:space="preserve">ファイルが空か 64 MB を超えています。</text>
+    <text key="S0410" xml:space="preserve">この操作には画像が必要です。</text>
+    <text key="S0411" xml:space="preserve">画像を 4,000 万画素以下に縮小してください。</text>
+    <text key="S0412" xml:space="preserve">画像を完全に読み取れません。選択し直してください。</text>
+    <text key="S0413" xml:space="preserve">処理後の画像が 64 MB を超えています。縮小してください。</text>
+    <text key="S0414" xml:space="preserve">画像の保存が不完全です。</text>
+    <text key="S0415" xml:space="preserve">WebP 形式が無効です。</text>
+    <text key="S0416" xml:space="preserve">WebP 画像が不完全です。</text>
+    <text key="S0417" xml:space="preserve">アニメーション WebP を静止画像に保存してください。</text>
+    <text key="S0418" xml:space="preserve">WebP のサイズ情報がありません。</text>
+    <text key="S0419" xml:space="preserve">WebP を読み取れません。再インストールしてください。</text>
+    <text key="S0420" xml:space="preserve">画像コンポーネントの検証に失敗しました。再インストールしてください。</text>
+    <text key="S0421" xml:space="preserve">画像を読み取れません。再試行してください。</text>
+    <text key="S0422" xml:space="preserve">WebP を読み取れません。ファイルを確認してください。</text>
+    <text key="S0423" xml:space="preserve">画像の読み取り結果が無効です。再試行してください。</text>
+    <text key="S0424" xml:space="preserve">画像読み取りがタイムアウトしました。縮小またはトリミングしてください。</text>
+    <text key="S0425" xml:space="preserve">画像を読み取れません。ファイルを確認してください。</text>
+    <text key="S0426" xml:space="preserve">{0}（{1:g} 点）</text>
+    <text key="S0427" xml:space="preserve">満点：</text>
+    <text key="S0428" xml:space="preserve"> 点</text>
+    <text key="S0429" xml:space="preserve">採点</text>
+    <text key="S0430" xml:space="preserve">点数未確定</text>
+    <text key="S0431" xml:space="preserve">教師による採点</text>
+    <text key="S0432" xml:space="preserve">手動採点</text>
+    <text key="S0433" xml:space="preserve">参考解答に基づく</text>
+    <text key="S0434" xml:space="preserve">モデルによる採点</text>
+    <text key="S0435" xml:space="preserve">解答</text>
+    <text key="S0436" xml:space="preserve">画像を現在表示できません。</text>
+    <text key="S0437" xml:space="preserve">問題画像</text>
+    <text key="S0438" xml:space="preserve">{0:g} 点</text>
+    <text key="S0439" xml:space="preserve">解答の記録なし</text>
+    <text key="S0440" xml:space="preserve">教師の注記</text>
+    <text key="S0441" xml:space="preserve">判定の相違</text>
+    <text key="S0442" xml:space="preserve">未分類</text>
+    <text key="S0443" xml:space="preserve">問題：{0} 問</text>
+    <text key="S0444" xml:space="preserve">日時不明</text>
+    <text key="S0445" xml:space="preserve">問題 {0}</text>
+    <text key="S0446" xml:space="preserve">{0} ページ</text>
+    <text key="S0447" xml:space="preserve">✓ 正解</text>
+    <text key="S0448" xml:space="preserve">△ 部分正解</text>
+    <text key="S0449" xml:space="preserve">× 不正解</text>
+    <text key="S0450" xml:space="preserve">○ 未解答</text>
+    <text key="S0451" xml:space="preserve">? 要確認</text>
+    <text key="S0452" xml:space="preserve">サンプルは保存できません。</text>
+    <text key="S0453" xml:space="preserve">画像の問題</text>
+    <text key="S0454" xml:space="preserve">問題の内容がありません</text>
+    <text key="S0455" xml:space="preserve">準備完了</text>
+    <text key="S0456" xml:space="preserve">問題集</text>
+    <text key="S0457" xml:space="preserve">すべての問題</text>
+    <text key="S0458" xml:space="preserve">最大値は 2、最小値は −2。</text>
+    <text key="S0459" xml:space="preserve">未保存の変更があります。</text>
+    <text key="S0460" xml:space="preserve">関数と導関数 · 練習</text>
+    <text key="S0461" xml:space="preserve">関数 f(x) = x³ − 3x の区間 [−2, 2] における最大値と最小値を求めよ。</text>
+    <text key="S0462" xml:space="preserve">直交座標系で直線 y = kx + 1 と放物線 y = x² の交点を A、B とする。線分 AB の長さを求めよ。</text>
+    <text key="S0463" xml:space="preserve">数列 {aₙ} が a₁ = 1、aₙ₊₁ = 2aₙ + 1 を満たすとき、一般項を求め、理由を示せ。</text>
+    <text key="S0464" xml:space="preserve">マイ資料</text>
+    <text key="S0465" xml:space="preserve">タスク</text>
+    <text key="S0466" xml:space="preserve">変更済み・未保存。</text>
+    <text key="S0467" xml:space="preserve">保存できません。タスク終了後に再試行してください。</text>
+    <text key="S0468" xml:space="preserve">実行中</text>
+    <text key="S0469" xml:space="preserve">PDF または画像の試験をインポート</text>
+    <text key="S0470" xml:space="preserve">試験のその他の操作</text>
+    <text key="S0471" xml:space="preserve">その他</text>
+    <text key="S0472" xml:space="preserve">ページを管理</text>
+    <text key="S0473" xml:space="preserve">試験一覧に戻る</text>
+    <text key="S0474" xml:space="preserve">原本を表示</text>
+    <text key="S0475" xml:space="preserve">参考解答ページを追加</text>
+    <text key="S0476" xml:space="preserve">参考解答を追加</text>
+    <text key="S0477" xml:space="preserve">現在の問題を編集 (Ctrl + E)</text>
+    <text key="S0478" xml:space="preserve">認識結果を表示</text>
+    <text key="S0479" xml:space="preserve">認識結果</text>
+    <text key="S0480" xml:space="preserve">試験情報を編集</text>
+    <text key="S0481" xml:space="preserve">試験のタイトルや科目を検索</text>
+    <text key="S0482" xml:space="preserve">試験を検索</text>
+    <text key="S0483" xml:space="preserve">科目で絞り込み</text>
+    <text key="S0484" xml:space="preserve">試験を並べ替え</text>
+    <text key="S0485" xml:space="preserve">試験一覧</text>
+    <text key="S0486" xml:space="preserve">得点 / 満点</text>
+    <text key="S0487" xml:space="preserve">原本</text>
+    <text key="S0488" xml:space="preserve">左に 90° 回転</text>
+    <text key="S0489" xml:space="preserve">原本を左に 90 度回転</text>
+    <text key="S0490" xml:space="preserve">右に 90° 回転</text>
+    <text key="S0491" xml:space="preserve">原本を右に 90 度回転</text>
+    <text key="S0492" xml:space="preserve">原本を折りたたむ</text>
+    <text key="S0493" xml:space="preserve">原本の表示領域、拡大縮小・移動可能</text>
+    <text key="S0494" xml:space="preserve">関数と導関数</text>
+    <text key="S0495" xml:space="preserve">学習練習</text>
+    <text key="S0496" xml:space="preserve">1. 関数 f(x) = x³ − 3x の区間 [−2, 2] における最大値と最小値を求めよ。</text>
+    <text key="S0497" xml:space="preserve">解：f′(x) = 3x² − 3 = 3(x + 1)(x − 1)。
+f′(x) = 0 より x = −1 または x = 1。
+端点と停留点の値を比較し、最大値は 2、最小値は −2。</text>
+    <text key="S0498" xml:space="preserve">2. 直線 y = kx + 1 と放物線 y = x² の交点を A、B とする。線分 AB の長さを求めよ。</text>
+    <text key="S0499" xml:space="preserve">3. 数列 {aₙ} が a₁ = 1、aₙ₊₁ = 2aₙ + 1 を満たすとき、一般項を求め、理由を示せ。</text>
+    <text key="S0500" xml:space="preserve">原本の画像</text>
+    <text key="S0501" xml:space="preserve">前のページ</text>
+    <text key="S0502" xml:space="preserve">前のページを表示</text>
+    <text key="S0503" xml:space="preserve">1 / 1 ページ</text>
+    <text key="S0504" xml:space="preserve">次のページ</text>
+    <text key="S0505" xml:space="preserve">次のページを表示</text>
+    <text key="S0506" xml:space="preserve">読み込みを中止</text>
+    <text key="S0507" xml:space="preserve">ページに合わせる</text>
+    <text key="S0508" xml:space="preserve">表示領域に合わせて拡大率をリセット</text>
+    <text key="S0509" xml:space="preserve">原本の拡大率</text>
+    <text key="S0510" xml:space="preserve">問題一覧</text>
+    <text key="S0511" xml:space="preserve">原本の位置を表示</text>
+    <text key="S0512" xml:space="preserve">問題の内容</text>
+    <text key="S0513" xml:space="preserve">解答</text>
+    <text key="S0514" xml:space="preserve">メモ</text>
+    <text key="S0515" xml:space="preserve">理解したことや復習のヒントを記録</text>
+    <text key="S0516" xml:space="preserve">最近のタスク</text>
+    <text key="S0517" xml:space="preserve">タスク一覧</text>
+    <text key="S0518" xml:space="preserve">タスクを選択</text>
+    <text key="S0519" xml:space="preserve">サンプル</text>
+    <text key="S0520" xml:space="preserve">実行リクエストを確認</text>
+    <text key="S0521" xml:space="preserve">タスクをキャンセル</text>
+    <text key="S0522" xml:space="preserve">問題集を表示</text>
+    <text key="S0523" xml:space="preserve">読み取り済みページ</text>
+    <text key="S0524" xml:space="preserve">保存済みの問題</text>
+    <text key="S0525" xml:space="preserve">見積もり費用</text>
+    <text key="S0526" xml:space="preserve">詳細</text>
+    <text key="S0527" xml:space="preserve">費用と使用量</text>
+    <text key="S0528" xml:space="preserve">使用量の記録はありません</text>
+    <text key="S0529" xml:space="preserve">実行ログ</text>
+    <text key="S0530" xml:space="preserve">タスク処理中</text>
+    <text key="S0531" xml:space="preserve">最新の記録へスクロール</text>
+    <text key="S0532" xml:space="preserve">最新</text>
+    <text key="S0533" xml:space="preserve">認識の進捗をいつでも確認</text>
+    <text key="S0534" xml:space="preserve">試験の取り込み後、読み取り・認識・保存の各ステップを確認できます。</text>
+    <text key="S0535" xml:space="preserve">モデル</text>
+    <text key="S0536" xml:space="preserve">プロバイダー</text>
+    <text key="S0537" xml:space="preserve">プロバイダー一覧</text>
+    <text key="S0538" xml:space="preserve">プロバイダーを追加</text>
+    <text key="S0539" xml:space="preserve">プロバイダー設定</text>
+    <text key="S0540" xml:space="preserve">名前</text>
+    <text key="S0541" xml:space="preserve">プロバイダー名</text>
+    <text key="S0542" xml:space="preserve">接続方式</text>
+    <text key="S0543" xml:space="preserve">アドレス</text>
+    <text key="S0544" xml:space="preserve">API キー</text>
+    <text key="S0545" xml:space="preserve">空欄で既存のキーを保持</text>
+    <text key="S0546" xml:space="preserve">プロバイダーを削除</text>
+    <text key="S0547" xml:space="preserve">モデル一覧</text>
+    <text key="S0548" xml:space="preserve">モデルをインポート</text>
+    <text key="S0549" xml:space="preserve">モデルを追加</text>
+    <text key="S0550" xml:space="preserve">接続テスト</text>
+    <text key="S0551" xml:space="preserve">選択したモデルに短いリクエストを送信します。少額の料金が発生する場合があります。</text>
+    <text key="S0552" xml:space="preserve">表示名</text>
+    <text key="S0553" xml:space="preserve">空欄でモデル ID を使用</text>
+    <text key="S0554" xml:space="preserve">モデル ID</text>
+    <text key="S0555" xml:space="preserve">コンテキストウィンドウ</text>
+    <text key="S0556" xml:space="preserve">未確認</text>
+    <text key="S0557" xml:space="preserve">画像に対応</text>
+    <text key="S0558" xml:space="preserve">ツールに対応</text>
+    <text key="S0559" xml:space="preserve">思考の強度オプション</text>
+    <text key="S0560" xml:space="preserve">思考の予算</text>
+    <text key="S0561" xml:space="preserve">空欄で未設定</text>
+    <text key="S0562" xml:space="preserve">対応する思考強度のみを選択し、画像やツールの機能が未確認の場合は未設定にしてください。</text>
+    <text key="S0563" xml:space="preserve">料金</text>
+    <text key="S0564" xml:space="preserve">入力（未キャッシュ）</text>
+    <text key="S0565" xml:space="preserve">入力（キャッシュ）</text>
+    <text key="S0566" xml:space="preserve">キャッシュ書き込み</text>
+    <text key="S0567" xml:space="preserve">出力</text>
+    <text key="S0568" xml:space="preserve">通貨</text>
+    <text key="S0569" xml:space="preserve">通貨を選択</text>
+    <text key="S0570" xml:space="preserve">models.dev から入力</text>
+    <text key="S0571" xml:space="preserve">モデルを保存</text>
+    <text key="S0572" xml:space="preserve">モデルを削除</text>
+    <text key="S0573" xml:space="preserve">ライブラリ</text>
+    <text key="S0574" xml:space="preserve">保存先</text>
+    <text key="S0575" xml:space="preserve">原本はライブラリにコピーされるため、元ファイルを削除しても表示できます。</text>
+    <text key="S0576" xml:space="preserve">場所を変更</text>
+    <text key="S0577" xml:space="preserve">既存のライブラリを選択</text>
+    <text key="S0578" xml:space="preserve">フォルダーを開く</text>
+    <text key="S0579" xml:space="preserve">実行</text>
+    <text key="S0580" xml:space="preserve">コードとコマンド</text>
+    <text key="S0581" xml:space="preserve">毎回確認</text>
+    <text key="S0582" xml:space="preserve">サンドボックスで実行</text>
+    <text key="S0583" xml:space="preserve">本機で直接実行</text>
+    <text key="S0584" xml:space="preserve">サンドボックスのネットワークアクセスを許可</text>
+    <text key="S0585" xml:space="preserve">外観</text>
+    <text key="S0586" xml:space="preserve">テーマ</text>
+    <text key="S0587" xml:space="preserve">Windows に合わせる</text>
+    <text key="S0588" xml:space="preserve">ライト</text>
+    <text key="S0589" xml:space="preserve">ダーク</text>
+    <text key="S0590" xml:space="preserve">言語</text>
+    <text key="S0591" xml:space="preserve">简体中文</text>
+    <text key="S0592" xml:space="preserve">日本語</text>
+    <text key="S0593" xml:space="preserve">このアプリについて</text>
+    <text key="S0594" xml:space="preserve">新しい順</text>
+    <text key="S0595" xml:space="preserve">古い順</text>
+    <text key="S0596" xml:space="preserve">得点率</text>
+    <text key="S0597" xml:space="preserve">米ドル</text>
+    <text key="S0598" xml:space="preserve">人民元</text>
+    <text key="S0599" xml:space="preserve">小問 {0}</text>
+    <text key="S0600" xml:space="preserve">問題 {0} に対応</text>
+    <text key="S0601" xml:space="preserve">確認済みの問題・小問：{0}</text>
+    <text key="S0602" xml:space="preserve">満点 {0:g} 点</text>
+    <text key="S0603" xml:space="preserve">アプリの再起動によりタスクが中断されました。</text>
+    <text key="S0604" xml:space="preserve">タスクをキャンセルしました。</text>
+    <text key="S0605" xml:space="preserve">実行を拒否しました。</text>
+    <text key="S0606" xml:space="preserve">処理を続行します。</text>
+    <text key="S0607" xml:space="preserve">実行の許可を待っています。</text>
+    <text key="S0608" xml:space="preserve">処理中です。</text>
+    <text key="S0609" xml:space="preserve">完了しました。</text>
+    <text key="S0610" xml:space="preserve">キャンセルしました。</text>
+    <text key="S0611" xml:space="preserve">処理が完了していません。設定を確認して再試行してください。</text>
+    <text key="S0612" xml:space="preserve">認識ラウンド {0}</text>
+    <text key="S0613" xml:space="preserve">{0} ページを読む</text>
+    <text key="S0614" xml:space="preserve">読み取り済み：{0} ページ、保存済み：{1} 問。</text>
+    <text key="S0615" xml:space="preserve">{0} 件の操作を準備しました</text>
+    <text key="S0616" xml:space="preserve">モデルの応答を待っています</text>
+    <text key="S0617" xml:space="preserve">モデルが思考中</text>
+    <text key="S0618" xml:space="preserve">次の操作を準備中</text>
+    <text key="S0619" xml:space="preserve">モデルの応答を受信中</text>
+    <text key="S0620" xml:space="preserve">モデルの応答を受信しました</text>
+    <text key="S0621" xml:space="preserve">モデル設定を確認</text>
+    <text key="S0622" xml:space="preserve">モデル設定がこのタスクに対応していません。画像、ツール、思考の設定を確認してください。未確認の機能は開始前に試用を許可できます。</text>
+    <text key="S0623" xml:space="preserve">モデルが保存せずに返信を繰り返しました。モデルや思考設定を変更して再試行してください。</text>
+    <text key="S0624" xml:space="preserve">試験情報を整理</text>
+    <text key="S0625" xml:space="preserve">試験全体の結果を確認</text>
+    <text key="S0626" xml:space="preserve">操作を確認</text>
+    <text key="S0627" xml:space="preserve">処理中</text>
+    <text key="S0628" xml:space="preserve">ページの一部を確認しました</text>
+    <text key="S0629" xml:space="preserve">原本を読み取りました</text>
+    <text key="S0630" xml:space="preserve">試験情報を保存しました</text>
+    <text key="S0631" xml:space="preserve">手動入力の試験情報を保持しました</text>
+    <text key="S0632" xml:space="preserve">問題集に問題を追加しました</text>
+    <text key="S0633" xml:space="preserve">参考解答を保存しました</text>
+    <text key="S0634" xml:space="preserve">ページの網羅性と保存結果を確認しました</text>
+    <text key="S0635" xml:space="preserve">補助計算が完了しました</text>
+    <text key="S0636" xml:space="preserve">操作が完了しました</text>
+    <text key="S0637" xml:space="preserve">この思考強度は非対応です。モデル設定を確認してください。</text>
+    <text key="S0638" xml:space="preserve">思考設定が拒否されました。対応する設定を確認してください。</text>
+    <text key="S0639" xml:space="preserve">出力上限がモデルの制限を超えています。設定を更新してください。</text>
+    <text key="S0640" xml:space="preserve">認証に失敗しました。キーとモデルのアクセス権を確認してください。</text>
+    <text key="S0641" xml:space="preserve">利用枠が不足しています。残高を確認してください。</text>
+    <text key="S0642" xml:space="preserve">リクエストが多すぎます。後で再試行してください。</text>
+    <text key="S0643" xml:space="preserve">接続が中断またはタイムアウトしました。ネットワークを確認してください。</text>
+    <text key="S0644" xml:space="preserve">モデルがリクエストを拒否しました。資料を確認してください。</text>
+    <text key="S0645" xml:space="preserve">出力が不完全です。上限に達した可能性があります。思考強度を下げるか、分割して認識してください。</text>
+    <text key="S0646" xml:space="preserve">リクエストが拒否されました。モデル、パラメーター、接続先を確認してください。</text>
+    <text key="S0647" xml:space="preserve">モデルのサービスを利用できません。後で再試行してください。</text>
+    <text key="S0648" xml:space="preserve">認識がタイムアウトしました。後で再試行するか、分割してください。</text>
+    <text key="S0649" xml:space="preserve">モデルの呼び出しが完了しませんでした。設定を確認してください。</text>
+    <text key="S0650" xml:space="preserve">サンプルを表示</text>
+</resources>

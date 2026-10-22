@@ -11,6 +11,7 @@ A Windows study app for students. It imports exams, recognizes and grades questi
 - Organize saved questions in the question bank and wrong-question collection, and view recognition task progress and estimated costs.
 - Export questions, or answers and explanations, separately as A4 or A3 landscape PDFs.
 - Store exam originals and study materials locally, and change the library location when needed.
+- Choose a Simplified Chinese, English, Japanese, or Korean interface; English and Chinese remain the focus for document typesetting.
 
 ## Getting started
 

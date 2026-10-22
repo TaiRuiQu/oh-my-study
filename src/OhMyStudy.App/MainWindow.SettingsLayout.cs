@@ -8,7 +8,7 @@ public sealed partial class MainWindow
 {
     private void InitializeSettingsLayout()
     {
-        foreach (var feedback in new[] { ProviderFeedback, ModelFeedback, ModelCatalogFeedback, ModelCnyPreview, ModelExtraInfo, LibraryFeedback, ExecutionDescription, OriginalCaption })
+        foreach (var feedback in new[] { ProviderFeedback, ModelFeedback, ModelCatalogFeedback, ModelCnyPreview, ModelExtraInfo, LibraryFeedback, ExecutionDescription, OriginalCaption, LanguageFeedback })
         {
             feedback.RegisterPropertyChangedCallback(TextBlock.TextProperty, OptionalTextChanged);
             OptionalTextChanged(feedback, TextBlock.TextProperty);
@@ -47,8 +47,8 @@ public sealed partial class MainWindow
         PlaceSettingsField(ModelPriceCacheWrite, stackPrices ? 2 : 0, stackPrices ? 0 : 2, stackPrices ? 5 : 1, 12);
         PlaceSettingsField(ModelPriceOutput, stackPrices ? 3 : 0, stackPrices ? 0 : 3, stackPrices ? 5 : 1, 12);
         PlaceSettingsField(ModelCurrency, stackPrices ? 4 : 0, stackPrices ? 0 : 4, stackPrices ? 5 : 1, 12);
-        ModelActionButtons.Orientation = detailWidth < 320 ? Orientation.Vertical : Orientation.Horizontal;
-        LibraryActionButtons.Orientation = e.NewSize.Width < 380 ? Orientation.Vertical : Orientation.Horizontal;
+        ModelActionButtons.Orientation = detailWidth < (UiText.Language == "zh-CN" ? 320 : 540) ? Orientation.Vertical : Orientation.Horizontal;
+        LibraryActionButtons.Orientation = e.NewSize.Width < (UiText.Language == "zh-CN" ? 380 : 660) ? Orientation.Vertical : Orientation.Horizontal;
     }
 
     private static void PlaceSettingsField(FrameworkElement field, int row, int column, int span, double spacing)

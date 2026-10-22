@@ -1,0 +1,69 @@
+using System.Text.Json.Nodes;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using OhMyStudy.App.Diagnostics;
+using Windows.Graphics;
+
+namespace OhMyStudy.App;
+
+public sealed partial class MainWindow
+{
+    private async Task RunLocalizationSmokeAsync(string reportPath)
+    {
+        var captures = new JsonArray();
+        var checks = new JsonObject();
+        var report = new JsonObject { ["language"] = UiText.Language, ["checks"] = checks, ["screenshots"] = captures };
+        int exitCode = 1;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
+            RootGrid.RequestedTheme = ElementTheme.Light;
+            _initialized = false;
+            ExecutionModePicker.SelectedIndex = 2;
+            _initialized = true;
+            LibraryPath.Text = @"C:\Study\Library";
+            LocalizeNavigationSettings();
+            report["headingFont"] = PageHeading.FontFamily.Source;
+            report["controlFont"] = LanguagePicker.FontFamily.Source;
+            checks["font"] = PageHeading.FontFamily.Source == UiText.InterfaceFontFamily && LanguagePicker.FontFamily.Source == UiText.InterfaceFontFamily;
+            checks["navigation"] = ((NavigationViewItem)Navigation.MenuItems[0]).Content?.ToString() == UiText.Get("试卷");
+            checks["settings"] = WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem).Content?.ToString() == UiText.Get("设置");
+            checks["language"] = RootGrid.Language == UiText.Language && LanguagePicker.SelectedIndex > 0;
+            checks["currency"] = ((ComboBoxItem)ModelCurrency.Items[0]).Content?.ToString() == UiText.Get("美元");
+            checks["sort"] = ((ComboBoxItem)PaperSort.Items[0]).Content?.ToString() == UiText.Get("最近导入");
+            foreach (int width in new[] { 1440, 820 })
+            {
+                AppWindow.Resize(new SizeInt32(width, 960));
+                Navigation.SelectedItem = Navigation.MenuItems[0];
+                ShowPaperList();
+                await Task.Delay(250);
+                string papers = Path.ChangeExtension(reportPath, $".{width}.exams.png");
+                await CaptureWorkspaceAsync(papers); captures.Add((JsonNode?)JsonValue.Create(papers));
+                Navigation.SelectedItem = Navigation.SettingsItem;
+                await Task.Delay(250);
+                SettingsPanel.ChangeView(null, SettingsPanel.ScrollableHeight, null, true);
+                await Task.Delay(100);
+                string settings = Path.ChangeExtension(reportPath, $".{width}.settings.png");
+                await CaptureWorkspaceAsync(settings); captures.Add((JsonNode?)JsonValue.Create(settings));
+                checks["settings-width-" + width] = LanguagePicker.ActualWidth > 0 && LanguagePicker.ActualWidth <= SettingsPanel.ViewportWidth;
+                checks["language-header-" + width] = LanguagePicker.Header?.ToString() == UiText.Get("语言");
+            }
+            checks["sample-content-preserved"] = UiText.ActivityText("中文 English 日本語 한국어 \\(x^2\\)") == "中文 English 日本語 한국어 \\(x^2\\)";
+            bool passed = checks.All(pair => pair.Value!.GetValue<bool>());
+            report["status"] = passed ? "passed" : "failed";
+            exitCode = passed ? 0 : 1;
+        }
+        catch (Exception error)
+        {
+            report["status"] = "failed";
+            report["error"] = error.ToString();
+            AppLog.Error("Localization.Smoke", error);
+        }
+        finally
+        {
+            await File.WriteAllTextAsync(reportPath, report.ToJsonString());
+            Close();
+            Environment.Exit(exitCode);
+        }
+    }
+}

@@ -9,6 +9,9 @@
     <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
     <Property Id="ARPHELPLINK" Value="https://github.com/TaiRuiQu/oh-my-study" />
     <Property Id="MSIRESTARTMANAGERCONTROL" Value="DisableShutdown" />
+    <Property Id="OMS_BUILD_VARIANT" Value="$(var.BuildVariant)" />
+    <Property Id="OMS_PATCH_SCHEMA" Value="1" />
+    <Launch Condition="UILevel &gt;= 4 OR Privileged" Message="静默安装需要管理员权限。请从管理员 PowerShell 运行，或双击安装包并批准 Windows 权限请求。" />
 
     <Property Id="LEGACYINSTALLROOT">
       <RegistrySearch Id="FindLegacyInstaller" Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\OhMyStudy" Name="InstallLocation" Type="raw" />

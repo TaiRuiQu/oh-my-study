@@ -64,16 +64,31 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         var options = new RequestOptions
         {
             Model = new() { Id = input.Model.Id, Capabilities = input.Model.Capabilities, Raw = nullJson },
-            MaxOutputTokens = 16384,
+            MaxOutputTokens = Math.Min(input.Model.MaxOutputTokens ?? ulong.MaxValue,
+                input.Thinking is BudgetThinking budget ? Math.Max(32768UL, checked(budget.Tokens + 16384))
+                : input.Thinking is not null || input.Model.Reasoning == true ? 32768UL : 16384UL),
             Stream = true,
             Thinking = input.Thinking,
             AllowUnknownCapabilities = input.AllowUnknown,
             Extra = extra
         };
-        options.Validate(input.Provider.Protocol, true, true);
+        try { options.Validate(input.Provider.Protocol, true, true); }
+        catch (DomainValidationException)
+        {
+            await context.ActivityAsync(new JobActivity
+            {
+                Key = "model-configuration",
+                Kind = "model",
+                Title = "检查模型配置",
+                State = "failed",
+                Detail = "模型配置不支持本次任务。请检查图片、工具和所选思考选项；能力未确认时可在开始任务前勾选允许尝试。"
+            }).ConfigureAwait(false);
+            throw;
+        }
         var definitions = GradingTools.Create(referenceOnly);
         var viewed = new HashSet<string>(StringComparer.Ordinal);
         var saved = new HashSet<string>(StringComparer.Ordinal);
+        int textOnlyTurns = 0;
         for (uint ordinal = 1; ordinal <= 60; ordinal++)
         {
             cancellation.ThrowIfCancellationRequested();
@@ -95,7 +110,31 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 ["retries"] = 0
             };
             await context.CommitAsync(token => library.RecordModelCallAsync(job.Id, ordinal, Parse(usage), token)).ConfigureAwait(false);
-            if (turn.Calls.Count == 0) throw new InvalidOperationException("模型没有保存结果，任务未完成。");
+            if (turn.Calls.Count == 0)
+            {
+                if (++textOnlyTurns >= 3)
+                {
+                    await context.ActivityAsync(new JobActivity
+                    {
+                        Key = $"model-{ordinal}",
+                        Kind = "model",
+                        Title = $"第 {ordinal} 轮识别",
+                        State = "failed",
+                        Detail = "模型连续回复文字但未执行保存，请更换模型或调整思考设置后重试。",
+                        Text = turn.Text.Length > 16000 ? turn.Text[..16000] : turn.Text,
+                        PagesRead = viewed.Count,
+                        QuestionsSaved = saved.Count
+                    }).ConfigureAwait(false);
+                    throw new InvalidOperationException("模型没有保存结果，任务未完成。");
+                }
+                if (input.Provider.Protocol == Protocol.Messages) history.Add(JsonNode.Parse(turn.Context.GetRawText()));
+                else foreach (var item in turn.Context.EnumerateArray()) history.Add(JsonNode.Parse(item.GetRawText()));
+                foreach (var item in ProviderProtocol.Initial(input.Provider.Protocol,
+                    "Continue the current task using the available tools. Text alone does not save results. Read any remaining required pages, save the results, then call finish. Do not repeat successful operations unless a correction is needed.", []))
+                    history.Add(item?.DeepClone());
+                continue;
+            }
+            textOnlyTurns = 0;
             var feedback = new List<ToolResult>();
             bool finished = false;
             for (int index = 0; index < turn.Calls.Count; index++)

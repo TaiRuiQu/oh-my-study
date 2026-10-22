@@ -34,15 +34,15 @@ public sealed partial class QuestionViewModel : ObservableObject
 
     public SavedQuestion? Saved { get; private set; }
     public int Number { get; }
-    public string Label => Saved is { } saved ? $"第 {saved.Question.Number} 题" : Number == 0 ? "题目" : $"第 {Number} 题";
+    public string Label => Saved is { } saved ? UiText.Format("第 {0} 题", saved.Question.Number) : Number == 0 ? UiText.Get("题目") : UiText.Format("第 {0} 题", Number);
     public string Statement { get; }
     public string PreviewText { get; }
     public bool IsIncorrect { get; }
     public int Page { get; }
-    public string SourceLabel => $"第 {Page} 页";
+    public string SourceLabel => UiText.Format("第 {0} 页", Page);
     public string OutcomeLabel => Saved is { } saved ? saved.Question.Attempt?.Grade.Verdict switch
-    { Verdict.Correct => "✓ 正确", Verdict.Partial => "△ 部分正确", Verdict.Incorrect => "× 错误", Verdict.Unanswered => "○ 未作答", Verdict.Uncertain => "? 待确认", _ => "" }
-        : Number == 0 ? "" : IsIncorrect ? "△ 部分正确" : "✓ 正确";
+    { Verdict.Correct => UiText.Get("✓ 正确"), Verdict.Partial => UiText.Get("△ 部分正确"), Verdict.Incorrect => UiText.Get("× 错误"), Verdict.Unanswered => UiText.Get("○ 未作答"), Verdict.Uncertain => UiText.Get("? 待确认"), _ => "" }
+        : Number == 0 ? "" : IsIncorrect ? UiText.Get("△ 部分正确") : UiText.Get("✓ 正确");
     public string Answer { get => _answer; set => Set(ref _answer, value); }
     public string Notes { get => _notes; set => Set(ref _notes, value); }
     public bool IsDirty => Saved is { } saved && (Answer != saved.Question.StandardAnswer || Notes != saved.Question.Explanation);
@@ -59,7 +59,7 @@ public sealed partial class QuestionViewModel : ObservableObject
         Raise(nameof(Answer)); Raise(nameof(Notes)); Raise(nameof(IsDirty));
     }
     public double SourceY => 228 + ((Number - 1) % 3) * 206;
-    public Question EditedQuestion => (Saved ?? throw new InvalidOperationException("示例无法保存。")).Question with { StandardAnswer = Answer, Explanation = Notes };
+    public Question EditedQuestion => (Saved ?? throw new InvalidOperationException(UiText.Get("示例无法保存。"))).Question with { StandardAnswer = Answer, Explanation = Notes };
     public static QuestionViewModel Empty() => new(0, "", "", false, 1);
     public static bool IsMistake(Question question) => question.Attempt?.Grade.Verdict is Verdict.Partial or Verdict.Incorrect or Verdict.Unanswered || question.Parts.Any(IsMistake);
     public static string PlainText(Question question) => string.Join("\n", question.Content.Select(content => content switch
@@ -73,9 +73,9 @@ public sealed partial class QuestionViewModel : ObservableObject
             FormulaContent formula => formula.Latex.Trim() is var latex && (latex.StartsWith('$') || latex.StartsWith(@"\(", StringComparison.Ordinal) || latex.StartsWith(@"\[", StringComparison.Ordinal))
                 ? latex : @"\(" + formula.Latex + @"\)",
             TableContent table => " " + string.Join("　", table.Rows.Take(2).SelectMany(row => row)),
-            ImageContent image => string.IsNullOrWhiteSpace(image.Caption) ? "图片题" : image.Caption,
+            ImageContent image => string.IsNullOrWhiteSpace(image.Caption) ? UiText.Get("图片题") : image.Caption,
             _ => ""
         }));
-        return string.IsNullOrWhiteSpace(text) ? "暂无题目内容" : text;
+        return string.IsNullOrWhiteSpace(text) ? UiText.Get("暂无题目内容") : text;
     }
 }

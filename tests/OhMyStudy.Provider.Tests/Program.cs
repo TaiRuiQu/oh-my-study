@@ -84,7 +84,7 @@ Task Billing()
     var messages = fixtures["messages"]!["tool"]!.DeepClone();
     messages["usage"]!.AsObject().Remove("cache_read_input_tokens"); messages["usage"]!.AsObject().Remove("cache_creation_input_tokens");
     parsed = ProviderProtocol.Parse(Protocol.Messages, Element(messages));
-    Check(parsed.Usage.CacheRead == 0 && parsed.Usage.CacheWrite == 0 && ProviderProtocol.EstimateCost(parsed.Usage, 1m, 2m) == 0.00014m, "older Messages without cache fields");
+    Check(parsed.Usage.CacheRead is null && parsed.Usage.CacheWrite is null && ProviderProtocol.EstimateCost(parsed.Usage, 1m, 2m) is null, "missing Messages cache fields remain unknown rather than zero");
     messages["usage"]!["cache_read_input_tokens"] = null;
     Check(ProviderProtocol.EstimateCost(ProviderProtocol.Parse(Protocol.Messages, Element(messages)).Usage, model) is null, "explicit null cache use is unknown");
     return Task.CompletedTask;

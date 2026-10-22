@@ -1,0 +1,660 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources language="en-US">
+    <text key="S0000" xml:space="preserve">Copy</text>
+    <text key="S0001" xml:space="preserve">Copy formula {0}</text>
+    <text key="S0002" xml:space="preserve">Press Ctrl+C to copy all content; use the menu to copy individual formulas.</text>
+    <text key="S0003" xml:space="preserve">Question content cannot be edited here.</text>
+    <text key="S0004" xml:space="preserve">Formula</text>
+    <text key="S0005" xml:space="preserve">Copy this formula from the question menu.</text>
+    <text key="S0006" xml:space="preserve">Formulas cannot be edited here.</text>
+    <text key="S0007" xml:space="preserve">Loading…</text>
+    <text key="S0008" xml:space="preserve">Preview unavailable</text>
+    <text key="S0009" xml:space="preserve">Settings</text>
+    <text key="S0010" xml:space="preserve">Import exam (Ctrl + O)</text>
+    <text key="S0011" xml:space="preserve">Mistakes</text>
+    <text key="S0012" xml:space="preserve">No mistakes yet</text>
+    <text key="S0013" xml:space="preserve">Recognizing questions</text>
+    <text key="S0014" xml:space="preserve">No questions yet</text>
+    <text key="S0015" xml:space="preserve">Questions to review after grading will appear here.</text>
+    <text key="S0016" xml:space="preserve">Recognized questions appear here automatically. Check progress in Tasks.</text>
+    <text key="S0017" xml:space="preserve">No questions were recognized in this exam. Try recognition again above.</text>
+    <text key="S0018" xml:space="preserve">Import a PDF or image in Exams. Recognized questions join your question bank automatically.</text>
+    <text key="S0019" xml:space="preserve">Exchange rate {0}: USD 1 = CNY {1:0.####}</text>
+    <text key="S0020" xml:space="preserve"> (cached)</text>
+    <text key="S0021" xml:space="preserve">Select a currency to see the CNY estimate.</text>
+    <text key="S0022" xml:space="preserve">Exchange rate unavailable. CNY estimate cannot be shown; original prices are preserved.</text>
+    <text key="S0023" xml:space="preserve">Not set</text>
+    <text key="S0024" xml:space="preserve">CNY estimate: uncached {0}    cached {1}    cache write {2}    output {3}</text>
+    <text key="S0025" xml:space="preserve">Unavailable</text>
+    <text key="S0026" xml:space="preserve">Estimated using CNY prices.</text>
+    <text key="S0027" xml:space="preserve">Exchange rate unavailable. CNY estimate cannot be shown.</text>
+    <text key="S0028" xml:space="preserve">Save your changes before exporting.</text>
+    <text key="S0029" xml:space="preserve">Questions</text>
+    <text key="S0030" xml:space="preserve">Organize and save questions first.</text>
+    <text key="S0031" xml:space="preserve">Open a library first.</text>
+    <text key="S0032" xml:space="preserve">Paper size</text>
+    <text key="S0033" xml:space="preserve">A3 landscape</text>
+    <text key="S0034" xml:space="preserve">Content</text>
+    <text key="S0035" xml:space="preserve">Answers and explanations</text>
+    <text key="S0036" xml:space="preserve">Export currently displayed questions: {0}.</text>
+    <text key="S0037" xml:space="preserve">Export questions</text>
+    <text key="S0038" xml:space="preserve">Continue</text>
+    <text key="S0039" xml:space="preserve">Cancel</text>
+    <text key="S0040" xml:space="preserve">Some question images contain handwriting. Replace them with clean images before exporting a question paper.</text>
+    <text key="S0041" xml:space="preserve">Exporting…</text>
+    <text key="S0042" xml:space="preserve">Original question number: {0}</text>
+    <text key="S0043" xml:space="preserve"> ({0:g} points)</text>
+    <text key="S0044" xml:space="preserve">PDF saved.</text>
+    <text key="S0045" xml:space="preserve">PDF saved. Some formulas were preserved as source text; please check them.</text>
+    <text key="S0046" xml:space="preserve">Export canceled.</text>
+    <text key="S0047" xml:space="preserve">Question image</text>
+    <text key="S0048" xml:space="preserve">Question content or image regions exceed export limits. Check and export in smaller batches.</text>
+    <text key="S0049" xml:space="preserve">Export failed. Check the destination or reinstall the app and retry.</text>
+    <text key="S0050" xml:space="preserve">The source of a question image no longer exists.</text>
+    <text key="S0051" xml:space="preserve">Question content could not be read completely.</text>
+    <text key="S0052" xml:space="preserve">Too many nested subquestions.</text>
+    <text key="S0053" xml:space="preserve">Question images exceed the limit. Export in smaller batches.</text>
+    <text key="S0054" xml:space="preserve">Pages referenced by questions or reference answers cannot be removed.</text>
+    <text key="S0055" xml:space="preserve">Reference answers</text>
+    <text key="S0056" xml:space="preserve">Material</text>
+    <text key="S0057" xml:space="preserve">Page {0} · {1} · {2}°</text>
+    <text key="S0058" xml:space="preserve">Move up</text>
+    <text key="S0059" xml:space="preserve">Move down</text>
+    <text key="S0060" xml:space="preserve">Rotate left</text>
+    <text key="S0061" xml:space="preserve">Rotate right</text>
+    <text key="S0062" xml:space="preserve">Remove</text>
+    <text key="S0063" xml:space="preserve">This page is still referenced by questions or reference answers.</text>
+    <text key="S0064" xml:space="preserve">Organize pages</text>
+    <text key="S0065" xml:space="preserve">Save</text>
+    <text key="S0066" xml:space="preserve">Pages saved.</text>
+    <text key="S0067" xml:space="preserve">Pages could not be saved. Wait for the task to finish and retry.</text>
+    <text key="S0068" xml:space="preserve">Printing is currently unavailable on this computer.</text>
+    <text key="S0069" xml:space="preserve">Preparing to print…</text>
+    <text key="S0070" xml:space="preserve">Could not open the print dialog. Check your printer.</text>
+    <text key="S0071" xml:space="preserve">Choose a printer and paper size in the print dialog.</text>
+    <text key="S0072" xml:space="preserve">Could not prepare printing. Check the original and printer, then retry.</text>
+    <text key="S0073" xml:space="preserve">Sent to printer.</text>
+    <text key="S0074" xml:space="preserve">Printing canceled.</text>
+    <text key="S0075" xml:space="preserve">Printing failed. Check your printer.</text>
+    <text key="S0076" xml:space="preserve">Printing finished.</text>
+    <text key="S0077" xml:space="preserve">Edit question</text>
+    <text key="S0078" xml:space="preserve">Saved.</text>
+    <text key="S0079" xml:space="preserve">Saved. Reopen the material to see the latest content.</text>
+    <text key="S0080" xml:space="preserve">Not saved. Check question numbers, scores, subquestion totals, and source regions.</text>
+    <text key="S0081" xml:space="preserve">Not saved. Wait for the task to finish and retry.</text>
+    <text key="S0082" xml:space="preserve">Could not open this question. Select it again.</text>
+    <text key="S0083" xml:space="preserve">Question number</text>
+    <text key="S0084" xml:space="preserve">Subject</text>
+    <text key="S0085" xml:space="preserve">Question type</text>
+    <text key="S0086" xml:space="preserve">Question text</text>
+    <text key="S0087" xml:space="preserve">Add text</text>
+    <text key="S0088" xml:space="preserve">Add formula</text>
+    <text key="S0089" xml:space="preserve">Add table</text>
+    <text key="S0090" xml:space="preserve">Add image</text>
+    <text key="S0091" xml:space="preserve">Options</text>
+    <text key="S0092" xml:space="preserve">Add option</text>
+    <text key="S0093" xml:space="preserve">Standard answer</text>
+    <text key="S0094" xml:space="preserve">Explanation</text>
+    <text key="S0095" xml:space="preserve">Topics (one per line)</text>
+    <text key="S0096" xml:space="preserve">Maximum score (leave blank if unknown)</text>
+    <text key="S0097" xml:space="preserve">Question source</text>
+    <text key="S0098" xml:space="preserve">Items to review (one per line)</text>
+    <text key="S0099" xml:space="preserve">Student answer</text>
+    <text key="S0100" xml:space="preserve">Answer source</text>
+    <text key="S0101" xml:space="preserve">Verdict</text>
+    <text key="S0102" xml:space="preserve">Correct</text>
+    <text key="S0103" xml:space="preserve">Partially correct</text>
+    <text key="S0104" xml:space="preserve">Incorrect</text>
+    <text key="S0105" xml:space="preserve">Unanswered</text>
+    <text key="S0106" xml:space="preserve">Needs review</text>
+    <text key="S0107" xml:space="preserve">Score (leave blank if undetermined)</text>
+    <text key="S0108" xml:space="preserve">Grading notes</text>
+    <text key="S0109" xml:space="preserve">Solution steps</text>
+    <text key="S0110" xml:space="preserve">Teacher annotations: </text>
+    <text key="S0111" xml:space="preserve">Grading differences: </text>
+    <text key="S0112" xml:space="preserve">Subquestion </text>
+    <text key="S0113" xml:space="preserve">Subquestion</text>
+    <text key="S0114" xml:space="preserve">Add subquestion</text>
+    <text key="S0115" xml:space="preserve">Delete</text>
+    <text key="S0116" xml:space="preserve">Text</text>
+    <text key="S0117" xml:space="preserve">Add cell</text>
+    <text key="S0118" xml:space="preserve">Add row</text>
+    <text key="S0119" xml:space="preserve">Table</text>
+    <text key="S0120" xml:space="preserve">Image caption</text>
+    <text key="S0121" xml:space="preserve">Contains handwriting</text>
+    <text key="S0122" xml:space="preserve">This content cannot be edited.</text>
+    <text key="S0123" xml:space="preserve">Add source</text>
+    <text key="S0124" xml:space="preserve">Original page</text>
+    <text key="S0125" xml:space="preserve">Page </text>
+    <text key="S0126" xml:space="preserve"> </text>
+    <text key="S0127" xml:space="preserve">Left (%)</text>
+    <text key="S0128" xml:space="preserve">Top (%)</text>
+    <text key="S0129" xml:space="preserve">Width (%)</text>
+    <text key="S0130" xml:space="preserve">Height (%)</text>
+    <text key="S0131" xml:space="preserve">Language saved. Restart the app to apply it. Save any edits first.</text>
+    <text key="S0132" xml:space="preserve">Language preference could not be saved. Try again.</text>
+    <text key="S0133" xml:space="preserve">Save or close the editor first.</text>
+    <text key="S0134" xml:space="preserve">Close the current dialog before exiting.</text>
+    <text key="S0135" xml:space="preserve">Stopping tasks…</text>
+    <text key="S0136" xml:space="preserve">Rotation could not be saved. Wait for the task to finish and retry.</text>
+    <text key="S0137" xml:space="preserve">The save location is inaccessible.</text>
+    <text key="S0138" xml:space="preserve">Cancellation did not finish. Try again later.</text>
+    <text key="S0139" xml:space="preserve">Imported materials will appear here.</text>
+    <text key="S0140" xml:space="preserve">Legacy materials found</text>
+    <text key="S0141" xml:space="preserve">Import them from the More menu. The originals will be preserved.</text>
+    <text key="S0142" xml:space="preserve">Could not open the library. Check its location or select an existing library in Settings.</text>
+    <text key="S0143" xml:space="preserve">Exams</text>
+    <text key="S0144" xml:space="preserve">Material is not ready</text>
+    <text key="S0145" xml:space="preserve">Reopen or import the file and retry.</text>
+    <text key="S0146" xml:space="preserve">Page {0} / {1}</text>
+    <text key="S0147" xml:space="preserve">Could not open this page. Select or import it again.</text>
+    <text key="S0148" xml:space="preserve">Import up to 12 pages at a time.</text>
+    <text key="S0149" xml:space="preserve">Importing…</text>
+    <text key="S0150" xml:space="preserve">Files must be at most 64 MB each and 256 MB per import. Split them and retry.</text>
+    <text key="S0151" xml:space="preserve">Reference answers added. You can organize them again.</text>
+    <text key="S0152" xml:space="preserve">Import canceled.</text>
+    <text key="S0153" xml:space="preserve">Exam imported and recognition started. Reopen the question bank to refresh it.</text>
+    <text key="S0154" xml:space="preserve">Exam saved, but recognition could not start. Start recognition again in Exams.</text>
+    <text key="S0155" xml:space="preserve">Import components are missing or damaged. Reinstall the app and retry.</text>
+    <text key="S0156" xml:space="preserve">Import failed: </text>
+    <text key="S0157" xml:space="preserve">Could not process the PDF. Reinstall the app and retry.</text>
+    <text key="S0158" xml:space="preserve">Could not read the file or save materials. Check access permissions and retry.</text>
+    <text key="S0159" xml:space="preserve">Could not read or save the exam. Check the file and save location.</text>
+    <text key="S0160" xml:space="preserve">Import failed. Select the file again and retry.</text>
+    <text key="S0161" xml:space="preserve">Select a material first.</text>
+    <text key="S0162" xml:space="preserve">Could not open the file. Try again.</text>
+    <text key="S0163" xml:space="preserve">No models yet. Fetch the list or add one manually.</text>
+    <text key="S0164" xml:space="preserve">Save the provider before adding models.</text>
+    <text key="S0165" xml:space="preserve">Select an available library first.</text>
+    <text key="S0166" xml:space="preserve">A provider with existing models cannot change protocol. Add a new provider.</text>
+    <text key="S0167" xml:space="preserve">Saved, but the old key could not be removed. Save again later.</text>
+    <text key="S0168" xml:space="preserve">A provider with existing models</text>
+    <text key="S0169" xml:space="preserve">Could not save. Check the name, address, and key.</text>
+    <text key="S0170" xml:space="preserve">Delete provider?</text>
+    <text key="S0171" xml:space="preserve">Existing materials and grading records will be preserved.</text>
+    <text key="S0172" xml:space="preserve">Provider deleted, but its key could not be removed.</text>
+    <text key="S0173" xml:space="preserve">Deleted.</text>
+    <text key="S0174" xml:space="preserve">Could not delete. Try again later.</text>
+    <text key="S0175" xml:space="preserve">Save the key first.</text>
+    <text key="S0176" xml:space="preserve">The model list is too large or contains repeated pages.</text>
+    <text key="S0177" xml:space="preserve">No new models to add.</text>
+    <text key="S0178" xml:space="preserve">Each provider supports up to 500 models. Select fewer models.</text>
+    <text key="S0179" xml:space="preserve">Models added: {0}.</text>
+    <text key="S0180" xml:space="preserve">Fetch failed. Check the address, key, and network.</text>
+    <text key="S0181" xml:space="preserve">You will be informed before starting if the sandbox is unavailable.</text>
+    <text key="S0182" xml:space="preserve">You decide whether to allow each code or command execution.</text>
+    <text key="S0183" xml:space="preserve">Code and commands can access this account's files and network.</text>
+    <text key="S0184" xml:space="preserve">Settings could not be saved.</text>
+    <text key="S0185" xml:space="preserve">Settings could not be saved. Try again.</text>
+    <text key="S0186" xml:space="preserve">Added to queue.</text>
+    <text key="S0187" xml:space="preserve">Could not start the task. Check model settings or wait for the current task to finish.</text>
+    <text key="S0188" xml:space="preserve">Set up a recognition model first</text>
+    <text key="S0189" xml:space="preserve">Recognition requires a model and key. Once set up, import exams to add questions automatically.</text>
+    <text key="S0190" xml:space="preserve">Go to Settings</text>
+    <text key="S0191" xml:space="preserve">Not imported yet. Set up a model first.</text>
+    <text key="S0192" xml:space="preserve">Add a model and key in Settings first.</text>
+    <text key="S0193" xml:space="preserve">Reasoning</text>
+    <text key="S0194" xml:space="preserve">Default</text>
+    <text key="S0195" xml:space="preserve">Allow trying models with unverified capabilities</text>
+    <text key="S0196" xml:space="preserve">Exam type</text>
+    <text key="S0197" xml:space="preserve">Blank exam</text>
+    <text key="S0198" xml:space="preserve">Answered, needs grading</text>
+    <text key="S0199" xml:space="preserve">Already graded by a teacher</text>
+    <text key="S0200" xml:space="preserve">Sandbox unavailable. Code and commands will run locally with access to this account's files and network.</text>
+    <text key="S0201" xml:space="preserve">Materials will be sent to the selected model and may incur charges.</text>
+    <text key="S0202" xml:space="preserve">Import exam</text>
+    <text key="S0203" xml:space="preserve">Organize reference answers</text>
+    <text key="S0204" xml:space="preserve">Recognize again</text>
+    <text key="S0205" xml:space="preserve">Import and recognize</text>
+    <text key="S0206" xml:space="preserve">Start</text>
+    <text key="S0207" xml:space="preserve">Task queue is not ready.</text>
+    <text key="S0208" xml:space="preserve">Recognition complete. Questions added to the question bank.</text>
+    <text key="S0209" xml:space="preserve">Recognition incomplete. Saved questions are preserved. Try recognition again in Exams.</text>
+    <text key="S0210" xml:space="preserve">Recognition canceled. Saved questions are preserved.</text>
+    <text key="S0211" xml:space="preserve">Recognizing. Questions will join the question bank automatically.</text>
+    <text key="S0212" xml:space="preserve">Task status could not refresh. Reopen Tasks.</text>
+    <text key="S0213" xml:space="preserve">Task status could not refresh.</text>
+    <text key="S0214" xml:space="preserve">Also allow subsequent calls in this task</text>
+    <text key="S0215" xml:space="preserve">Runs locally with access to this account's files and network.</text>
+    <text key="S0216" xml:space="preserve">{0} · up to {1:0.###} seconds
+Directory: {2}
+Arguments: {3}</text>
+    <text key="S0217" xml:space="preserve">Allow execution?</text>
+    <text key="S0218" xml:space="preserve">Allow</text>
+    <text key="S0219" xml:space="preserve">Deny</text>
+    <text key="S0220" xml:space="preserve">Later</text>
+    <text key="S0221" xml:space="preserve">The execution request has changed. Review it again.</text>
+    <text key="S0222" xml:space="preserve">Backup saved.</text>
+    <text key="S0223" xml:space="preserve">Backup failed. Choose a folder with enough free space.</text>
+    <text key="S0224" xml:space="preserve">Backup restored.</text>
+    <text key="S0225" xml:space="preserve">Restore failed. Choose a complete backup folder.</text>
+    <text key="S0226" xml:space="preserve">Restore failed. Current materials remain usable. Check the backup folder.</text>
+    <text key="S0227" xml:space="preserve">Legacy materials imported. The originals remain intact.</text>
+    <text key="S0228" xml:space="preserve">Import failed. Exit the legacy app and select its data folder.</text>
+    <text key="S0229" xml:space="preserve">Import failed. Current materials remain usable. Exit the legacy app and check its data folder.</text>
+    <text key="S0230" xml:space="preserve">Wait for the model request to finish.</text>
+    <text key="S0231" xml:space="preserve">Finish the current task first.</text>
+    <text key="S0232" xml:space="preserve">Could not open the library.</text>
+    <text key="S0233" xml:space="preserve">Switch failed. Original materials reopened.</text>
+    <text key="S0234" xml:space="preserve">Unsaved changes</text>
+    <text key="S0235" xml:space="preserve">Unsaved material or settings changes will be lost when you exit.</text>
+    <text key="S0236" xml:space="preserve">Unsaved material or settings changes will be lost when you switch libraries.</text>
+    <text key="S0237" xml:space="preserve">Exit</text>
+    <text key="S0238" xml:space="preserve">Switch</text>
+    <text key="S0239" xml:space="preserve">Back</text>
+    <text key="S0240" xml:space="preserve">This folder has no library. Choose your previous save location.</text>
+    <text key="S0241" xml:space="preserve">Choose Restore backup or Import legacy materials from the material page's More menu.</text>
+    <text key="S0242" xml:space="preserve">Library opened.</text>
+    <text key="S0243" xml:space="preserve">Could not open. Check the folder and finish the current task before retrying.</text>
+    <text key="S0244" xml:space="preserve">Notice dismissed, but the choice could not be saved.</text>
+    <text key="S0245" xml:space="preserve">Could not open the folder. Use the path shown above.</text>
+    <text key="S0246" xml:space="preserve">Could not open the folder. Check the save location.</text>
+    <text key="S0247" xml:space="preserve">Wait for the model request to finish before changing location.</text>
+    <text key="S0248" xml:space="preserve">Save your changes before changing location.</text>
+    <text key="S0249" xml:space="preserve">Change library location</text>
+    <text key="S0250" xml:space="preserve">Materials will be copied to the location below, which will also store future imports. The original library will be preserved.
+
+</text>
+    <text key="S0251" xml:space="preserve">Copy and switch</text>
+    <text key="S0252" xml:space="preserve">The destination library already exists. Choose another folder.</text>
+    <text key="S0253" xml:space="preserve">Could not open the library. Restart the app.</text>
+    <text key="S0254" xml:space="preserve">Location change failed. Current materials remain usable. Check the destination and free space.</text>
+    <text key="S0255" xml:space="preserve">Copying materials…</text>
+    <text key="S0256" xml:space="preserve">Copy preserved. Library was not switched.</text>
+    <text key="S0257" xml:space="preserve">Save location changed. The original library is preserved.</text>
+    <text key="S0258" xml:space="preserve">Search model name or ID</text>
+    <text key="S0259" xml:space="preserve">No models found. Try different keywords.</text>
+    <text key="S0260" xml:space="preserve">Select models to add</text>
+    <text key="S0261" xml:space="preserve">Add</text>
+    <text key="S0262" xml:space="preserve">Models: {0} · Selected: {1}</text>
+    <text key="S0263" xml:space="preserve">Recognition model</text>
+    <text key="S0264" xml:space="preserve">Save the provider first.</text>
+    <text key="S0265" xml:space="preserve">Model saved.</text>
+    <text key="S0266" xml:space="preserve">Not saved. Check the model ID and currency. Window and budget must be integers; prices must be nonnegative.</text>
+    <text key="S0267" xml:space="preserve">Delete model?</text>
+    <text key="S0268" xml:space="preserve">Existing materials and recognition results will be preserved.</text>
+    <text key="S0269" xml:space="preserve">Model deleted.</text>
+    <text key="S0270" xml:space="preserve">Deletion did not finish. Try again.</text>
+    <text key="S0271" xml:space="preserve">Select a saved model.</text>
+    <text key="S0272" xml:space="preserve">Testing connection…</text>
+    <text key="S0273" xml:space="preserve">Connected ({0}, {1:F1} s)</text>
+    <text key="S0274" xml:space="preserve">Connection failed. Check the saved address, key, model, and network.</text>
+    <text key="S0275" xml:space="preserve">Fetching…</text>
+    <text key="S0276" xml:space="preserve">No matching ID found. Enter details manually.</text>
+    <text key="S0277" xml:space="preserve">Information source</text>
+    <text key="S0278" xml:space="preserve">Matched by exact model ID. Prices vary by provider; actual charges follow the provider's bill.</text>
+    <text key="S0279" xml:space="preserve">Fill model details</text>
+    <text key="S0280" xml:space="preserve">Fill</text>
+    <text key="S0281" xml:space="preserve">From models.dev / {0} ({1:yyyy/MM/dd})</text>
+    <text key="S0282" xml:space="preserve">, using cached data</text>
+    <text key="S0283" xml:space="preserve">, not saved yet</text>
+    <text key="S0284" xml:space="preserve">Unavailable for now. Enter manually; try updating again tomorrow.</text>
+    <text key="S0285" xml:space="preserve">Images</text>
+    <text key="S0286" xml:space="preserve">Audio</text>
+    <text key="S0287" xml:space="preserve">Video</text>
+    <text key="S0288" xml:space="preserve">Input: </text>
+    <text key="S0289" xml:space="preserve">Output: </text>
+    <text key="S0290" xml:space="preserve">Maximum output tokens: {0:N0}</text>
+    <text key="S0291" xml:space="preserve">Reasoning supported</text>
+    <text key="S0292" xml:space="preserve">Reasoning not supported</text>
+    <text key="S0293" xml:space="preserve">Delete exam</text>
+    <text key="S0294" xml:space="preserve">Delete exam?</text>
+    <text key="S0295" xml:space="preserve">“{0}” and its questions and reference answers will be permanently deleted.</text>
+    <text key="S0296" xml:space="preserve">Exam deleted.</text>
+    <text key="S0297" xml:space="preserve">Exam deleted, but the list could not refresh.</text>
+    <text key="S0298" xml:space="preserve">This exam no longer exists.</text>
+    <text key="S0299" xml:space="preserve">Could not delete the exam. Try again later.</text>
+    <text key="S0300" xml:space="preserve">All subjects</text>
+    <text key="S0301" xml:space="preserve">Exams: {0}</text>
+    <text key="S0302" xml:space="preserve">Exams: {0} / {1}</text>
+    <text key="S0303" xml:space="preserve">No exams yet</text>
+    <text key="S0304" xml:space="preserve">No exams found</text>
+    <text key="S0305" xml:space="preserve">Import a PDF or exam image to get started.</text>
+    <text key="S0306" xml:space="preserve">Try another keyword or subject.</text>
+    <text key="S0307" xml:space="preserve">Could not open the exam. Try again later.</text>
+    <text key="S0308" xml:space="preserve">Title</text>
+    <text key="S0309" xml:space="preserve">e.g. Mathematics, Chinese, English</text>
+    <text key="S0310" xml:space="preserve">Score</text>
+    <text key="S0311" xml:space="preserve">Undetermined</text>
+    <text key="S0312" xml:space="preserve">Maximum score</text>
+    <text key="S0313" xml:space="preserve">Exam details</text>
+    <text key="S0314" xml:space="preserve">Details saved. Reopen the exam to view them.</text>
+    <text key="S0315" xml:space="preserve">Enter an exam title.</text>
+    <text key="S0316" xml:space="preserve">Enter valid scores. The score cannot exceed the maximum.</text>
+    <text key="S0317" xml:space="preserve">Could not save. Wait for recognition to finish and retry.</text>
+    <text key="S0318" xml:space="preserve">Reopen or import this material again.</text>
+    <text key="S0319" xml:space="preserve">Could not zoom in. Try a smaller zoom.</text>
+    <text key="S0320" xml:space="preserve">Recognition results</text>
+    <text key="S0321" xml:space="preserve">Close</text>
+    <text key="S0322" xml:space="preserve">No reference answers yet.</text>
+    <text key="S0323" xml:space="preserve">Matches question </text>
+    <text key="S0324" xml:space="preserve"> </text>
+    <text key="S0325" xml:space="preserve">Not matched yet</text>
+    <text key="S0326" xml:space="preserve">Needs review: </text>
+    <text key="S0327" xml:space="preserve">View answer source page</text>
+    <text key="S0328" xml:space="preserve">Results by page</text>
+    <text key="S0329" xml:space="preserve">No page results yet.</text>
+    <text key="S0330" xml:space="preserve">Checked </text>
+    <text key="S0331" xml:space="preserve"> questions or subquestions</text>
+    <text key="S0332" xml:space="preserve">Unreadable</text>
+    <text key="S0333" xml:space="preserve">No questions</text>
+    <text key="S0334" xml:space="preserve">Source page no longer exists</text>
+    <text key="S0335" xml:space="preserve">Could not open results. Try again.</text>
+    <text key="S0336" xml:space="preserve">Source page no longer exists.</text>
+    <text key="S0337" xml:space="preserve">Unsaved settings</text>
+    <text key="S0338" xml:space="preserve">Continuing will discard unsaved model changes.</text>
+    <text key="S0339" xml:space="preserve">Continuing will discard unsaved provider and model changes.</text>
+    <text key="S0340" xml:space="preserve">Discard changes</text>
+    <text key="S0341" xml:space="preserve">Organize materials</text>
+    <text key="S0342" xml:space="preserve">Task canceled. Saved questions are preserved.</text>
+    <text key="S0343" xml:space="preserve">Recognition interrupted. Saved questions are preserved. Try again in Exams.</text>
+    <text key="S0344" xml:space="preserve">Confirm an action to continue.</text>
+    <text key="S0345" xml:space="preserve">Model calls: {0}</text>
+    <text key="S0346" xml:space="preserve">Input {0:N0}</text>
+    <text key="S0347" xml:space="preserve">Input usage not provided</text>
+    <text key="S0348" xml:space="preserve">Output {0:N0}</text>
+    <text key="S0349" xml:space="preserve">Output usage not provided</text>
+    <text key="S0350" xml:space="preserve">Uncached {0:N0}</text>
+    <text key="S0351" xml:space="preserve">Uncached usage not provided</text>
+    <text key="S0352" xml:space="preserve">Cache read {0:N0}</text>
+    <text key="S0353" xml:space="preserve">Cache read usage not provided</text>
+    <text key="S0354" xml:space="preserve">Cache write {0:N0}</text>
+    <text key="S0355" xml:space="preserve">Cache write usage not provided</text>
+    <text key="S0356" xml:space="preserve">Calculating cost…</text>
+    <text key="S0357" xml:space="preserve">Cannot estimate cost: pricing or usage details are incomplete.</text>
+    <text key="S0358" xml:space="preserve">No cost records yet</text>
+    <text key="S0359" xml:space="preserve">Read pages</text>
+    <text key="S0360" xml:space="preserve">Save questions</text>
+    <text key="S0361" xml:space="preserve">Save reference answers</text>
+    <text key="S0362" xml:space="preserve">Run calculations</text>
+    <text key="S0363" xml:space="preserve">{0} (×{1})</text>
+    <text key="S0364" xml:space="preserve">Queued</text>
+    <text key="S0365" xml:space="preserve">Recognizing</text>
+    <text key="S0366" xml:space="preserve">Awaiting confirmation</text>
+    <text key="S0367" xml:space="preserve">Completed</text>
+    <text key="S0368" xml:space="preserve">Incomplete</text>
+    <text key="S0369" xml:space="preserve">Canceled</text>
+    <text key="S0370" xml:space="preserve">Interrupted</text>
+    <text key="S0371" xml:space="preserve">Could not cancel. Try again.</text>
+    <text key="S0372" xml:space="preserve">Failed</text>
+    <text key="S0373" xml:space="preserve">In progress</text>
+    <text key="S0374" xml:space="preserve">Recognition</text>
+    <text key="S0375" xml:space="preserve"> (output excerpt)</text>
+    <text key="S0376" xml:space="preserve">Output excerpt</text>
+    <text key="S0377" xml:space="preserve">Could not load. Try again later.</text>
+    <text key="S0378" xml:space="preserve">Loading question…</text>
+    <text key="S0379" xml:space="preserve">Question content is temporarily unavailable.</text>
+    <text key="S0380" xml:space="preserve">Could not locate the original. Reopen the material.</text>
+    <text key="S0381" xml:space="preserve">This question has no corresponding source location.</text>
+    <text key="S0382" xml:space="preserve">Select an available library in Settings before importing.</text>
+    <text key="S0383" xml:space="preserve">Could not open the file. Select it again.</text>
+    <text key="S0384" xml:space="preserve">Import image or PDF</text>
+    <text key="S0385" xml:space="preserve">Drop one file at a time.</text>
+    <text key="S0386" xml:space="preserve">Choose a PNG, JPEG, WebP image, or PDF.</text>
+    <text key="S0387" xml:space="preserve">File too large. Choose an image under 64 MB.</text>
+    <text key="S0388" xml:space="preserve">Image too large. Resize or crop it and retry.</text>
+    <text key="S0389" xml:space="preserve">Sample questions</text>
+    <text key="S0390" xml:space="preserve">Unrelated to the current original. Changes will not be saved.</text>
+    <text key="S0391" xml:space="preserve">Loading canceled.</text>
+    <text key="S0392" xml:space="preserve">Loading page…</text>
+    <text key="S0393" xml:space="preserve">Opening…</text>
+    <text key="S0394" xml:space="preserve">Choose a nonempty PDF no larger than 64 MB.</text>
+    <text key="S0395" xml:space="preserve">Choose a PDF with 1 to 12 pages.</text>
+    <text key="S0396" xml:space="preserve">Could not open this PDF. Check that it is complete or try another file.</text>
+    <text key="S0397" xml:space="preserve">Invalid PDF raster row layout. </text>
+    <text key="S0398" xml:space="preserve">Invalid page dimensions. </text>
+    <text key="S0399" xml:space="preserve">Sample materials</text>
+    <text key="S0400" xml:space="preserve">You can view and edit this sample. Changes will not be saved.</text>
+    <text key="S0401" xml:space="preserve">Organize materials, review mistakes, and study with ease.</text>
+    <text key="S0402" xml:space="preserve">Got it</text>
+    <text key="S0403" xml:space="preserve">Windows reports printing is unavailable; only native API checks ran, not system or physical printing verification.</text>
+    <text key="S0404" xml:space="preserve">An absolute path is required for screenshots.</text>
+    <text key="S0405" xml:space="preserve">The PDF has no readable pages.</text>
+    <text key="S0406" xml:space="preserve">You can import up to {0} more pages. Split the PDF and retry.</text>
+    <text key="S0407" xml:space="preserve">Invalid PDF image layout.</text>
+    <text key="S0408" xml:space="preserve">Processed materials exceed 256 MB. Split them and retry.</text>
+    <text key="S0409" xml:space="preserve">The file is empty or exceeds 64 MB.</text>
+    <text key="S0410" xml:space="preserve">This operation requires an image.</text>
+    <text key="S0411" xml:space="preserve">Image too large. Reduce it to under 40 megapixels and retry.</text>
+    <text key="S0412" xml:space="preserve">Image read incomplete. Select it again.</text>
+    <text key="S0413" xml:space="preserve">Processed image exceeds 64 MB. Resize it and retry.</text>
+    <text key="S0414" xml:space="preserve">Image save incomplete.</text>
+    <text key="S0415" xml:space="preserve">Invalid WebP format.</text>
+    <text key="S0416" xml:space="preserve">Incomplete WebP image.</text>
+    <text key="S0417" xml:space="preserve">Save the animated WebP as a still image and retry.</text>
+    <text key="S0418" xml:space="preserve">WebP dimensions are missing.</text>
+    <text key="S0419" xml:space="preserve">Could not read WebP. Reinstall the app and retry.</text>
+    <text key="S0420" xml:space="preserve">Image component validation failed. Reinstall the app and retry.</text>
+    <text key="S0421" xml:space="preserve">Could not read image. Try again.</text>
+    <text key="S0422" xml:space="preserve">Could not read WebP. Check that the file is complete.</text>
+    <text key="S0423" xml:space="preserve">Invalid image read result. Try again.</text>
+    <text key="S0424" xml:space="preserve">Image read timed out. Resize or crop it and retry.</text>
+    <text key="S0425" xml:space="preserve">Could not read image. Check that the file is complete.</text>
+    <text key="S0426" xml:space="preserve">{0} ({1:g} points)</text>
+    <text key="S0427" xml:space="preserve">Maximum score: </text>
+    <text key="S0428" xml:space="preserve"> points</text>
+    <text key="S0429" xml:space="preserve">Grading</text>
+    <text key="S0430" xml:space="preserve">Score undetermined</text>
+    <text key="S0431" xml:space="preserve">Teacher grading</text>
+    <text key="S0432" xml:space="preserve">Manual grading</text>
+    <text key="S0433" xml:space="preserve">Based on reference answers</text>
+    <text key="S0434" xml:space="preserve">Model grading</text>
+    <text key="S0435" xml:space="preserve">Response</text>
+    <text key="S0436" xml:space="preserve">Image temporarily unavailable.</text>
+    <text key="S0437" xml:space="preserve">Question image</text>
+    <text key="S0438" xml:space="preserve">{0:g} points</text>
+    <text key="S0439" xml:space="preserve">No response recorded</text>
+    <text key="S0440" xml:space="preserve">Teacher annotations</text>
+    <text key="S0441" xml:space="preserve">Grading differences</text>
+    <text key="S0442" xml:space="preserve">Uncategorized</text>
+    <text key="S0443" xml:space="preserve">Questions: {0}</text>
+    <text key="S0444" xml:space="preserve">Time unknown</text>
+    <text key="S0445" xml:space="preserve">Question {0}</text>
+    <text key="S0446" xml:space="preserve">Page {0}</text>
+    <text key="S0447" xml:space="preserve">✓ Correct</text>
+    <text key="S0448" xml:space="preserve">△ Partially correct</text>
+    <text key="S0449" xml:space="preserve">× Incorrect</text>
+    <text key="S0450" xml:space="preserve">○ Unanswered</text>
+    <text key="S0451" xml:space="preserve">? Needs review</text>
+    <text key="S0452" xml:space="preserve">Samples cannot be saved.</text>
+    <text key="S0453" xml:space="preserve">Image question</text>
+    <text key="S0454" xml:space="preserve">No question content yet</text>
+    <text key="S0455" xml:space="preserve">Ready</text>
+    <text key="S0456" xml:space="preserve">Question bank</text>
+    <text key="S0457" xml:space="preserve">All questions</text>
+    <text key="S0458" xml:space="preserve">The maximum is 2 and the minimum is −2.</text>
+    <text key="S0459" xml:space="preserve">You have unsaved changes.</text>
+    <text key="S0460" xml:space="preserve">Functions and derivatives · Practice</text>
+    <text key="S0461" xml:space="preserve">Given f(x) = x³ − 3x, find its maximum and minimum on [−2, 2].</text>
+    <text key="S0462" xml:space="preserve">In Cartesian coordinates, the line y = kx + 1 meets the parabola y = x² at A and B. Find the length of AB.</text>
+    <text key="S0463" xml:space="preserve">Given a₁ = 1 and aₙ₊₁ = 2aₙ + 1, find the general term of {aₙ} and justify your answer.</text>
+    <text key="S0464" xml:space="preserve">My materials</text>
+    <text key="S0465" xml:space="preserve">Tasks</text>
+    <text key="S0466" xml:space="preserve">Modified, not saved yet.</text>
+    <text key="S0467" xml:space="preserve">Could not save. Wait for the task to finish and retry.</text>
+    <text key="S0468" xml:space="preserve">Running</text>
+    <text key="S0469" xml:space="preserve">Import exam as PDF or images</text>
+    <text key="S0470" xml:space="preserve">More exam actions</text>
+    <text key="S0471" xml:space="preserve">More</text>
+    <text key="S0472" xml:space="preserve">Manage pages</text>
+    <text key="S0473" xml:space="preserve">Back to exam list</text>
+    <text key="S0474" xml:space="preserve">View original</text>
+    <text key="S0475" xml:space="preserve">Add reference answer pages</text>
+    <text key="S0476" xml:space="preserve">Add reference answers</text>
+    <text key="S0477" xml:space="preserve">Edit current question (Ctrl + E)</text>
+    <text key="S0478" xml:space="preserve">View recognition results</text>
+    <text key="S0479" xml:space="preserve">Recognition results</text>
+    <text key="S0480" xml:space="preserve">Edit exam details</text>
+    <text key="S0481" xml:space="preserve">Search exam title or subject</text>
+    <text key="S0482" xml:space="preserve">Search exams</text>
+    <text key="S0483" xml:space="preserve">Filter by subject</text>
+    <text key="S0484" xml:space="preserve">Sort exams</text>
+    <text key="S0485" xml:space="preserve">Exam list</text>
+    <text key="S0486" xml:space="preserve">Score / Maximum</text>
+    <text key="S0487" xml:space="preserve">Original</text>
+    <text key="S0488" xml:space="preserve">Rotate left 90°</text>
+    <text key="S0489" xml:space="preserve">Rotate original left ninety degrees</text>
+    <text key="S0490" xml:space="preserve">Rotate right 90°</text>
+    <text key="S0491" xml:space="preserve">Rotate original right ninety degrees</text>
+    <text key="S0492" xml:space="preserve">Hide original</text>
+    <text key="S0493" xml:space="preserve">Original viewport, zoomable and pannable</text>
+    <text key="S0494" xml:space="preserve">Functions and derivatives</text>
+    <text key="S0495" xml:space="preserve">Study practice</text>
+    <text key="S0496" xml:space="preserve">1. Given f(x) = x³ − 3x, find its maximum and minimum on [−2, 2].</text>
+    <text key="S0497" xml:space="preserve">Solution: f′(x) = 3x² − 3 = 3(x + 1)(x − 1).
+Setting f′(x) = 0 gives x = −1 or x = 1.
+Comparing endpoints and stationary points gives a maximum of 2 and minimum of −2.</text>
+    <text key="S0498" xml:space="preserve">2. The line y = kx + 1 meets the parabola y = x² at A and B. Find the length of AB.</text>
+    <text key="S0499" xml:space="preserve">3. Given a₁ = 1 and aₙ₊₁ = 2aₙ + 1, find the general term of {aₙ} and justify your answer.</text>
+    <text key="S0500" xml:space="preserve">Original image</text>
+    <text key="S0501" xml:space="preserve">Previous</text>
+    <text key="S0502" xml:space="preserve">Show previous page</text>
+    <text key="S0503" xml:space="preserve">Page 1 / 1</text>
+    <text key="S0504" xml:space="preserve">Next</text>
+    <text key="S0505" xml:space="preserve">Show next page</text>
+    <text key="S0506" xml:space="preserve">Cancel loading</text>
+    <text key="S0507" xml:space="preserve">Fit page</text>
+    <text key="S0508" xml:space="preserve">Reset zoom to fit the viewport</text>
+    <text key="S0509" xml:space="preserve">Original zoom percentage</text>
+    <text key="S0510" xml:space="preserve">Question list</text>
+    <text key="S0511" xml:space="preserve">Locate original</text>
+    <text key="S0512" xml:space="preserve">Question content</text>
+    <text key="S0513" xml:space="preserve">Answer</text>
+    <text key="S0514" xml:space="preserve">Notes</text>
+    <text key="S0515" xml:space="preserve">Record your understanding or review reminders</text>
+    <text key="S0516" xml:space="preserve">Recent tasks</text>
+    <text key="S0517" xml:space="preserve">Task list</text>
+    <text key="S0518" xml:space="preserve">Select a task</text>
+    <text key="S0519" xml:space="preserve">Sample</text>
+    <text key="S0520" xml:space="preserve">Review execution request</text>
+    <text key="S0521" xml:space="preserve">Cancel task</text>
+    <text key="S0522" xml:space="preserve">View question bank</text>
+    <text key="S0523" xml:space="preserve">Pages read</text>
+    <text key="S0524" xml:space="preserve">Questions saved</text>
+    <text key="S0525" xml:space="preserve">Estimated cost</text>
+    <text key="S0526" xml:space="preserve">Details</text>
+    <text key="S0527" xml:space="preserve">Cost and usage</text>
+    <text key="S0528" xml:space="preserve">No usage records yet</text>
+    <text key="S0529" xml:space="preserve">Execution log</text>
+    <text key="S0530" xml:space="preserve">Task processing</text>
+    <text key="S0531" xml:space="preserve">Scroll to latest entry</text>
+    <text key="S0532" xml:space="preserve">Latest</text>
+    <text key="S0533" xml:space="preserve">Follow recognition progress</text>
+    <text key="S0534" xml:space="preserve">After importing an exam, see each reading, recognition, and saving step here.</text>
+    <text key="S0535" xml:space="preserve">Models</text>
+    <text key="S0536" xml:space="preserve">Providers</text>
+    <text key="S0537" xml:space="preserve">Provider list</text>
+    <text key="S0538" xml:space="preserve">Add provider</text>
+    <text key="S0539" xml:space="preserve">Provider settings</text>
+    <text key="S0540" xml:space="preserve">Name</text>
+    <text key="S0541" xml:space="preserve">Provider name</text>
+    <text key="S0542" xml:space="preserve">Protocol</text>
+    <text key="S0543" xml:space="preserve">Address</text>
+    <text key="S0544" xml:space="preserve">API key</text>
+    <text key="S0545" xml:space="preserve">Leave blank to keep the existing key</text>
+    <text key="S0546" xml:space="preserve">Delete provider</text>
+    <text key="S0547" xml:space="preserve">Model list</text>
+    <text key="S0548" xml:space="preserve">Import models</text>
+    <text key="S0549" xml:space="preserve">Add model</text>
+    <text key="S0550" xml:space="preserve">Test connection</text>
+    <text key="S0551" xml:space="preserve">Sends a short request to the selected model; a small charge may apply.</text>
+    <text key="S0552" xml:space="preserve">Display name</text>
+    <text key="S0553" xml:space="preserve">Leave blank to use the model ID</text>
+    <text key="S0554" xml:space="preserve">Model ID</text>
+    <text key="S0555" xml:space="preserve">Context window</text>
+    <text key="S0556" xml:space="preserve">Unverified</text>
+    <text key="S0557" xml:space="preserve">Image support</text>
+    <text key="S0558" xml:space="preserve">Tool support</text>
+    <text key="S0559" xml:space="preserve">Reasoning effort options</text>
+    <text key="S0560" xml:space="preserve">Reasoning budget</text>
+    <text key="S0561" xml:space="preserve">Leave blank to omit</text>
+    <text key="S0562" xml:space="preserve">Select only supported reasoning levels. Leave image and tool capabilities unset if unverified.</text>
+    <text key="S0563" xml:space="preserve">Pricing</text>
+    <text key="S0564" xml:space="preserve">Input (uncached)</text>
+    <text key="S0565" xml:space="preserve">Input (cached)</text>
+    <text key="S0566" xml:space="preserve">Cache write</text>
+    <text key="S0567" xml:space="preserve">Output</text>
+    <text key="S0568" xml:space="preserve">Currency</text>
+    <text key="S0569" xml:space="preserve">Select currency</text>
+    <text key="S0570" xml:space="preserve">Fill from models.dev</text>
+    <text key="S0571" xml:space="preserve">Save model</text>
+    <text key="S0572" xml:space="preserve">Delete model</text>
+    <text key="S0573" xml:space="preserve">Library</text>
+    <text key="S0574" xml:space="preserve">Save location</text>
+    <text key="S0575" xml:space="preserve">Imported originals are copied to the library and remain viewable after you delete the source files.</text>
+    <text key="S0576" xml:space="preserve">Change location</text>
+    <text key="S0577" xml:space="preserve">Choose existing library</text>
+    <text key="S0578" xml:space="preserve">Open folder</text>
+    <text key="S0579" xml:space="preserve">Execution</text>
+    <text key="S0580" xml:space="preserve">Code and commands</text>
+    <text key="S0581" xml:space="preserve">Ask every time</text>
+    <text key="S0582" xml:space="preserve">Run in sandbox</text>
+    <text key="S0583" xml:space="preserve">Run directly on this computer</text>
+    <text key="S0584" xml:space="preserve">Allow sandbox network access</text>
+    <text key="S0585" xml:space="preserve">Appearance</text>
+    <text key="S0586" xml:space="preserve">Theme</text>
+    <text key="S0587" xml:space="preserve">Follow Windows</text>
+    <text key="S0588" xml:space="preserve">Light</text>
+    <text key="S0589" xml:space="preserve">Dark</text>
+    <text key="S0590" xml:space="preserve">Language</text>
+    <text key="S0591" xml:space="preserve">简体中文</text>
+    <text key="S0592" xml:space="preserve">日本語</text>
+    <text key="S0593" xml:space="preserve">About</text>
+    <text key="S0594" xml:space="preserve">Newest first</text>
+    <text key="S0595" xml:space="preserve">Oldest first</text>
+    <text key="S0596" xml:space="preserve">Score percentage</text>
+    <text key="S0597" xml:space="preserve">US dollar</text>
+    <text key="S0598" xml:space="preserve">Chinese yuan</text>
+    <text key="S0599" xml:space="preserve">Subquestion {0}</text>
+    <text key="S0600" xml:space="preserve">Matches question {0}</text>
+    <text key="S0601" xml:space="preserve">Questions or subquestions checked: {0}</text>
+    <text key="S0602" xml:space="preserve">Maximum score: {0:g} points</text>
+    <text key="S0603" xml:space="preserve">Task interrupted by an app restart.</text>
+    <text key="S0604" xml:space="preserve">Task canceled.</text>
+    <text key="S0605" xml:space="preserve">Execution denied.</text>
+    <text key="S0606" xml:space="preserve">Continuing.</text>
+    <text key="S0607" xml:space="preserve">Waiting for execution permission.</text>
+    <text key="S0608" xml:space="preserve">Processing.</text>
+    <text key="S0609" xml:space="preserve">Completed.</text>
+    <text key="S0610" xml:space="preserve">Canceled.</text>
+    <text key="S0611" xml:space="preserve">Processing incomplete. Check settings and retry.</text>
+    <text key="S0612" xml:space="preserve">Recognition round {0}</text>
+    <text key="S0613" xml:space="preserve">Read page {0}</text>
+    <text key="S0614" xml:space="preserve">Pages read: {0}. Questions saved: {1}.</text>
+    <text key="S0615" xml:space="preserve">Actions prepared: {0}</text>
+    <text key="S0616" xml:space="preserve">Waiting for the model response</text>
+    <text key="S0617" xml:space="preserve">Model is reasoning</text>
+    <text key="S0618" xml:space="preserve">Preparing the next action</text>
+    <text key="S0619" xml:space="preserve">Receiving the model response</text>
+    <text key="S0620" xml:space="preserve">Model response received</text>
+    <text key="S0621" xml:space="preserve">Check model configuration</text>
+    <text key="S0622" xml:space="preserve">This model configuration does not support the task. Check image, tool, and reasoning options. For unverified capabilities, allow trying the model before starting.</text>
+    <text key="S0623" xml:space="preserve">The model replied without saving results. Change the model or reasoning settings and retry.</text>
+    <text key="S0624" xml:space="preserve">Organize exam details</text>
+    <text key="S0625" xml:space="preserve">Check exam results</text>
+    <text key="S0626" xml:space="preserve">Check action</text>
+    <text key="S0627" xml:space="preserve">Processing</text>
+    <text key="S0628" xml:space="preserve">Page region viewed</text>
+    <text key="S0629" xml:space="preserve">Original read</text>
+    <text key="S0630" xml:space="preserve">Exam details saved</text>
+    <text key="S0631" xml:space="preserve">Manual exam details preserved</text>
+    <text key="S0632" xml:space="preserve">Question added to question bank</text>
+    <text key="S0633" xml:space="preserve">Reference answers saved</text>
+    <text key="S0634" xml:space="preserve">Page coverage and saved results verified</text>
+    <text key="S0635" xml:space="preserve">Calculation completed</text>
+    <text key="S0636" xml:space="preserve">Action completed</text>
+    <text key="S0637" xml:space="preserve">The provider does not support this reasoning effort. Check model settings and retry.</text>
+    <text key="S0638" xml:space="preserve">The provider rejected the reasoning settings. Check supported options and retry.</text>
+    <text key="S0639" xml:space="preserve">The output limit exceeds the model's limit. Update model settings and retry.</text>
+    <text key="S0640" xml:space="preserve">Model authentication failed. Check the key and model access permissions.</text>
+    <text key="S0641" xml:space="preserve">Provider quota exhausted. Check your account balance and retry.</text>
+    <text key="S0642" xml:space="preserve">Provider rate limit reached. Try again later.</text>
+    <text key="S0643" xml:space="preserve">Model connection lost or timed out. Check the network and retry.</text>
+    <text key="S0644" xml:space="preserve">The model refused this request. Check the materials and retry.</text>
+    <text key="S0645" xml:space="preserve">Model output is incomplete and may have reached its limit. Lower reasoning effort or recognize smaller batches.</text>
+    <text key="S0646" xml:space="preserve">The provider rejected the task. Check the model, parameters, and endpoint address.</text>
+    <text key="S0647" xml:space="preserve">The model service is temporarily unavailable. Try again later.</text>
+    <text key="S0648" xml:space="preserve">Recognition timed out. Retry later or use smaller batches.</text>
+    <text key="S0649" xml:space="preserve">The model call did not complete. Check model settings and retry.</text>
+    <text key="S0650" xml:space="preserve">View sample</text>
+</resources>

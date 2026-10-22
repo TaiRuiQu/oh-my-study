@@ -1,7 +1,8 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('Lint','Checks','Test','Build')][string]$Phase,
-    [ValidateSet('aot','aot-avx512','self-contained','framework-dependent')][string]$Variant = 'aot')
+    [ValidateSet('aot','aot-avx512','self-contained','framework-dependent')][string]$Variant = 'aot',
+    [string]$BaselineMsi)
 $ErrorActionPreference = 'Stop'
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $savedLocation = Get-Location
@@ -44,6 +45,8 @@ try {
                 } else { $null = [xml]$text }
             }
             & (Join-Path $PSScriptRoot 'tests/Test-CIRelease.ps1')
+            & (Join-Path $PSScriptRoot 'tests/Test-MspBaseline.ps1')
+            & (Join-Path $PSScriptRoot 'tests/Test-ReleasePayload.ps1')
             # Force restore each profile: an incremental restore can conceal global
             # property changes that invalidate a referenced library's lock file.
             foreach ($profileVariant in @('aot','aot-avx512','self-contained','framework-dependent')) {
@@ -75,7 +78,7 @@ try {
         }
         'Build' {
             $releaseOutput=Join-Path $workspace ('output/releases/'+$Variant)
-            & (Join-Path $PSScriptRoot 'Publish-OfflinePackage.ps1') -Variant $Variant -OutputDirectory $releaseOutput
+            & (Join-Path $PSScriptRoot 'Publish-OfflinePackage.ps1') -Variant $Variant -OutputDirectory $releaseOutput -BaselineMsi $BaselineMsi
             $reportFile = Get-ChildItem -LiteralPath $releaseOutput -Filter 'package-report.json' -File -Recurse |
                 Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
             if ($null -eq $reportFile) { throw 'Package report missing' }
@@ -100,6 +103,17 @@ try {
             }
             $commit = (& git rev-parse HEAD).Trim()
             if ($LASTEXITCODE -ne 0) { throw 'Cannot identify package source commit' }
+            if ($report.patch) {
+                $patch = $report.patchMetadata
+                $name = "OhMyStudy-$slug-win-x64-$Variant-from-$($patch.baselineVersion)-patch.msp"
+                $path = Join-Path $assets $name
+                Copy-Item -LiteralPath $report.patch -Destination $path
+                $digest = (Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant()
+                if ($digest -ne $patch.sha256) { throw 'Copied patch hash changed' }
+                $packages += [ordered]@{ variant=$Variant; kind='patch'; name=$name; sha256=$digest; bytes=(Get-Item -LiteralPath $path).Length;
+                    baselineVersion=$patch.baselineVersion; packageVersion=$patch.packageVersion; baselineSha256=$patch.baselineSha256;
+                    updateSha256=$patch.updateSha256; productCode=$patch.productCode; patchCode=$patch.patchCode }
+            }
             [ordered]@{ schemaVersion=2; commit=$commit; ref=$ref; variant=$Variant; packages=$packages; validationStatus=$report.status;
                 runUrl=if ($env:GITHUB_RUN_ID) { "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" } else { $null };
                 notRun=$report.notRun } | ConvertTo-Json -Depth 7 | Set-Content -LiteralPath (Join-Path $assets 'build-manifest.json') -Encoding utf8

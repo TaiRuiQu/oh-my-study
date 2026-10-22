@@ -1,11 +1,13 @@
 #requires -Version 7.0
 [CmdletBinding()]
-param([string]$ReportFile)
+param([string]$ReportFile, [switch]$BuildOnly)
 $ErrorActionPreference = 'Stop'
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
 $area = Join-Path $workspace ('output/ci/msi-regression-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $area -Force | Out-Null
 if (-not $ReportFile) { $ReportFile = Join-Path $area 'verification.json' }
+. (Join-Path $PSScriptRoot '../MsiElevation.ps1')
+if (-not $BuildOnly -and (Invoke-MsiTestElevation $PSCommandPath @{ ReportFile=[IO.Path]::GetFullPath($ReportFile) })) { return }
 $key = 'Software\OhMyStudy\InstallerTests\' + [guid]::NewGuid().ToString('N')
 $upgrade = [guid]::NewGuid()
 $name = 'Oh My Study 测试 ' + $upgrade.ToString('N').Substring(0,8)
@@ -13,10 +15,14 @@ $checks = [Collections.Generic.List[string]]::new()
 $installedMsi = $null
 $shortcuts = @("APPLICATIONSHORTCUTS=$(Join-Path $area 'start')","DESKTOPSHORTCUTS=$(Join-Path $area 'desktop')")
 function Assert([bool]$Condition, [string]$Message) { if (-not $Condition) { throw $Message }; $checks.Add($Message) }
-function Package([string]$Version, [string]$Content) {
+function Package([string]$Version, [string]$Content, [string]$Variant = 'framework-dependent', [switch]$ExtraFile) {
     $root = Join-Path $area ("framework-dependent-payload-$Version-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path (Join-Path $root 'native/字体') -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $root 'OhMyStudy.App.exe'), $Content)
+    $unchanged = [byte[]]::new(1048576)
+    [Random]::new(42).NextBytes($unchanged)
+    [IO.File]::WriteAllBytes((Join-Path $root 'native/unchanged.bin'),$unchanged)
+    if ($ExtraFile) { [IO.File]::WriteAllText((Join-Path $root 'added.txt'),'NEW FILE') }
     [IO.File]::WriteAllText((Join-Path $root 'native/字体/许可.txt'), 'SYNTHETIC LICENSE ' + $Content)
     # Real dependency metadata exceeds MAX_PATH beneath CI's variant directories.
     $longLicense = Join-Path $root 'licenses/Microsoft.WindowsAppSDK.InteractiveExperiences-2.1.9/Microsoft.WindowsAppSDK.InteractiveExperiences.nuspec'
@@ -24,7 +30,7 @@ function Package([string]$Version, [string]$Content) {
     New-Item -ItemType Directory -Path (Split-Path -Parent $longLicense) -Force | Out-Null
     [IO.File]::WriteAllText($longLicense, 'SYNTHETIC LONG LICENSE ' + $Content)
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -File | ForEach-Object { @{path=[IO.Path]::GetRelativePath($root,$_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()} })
-    @{ version=$Version; files=$files } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $root 'package-manifest.json')
+    @{ version=$Version; variant=$Variant; files=$files } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $root 'package-manifest.json')
     $label = "OhMyStudy-win-x64-framework-dependent-$Version"
     $msi = Join-Path $area ("$label/$label-" + [guid]::NewGuid().ToString('N') + '.msi')
     $null = & (Join-Path $PSScriptRoot '../Build-MsiPackage.ps1') -PackageDirectory $root -OutputFile $msi -ProductName $name -UpgradeCode $upgrade -RegistryKey $key
@@ -48,6 +54,19 @@ function Execute([string[]]$Arguments, [string]$Label, [bool]$Success = $true) {
 $report = [ordered]@{schemaVersion=1; checkStatus='running'; evidence=$area; checks=$checks}
 try {
     $v1 = Package '0.1.1' 'VERSION_ONE'
+    $v2 = Package '0.1.2' 'VERSION_TWO'
+    $patchFile = Join-Path $area 'update.msp'
+    $inputHashes = @((Get-FileHash -LiteralPath $v1).Hash,(Get-FileHash -LiteralPath $v2).Hash)
+    $patch = & (Join-Path $PSScriptRoot '../Build-MspPackage.ps1') -BaselineMsi $v1 -UpdateMsi $v2 -OutputFile $patchFile
+    Assert ($patch.bytes -lt (Get-Item -LiteralPath $v2).Length / 2) 'MSP omits unchanged runtime payload'
+    Assert ($inputHashes[0] -eq (Get-FileHash -LiteralPath $v1).Hash -and $inputHashes[1] -eq (Get-FileHash -LiteralPath $v2).Hash) 'MSP creation preserves both original MSI packages'
+    foreach ($candidate in @($v1,(Package '0.1.2' 'OTHER_VARIANT' 'aot'),(Package '0.1.2' 'NEW_LAYOUT' -ExtraFile))) {
+        $rejected = $false
+        try { $null = & (Join-Path $PSScriptRoot '../Build-MspPackage.ps1') -BaselineMsi $v1 -UpdateMsi $candidate -OutputFile (Join-Path $area 'rejected.msp') }
+        catch { $rejected = $true }
+        Assert $rejected 'MSP refuses same version, different variant or changed file layout'
+    }
+    if ($BuildOnly) { $report.checkStatus='build-only-checks-passed'; return }
     & (Join-Path $PSScriptRoot '../Test-MsiPackage.ps1') -InstallerMsi $v1 -ReportFile (Join-Path $area 'standard-and-install.json') -InstallSmoke
     $checks.Add('standard wizard, custom directory, desktop and start menu, uninstall and unrelated file preservation')
     $target = Join-Path $area '中文 自选位置'
@@ -57,7 +76,20 @@ try {
     Assert ((Test-Path -LiteralPath (Join-Path $target 'OhMyStudy.App.exe')) -and -not (Test-Path -LiteralPath (Join-Path $area "desktop/$name.lnk"))) 'unchecked desktop choice is respected'
     Assert ([IO.File]::ReadAllText((Join-Path $target 'licenses/Microsoft.WindowsAppSDK.InteractiveExperiences-2.1.9/Microsoft.WindowsAppSDK.InteractiveExperiences.nuspec')) -eq 'SYNTHETIC LONG LICENSE VERSION_ONE') 'long source and output paths preserve the installed filename and content'
     Assert ((Get-ItemPropertyValue -LiteralPath "HKLM:\$key" -Name DesktopShortcut) -eq '0') 'unchecked preference is saved as zero'
-    $v2 = Package '0.1.2' 'VERSION_TWO'
+    $keep = Join-Path $target 'my-notes.txt'; [IO.File]::WriteAllText($keep,'KEEP_PRIVATE')
+    Execute @('/p',$patchFile,'REINSTALL=ALL','REINSTALLMODE=omus') 'patch-apply'
+    Assert ([IO.File]::ReadAllText((Join-Path $target 'OhMyStudy.App.exe')) -eq 'VERSION_TWO') 'MSP updates the installed baseline in its custom location'
+    Assert ([IO.File]::ReadAllText($keep) -eq 'KEEP_PRIVATE' -and (Get-ItemPropertyValue -LiteralPath "HKLM:\$key" -Name DesktopShortcut) -eq '0') 'MSP preserves unrelated user files and shortcut preference'
+    Execute @('/package',$patch.productCode,'/uninstall',$patch.patchCode) 'patch-remove'
+    Assert ([IO.File]::ReadAllText((Join-Path $target 'OhMyStudy.App.exe')) -eq 'VERSION_ONE') 'MSP removal restores the baseline program files'
+    Execute @('/p',$patchFile,'REINSTALL=ALL','REINSTALLMODE=omus') 'patch-reapply'
+    $v3 = Package '0.1.3' 'VERSION_THREE'
+    $cumulativeFile = Join-Path $area 'cumulative.msp'
+    $cumulative = & (Join-Path $PSScriptRoot '../Build-MspPackage.ps1') -BaselineMsi $v1 -UpdateMsi $v3 -OutputFile $cumulativeFile
+    Execute @('/p',$cumulativeFile,'REINSTALL=ALL','REINSTALLMODE=omus') 'patch-cumulative'
+    Assert ([IO.File]::ReadAllText((Join-Path $target 'OhMyStudy.App.exe')) -eq 'VERSION_THREE') 'cumulative MSP applies over an earlier patch from the same original baseline'
+    Execute @('/package',$patch.productCode,'/uninstall',$cumulative.patchCode) 'patch-cumulative-remove'
+    Assert ([IO.File]::ReadAllText((Join-Path $target 'OhMyStudy.App.exe')) -eq 'VERSION_TWO') 'removing a cumulative MSP restores the earlier patch'
     Execute @('/i',$v2) 'upgrade'
     $installedMsi=$v2
     Assert ([IO.File]::ReadAllText((Join-Path $target 'OhMyStudy.App.exe')) -eq 'VERSION_TWO') 'upgrade remembers the custom location and replaces program files'

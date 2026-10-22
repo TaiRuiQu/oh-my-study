@@ -13,6 +13,11 @@ $msi = (Resolve-Path -LiteralPath $InstallerMsi).Path
 $area = Join-Path $workspace ('output/migration/msi-check-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $area -Force | Out-Null
 if (-not $ReportFile) { $ReportFile = Join-Path $area 'verification.json' }
+. (Join-Path $PSScriptRoot 'MsiElevation.ps1')
+if ($InstallSmoke) {
+    $elevatedParameters = @{ InstallerMsi=$msi; ReportFile=[IO.Path]::GetFullPath($ReportFile); InstallSmoke=$true; VerifyPayload=[bool]$VerifyPayload; WorkflowSmoke=[bool]$WorkflowSmoke }
+    if (Invoke-MsiTestElevation $PSCommandPath $elevatedParameters) { return }
+}
 $report = [ordered]@{ schemaVersion=1; installer=$msi; sha256=(Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash.ToLowerInvariant(); checkStatus='running'; checks=@(); evidence=$area }
 $windowsInstaller = New-Object -ComObject WindowsInstaller.Installer
 $database = $windowsInstaller.OpenDatabase($msi, 0)
@@ -58,6 +63,7 @@ try {
     $upgradeCode = Query 'SELECT `Value` FROM `Property` WHERE `Property` = ''UpgradeCode'''
     if (-not $productCode -or -not $upgradeCode) { throw 'MSI product identity missing' }
     if ((Query 'SELECT `Value` FROM `Property` WHERE `Property` = ''ALLUSERS''') -ne '1') { throw 'MSI must install for all users' }
+    if (-not (Query 'SELECT `Description` FROM `LaunchCondition` WHERE `Condition` = ''UILevel >= 4 OR Privileged''')) { throw 'MSI must explain silent installation elevation requirements before starting a transaction' }
     foreach ($sql in @(
         'SELECT `Control` FROM `Control` WHERE `Dialog_` = ''InstallOptionsDlg'' AND `Type` = ''PathEdit''',
         'SELECT `Control` FROM `Control` WHERE `Dialog_` = ''InstallOptionsDlg'' AND `Type` = ''CheckBox''',

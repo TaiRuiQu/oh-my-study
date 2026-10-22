@@ -9,6 +9,15 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
+        AppLog.Info("Application.Language", "Loading interface language.");
+        string[] arguments = Environment.GetCommandLineArgs();
+        int localizationSmoke = Array.IndexOf(arguments, "--localization-smoke");
+        string? diagnosticLanguage = localizationSmoke > 0 && localizationSmoke + 2 < arguments.Length ? arguments[localizationSmoke + 1] : null;
+        if (diagnosticLanguage is null && arguments.Any(argument => argument.StartsWith("--", StringComparison.Ordinal) && argument.Contains("smoke", StringComparison.Ordinal))) diagnosticLanguage = "zh-CN";
+        string systemLanguage = Windows.System.UserProfile.GlobalizationPreferences.Languages.FirstOrDefault() ?? System.Globalization.CultureInfo.CurrentUICulture.Name;
+        UiText.Initialize(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "language.txt"), systemLanguage, diagnosticLanguage);
+        Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = UiText.Language;
+        AppLog.Info("Application.Language", "Interface language loaded: " + UiText.Language);
         AppLog.Info("Application.Start", $"Version={typeof(App).Assembly.GetName().Version}; PID={Environment.ProcessId}; BaseDirectory={AppContext.BaseDirectory}");
         UnhandledException += (_, args) => SmokeStartupDiagnostics.Log("Application.UnhandledException", args.Exception);
         bool xamlDiagnostics = Array.IndexOf(Environment.GetCommandLineArgs(), "--smoke-test") >= 0;
@@ -22,7 +31,11 @@ public partial class App : Microsoft.UI.Xaml.Application
             DebugSettings.IsXamlResourceReferenceTracingEnabled = true;
         }
         AppLog.Info("Application.InitializeComponent", "Loading application resources.");
-        try { InitializeComponent(); AppLog.Info("Application.ResourcesReady", "Application resources loaded."); }
+        try
+        {
+            InitializeComponent();
+            AppLog.Info("Application.ResourcesReady", "Application resources loaded.");
+        }
         catch (Exception exception)
         {
             SmokeStartupDiagnostics.Log("Application.InitializeComponent", exception);
@@ -52,6 +65,8 @@ public partial class App : Microsoft.UI.Xaml.Application
         try
         {
             AppLog.Info("Application.OnLaunched", "Creating the main window.");
+            var font = new Microsoft.UI.Xaml.Media.FontFamily(UiText.InterfaceFontFamily);
+            Microsoft.UI.Xaml.Application.Current.Resources["ContentControlThemeFontFamily"] = font;
             _window = new MainWindow(reportPath, previewPdfPath, workflowReport, performanceReport);
             AppLog.Info("Application.WindowCreated", "Activating the main window.");
             _window.Activate();

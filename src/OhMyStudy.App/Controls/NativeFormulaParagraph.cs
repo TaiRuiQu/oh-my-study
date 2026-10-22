@@ -57,11 +57,11 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
         HorizontalAlignment = HorizontalAlignment.Left; IsTabStop = !preview;
         var copy = new KeyboardAccelerator { Key = VirtualKey.C, Modifiers = VirtualKeyModifiers.Control, ScopeOwner = this };
         copy.Invoked += (_, args) => { Copy(_source); args.Handled = true; }; KeyboardAccelerators.Add(copy);
-        var menu = new MenuFlyout(); var all = new MenuFlyoutItem { Text = "复制" }; all.Click += (_, _) => Copy(_source); menu.Items.Add(all);
+        var menu = new MenuFlyout(); var all = new MenuFlyoutItem { Text = UiText.Get("复制") }; all.Click += (_, _) => Copy(_source); menu.Items.Add(all);
         int index = 0;
         foreach (var part in parts.Where(part => part.Formula is not null))
         {
-            var item = new MenuFlyoutItem { Text = $"复制公式 {++index}" }; string formula = part.Formula!.Source;
+            var item = new MenuFlyoutItem { Text = UiText.Format("复制公式 {0}", ++index) }; string formula = part.Formula!.Source;
             item.Click += (_, _) => Copy(formula); menu.Items.Add(item);
         }
         if (!preview) ContextFlyout = menu;
@@ -82,7 +82,7 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
     private void BuildLayout()
     {
         Guid iid = new("b859ee5a-d838-4b5b-a2e8-1adc7d93db48"); nint factory = 0, format = 0, layout = 0; Check(DWriteCreateFactory(0, &iid, &factory)); _factory = factory;
-        fixed (char* family = "Microsoft YaHei UI") fixed (char* locale = "zh-CN")
+        fixed (char* family = UiText.ReadingFontFamily) fixed (char* locale = UiText.Language)
             Check(((delegate* unmanaged[Stdcall]<nint, char*, nint, uint, uint, uint, float, char*, nint*, int>)Slot(_factory, 15))(_factory, family, 0, 400, 0, 5, (float)_fontSize, locale, &format));
         _format = format;
         StringBuilder text = new(); var ranges = new List<(int Position, MathDocument Document)>();
@@ -213,7 +213,7 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
         protected override string GetClassNameCore() => nameof(NativeFormulaParagraph);
         protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
         protected override string GetNameCore() => owner._source;
-        protected override string GetHelpTextCore() => "按 Ctrl+C 复制全部内容；菜单可复制单个公式。";
+        protected override string GetHelpTextCore() => UiText.Get("按 Ctrl+C 复制全部内容；菜单可复制单个公式。");
         protected override object GetPatternCore(PatternInterface pattern) => pattern == PatternInterface.Value ? this : base.GetPatternCore(pattern);
         protected override IList<AutomationPeer> GetChildrenCore()
         {
@@ -222,18 +222,18 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
             return children;
         }
         public bool IsReadOnly => true; public string Value => owner._source;
-        public void SetValue(string value) => throw new InvalidOperationException("题目内容不可在此修改。");
+        public void SetValue(string value) => throw new InvalidOperationException(UiText.Get("题目内容不可在此修改。"));
     }
     private sealed partial class FormulaPeer(MathDocument formula) : AutomationPeer, IValueProvider
     {
         protected override string GetClassNameCore() => "Formula";
         protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
         protected override string GetNameCore() => formula.Source;
-        protected override string GetLocalizedControlTypeCore() => "公式";
-        protected override string GetHelpTextCore() => "在题目菜单中复制此公式。";
+        protected override string GetLocalizedControlTypeCore() => UiText.Get("公式");
+        protected override string GetHelpTextCore() => UiText.Get("在题目菜单中复制此公式。");
         protected override object GetPatternCore(PatternInterface pattern) => pattern == PatternInterface.Value ? this : base.GetPatternCore(pattern);
         public bool IsReadOnly => true; public string Value => formula.Source;
-        public void SetValue(string value) => throw new InvalidOperationException("公式不可在此修改。");
+        public void SetValue(string value) => throw new InvalidOperationException(UiText.Get("公式不可在此修改。"));
     }
     internal int FormulaCount => _parts.Count(part => part.Formula is not null);
     internal string Source => _source;

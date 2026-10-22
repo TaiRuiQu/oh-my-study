@@ -11,6 +11,7 @@ param(
 )
 $ErrorActionPreference='Stop'
 $workspace=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'ReleasePayload.ps1')
 $runId='package-check-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[Guid]::NewGuid().ToString('N').Substring(0,8)
 $evidence=Join-Path $workspace "output/migration/runs/$runId"
 New-Item -ItemType Directory -Path $evidence -Force | Out-Null
@@ -49,6 +50,8 @@ try {
         [IO.Compression.ZipFile]::ExtractToDirectory($archive,$PackageDirectory)
     }
     $root=(Resolve-Path -LiteralPath $PackageDirectory).Path.TrimEnd('\','/')
+    Assert-ReleasePayload $root
+    $report.checks += 'no-debug-symbols-linker-output-python-caches-or-package-tests'
     $report.packageDirectory=$root
     if ($reportPath.StartsWith($root+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) { throw 'Verification report must be outside the immutable package' }
     $manifestPath=Assert-Path $root 'package-manifest.json'

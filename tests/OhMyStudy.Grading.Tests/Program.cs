@@ -29,6 +29,7 @@ internal static class Program
             await ThreeProtocolsAndModes();
             await OptionalFields();
             await StreamingActivity();
+            await MessagesThinkingContinuation();
             await CropAndCoverageRecovery();
             await CoverageAndToolValidation();
             await InvalidToolsAndReferencePriority();
@@ -215,7 +216,54 @@ internal static class Program
         });
         var failed = await fixture.Run(failedClient);
         var retained = (await fixture.Library.ListJobEventsAsync(failed.Id)).Where(e => e.Kind == "activity").Select(e => DomainJson.Deserialize<JobActivity>(e.Payload.GetRawText())).ToList();
-        Check(failed.State == JobState.Failed && retained.Any(a => a.Text == "连接中断前已收到的公开回复"), "short partial response retained on immediate transport failure");
+        Check(failed.State == JobState.Failed && retained.Any(a => a.Text == "连接中断前已收到的公开回复"
+            && a.State == "failed" && a.Detail.Contains("网络", StringComparison.Ordinal)), "short partial response and actionable error retained on immediate transport failure");
+    }
+
+    private static async Task MessagesThinkingContinuation()
+    {
+        await using var fixture = await Fixture.Create(ImportMode.Blank, Protocol.Messages);
+        var thinking = new AdaptiveThinking { Effort = "medium" };
+        var input = fixture.Input with
+        {
+            Model = fixture.Input.Model with { Id = "claude-haiku-5-5", MaxOutputTokens = 24576 }
+        };
+        input = input with { Model = input.Model with { Capabilities = input.Model.Capabilities with { Thinking = [thinking] } }, Thinking = thinking };
+        JsonNode? priorMessages = null;
+        JsonNode? priorTools = null;
+        JsonNode? priorSystem = null;
+        var question = Question(fixture.Document);
+        var api = new ScriptApi(Protocol.Messages, (attempt, body, _) =>
+        {
+            Check(body["thinking"]?["type"]?.ToString() == "adaptive" && body["output_config"]?["effort"]?.ToString() == "medium", "Haiku medium uses adaptive thinking on every turn");
+            Check(body["max_tokens"]!.GetValue<int>() == 24576, "thinking has output headroom within configured model limit");
+            if (priorMessages is not null)
+            {
+                var messages = body["messages"]!.AsArray();
+                Check(priorMessages.AsArray().Select((item, index) => JsonNode.DeepEquals(item, messages[index])).All(equal => equal)
+                    && JsonNode.DeepEquals(priorTools, body["tools"]) && JsonNode.DeepEquals(priorSystem, body["system"]), "thinking continuation preserves the signed conversation prefix, tools and system");
+                Check(messages[^1]!["role"]!.ToString() == "user" && messages[^1]!["content"]!.AsArray().Count > 0, "continuation has a nonempty user turn");
+                Check(messages[^2]!["content"]![0]!["signature"]!.ToString() == "SYNTHETIC_NEVER_SEND_EXTERNALLY", "thinking signature is preserved across continuation");
+            }
+            priorMessages = body["messages"]!.DeepClone(); priorTools = body["tools"]!.DeepClone(); priorSystem = body["system"]!.DeepClone();
+            return Task.FromResult<List<ToolCall>>(attempt switch
+            {
+                1 => fixture.Document.Pages.Select(p => Read(p)).ToList(),
+                2 => [],
+                3 => [Save(question), Finish(Coverage(fixture.Document, question.DraftKey))],
+                _ => throw new InvalidOperationException("Unexpected continuation")
+            });
+        });
+        using var http = new HttpClient(api);
+        using var client = new ProviderClient(http, Protocol.Messages, input.Provider.BaseUrl);
+        await using var queue = await fixture.Queue(client);
+        var submitted = await queue.SubmitAsync(DiagnosticKind.Grading, Policy, input);
+        var completed = await Wait(queue, submitted.Id);
+        Check(completed.State == JobState.Completed && api.Attempts == 3
+            && (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Count == 1, "text-only model reply continues to saved results with medium thinking");
+        var stalled = new DelegateClient(Protocol.Messages, (_, _, _) => Task.FromResult(NativeTurn(Protocol.Messages, [])));
+        var failed = await fixture.Run(stalled);
+        Check(failed.State == JobState.Failed && stalled.Attempts == 3, "text-only continuations remain bounded");
     }
 
     private sealed class StreamingClient(Func<Action<ProviderProgress>?, CancellationToken, Task<Turn>> call) : IModelClient
@@ -459,7 +507,8 @@ internal static class Program
             var job = await fixture.Run(client);
             var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
             Check(job.State == JobState.Failed && result.Questions.Count == 1 && result.Coverage.Count == 0, noTools ? "plain model text cannot complete and previous save remains" : "network failure preserves durable previous result");
-            Check(client.Attempts == 2 && result.ModelCalls.Count == (noTools ? 2 : 1), "no hidden retry or fabricated usage on network failure");
+            Check(client.Attempts == (noTools ? 4 : 2) && result.ModelCalls.Count == (noTools ? 4 : 1),
+                noTools ? "bounded text continuations account for every model call" : "no hidden retry or fabricated usage on network failure");
             await fixture.AssertDurableEvents(job);
         }
     }

@@ -24,7 +24,7 @@ internal static class ModelActivity
             {
                 if (progress.Text is { } delta && text.Length < 16000)
                     text.Append(delta.AsSpan(0, Math.Min(delta.Length, 16000 - text.Length)));
-                detail = progress.ToolName is not null ? "正在准备下一步操作" : "正在接收模型响应";
+                detail = progress.Thinking ? "模型正在思考" : progress.ToolName is not null ? "正在准备下一步操作" : "正在接收模型响应";
                 dirty = true;
             }
         }
@@ -51,6 +51,16 @@ internal static class ModelActivity
         var pump = Pump();
         Turn turn;
         try { turn = await call(Progress).ConfigureAwait(false); }
+        catch (Exception error) when (!context.Cancellation.IsCancellationRequested)
+        {
+            lock (gate)
+            {
+                activity = activity with { State = "failed" };
+                detail = FailureDetail(error);
+                dirty = true;
+            }
+            throw;
+        }
         finally
         {
             await stop.CancelAsync().ConfigureAwait(false);
@@ -72,4 +82,21 @@ internal static class ModelActivity
         }).ConfigureAwait(false);
         return turn;
     }
+
+    private static string FailureDetail(Exception error) => error switch
+    {
+        ProviderException { Diagnostic: "thinking_effort_rejected" } => "服务商不支持所选思考强度，请检查模型配置后重试。",
+        ProviderException { Diagnostic: "thinking_budget_rejected" or "thinking_configuration_rejected" } => "服务商拒绝了思考设置，请检查模型支持的思考方式后重试。",
+        ProviderException { Diagnostic: "output_token_limit_rejected" } => "输出上限超出模型限制，请更新模型配置后重试。",
+        ProviderException { Kind: ErrorKind.Authentication } => "模型鉴权失败，请检查密钥和模型访问权限后重试。",
+        ProviderException { Kind: ErrorKind.Quota } => "服务商额度不足，请检查账户余额后重试。",
+        ProviderException { Kind: ErrorKind.RateLimit } => "服务商请求过于频繁，请稍后重试。",
+        ProviderException { Kind: ErrorKind.Network } or HttpRequestException or IOException => "模型连接中断或超时，请检查网络后重试。",
+        ProviderException { Kind: ErrorKind.Refusal } => "模型拒绝了本次请求，请检查资料后重试。",
+        ProviderException { Kind: ErrorKind.Incomplete } => "模型输出未完成，可能已达到输出上限，请降低思考强度或分批识别。",
+        ProviderException { Kind: ErrorKind.InvalidRequest or ErrorKind.UnsupportedParameter } => "服务商拒绝了任务请求，请检查模型、参数和接口地址后重试。",
+        ProviderException { Kind: ErrorKind.Server } => "模型服务暂不可用，请稍后重试。",
+        OperationCanceledException => "识别已超时，请稍后重试或分批识别。",
+        _ => "模型调用未完成，请检查模型设置后重试。"
+    };
 }

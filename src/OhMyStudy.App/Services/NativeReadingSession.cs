@@ -54,7 +54,7 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
 
     private static IEnumerable<string> Collect(Question question)
     {
-        if (question.Points is { } points) yield return $"{points:g} 分";
+        if (question.Points is { } points) yield return UiText.Format("{0:g} 分", points);
         foreach (var content in Coalesce(question.Content))
         {
             if (content is TextContent text) yield return text.Text;
@@ -73,13 +73,13 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
     {
         if (question.Attempt is { } attempt)
         {
-            yield return new("作答", "\uE70F", new[] { string.IsNullOrWhiteSpace(attempt.StudentAnswer) ? attempt.Grade.Verdict == Verdict.Unanswered ? "未作答" : "未记录作答" : attempt.StudentAnswer });
-            if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return new("评分说明", "\uE9D9", new[] { attempt.Grade.Reason });
-            if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return new("教师批注", "\uE8F2", new[] { teacher.Raw });
-            if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return new("判断差异", "\uE7BA", new[] { attempt.Conflict });
-            if (!string.IsNullOrWhiteSpace(attempt.AiSolution)) yield return new("解题过程", "\uE8A5", new[] { attempt.AiSolution });
+            yield return new(UiText.Get("作答"), "\uE70F", new[] { string.IsNullOrWhiteSpace(attempt.StudentAnswer) ? attempt.Grade.Verdict == Verdict.Unanswered ? UiText.Get("未作答") : UiText.Get("未记录作答") : attempt.StudentAnswer });
+            if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return new(UiText.Get("评分说明"), "\uE9D9", new[] { attempt.Grade.Reason });
+            if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return new(UiText.Get("教师批注"), "\uE8F2", new[] { teacher.Raw });
+            if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return new(UiText.Get("判断差异"), "\uE7BA", new[] { attempt.Conflict });
+            if (!string.IsNullOrWhiteSpace(attempt.AiSolution)) yield return new(UiText.Get("解题过程"), "\uE8A5", new[] { attempt.AiSolution });
         }
-        if (question.Uncertainties.Count > 0) yield return new("待确认", "\uE9CE", question.Uncertainties);
+        if (question.Uncertainties.Count > 0) yield return new(UiText.Get("待确认"), "\uE9CE", question.Uncertainties);
     }
     internal static IEnumerable<string> Feedback(Question question) => FeedbackSections(question).SelectMany(section => section.Texts);
 }

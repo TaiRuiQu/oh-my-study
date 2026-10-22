@@ -54,7 +54,7 @@ public sealed partial class QuestionPreview : Grid
         _render = cancellation;
         var token = cancellation.Token;
         Children.Clear();
-        Children.Add(new TextBlock { Text = "正在加载…", FontSize = 14, Opacity = .7 });
+        Children.Add(new TextBlock { Text = UiText.Get("正在加载…"), FontSize = 14, Opacity = .7 });
         try
         {
             var session = NativeReadingSession.CachedPreviewHeight(item.PreviewText, width) is not null
@@ -71,7 +71,7 @@ public sealed partial class QuestionPreview : Grid
             AppLog.Error("Question.Preview", error);
             if (generation == _generation)
             {
-                Children.Clear(); Children.Add(new TextBlock { Text = "预览暂时无法显示", FontSize = 14 });
+                Children.Clear(); Children.Add(new TextBlock { Text = UiText.Get("预览暂时无法显示"), FontSize = 14 });
             }
         }
         finally { if (ReferenceEquals(_render, cancellation)) _render = null; }

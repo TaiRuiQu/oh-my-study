@@ -50,7 +50,10 @@ public sealed partial class MainWindow
             Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputCached.Text == "缓存命中 1,102,400"
                 && TaskInputUncached.Text == "缓存未命中 29,454" && TaskInputCacheWrite.Text == "缓存写入 4,096", "cache-buckets-visible");
             await Capture("completed");
+            Check(_taskSteps["read-1"].Heading == "阅读页面（4 次）" && !_taskSteps["read-1"].DetailVisible, "successful-tool-log-shows-only-tool-name");
             Check(_taskSteps["model-1"].OutputVisible && FindVisualChild<ScrollViewer>(_taskSteps["model-1"].Root) is null, "model-reply-is-inline-prose-with-one-page-scroll");
+            Check(_taskSteps["model-1"].OutputTrailingSpace <= 12, "reply-followed-by-action-has-no-extra-bottom-gap");
+            Check(TaskTitle.FontSize == 24 && TaskSubtitle.FontSize == 14 && _taskItems[first.Id].Title.FontSize == 16, "task-page-readable-type-scale");
             TaskUsage_Click(TaskUsageButton, new RoutedEventArgs()); await Capture("usage-expanded");
             Check(TaskUsageFlyout.IsOpen, "usage-details-open-separately");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("usage-expanded-dark"); RootGrid.RequestedTheme = ElementTheme.Light;
@@ -71,6 +74,7 @@ public sealed partial class MainWindow
             var retainedGroup = _taskSteps["read-1"].Root;
             await runner.Update!.ActivityAsync(new JobActivity { Key = "read-2", Kind = "read_page", Title = "阅读第 2 页", Detail = "页面暂时无法读取，请重试。", State = "failed", PagesRead = 2, ElapsedMs = 120 });
             await Capture("grouped-error");
+            Check(_taskSteps["read-2"].Heading == "阅读第 2 页  失败" && _taskSteps["read-2"].DetailVisible, "failed-tool-log-shows-failure-and-reason");
             Check(_taskSteps.ContainsKey("read-2") && _taskSteps["read-3"].Title == "阅读页面（2 次）", "failed-tool-kept-separate-in-order");
             await runner.Update!.ActivityAsync(new JobActivity { Key = "read-2", Kind = "read_page", Title = "阅读第 2 页", Detail = "已读取原件", State = "completed", PagesRead = 2, ElapsedMs = 120 });
             await Capture("regrouped");
@@ -190,7 +194,11 @@ public sealed partial class MainWindow
             await context.ActivityAsync(new JobActivity { Key = "save-1", Kind = "save_question", Title = "保存题目", Detail = "3 道题目已加入题库", State = "completed", PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 80 });
             if (mode is "complete" or "unpriced") return;
             await context.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在接收模型响应", Text = "正在核对第 4 页的跨页题目。", PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 3200 });
-            if (mode == "error") throw new IOException("连接中断，已保存的题目会保留。请稍后重新识别。");
+            if (mode == "error")
+            {
+                await context.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "识别", State = "failed", Detail = "模型连接中断或超时，请检查网络后重试。", Text = "正在核对第 4 页的跨页题目。", PagesRead = 4, QuestionsSaved = 3 });
+                throw new IOException("Synthetic disconnected stream");
+            }
             if (mode == "permission")
             {
                 await context.ActivityAsync(new JobActivity { Key = "compute", Kind = "python", Title = "运行辅助计算", Detail = "等待你确认执行请求", PagesRead = 4, QuestionsSaved = 3 });

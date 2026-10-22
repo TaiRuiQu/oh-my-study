@@ -78,8 +78,8 @@ public static class ProviderProtocol
                 context = Element(new JsonObject { ["role"] = "assistant", ["content"] = Node(content) });
                 usage = Get(raw, "usage");
                 var mi = Count(usage, "input_tokens");
-                var mr = OptionalCacheCount(usage, "cache_read_input_tokens");
-                var mw = OptionalCacheCount(usage, "cache_creation_input_tokens");
+                var mr = Count(usage, "cache_read_input_tokens");
+                var mw = Count(usage, "cache_creation_input_tokens");
                 var mo = Count(usage, "output_tokens");
                 var input = mi.HasValue && mr.HasValue && mw.HasValue ? checked(mi + mr + mw) : null;
                 normalized = new Usage { Input = input, InputUncached = mi, CacheRead = mr, CacheWrite = mw, Output = mo, Total = input.HasValue && mo.HasValue ? checked(input + mo) : null, Raw = Clone(usage) };

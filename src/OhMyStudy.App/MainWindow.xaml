@@ -5,6 +5,7 @@
     xmlns:vm="using:OhMyStudy.App.ViewModels"
     xmlns:domain="using:OhMyStudy.Domain"
     xmlns:controls="using:OhMyStudy.App.Controls"
+    xmlns:l="using:OhMyStudy.App.Localization"
     Title="Oh My Study">
     <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
     <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource WorkspaceCanvasBrush}">
@@ -30,16 +31,16 @@
             IsBackButtonVisible="Collapsed" IsSettingsVisible="True" AlwaysShowHeader="False"
             PaneDisplayMode="Auto" SelectionChanged="Navigation_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="试卷" Tag="materials">
+                <NavigationViewItem Content="{l:Text Key=S0143}" Tag="materials">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="题库" Tag="library" IsSelected="True">
+                <NavigationViewItem Content="{l:Text Key=S0456}" Tag="library" IsSelected="True">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="错题" Tag="mistakes">
+                <NavigationViewItem Content="{l:Text Key=S0011}" Tag="mistakes">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE734;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="任务" Tag="tasks">
+                <NavigationViewItem Content="{l:Text Key=S0465}" Tag="tasks">
                     <NavigationViewItem.Icon><FontIcon Glyph="&#xE9F9;" /></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
@@ -56,24 +57,24 @@
                         <TextBlock x:Name="PageHeading" Text="{x:Bind ViewModel.PageTitle, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <StackPanel x:Name="WorkspaceActions" Visibility="Collapsed" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <Button x:Name="ImportPaperButton" Click="OpenFiles_Click" AutomationProperties.Name="导入试卷，支持 PDF 或图片">
-                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock Text="导入试卷" /></StackPanel>
+                        <Button x:Name="ImportPaperButton" Click="OpenFiles_Click" AutomationProperties.Name="{l:Text Key=S0469}">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8B7;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0202}" /></StackPanel>
                         </Button>
                         <Button x:Name="GradeButton" Click="Grade_Click" IsEnabled="False" Visibility="Collapsed">
-                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="16" /><TextBlock Text="重新识别" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0204}" /></StackPanel>
                         </Button>
-                        <Button x:Name="PaperMoreButton" AutomationProperties.Name="更多试卷操作" ToolTipService.ToolTip="更多">
+                        <Button x:Name="PaperMoreButton" AutomationProperties.Name="{l:Text Key=S0470}" ToolTipService.ToolTip="{l:Text Key=S0471}">
                             <FontIcon Glyph="&#xE712;" FontSize="18" />
                             <Button.Flyout>
                                 <MenuFlyout Placement="BottomEdgeAlignedRight">
-                                    <MenuFlyoutItem x:Name="PaperPagesAction" Text="管理页面" Click="ManagePages_Click">
+                                    <MenuFlyoutItem x:Name="PaperPagesAction" Text="{l:Text Key=S0472}" Click="ManagePages_Click">
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7C3;" /></MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
-                                    <MenuFlyoutItem x:Name="PaperReferencesAction" Text="整理参考答案" Click="ReadReferences_Click">
+                                    <MenuFlyoutItem x:Name="PaperReferencesAction" Text="{l:Text Key=S0203}" Click="ReadReferences_Click">
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8B7;" /></MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
                                     <MenuFlyoutSeparator x:Name="PaperDetailSeparator" />
-                                    <MenuFlyoutItem x:Name="PaperDeleteAction" Text="删除试卷" Click="DeletePaper_Click" Foreground="{ThemeResource TaskErrorBrush}">
+                                    <MenuFlyoutItem x:Name="PaperDeleteAction" Text="{l:Text Key=S0293}" Click="DeletePaper_Click" Foreground="{ThemeResource TaskErrorBrush}">
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" Foreground="{ThemeResource TaskErrorBrush}" /></MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
                                 </MenuFlyout>
@@ -85,53 +86,53 @@
                     <Grid x:Name="DocumentToolbar" ColumnSpacing="12" RowSpacing="8" Visibility="Collapsed">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <Button x:Name="BackToPapersButton" Click="BackToPapers_Click" ToolTipService.ToolTip="返回试卷列表">
-                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72B;" FontSize="16" /><TextBlock Text="返回" /></StackPanel>
+                        <Button x:Name="BackToPapersButton" Click="BackToPapers_Click" ToolTipService.ToolTip="{l:Text Key=S0473}">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72B;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0239}" /></StackPanel>
                         </Button>
                         <StackPanel x:Name="DocumentCommands" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <StackPanel x:Name="DocumentCommandGroupPrimary" Orientation="Horizontal" Spacing="8">
-                                <Button x:Name="ViewOriginalButton" Click="ViewOriginal_Click" ToolTipService.ToolTip="查看原件">
-                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7B3;" FontSize="16" /><TextBlock Text="查看原件" /></StackPanel>
+                                <Button x:Name="ViewOriginalButton" Click="ViewOriginal_Click" ToolTipService.ToolTip="{l:Text Key=S0474}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7B3;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0474}" /></StackPanel>
                                 </Button>
-                                <Button x:Name="AddReferenceButton" Click="AddReferences_Click" ToolTipService.ToolTip="添加参考答案页面">
-                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="16" /><TextBlock Text="添加参考答案" /></StackPanel>
+                                <Button x:Name="AddReferenceButton" Click="AddReferences_Click" ToolTipService.ToolTip="{l:Text Key=S0475}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0476}" /></StackPanel>
                                 </Button>
-                                <Button x:Name="EditQuestionButton" Click="EditQuestion_Click" IsEnabled="False" ToolTipService.ToolTip="编辑当前题目 (Ctrl + E)">
-                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE70F;" FontSize="16" /><TextBlock Text="编辑题目" /></StackPanel>
+                                <Button x:Name="EditQuestionButton" Click="EditQuestion_Click" IsEnabled="False" ToolTipService.ToolTip="{l:Text Key=S0477}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE70F;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0077}" /></StackPanel>
                                 </Button>
                             </StackPanel>
                             <Border x:Name="DocumentCommandDivider" Width="1" Height="20" Margin="4,0" VerticalAlignment="Center" Background="{ThemeResource WorkspaceBorderBrush}" />
                             <StackPanel x:Name="DocumentCommandGroupSecondary" Orientation="Horizontal" Spacing="8">
-                                <Button x:Name="ViewResultsButton" Click="ViewResults_Click" ToolTipService.ToolTip="查看识别结果">
-                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8FD;" FontSize="16" /><TextBlock Text="识别结果" /></StackPanel>
+                                <Button x:Name="ViewResultsButton" Click="ViewResults_Click" ToolTipService.ToolTip="{l:Text Key=S0478}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8FD;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0479}" /></StackPanel>
                                 </Button>
-                                <Button x:Name="PaperInfoButton" Click="EditPaperInfo_Click" ToolTipService.ToolTip="编辑试卷信息">
-                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE946;" FontSize="16" /><TextBlock Text="试卷信息" /></StackPanel>
+                                <Button x:Name="PaperInfoButton" Click="EditPaperInfo_Click" ToolTipService.ToolTip="{l:Text Key=S0480}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE946;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0313}" /></StackPanel>
                                 </Button>
-                                <Button x:Name="ExportQuestionsButton" Click="ExportQuestions_Click" ToolTipService.ToolTip="导出题目">
-                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE74E;" FontSize="16" /><TextBlock Text="导出题目" /></StackPanel>
+                                <Button x:Name="ExportQuestionsButton" Click="ExportQuestions_Click" ToolTipService.ToolTip="{l:Text Key=S0037}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE74E;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0037}" /></StackPanel>
                                 </Button>
                             </StackPanel>
                         </StackPanel>
                     </Grid>
                     <InfoBar x:Name="WorkspaceNotice" IsOpen="False" IsClosable="True" Severity="Informational" CloseButtonClick="WorkspaceNotice_CloseButtonClick"
-                        Title="示例资料" Message="可查看和编辑，修改不会保存。" />
+                        Title="{l:Text Key=S0399}" Message="{l:Text Key=S0400}" />
                 </StackPanel>
                 <Grid x:Name="PapersPanel" Grid.Row="2" Visibility="Collapsed" RowSpacing="12">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                     <Grid x:Name="PaperFilters" ColumnSpacing="12" RowSpacing="8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <TextBox x:Name="PaperSearch" PlaceholderText="搜索试卷标题或学科" TextChanged="PaperFilters_Changed" AutomationProperties.Name="搜索试卷" />
-                        <ComboBox x:Name="PaperSubjectFilter" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="PaperFilter_SelectionChanged" AutomationProperties.Name="按学科筛选" />
-                        <ComboBox x:Name="PaperSort" Grid.Column="2" HorizontalAlignment="Stretch" SelectionChanged="PaperFilter_SelectionChanged" SelectedIndex="0" AutomationProperties.Name="试卷排序">
-                            <x:String>最近导入</x:String><x:String>最早导入</x:String><x:String>标题</x:String><x:String>学科</x:String><x:String>得分率</x:String>
+                        <TextBox x:Name="PaperSearch" PlaceholderText="{l:Text Key=S0481}" TextChanged="PaperFilters_Changed" AutomationProperties.Name="{l:Text Key=S0482}" />
+                        <ComboBox x:Name="PaperSubjectFilter" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="PaperFilter_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0483}" />
+                        <ComboBox x:Name="PaperSort" Grid.Column="2" HorizontalAlignment="Stretch" SelectionChanged="PaperFilter_SelectionChanged" SelectedIndex="0" AutomationProperties.Name="{l:Text Key=S0484}">
+                            <ComboBoxItem Content="{l:Text Key=S0594}" /><ComboBoxItem Content="{l:Text Key=S0595}" /><ComboBoxItem Content="{l:Text Key=S0308}" /><ComboBoxItem Content="{l:Text Key=S0084}" /><ComboBoxItem Content="{l:Text Key=S0596}" />
                         </ComboBox>
                     </Grid>
                     <TextBlock x:Name="PaperCount" Grid.Row="1" Style="{StaticResource QuietTextStyle}" />
                     <Border Grid.Row="2" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Background="{ThemeResource WorkspaceSurfaceBrush}">
                         <Grid>
-                            <ListView x:Name="PaperList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="PaperList_ItemClick" HorizontalContentAlignment="Stretch" Padding="8" AutomationProperties.Name="试卷列表">
+                            <ListView x:Name="PaperList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="PaperList_ItemClick" HorizontalContentAlignment="Stretch" Padding="8" AutomationProperties.Name="{l:Text Key=S0485}">
                                 <ListView.ItemTemplate><DataTemplate x:DataType="vm:PaperViewModel">
                                     <Grid Padding="12,14" ColumnSpacing="16" ContextRequested="PaperRow_ContextRequested">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -142,15 +143,15 @@
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center" MinWidth="90">
                                             <TextBlock Text="{x:Bind Score}" HorizontalAlignment="Right" FontSize="17" FontWeight="SemiBold" />
-                                            <TextBlock Text="得分 / 满分" HorizontalAlignment="Right" Style="{StaticResource QuietTextStyle}" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0486}" HorizontalAlignment="Right" Style="{StaticResource QuietTextStyle}" />
                                         </StackPanel>
                                     </Grid>
                                 </DataTemplate></ListView.ItemTemplate>
                             </ListView>
                             <StackPanel x:Name="PaperEmpty" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
                                 <FontIcon Glyph="&#xE8A5;" FontSize="32" />
-                                <TextBlock x:Name="PaperEmptyTitle" Text="还没有试卷" FontSize="20" HorizontalAlignment="Center" />
-                                <TextBlock x:Name="PaperEmptyMessage" Text="导入 PDF 或图片试卷，开始整理。" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
+                                <TextBlock TextWrapping="Wrap" x:Name="PaperEmptyTitle" Text="{l:Text Key=S0303}" FontSize="20" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="PaperEmptyMessage" Text="{l:Text Key=S0305}" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -165,40 +166,40 @@
                             <Grid Padding="16,12" ColumnSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="3">
-                                    <TextBlock Text="原件" Style="{StaticResource PanelHeadingStyle}" />
+                                    <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0487}" Style="{StaticResource PanelHeadingStyle}" />
                                     <TextBlock x:Name="OriginalCaption" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                    <Button Click="RotateLeft_Click" ToolTipService.ToolTip="向左旋转 90°" AutomationProperties.Name="原件向左旋转九十度"><FontIcon Glyph="&#xE7AD;" FontSize="16" /></Button>
-                                    <Button Click="RotateRight_Click" ToolTipService.ToolTip="向右旋转 90°" AutomationProperties.Name="原件向右旋转九十度"><FontIcon Glyph="&#xE7AD;" FontSize="16" FlowDirection="RightToLeft" /></Button>
-                                    <Button Click="CloseOriginal_Click" ToolTipService.ToolTip="收起原件" AutomationProperties.Name="收起原件"><FontIcon Glyph="&#xE711;" FontSize="14" /></Button>
+                                    <Button Click="RotateLeft_Click" ToolTipService.ToolTip="{l:Text Key=S0488}" AutomationProperties.Name="{l:Text Key=S0489}"><FontIcon Glyph="&#xE7AD;" FontSize="16" /></Button>
+                                    <Button Click="RotateRight_Click" ToolTipService.ToolTip="{l:Text Key=S0490}" AutomationProperties.Name="{l:Text Key=S0491}"><FontIcon Glyph="&#xE7AD;" FontSize="16" FlowDirection="RightToLeft" /></Button>
+                                    <Button Click="CloseOriginal_Click" ToolTipService.ToolTip="{l:Text Key=S0492}" AutomationProperties.Name="{l:Text Key=S0492}"><FontIcon Glyph="&#xE711;" FontSize="14" /></Button>
                                 </StackPanel>
                             </Grid>
                             <ScrollViewer x:Name="SourceViewer" Grid.Row="1" Background="{ThemeResource WorkspaceCanvasBrush}" Padding="24"
                                 HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" ZoomMode="Enabled"
                                 MinZoomFactor="0.25" MaxZoomFactor="4" ViewChanged="SourceViewer_ViewChanged"
-                                AutomationProperties.Name="原件视口，可缩放和平移">
+                                AutomationProperties.Name="{l:Text Key=S0493}">
                                 <Canvas x:Name="PageCanvas" Width="760" Height="1040">
                                     <Grid x:Name="PaperPage" Width="760" Height="1040" Background="{ThemeResource PaperBrush}"
-                                        AutomationProperties.Name="原件">
+                                        AutomationProperties.Name="{l:Text Key=S0487}">
                                         <Grid.RenderTransform><CompositeTransform x:Name="PageTransform" CenterX="380" CenterY="520" /></Grid.RenderTransform>
                                         <StackPanel x:Name="SamplePaper" Margin="64,54,64,50" Spacing="18" Visibility="Collapsed">
                                             <TextBlock Text="OH MY STUDY" FontSize="11" CharacterSpacing="160" Foreground="{ThemeResource PaperMutedBrush}" />
-                                            <TextBlock Text="函数与导数" FontSize="34" FontWeight="SemiBold" Foreground="{ThemeResource PaperInkBrush}" />
-                                            <TextBlock Text="学习练习" Style="{StaticResource PaperTextStyle}" FontSize="16" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0494}" FontSize="34" FontWeight="SemiBold" Foreground="{ThemeResource PaperInkBrush}" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0495}" Style="{StaticResource PaperTextStyle}" FontSize="16" />
                                             <Border Height="1" Background="{ThemeResource PaperMutedBrush}" Opacity="0.3" Margin="0,4,0,4" />
-                                            <TextBlock Text="1. 已知函数 f(x) = x³ − 3x，求函数在区间 [−2, 2] 上的最大值与最小值。" Style="{StaticResource PaperTextStyle}" />
-                                            <TextBlock Text="解：f′(x) = 3x² − 3 = 3(x + 1)(x − 1)。&#x0a;令 f′(x) = 0，得 x = −1 或 x = 1。&#x0a;比较端点与驻点的函数值，得最大值 2，最小值 −2。" Style="{StaticResource PaperTextStyle}" FontSize="17" Margin="18,0,0,18" />
-                                            <TextBlock Text="2. 直线 y = kx + 1 与抛物线 y = x² 交于 A、B 两点，求线段 AB 的长度。" Style="{StaticResource PaperTextStyle}" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0496}" Style="{StaticResource PaperTextStyle}" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0497}" Style="{StaticResource PaperTextStyle}" FontSize="17" Margin="18,0,0,18" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0498}" Style="{StaticResource PaperTextStyle}" />
                                             <Grid Height="112" Margin="30,0,30,4">
                                                 <Path Data="M 20,86 L 400,86 M 200,4 L 200,105" Stroke="{ThemeResource PaperMutedBrush}" StrokeThickness="1" />
                                                 <Path Data="M 62,4 Q 202,170 342,4 M 60,100 L 330,15" Stroke="{ThemeResource PaperInkBrush}" StrokeThickness="2" />
                                                 <TextBlock Text="x" Margin="406,72,0,0" Foreground="{ThemeResource PaperInkBrush}" />
                                                 <TextBlock Text="y" Margin="210,0,0,0" Foreground="{ThemeResource PaperInkBrush}" />
                                             </Grid>
-                                            <TextBlock Text="3. 设数列 {aₙ} 满足 a₁ = 1，aₙ₊₁ = 2aₙ + 1，写出通项公式并说明理由。" Style="{StaticResource PaperTextStyle}" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0499}" Style="{StaticResource PaperTextStyle}" />
                                         </StackPanel>
-                                        <Image x:Name="ImportedImage" Visibility="Collapsed" Stretch="Uniform" AutomationProperties.Name="原件图片" />
+                                        <Image x:Name="ImportedImage" Visibility="Collapsed" Stretch="Uniform" AutomationProperties.Name="{l:Text Key=S0500}" />
                                         <Canvas x:Name="SourceOverlay" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
                                             <Border x:Name="SourceHighlight" Canvas.Left="48" Canvas.Top="228" Width="664" Height="188" CornerRadius="6" BorderThickness="2"
                                                 BorderBrush="{ThemeResource SourceHighlightBorderBrush}" Background="{ThemeResource SourceHighlightBrush}" />
@@ -210,14 +211,14 @@
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel x:Name="PdfPageControls" Grid.ColumnSpan="3" Visibility="Collapsed" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8" HorizontalAlignment="Center">
-                                    <Button x:Name="PreviousPdfPage" Content="上一页" Click="PreviousPdfPage_Click" AutomationProperties.Name="显示上一页" />
-                                    <TextBlock x:Name="PdfPageLabel" Text="第 1 / 1 页" VerticalAlignment="Center" />
-                                    <Button x:Name="NextPdfPage" Content="下一页" Click="NextPdfPage_Click" AutomationProperties.Name="显示下一页" />
-                                    <Button x:Name="CancelPreview" Content="取消加载" Click="CancelPreview_Click" IsEnabled="False" />
+                                    <Button x:Name="PreviousPdfPage" Content="{l:Text Key=S0501}" Click="PreviousPdfPage_Click" AutomationProperties.Name="{l:Text Key=S0502}" />
+                                    <TextBlock TextWrapping="Wrap" x:Name="PdfPageLabel" Text="{l:Text Key=S0503}" VerticalAlignment="Center" />
+                                    <Button x:Name="NextPdfPage" Content="{l:Text Key=S0504}" Click="NextPdfPage_Click" AutomationProperties.Name="{l:Text Key=S0505}" />
+                                    <Button x:Name="CancelPreview" Content="{l:Text Key=S0506}" Click="CancelPreview_Click" IsEnabled="False" />
                                 </StackPanel>
-                                <Button Grid.Row="1" Click="FitPage_Click" Content="适合页面" ToolTipService.ToolTip="恢复适合视口的缩放" />
+                                <Button Grid.Row="1" Click="FitPage_Click" Content="{l:Text Key=S0507}" ToolTipService.ToolTip="{l:Text Key=S0508}" />
                                 <Slider x:Name="ZoomSlider" Grid.Row="1" Grid.Column="1" Minimum="25" Maximum="400" Value="65" StepFrequency="5" Width="130"
-                                    HorizontalAlignment="Right" VerticalAlignment="Center" ValueChanged="ZoomSlider_ValueChanged" AutomationProperties.Name="原件缩放百分比" />
+                                    HorizontalAlignment="Right" VerticalAlignment="Center" ValueChanged="ZoomSlider_ValueChanged" AutomationProperties.Name="{l:Text Key=S0509}" />
                                 <TextBlock x:Name="ZoomLabel" Grid.Row="1" Grid.Column="2" Text="65%" Width="44" VerticalAlignment="Center" TextAlignment="Right" Style="{StaticResource QuietTextStyle}" />
                             </Grid>
                         </Grid>
@@ -228,13 +229,13 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="QuestionListRow" Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid x:Name="QuestionListHeading" Padding="20,14" ColumnSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="题目" Style="{StaticResource PanelHeadingStyle}" />
+                                <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0029}" Style="{StaticResource PanelHeadingStyle}" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
                             </Grid>
                             <ListView x:Name="QuestionList" Grid.Row="1" Margin="8,0,8,8" Padding="0" SelectionMode="Single"
                                 ItemsSource="{x:Bind ViewModel.Questions}" SelectedItem="{x:Bind ViewModel.SelectedQuestion, Mode=TwoWay}"
                                 SelectionChanged="QuestionList_SelectionChanged" IsItemClickEnabled="False" HorizontalContentAlignment="Stretch"
-                                ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="题目列表">
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{l:Text Key=S0510}">
                                 <ListView.ItemsPanel><ItemsPanelTemplate><ItemsStackPanel Orientation="Vertical" /></ItemsPanelTemplate></ListView.ItemsPanel>
                                 <ListView.ItemTemplate>
                                     <DataTemplate x:DataType="vm:QuestionViewModel">
@@ -255,37 +256,53 @@
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <TextBlock Text="{x:Bind ViewModel.SelectedQuestion.Label, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                            <Button x:Name="LocateSourceButton" Content="定位原件" Click="LocateSource_Click" />
-                                            <Button Content="保存" Command="{x:Bind ViewModel.FinishEditCommand}" Style="{StaticResource AccentButtonStyle}" />
+                                            <Button x:Name="LocateSourceButton" Content="{l:Text Key=S0511}" Click="LocateSource_Click" />
+                                            <Button Content="{l:Text Key=S0065}" Command="{x:Bind ViewModel.FinishEditCommand}" Style="{StaticResource AccentButtonStyle}" />
                                         </StackPanel>
                                     </Grid>
-                                    <ScrollViewer x:Name="QuestionContentHost" VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="题目内容" IsTabStop="True" />
-                                    <TextBox x:Name="AnswerEditor" Header="答案" AcceptsReturn="True" TextWrapping="Wrap"
+                                    <ScrollViewer x:Name="QuestionContentHost" VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="{l:Text Key=S0512}" IsTabStop="True" />
+                                    <TextBox x:Name="AnswerEditor" Header="{l:Text Key=S0513}" AcceptsReturn="True" TextWrapping="Wrap"
                                         MinHeight="100" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
                                         Text="{x:Bind ViewModel.SelectedQuestion.Answer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBox Header="备注" PlaceholderText="记录你的理解或复习提示" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                    <TextBox Header="{l:Text Key=S0514}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
                                         Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 </StackPanel>
                             </ScrollViewer>
                             <StackPanel x:Name="EmptyQuestionState" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="24">
                                 <FontIcon Glyph="&#xE8F1;" FontSize="36" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock x:Name="EmptyQuestionTitle" Text="还没有题目" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
-                                <TextBlock x:Name="EmptyQuestionMessage" Text="在试卷页面导入 PDF 或图片，识别后题目会自动加入题库。" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
+                                <TextBlock TextWrapping="Wrap" x:Name="EmptyQuestionTitle" Text="{l:Text Key=S0014}" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="EmptyQuestionMessage" Text="{l:Text Key=S0018}" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
                 <Grid x:Name="TasksPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" ColumnSpacing="16" RowSpacing="12" SizeChanged="TasksPanel_SizeChanged">
-                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="TaskListColumn" Width="268" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.Resources>
+                        <Style x:Key="QuietTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                            <Setter Property="FontSize" Value="14" />
+                            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Style>
+                        <Style x:Key="BodyStrongTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+                            <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
+                            <Setter Property="FontSize" Value="16" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+                            <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
+                            <Setter Property="FontSize" Value="16" />
+                            <Setter Property="FontWeight" Value="Normal" />
+                        </Style>
+                    </Grid.Resources>
+                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="TaskListColumn" Width="300" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition x:Name="TaskListRow" Height="*" /><RowDefinition Height="0" /></Grid.RowDefinitions>
                     <Border x:Name="TaskSidebar" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,12,8,8">
                         <Grid RowSpacing="10">
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                            <TextBlock Text="最近任务" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="12,0" />
-                            <ListView x:Name="TaskPicker" Grid.Row="1" SelectionChanged="TaskPicker_SelectionChanged" HorizontalContentAlignment="Stretch" Padding="0" AutomationProperties.Name="任务列表" />
+                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0516}" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="12,0" />
+                            <ListView x:Name="TaskPicker" Grid.Row="1" SelectionChanged="TaskPicker_SelectionChanged" HorizontalContentAlignment="Stretch" Padding="0" AutomationProperties.Name="{l:Text Key=S0517}" />
                         </Grid>
                     </Border>
-                    <ComboBox x:Name="TaskCompactPicker" Visibility="Collapsed" HorizontalAlignment="Stretch" SelectionChanged="TaskCompactPicker_SelectionChanged" AutomationProperties.Name="选择任务" />
+                    <ComboBox x:Name="TaskCompactPicker" Visibility="Collapsed" HorizontalAlignment="Stretch" SelectionChanged="TaskCompactPicker_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0518}" />
                     <Border x:Name="TaskDetail" Grid.Column="1" SizeChanged="TasksPanel_SizeChanged" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -297,29 +314,29 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                             <FontIcon x:Name="TaskHeroIcon" Glyph="&#xE9F9;" FontSize="20" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Top" Margin="0,4,0,0" />
                                             <StackPanel Grid.Column="1" Spacing="6">
-                                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskTitle" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" /><TextBlock x:Name="TaskSampleMark" Grid.Column="1" Text="示例" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" VerticalAlignment="Top" Margin="0,4,0,0" /></Grid>
+                                                <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskTitle" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="24" TextWrapping="Wrap" /><TextBlock TextWrapping="Wrap" x:Name="TaskSampleMark" Grid.Column="1" Text="{l:Text Key=S0519}" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" VerticalAlignment="Top" Margin="0,4,0,0" /></Grid>
                                                 <TextBlock x:Name="TaskSubtitle" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
                                             </StackPanel>
                                         </Grid>
                                         <StackPanel x:Name="TaskButtons" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
-                                            <Button x:Name="TaskPermissionButton" Content="查看执行请求" Click="TaskPermission_Click" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" />
-                                            <Button x:Name="TaskCancelButton" Content="取消任务" Click="TaskCancel_Click" Visibility="Collapsed" />
-                                            <Button x:Name="TaskLibraryButton" Content="查看题库" Click="TaskLibrary_Click" />
+                                            <Button FontSize="16" x:Name="TaskPermissionButton" Content="{l:Text Key=S0520}" Click="TaskPermission_Click" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" />
+                                            <Button FontSize="16" x:Name="TaskCancelButton" Content="{l:Text Key=S0521}" Click="TaskCancel_Click" Visibility="Collapsed" />
+                                            <Button FontSize="16" x:Name="TaskLibraryButton" Content="{l:Text Key=S0522}" Click="TaskLibrary_Click" />
                                         </StackPanel>
                                     </Grid>
                                     <Grid ColumnSpacing="24">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                        <StackPanel Spacing="8"><TextBlock Text="已读页面" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskPages" FontSize="20" FontWeight="SemiBold" /></StackPanel>
-                                        <StackPanel Grid.Column="1" Spacing="8"><TextBlock Text="已存题目" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskQuestions" FontSize="20" FontWeight="SemiBold" /></StackPanel>
+                                        <StackPanel Spacing="8"><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0523}" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskPages" FontSize="24" FontWeight="SemiBold" /></StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="8"><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0524}" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskQuestions" FontSize="24" FontWeight="SemiBold" /></StackPanel>
                                         <Grid x:Name="TaskCostRow" Grid.Column="2" RowSpacing="8">
                                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                             <StackPanel Orientation="Horizontal" Spacing="12">
-                                                <TextBlock Text="预估费用" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
-                                                <HyperlinkButton x:Name="TaskUsageButton" Content="明细" Click="TaskUsage_Click" FontSize="12" Padding="4,0" MinHeight="16">
+                                                <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0525}" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
+                                                <HyperlinkButton x:Name="TaskUsageButton" Content="{l:Text Key=S0526}" Click="TaskUsage_Click" FontSize="14" Padding="4,0" MinHeight="24">
                                                     <FlyoutBase.AttachedFlyout>
                                                         <Flyout x:Name="TaskUsageFlyout" Placement="Bottom">
                                                             <StackPanel x:Name="TaskUsageDetails" Spacing="16" Width="300">
-                                                                <TextBlock Text="费用与用量" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                                <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0527}" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                                                 <TextBlock x:Name="TaskModelCalls" Style="{StaticResource QuietTextStyle}" />
                                                                 <StackPanel x:Name="TaskTokenUsage" Spacing="8">
                                                                     <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskInputUsage" TextWrapping="Wrap" /><TextBlock x:Name="TaskOutputUsage" Grid.Column="1" TextWrapping="Wrap" /></Grid>
@@ -327,14 +344,14 @@
                                                                     <TextBlock x:Name="TaskInputCached" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
                                                                     <TextBlock x:Name="TaskInputCacheWrite" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
                                                                 </StackPanel>
-                                                                <TextBlock x:Name="TaskNoUsage" Text="暂无用量记录" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" />
+                                                                <TextBlock TextWrapping="Wrap" x:Name="TaskNoUsage" Text="{l:Text Key=S0528}" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" />
                                                                 <TextBlock x:Name="TaskRateNote" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
                                                             </StackPanel>
                                                         </Flyout>
                                                     </FlyoutBase.AttachedFlyout>
                                                 </HyperlinkButton>
                                             </StackPanel>
-                                            <TextBlock x:Name="TaskUsage" Grid.Row="1" Text="—" FontSize="20" FontWeight="SemiBold" />
+                                            <TextBlock x:Name="TaskUsage" Grid.Row="1" Text="—" FontSize="24" FontWeight="SemiBold" />
                                         </Grid>
                                     </Grid>
                                 </StackPanel>
@@ -342,7 +359,7 @@
                             <Border Grid.Row="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0">
                                 <Grid RowSpacing="12" Padding="24,16,24,0">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="执行日志" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><ProgressRing x:Name="TaskProgress" IsActive="True" Width="14" Height="14" MinWidth="14" MinHeight="14" Visibility="Collapsed" AutomationProperties.Name="任务正在处理" /><TextBlock x:Name="TaskStateLabel" Style="{StaticResource QuietTextStyle}" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Center" /></StackPanel><Button Grid.Column="3" Click="TaskLatest_Click" ToolTipService.ToolTip="滚动到最新记录" AutomationProperties.Name="滚动到最新记录"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE74B;" FontSize="12" /><TextBlock Text="最新" /></StackPanel></Button></Grid>
+                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0529}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><ProgressRing x:Name="TaskProgress" IsActive="True" Width="14" Height="14" MinWidth="14" MinHeight="14" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0530}" /><TextBlock x:Name="TaskStateLabel" Style="{StaticResource QuietTextStyle}" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Center" /></StackPanel><Button FontSize="16" Grid.Column="3" Click="TaskLatest_Click" ToolTipService.ToolTip="{l:Text Key=S0531}" AutomationProperties.Name="{l:Text Key=S0531}"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE74B;" FontSize="12" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0532}" /></StackPanel></Button></Grid>
                                     <ScrollViewer x:Name="TaskLogScroll" Grid.Row="1" HorizontalContentAlignment="Stretch" SizeChanged="TaskLog_SizeChanged" ViewChanged="TaskLog_ViewChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="TaskLog" Spacing="0" Padding="0,0,4,20" /></ScrollViewer>
                                 </Grid>
                             </Border>
@@ -351,57 +368,57 @@
                     <Border x:Name="TaskEmpty" Grid.ColumnSpan="2" Grid.RowSpan="2" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="300" Margin="24">
                             <Border Background="{ThemeResource TaskAccentBackgroundBrush}" CornerRadius="24" Width="88" Height="88"><FontIcon Glyph="&#xE9F9;" FontSize="38" Foreground="{ThemeResource TaskAccentBrush}" /></Border>
-                            <TextBlock Text="识别进度，随时可见" Style="{StaticResource SubtitleTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" />
-                            <TextBlock Text="导入试卷后，在这里查看阅读、识别与保存的每一步。" Style="{StaticResource QuietTextStyle}" TextAlignment="Center" TextWrapping="Wrap" />
-                            <Button Content="导入试卷" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" />
+                            <TextBlock Text="{l:Text Key=S0533}" Style="{StaticResource SubtitleTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" />
+                            <TextBlock Text="{l:Text Key=S0534}" Style="{StaticResource QuietTextStyle}" TextAlignment="Center" TextWrapping="Wrap" />
+                            <Button FontSize="16" Content="{l:Text Key=S0202}" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
                 </Grid>
                 <ScrollViewer x:Name="SettingsPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="20" Padding="0,0,4,16">
-                        <TextBlock Text="模型" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0535}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Grid x:Name="ProviderLayout" ColumnSpacing="20" RowSpacing="16" SizeChanged="ProviderLayout_SizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition x:Name="ProviderListColumn" Width="212" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Border x:Name="ProviderSidebar" Padding="12" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" VerticalAlignment="Top">
                                 <StackPanel Spacing="12">
-                                    <TextBlock Text="供应商" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="8,4" />
-                                    <ListView x:Name="ProviderPicker" MinHeight="0" MaxHeight="420" Padding="0" Visibility="Collapsed" SelectionChanged="ProviderPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="供应商列表">
+                                    <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0536}" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="8,4" />
+                                    <ListView x:Name="ProviderPicker" MinHeight="0" MaxHeight="420" Padding="0" Visibility="Collapsed" SelectionChanged="ProviderPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="{l:Text Key=S0537}">
                                         <ListView.ItemTemplate><DataTemplate x:DataType="domain:Provider"><TextBlock Text="{x:Bind Name}" ToolTipService.ToolTip="{x:Bind Name}" TextTrimming="CharacterEllipsis" Margin="4,8" /></DataTemplate></ListView.ItemTemplate>
                                     </ListView>
-                                    <Button Content="添加供应商" Click="NewProvider_Click" HorizontalAlignment="Stretch" />
+                                    <Button Content="{l:Text Key=S0538}" Click="NewProvider_Click" HorizontalAlignment="Stretch" />
                                 </StackPanel>
                             </Border>
                             <StackPanel x:Name="ProviderDetails" Grid.Column="1" Spacing="16">
                                 <Border x:Name="ProviderSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                                     <StackPanel Spacing="14">
-                                        <TextBlock Text="供应商设置" Style="{StaticResource PanelHeadingStyle}" />
+                                        <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0539}" Style="{StaticResource PanelHeadingStyle}" />
                                         <Grid x:Name="ProviderFields" ColumnSpacing="16">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                            <TextBox x:Name="ProviderName" Header="名称" PlaceholderText="供应商名称" />
-                                            <ComboBox x:Name="ProtocolPicker" Grid.Column="1" Header="接口" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                            <TextBox x:Name="ProviderName" Header="{l:Text Key=S0540}" PlaceholderText="{l:Text Key=S0541}" />
+                                            <ComboBox x:Name="ProtocolPicker" Grid.Column="1" Header="{l:Text Key=S0542}" SelectedIndex="0" HorizontalAlignment="Stretch">
                                                 <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" />
                                             </ComboBox>
-                                            <TextBox x:Name="ProviderUrl" Grid.Row="1" Header="地址" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
-                                            <PasswordBox x:Name="ProviderKey" Grid.Row="1" Grid.Column="1" Header="密钥" PlaceholderText="留空保留已有密钥" />
+                                            <TextBox x:Name="ProviderUrl" Grid.Row="1" Header="{l:Text Key=S0543}" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
+                                            <PasswordBox x:Name="ProviderKey" Grid.Row="1" Grid.Column="1" Header="{l:Text Key=S0544}" PlaceholderText="{l:Text Key=S0545}" />
                                         </Grid>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Content="保存" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
-                                            <Button x:Name="DeleteProviderButton" Content="删除供应商" Click="DeleteProvider_Click" IsEnabled="False" />
+                                            <Button Content="{l:Text Key=S0065}" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
+                                            <Button x:Name="DeleteProviderButton" Content="{l:Text Key=S0546}" Click="DeleteProvider_Click" IsEnabled="False" />
                                         </StackPanel>
                                         <TextBlock x:Name="ProviderFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                                     </StackPanel>
                                 </Border>
                                 <Border x:Name="ModelSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                                     <StackPanel Spacing="14">
-                                        <TextBlock Text="模型列表" Style="{StaticResource PanelHeadingStyle}" />
+                                        <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0547}" Style="{StaticResource PanelHeadingStyle}" />
                                         <StackPanel x:Name="ModelActionButtons" Orientation="Horizontal" Spacing="8">
-                                            <Button x:Name="FetchModelsButton" Content="导入模型" Click="RefreshModels_Click" HorizontalAlignment="Left" IsEnabled="False" />
-                                            <Button x:Name="AddModelButton" Content="添加模型" Click="NewModel_Click" HorizontalAlignment="Left" IsEnabled="False" />
-                                            <Button x:Name="TestModelButton" Content="测试连接" Click="TestProvider_Click" HorizontalAlignment="Left" IsEnabled="False" ToolTipService.ToolTip="向所选模型发送简短请求，可能产生少量费用。" />
+                                            <Button x:Name="FetchModelsButton" Content="{l:Text Key=S0548}" Click="RefreshModels_Click" HorizontalAlignment="Left" IsEnabled="False" />
+                                            <Button x:Name="AddModelButton" Content="{l:Text Key=S0549}" Click="NewModel_Click" HorizontalAlignment="Left" IsEnabled="False" />
+                                            <Button x:Name="TestModelButton" Content="{l:Text Key=S0550}" Click="TestProvider_Click" HorizontalAlignment="Left" IsEnabled="False" ToolTipService.ToolTip="{l:Text Key=S0551}" />
                                         </StackPanel>
-                                        <ListView x:Name="ModelPicker" MinHeight="0" MaxHeight="240" Padding="0" Visibility="Collapsed" SelectionChanged="ModelPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="模型列表">
+                                        <ListView x:Name="ModelPicker" MinHeight="0" MaxHeight="240" Padding="0" Visibility="Collapsed" SelectionChanged="ModelPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="{l:Text Key=S0547}">
                                             <ListView.ItemTemplate>
                                                 <DataTemplate x:DataType="domain:ModelConfig">
                                                     <StackPanel Spacing="3" Padding="4,8" ToolTipService.ToolTip="{x:Bind Id}">
@@ -415,74 +432,82 @@
                                             <Grid x:Name="ModelIdentityFields" ColumnSpacing="16">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                                <TextBox x:Name="ModelDisplayName" Header="显示名" PlaceholderText="留空使用模型 ID" />
-                                                <TextBox x:Name="ModelId" Grid.Column="1" Header="模型 ID" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
+                                                <TextBox x:Name="ModelDisplayName" Header="{l:Text Key=S0552}" PlaceholderText="{l:Text Key=S0553}" />
+                                                <TextBox x:Name="ModelId" Grid.Column="1" Header="{l:Text Key=S0554}" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
                                             </Grid>
-                                            <TextBox x:Name="ModelContextWindow" Header="上下文窗口" PlaceholderText="未确认" />
+                                            <TextBox x:Name="ModelContextWindow" Header="{l:Text Key=S0555}" PlaceholderText="{l:Text Key=S0556}" />
                                             <StackPanel Orientation="Horizontal" Spacing="16">
-                                                <CheckBox x:Name="ModelVision" Content="支持图片" IsThreeState="True" MinWidth="0" />
-                                                <CheckBox x:Name="ModelTools" Content="支持工具" IsThreeState="True" MinWidth="0" />
+                                                <CheckBox x:Name="ModelVision" Content="{l:Text Key=S0557}" IsThreeState="True" MinWidth="0" />
+                                                <CheckBox x:Name="ModelTools" Content="{l:Text Key=S0558}" IsThreeState="True" MinWidth="0" />
                                             </StackPanel>
-                                            <TextBlock Text="可选思考强度" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0559}" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                             <VariableSizedWrapGrid x:Name="ModelThinkingOptions" Orientation="Horizontal" MaximumRowsOrColumns="7" />
-                                            <TextBox x:Name="ModelThinkingBudget" Header="思考预算" PlaceholderText="留空不设置" />
-                                            <TextBlock Text="仅选择此模型支持的强度；图片和工具能力未确认时保留横线。" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
-                                            <TextBlock Text="价格" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                            <TextBox x:Name="ModelThinkingBudget" Header="{l:Text Key=S0560}" PlaceholderText="{l:Text Key=S0561}" />
+                                            <TextBlock Text="{l:Text Key=S0562}" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                            <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0563}" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                             <Grid x:Name="ModelPriceFields" ColumnSpacing="16">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="96" /></Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                                <TextBox x:Name="ModelPriceInput" Header="输入（未命中）" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
-                                                <TextBox x:Name="ModelPriceCacheRead" Grid.Column="1" Header="输入（命中）" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
-                                                <TextBox x:Name="ModelPriceCacheWrite" Grid.Column="2" Header="缓存写入" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
-                                                <TextBox x:Name="ModelPriceOutput" Grid.Column="3" Header="输出" PlaceholderText="未设置" TextChanged="ModelPrice_Changed" />
-                                                <ComboBox x:Name="ModelCurrency" Grid.Column="4" Header="货币" PlaceholderText="选择货币" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="ModelPriceCurrency_Changed"><x:String>美元</x:String><x:String>人民币</x:String></ComboBox>
+                                                <TextBox x:Name="ModelPriceInput" Header="{l:Text Key=S0564}" PlaceholderText="{l:Text Key=S0023}" TextChanged="ModelPrice_Changed" />
+                                                <TextBox x:Name="ModelPriceCacheRead" Grid.Column="1" Header="{l:Text Key=S0565}" PlaceholderText="{l:Text Key=S0023}" TextChanged="ModelPrice_Changed" />
+                                                <TextBox x:Name="ModelPriceCacheWrite" Grid.Column="2" Header="{l:Text Key=S0566}" PlaceholderText="{l:Text Key=S0023}" TextChanged="ModelPrice_Changed" />
+                                                <TextBox x:Name="ModelPriceOutput" Grid.Column="3" Header="{l:Text Key=S0567}" PlaceholderText="{l:Text Key=S0023}" TextChanged="ModelPrice_Changed" />
+                                                <ComboBox x:Name="ModelCurrency" Grid.Column="4" Header="{l:Text Key=S0568}" PlaceholderText="{l:Text Key=S0569}" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="ModelPriceCurrency_Changed"><ComboBoxItem Content="{l:Text Key=S0597}" /><ComboBoxItem Content="{l:Text Key=S0598}" /></ComboBox>
                                             </Grid>
                                             <TextBlock x:Name="ModelCnyPreview" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                                             <TextBlock x:Name="ModelExtraInfo" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
-                                            <Button Content="从 models.dev 填充" Click="FillModelCatalog_Click" HorizontalAlignment="Left" />
+                                            <Button Content="{l:Text Key=S0570}" Click="FillModelCatalog_Click" HorizontalAlignment="Left" />
                                             <TextBlock x:Name="ModelCatalogFeedback" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <Button Content="保存模型" Click="SaveModel_Click" Style="{StaticResource AccentButtonStyle}" />
-                                                <Button x:Name="DeleteModelButton" Content="删除模型" Click="DeleteModel_Click" IsEnabled="False" />
+                                                <Button Content="{l:Text Key=S0571}" Click="SaveModel_Click" Style="{StaticResource AccentButtonStyle}" />
+                                                <Button x:Name="DeleteModelButton" Content="{l:Text Key=S0572}" Click="DeleteModel_Click" IsEnabled="False" />
                                             </StackPanel>
                                         </StackPanel>
-                                        <TextBlock x:Name="ModelFeedback" Text="先保存供应商，再添加模型。" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                                        <TextBlock x:Name="ModelFeedback" Text="{l:Text Key=S0164}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
                         </Grid>
-                        <TextBlock x:Name="LibrarySectionTitle" Text="资料库" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock TextWrapping="Wrap" x:Name="LibrarySectionTitle" Text="{l:Text Key=S0573}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
-                                <TextBox x:Name="LibraryPath" Header="保存位置" IsReadOnly="True" TextWrapping="Wrap" />
-                                <TextBlock Text="导入的原件会复制到资料库，删除原文件后仍可查看。" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
+                                <TextBox x:Name="LibraryPath" Header="{l:Text Key=S0574}" IsReadOnly="True" TextWrapping="Wrap" />
+                                <TextBlock Text="{l:Text Key=S0575}" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                                 <StackPanel x:Name="LibraryActionButtons" Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="ChangeLibraryButton" Content="更改位置" Click="ChangeLibrary_Click" HorizontalAlignment="Left" />
-                                    <Button Content="选择已有资料库" Click="SelectLibrary_Click" HorizontalAlignment="Left" />
-                                    <Button Content="打开文件夹" Click="OpenLibraryFolder_Click" HorizontalAlignment="Left" />
+                                    <Button x:Name="ChangeLibraryButton" Content="{l:Text Key=S0576}" Click="ChangeLibrary_Click" HorizontalAlignment="Left" />
+                                    <Button Content="{l:Text Key=S0577}" Click="SelectLibrary_Click" HorizontalAlignment="Left" />
+                                    <Button Content="{l:Text Key=S0578}" Click="OpenLibraryFolder_Click" HorizontalAlignment="Left" />
                                 </StackPanel>
                                 <TextBlock x:Name="LibraryFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="执行" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0579}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
-                                <ComboBox x:Name="ExecutionModePicker" Header="代码与命令" MinWidth="280" SelectionChanged="ExecutionModePicker_SelectionChanged">
-                                    <ComboBoxItem Content="每次询问" /><ComboBoxItem Content="沙箱运行" /><ComboBoxItem Content="直接在本机运行" />
+                                <ComboBox x:Name="ExecutionModePicker" Header="{l:Text Key=S0580}" MinWidth="280" SelectionChanged="ExecutionModePicker_SelectionChanged">
+                                    <ComboBoxItem Content="{l:Text Key=S0581}" /><ComboBoxItem Content="{l:Text Key=S0582}" /><ComboBoxItem Content="{l:Text Key=S0583}" />
                                 </ComboBox>
                                 <TextBlock x:Name="ExecutionDescription" TextWrapping="Wrap" />
-                                <CheckBox x:Name="SandboxNetworkToggle" Content="允许沙箱访问网络" Checked="SandboxNetworkToggle_Changed" Unchecked="SandboxNetworkToggle_Changed" />
+                                <CheckBox x:Name="SandboxNetworkToggle" Content="{l:Text Key=S0584}" Checked="SandboxNetworkToggle_Changed" Unchecked="SandboxNetworkToggle_Changed" />
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="外观" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0585}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
-                                <ComboBox x:Name="ThemePicker" Header="主题" SelectedIndex="0" SelectionChanged="ThemePicker_SelectionChanged" MinWidth="220">
-                                    <ComboBoxItem Content="跟随 Windows" Tag="system" /><ComboBoxItem Content="浅色" Tag="light" /><ComboBoxItem Content="深色" Tag="dark" />
+                                <ComboBox x:Name="ThemePicker" Header="{l:Text Key=S0586}" SelectedIndex="0" SelectionChanged="ThemePicker_SelectionChanged" MinWidth="220">
+                                    <ComboBoxItem Content="{l:Text Key=S0587}" Tag="system" /><ComboBoxItem Content="{l:Text Key=S0588}" Tag="light" /><ComboBoxItem Content="{l:Text Key=S0589}" Tag="dark" />
                                 </ComboBox>
+                                <ComboBox x:Name="LanguagePicker" Header="{l:Text Key=S0590}" SelectionChanged="LanguagePicker_SelectionChanged" MinWidth="220" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="{l:Text Key=S0587}" Tag="system" />
+                                    <ComboBoxItem Content="简体中文" Tag="zh-CN" />
+                                    <ComboBoxItem Content="English" Tag="en-US" />
+                                    <ComboBoxItem Content="日本語" Tag="ja-JP" />
+                                    <ComboBoxItem Content="한국어" Tag="ko-KR" />
+                                </ComboBox>
+                                <TextBlock x:Name="LanguageFeedback" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                         </Border>
-                        <Button Content="关于" Click="About_Click" HorizontalAlignment="Left" />
+                        <Button Content="{l:Text Key=S0593}" Click="About_Click" HorizontalAlignment="Left" />
                     </StackPanel>
                 </ScrollViewer>
                 <Grid x:Name="WorkspaceStatus" Grid.Row="3" ColumnSpacing="20" Padding="0,0,0,2">
@@ -490,7 +515,7 @@
                     <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
                     <StackPanel x:Name="TaskActivity" Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="{x:Bind ViewModel.TaskStatus, Mode=OneWay}" Style="{StaticResource QuietTextStyle}" VerticalAlignment="Center" />
-                        <Button Content="取消任务" Command="{x:Bind ViewModel.CancelTaskCommand}" IsEnabled="{x:Bind ViewModel.IsTaskRunning, Mode=OneWay}" />
+                        <Button Content="{l:Text Key=S0521}" Command="{x:Bind ViewModel.CancelTaskCommand}" IsEnabled="{x:Bind ViewModel.IsTaskRunning, Mode=OneWay}" />
                     </StackPanel>
                 </Grid>
             </Grid>

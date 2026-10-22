@@ -7,6 +7,9 @@
     <SelfContained>true</SelfContained>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/OhMyStudy.App/Localization/UiText.cs" Link="Localization/UiText.cs" />
+    <EmbeddedResource Include="../../src/OhMyStudy.App/Localization/*.xml" LogicalName="OhMyStudy.App.Localization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/OhMyStudy.App/MainWindow.xaml" LogicalName="Localization.MainWindow.xaml" />
     <ProjectReference Include="../../src/OhMyStudy.Domain/OhMyStudy.Domain.csproj" />
     <None Include="../Fixtures/Compatibility/*.json" Link="Fixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -59,21 +59,21 @@
          where the framework fixes FontFamily to XamlAutoFontFamily. Redefining them applies the
          interface family to every existing usage without touching each control. -->
     <Style x:Key="BodyStrongTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
-        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource BodyStrongTextBlockFontSize}" />
     </Style>
     <Style x:Key="SubtitleTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
-        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource SubtitleTextBlockFontSize}" />
         <Setter Property="OpticalMarginAlignment" Value="TrimSideBearings" />
     </Style>
     <Style x:Key="TitleTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
-        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource TitleTextBlockFontSize}" />
         <Setter Property="OpticalMarginAlignment" Value="TrimSideBearings" />
     </Style>
     <Style x:Key="CaptionTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
-        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource CaptionTextBlockFontSize}" />
         <Setter Property="FontWeight" Value="Normal" />
     </Style>
@@ -85,7 +85,7 @@
     </Style>
     <Style x:Key="PaperTextStyle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{ThemeResource PaperInkBrush}" />
-        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
         <Setter Property="FontSize" Value="18" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="LineHeight" Value="31" />

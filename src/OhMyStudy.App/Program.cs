@@ -34,7 +34,8 @@ internal static class Program
             {
                 SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
                 AppLog.Info("Application.Create", "Creating the application.");
-                _ = new App();
+                try { _ = new App(); }
+                catch (Exception error) { AppLog.Error("Application.Create", error); throw; }
             });
             AppLog.Info("Application.Exit", "The UI event loop ended.");
             return 0;

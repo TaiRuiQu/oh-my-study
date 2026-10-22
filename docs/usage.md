@@ -2,7 +2,13 @@
 
 [Home](../README.md) · [Installation, Upgrade, and Uninstallation](installation.md) · [中文](usage.zh-CN.md)
 
-> The application interface is currently in Chinese. UI labels in this guide show the English name with the original Chinese label in parentheses, for example "Settings (设置)".
+The interface supports Simplified Chinese, English, Japanese, and Korean. This guide includes Chinese labels in parentheses for reference.
+
+## Language and typography
+
+In **Settings → Appearance → Language**, choose **Follow Windows**, **简体中文**, **English**, **日本語**, or **한국어**. Save any edits and restart the app to apply the language. This preference is stored on this computer independently of your library. Unsupported Windows languages fall back to English; Chinese Windows locales use Simplified Chinese.
+
+English and Chinese typography remain the primary focus. Interface fonts follow the selected language, and longer labels adapt to narrower windows. Changing the interface language does not translate imported materials, edits, or model responses. PDF output retains the existing Chinese/English typesetting and mathematics support; Japanese and Korean interface support does not add Japanese or Korean print fonts.
 
 ## Setting up models
 
@@ -48,6 +54,8 @@ AI recognition and grading results may be wrong. Verify the original question, a
 ## Viewing tasks and handling execution requests
 
 The "Tasks (任务)" page shows progress, saved questions, execution logs, and estimated costs. One AI task runs at a time and the rest queue; you can cancel a task, and questions that have already been saved successfully are kept. Tasks continue after the window is minimized; quitting the app stops them.
+
+The task log shows when the model is thinking or receiving a response. Successful tools show only their names; running, pending, and failed tools show their state, with guidance on failures. If the model replies with text without using tools, the task can prompt it to continue twice in a row; those calls still count toward usage and cost. Missing cache statistics are shown as not provided, separately from an explicit zero.
 
 Choose an execution mode under "Settings → Execution → Code and commands (设置 → 执行 → 代码与命令)":
 

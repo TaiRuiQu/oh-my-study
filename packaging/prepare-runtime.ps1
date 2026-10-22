@@ -73,7 +73,7 @@ try {
     Copy-Item -LiteralPath $lockFile -Destination (Join-Path $stage 'runtime.lock.json')
     $script = "import sys,json,numpy,sympy,matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as p; from PIL import Image; p.plot([0,1],[0,1]); p.close(); print(json.dumps({'python':sys.version.split()[0],'numpy':numpy.__version__,'sympy':sympy.__version__,'matplotlib':matplotlib.__version__,'pillow':Image.__version__}))"
     $savedCache = $env:MPLCONFIGDIR
-    try { $env:MPLCONFIGDIR = Join-Path $stage 'verification-cache'; & (Join-Path $python 'python.exe') -I -X utf8 -c $script; if ($LASTEXITCODE -ne 0) { throw 'Private computation package verification failed' } }
+    try { $env:MPLCONFIGDIR = Join-Path $stage 'verification-cache'; & (Join-Path $python 'python.exe') -I -B -X utf8 -c $script; if ($LASTEXITCODE -ne 0) { throw 'Private computation package verification failed' } }
     finally { $env:MPLCONFIGDIR = $savedCache }
     # Keep the install immutable after its manifest: runtime caches belong in task output directories.
     $verificationCache = Join-Path $stage 'verification-cache'

@@ -94,7 +94,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                 if (_preview && result.Document is null)
                 {
                     PreviewHeights.Set((source, Math.Floor(_width)), 20, source.Length * 2L + 64);
-                    return Plain("预览暂时无法显示");
+                    return Plain(UiText.Get("预览暂时无法显示"));
                 }
                 if (_preview && result.Document is { } large && (Math.Max(large.LogicalSize.Height, large.InkBounds.Y + large.InkBounds.Height) - Math.Min(0, large.InkBounds.Y) + 2 > 46
                     || Math.Max(large.LogicalSize.Width, large.InkBounds.X + large.InkBounds.Width) - Math.Min(0, large.InkBounds.X) + 2 > _width))
@@ -152,7 +152,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
             }
             parts.Clear(); paragraphSource.Clear();
         }
-        TextBlock Plain(string text) => new() { Text = text, FontFamily = new FontFamily(DocumentTypography.InterfaceFontFamily), FontSize = _preview ? 14 : 16, TextWrapping = TextWrapping.Wrap, MaxLines = _preview ? 2 : 0, TextTrimming = _preview ? TextTrimming.CharacterEllipsis : TextTrimming.None, IsTextSelectionEnabled = !_preview, HorizontalAlignment = HorizontalAlignment.Stretch };
+        TextBlock Plain(string text) => new() { Text = text, FontFamily = new FontFamily(UiText.ReadingFontFamily), FontSize = _preview ? 14 : 16, TextWrapping = TextWrapping.Wrap, MaxLines = _preview ? 2 : 0, TextTrimming = _preview ? TextTrimming.CharacterEllipsis : TextTrimming.None, IsTextSelectionEnabled = !_preview, HorizontalAlignment = HorizontalAlignment.Stretch };
     }
 
     private static async Task<Compilation> CompileAsync(string source, bool display, double fontSize, CancellationToken token)

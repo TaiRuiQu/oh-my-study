@@ -10,10 +10,13 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'ReleasePayload.ps1')
 $payload = (Resolve-Path -LiteralPath $PackageDirectory).Path.TrimEnd('\','/')
 $output = [IO.Path]::GetFullPath($OutputFile)
 if ($output.StartsWith($payload + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'MSI output must be outside its payload' }
 $manifest = Get-Content -LiteralPath (Join-Path $payload 'package-manifest.json') -Raw | ConvertFrom-Json
+$variant = if ($manifest.variant) { [string]$manifest.variant } else { 'unspecified' }
+if ($variant -notin @('aot','aot-avx512','self-contained','framework-dependent','unspecified')) { throw 'Unknown MSI build variant' }
 if (-not $PackageVersion) {
     $label = if ($manifest.version) { $manifest.version } else { '0.1.1' }
     $PackageVersion = if ($label -match '^v?(\d+\.\d+\.\d+)(?:[-+].*)?$') { $Matches[1] } else { '0.1.1' }
@@ -21,6 +24,7 @@ if (-not $PackageVersion) {
 $version = [version]$PackageVersion
 if ($version.Major -gt 255 -or $version.Minor -gt 255 -or $version.Build -lt 0 -or $version.Build -gt 65535 -or $version.Revision -ne -1) { throw 'MSI requires a three-part version (major/minor <= 255, build <= 65535)' }
 if (Test-Path -LiteralPath (Join-Path $payload 'OhMyStudy.Setup.exe')) { throw 'MSI payload must not include the legacy custom installer' }
+Assert-ReleasePayload $payload
 $files = @(Get-ChildItem -LiteralPath $payload -Recurse -File | Sort-Object FullName)
 foreach ($item in @((Get-Item -LiteralPath $payload)) + $files + @(Get-ChildItem -LiteralPath $payload -Recurse -Directory)) {
     if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Linked MSI input rejected: $($item.FullName)" }
@@ -89,7 +93,7 @@ Copy-Item -LiteralPath $iconSource -Destination $icon
 $stagedMsi = Join-Path $stage 'package.msi'
 $arguments = @('build', (Join-Path $PSScriptRoot 'msi/Package.wxs'), (Join-Path $PSScriptRoot 'msi/InstallDirDlg.wxs'), (Join-Path $PSScriptRoot 'msi/InstallUI.wxs'), $harvest,
     '-arch','x64','-culture','zh-CN','-ext',$tool.extension,'-intermediateFolder',$stage,
-    '-d',"PackageVersion=$PackageVersion",'-d',"ProductName=$ProductName",'-d',"UpgradeCode=$UpgradeCode",'-d',"RegistryKey=$RegistryKey",'-d',"LicenseRtf=$licenseRtf",'-d',"AppIcon=$icon",'-o',$stagedMsi)
+    '-d',"PackageVersion=$PackageVersion",'-d',"BuildVariant=$variant",'-d',"ProductName=$ProductName",'-d',"UpgradeCode=$UpgradeCode",'-d',"RegistryKey=$RegistryKey",'-d',"LicenseRtf=$licenseRtf",'-d',"AppIcon=$icon",'-o',$stagedMsi)
 $buildLog = Join-Path $stage 'wix-build.log'
 & dotnet $tool.cli @arguments 2>&1 | Tee-Object -FilePath $buildLog | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "WiX MSI build failed: $LASTEXITCODE; see $buildLog" }

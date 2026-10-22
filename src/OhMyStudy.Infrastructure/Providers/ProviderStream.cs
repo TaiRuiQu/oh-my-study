@@ -6,7 +6,7 @@ using static OhMyStudy.Infrastructure.Providers.ProviderProtocol;
 
 namespace OhMyStudy.Infrastructure.Providers;
 
-public sealed record ProviderProgress(string? Text = null, string? ToolName = null);
+public sealed record ProviderProgress(string? Text = null, string? ToolName = null, bool Thinking = false);
 public sealed record SseEvent(string? Event, string Data);
 
 /// <summary>Incremental SSE framing with strict UTF-8, byte limits and EOF validation.</summary>
@@ -122,6 +122,7 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
                 var block = value["content_block"]?.DeepClone() as JsonObject ?? throw ProtocolError("missing content block");
                 if (!_blocks.TryAdd(index, block)) throw ProtocolError("duplicate content block index");
                 _active.Add(index);
+                if (Text(block, "type") is "thinking" or "redacted_thinking") progress.Add(new(Thinking: true));
                 if (Text(block, "type") == "tool_use") progress.Add(new(ToolName: Text(block, "name") ?? ""));
                 break;
             case "content_block_delta":
@@ -132,8 +133,8 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
                 switch (Text(delta, "type"))
                 {
                     case "text_delta": Append(block, "text", delta); progress.Add(new(Text: Text(delta, "text"))); break;
-                    case "thinking_delta": Append(block, "thinking", delta); break;
-                    case "signature_delta": Append(block, "signature", delta); break;
+                    case "thinking_delta": Append(block, "thinking", delta); progress.Add(new(Thinking: true)); break;
+                    case "signature_delta": Append(block, "signature", delta); progress.Add(new(Thinking: true)); break;
                     case "input_json_delta":
                         if (!_arguments.TryGetValue(index, out var builder)) _arguments[index] = builder = new StringBuilder();
                         builder.Append(Text(delta, "partial_json") ?? throw ProtocolError("missing partial_json"));
@@ -155,7 +156,13 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
                 if (value["usage"] is JsonObject usage)
                 {
                     if (_raw["usage"] is not JsonObject) _raw["usage"] = new JsonObject();
-                    foreach (var (key, part) in usage) _raw["usage"]![key] = part?.DeepClone();
+                    foreach (var (key, part) in usage)
+                    {
+                        if (key is "input_tokens" or "output_tokens" or "cache_read_input_tokens" or "cache_creation_input_tokens"
+                            && _raw["usage"]![key] is JsonValue prior && prior.TryGetValue<ulong>(out var count)
+                            && (part is null || part is JsonValue next && next.TryGetValue<ulong>(out var updated) && updated < count)) continue;
+                        _raw["usage"]![key] = part?.DeepClone();
+                    }
                 }
                 break;
             case "message_stop":

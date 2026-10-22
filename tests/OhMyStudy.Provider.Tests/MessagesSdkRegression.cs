@@ -12,6 +12,7 @@ internal static class MessagesSdkRegression
     {
         await GatewayDiagnostics();
         await ConnectionProbeDetails();
+        await CacheUsage();
         var credentials = new ProviderCredentials("synthetic-key");
         var toolReply = fixtures["messages"]!["tool"]!;
         var finalReply = fixtures["messages"]!["final"]!;
@@ -49,7 +50,11 @@ internal static class MessagesSdkRegression
             var turn = await client.CallAsync(credentials, options, history, [tool], progress.Add);
             Require(turn.Calls.Count == 1 && turn.Calls[0].Arguments.GetProperty("page").GetInt32() == 1, "SDK fragmented tool JSON");
             Require(turn.Usage.Input == 100 && turn.Usage.CacheRead == 15 && turn.Usage.CacheWrite == 5 && turn.Usage.Output == 30, "cache usage survives SDK response mapping");
-            if (streaming) Require(progress.Any(p => p.ToolName == "read_image"), "SDK tool progress");
+            if (streaming)
+            {
+                Require(progress.Any(p => p.ToolName == "read_image") && progress.Any(p => p.Thinking), "SDK tool and thinking progress");
+                Require(progress.All(p => p.Text is null || !p.Text.Contains("Synthetic public summary", StringComparison.Ordinal)), "private thinking never becomes public output");
+            }
             firstAssistant = JsonNode.Parse(turn.Context.GetRawText());
             ProviderProtocol.ContinueWith(Protocol.Messages, history, turn, [new ToolResult { Call = turn.Calls[0], Text = "page 1", IsError = false, Images = [new Image { Mime = "image/png", Base64 = "SYNTHETIC_TOOL_IMAGE" }] }]);
             var snapshot = history.ToJsonString();
@@ -117,6 +122,53 @@ internal static class MessagesSdkRegression
         using (var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Reply("event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"content\":[]}}\n\n", true)))))
         using (var client = new ProviderClient(http, Protocol.Messages, "https://example.invalid/v1"))
             await Reject(() => client.CallAsync(credentials, Options(true), [], []), ErrorKind.Incomplete);
+    }
+
+    private static async Task CacheUsage()
+    {
+        var sse = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "messages.synthetic.sse"));
+        foreach (var (usage, input, read, write) in new (string, ulong, ulong, ulong)[]
+        {
+            ("\"output_tokens\":30", 100, 15, 5),
+            ("\"input_tokens\":0,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":null,\"output_tokens\":30", 100, 15, 5),
+            ("\"input_tokens\":90,\"cache_read_input_tokens\":25,\"cache_creation_input_tokens\":15,\"output_tokens\":30", 130, 25, 15)
+        })
+        {
+            using var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Reply(sse.Replace("\"output_tokens\":30", usage, StringComparison.Ordinal), true))));
+            using var client = new ProviderClient(http, Protocol.Messages, "https://example.invalid/v1");
+            var turn = await client.CallAsync(new("synthetic-key"), Options(true), ProviderProtocol.Initial(Protocol.Messages, "Synthetic cache check", []), []);
+            Require(turn.Usage.Input == input && turn.Usage.CacheRead == read && turn.Usage.CacheWrite == write, "SDK stream preserves cumulative cache counters, including gateways with empty terminal counters");
+        }
+        foreach (var streaming in new[] { false, true })
+        {
+            using var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Reply(streaming ? sse : """
+                {"id":"msg_cache_synthetic","type":"message","role":"assistant","model":"synthetic","content":[],"stop_reason":"end_turn","usage":{"input_tokens":80,"cache_read_input_tokens":15,"cache_creation_input_tokens":5,"output_tokens":30}}
+                """, streaming))));
+            using var sdk = new Anthropic.AnthropicClient { ApiKey = "synthetic-key", AuthToken = null, BaseUrl = "https://example.invalid", HttpClient = http, MaxRetries = 0 };
+            var request = new Anthropic.Models.Messages.MessageCreateParams
+            {
+                Model = "synthetic",
+                MaxTokens = 256,
+                Messages = [],
+                CacheControl = new Anthropic.Models.Messages.CacheControlEphemeral()
+            };
+            if (!streaming)
+            {
+                var response = await sdk.Messages.Create(request);
+                Require(response.Usage.CacheReadInputTokens == 15 && response.Usage.CacheCreationInputTokens == 5, "AOT SDK typed nonstream usage retains both cache counters");
+            }
+            else
+            {
+                bool observed = false;
+                await foreach (var update in sdk.Messages.CreateStreaming(request))
+                    if (update.TryPickStart(out var start))
+                    {
+                        Require(start.Message.Usage.CacheReadInputTokens == 15 && start.Message.Usage.CacheCreationInputTokens == 5, "AOT SDK typed message_start retains both cache counters");
+                        observed = true;
+                    }
+                Require(observed, "SDK stream exposes the initial usage event");
+            }
+        }
     }
 
     private static async Task GatewayDiagnostics()

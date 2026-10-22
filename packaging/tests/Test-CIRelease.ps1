@@ -31,6 +31,31 @@ Reject { & $script -Tag v2.0.0 -Repository TaiRuiQu/oh-my-study -AssetDirectory 
 Reject { & $script -Tag v1.2.3 -Repository 'invalid repository' -AssetDirectory $root -DryRun }
 $manifestFile=Join-Path $root 'aot/build-manifest.json'
 $original=[IO.File]::ReadAllText($manifestFile)
+$patchName='OhMyStudy-v1.2.3-win-x64-aot-from-1.2.2-patch.msp'
+$patchPath=Join-Path (Split-Path -Parent $manifestFile) $patchName
+[IO.File]::WriteAllText($patchPath,'synthetic patch')
+$manifest=$original | ConvertFrom-Json
+$manifest.packages += [pscustomobject]@{variant='aot'; kind='patch'; name=$patchName; bytes=(Get-Item $patchPath).Length;
+    sha256=(Get-FileHash $patchPath).Hash.ToLowerInvariant(); baselineVersion='1.2.2'; packageVersion='1.2.3'; baselineSha256=('b'*64);
+    updateSha256=$manifest.packages[1].sha256; productCode=[guid]::NewGuid().ToString('B'); patchCode=[guid]::NewGuid().ToString('B')}
+$manifest | ConvertTo-Json -Depth 6 | Set-Content $manifestFile
+Validate
+$aggregate=Get-Content (Join-Path $root 'build-manifest.json') -Raw | ConvertFrom-Json
+if ($aggregate.packages.Count -ne 9 -or @(Get-Content (Join-Path $root 'SHA256SUMS.txt')).Count -ne 9) { throw 'Patch missing from release checksums' }
+$patchOriginal=$manifest | ConvertTo-Json -Depth 6
+foreach ($case in @('version','baseline-hash','update-hash','product-code','filename')) {
+    $manifest=$patchOriginal | ConvertFrom-Json
+    switch ($case) {
+        'version' { $manifest.packages[2].baselineVersion='1.2.3' }
+        'baseline-hash' { $manifest.packages[2].baselineSha256='invalid' }
+        'update-hash' { $manifest.packages[2].updateSha256='0'*64 }
+        'product-code' { $manifest.packages[2].productCode='invalid' }
+        'filename' { $manifest.packages[2].name=$patchName.Replace('1.2.2','1.2.1') }
+    }
+    $manifest | ConvertTo-Json -Depth 6 | Set-Content $manifestFile
+    Reject { Validate }
+}
+[IO.File]::WriteAllText($manifestFile,$original)
 foreach ($case in @('missing-kind','duplicate-kind','wrong-variant','wrong-commit','traversal','hash','size','legacy-exe')) {
     $manifest=$original | ConvertFrom-Json
     switch ($case) {

@@ -24,13 +24,24 @@ foreach ($file in $manifests) {
         $manifest.validationStatus -ne 'release-candidate-user-acceptance-pending') { throw 'Invalid build identity or tag' }
     if ($commit -and $commit -cne $manifest.commit) { throw 'Builds must use the same source commit' }
     $commit=$manifest.commit
-    if (@($manifest.packages).Count -ne 2) { throw 'Portable and installer are both required' }
+    if (@($manifest.packages).Count -notin @(2,3) -or @($manifest.packages | Where-Object kind -eq 'portable').Count -ne 1 -or
+        @($manifest.packages | Where-Object kind -eq 'installer').Count -ne 1) { throw 'Portable and installer are both required; one optional patch is allowed' }
     $kinds=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($package in $manifest.packages) {
-        if ($package.variant -cne $manifest.variant -or $package.kind -cnotin @('portable','installer') -or
+        if ($package.variant -cne $manifest.variant -or $package.kind -cnotin @('portable','installer','patch') -or
             -not $kinds.Add($package.kind) -or $package.name -notmatch '^[A-Za-z0-9._-]+$' -or
             -not $names.Add($package.name) -or $package.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Invalid package identity' }
-        $suffix=if ($package.kind -eq 'portable') { '-portable.zip' } else { '-installer.msi' }
+        $suffix = switch ($package.kind) {
+            'portable' { '-portable.zip' }
+            'installer' { '-installer.msi' }
+            'patch' {
+                if ($package.baselineVersion -notmatch '^\d+\.\d+\.\d+$' -or $package.packageVersion -notmatch '^\d+\.\d+\.\d+$' -or
+                    [version]$package.packageVersion -le [version]$package.baselineVersion -or $package.baselineSha256 -notmatch '^[a-f0-9]{64}$' -or
+                    $package.updateSha256 -cne ($manifest.packages | Where-Object kind -eq 'installer').sha256 -or
+                    $package.productCode -notmatch '^\{[A-Fa-f0-9-]{36}\}$' -or $package.patchCode -notmatch '^\{[A-Fa-f0-9-]{36}\}$') { throw 'Invalid patch baseline or update identity' }
+                '-from-' + $package.baselineVersion + '-patch.msp'
+            }
+        }
         if (-not $package.name.EndsWith('-'+$manifest.variant+$suffix, [StringComparison]::Ordinal)) { throw 'Package name does not match profile' }
         $path=Join-Path $file.DirectoryName $package.name
         if ((Get-Item -LiteralPath $path).Length -ne $package.bytes -or
@@ -70,6 +81,7 @@ $marker
 ## 下载版本
 
 每种版本均提供 portable ZIP 和MSI 安装包。通常选择 **aot**；不确定处理器是否支持 AVX-512 时请选择普通 AOT 版。
+若提供 MSP，仅适用于文件名所列基线版本和相同构建类型的 MSI 安装；首次安装、切换类型或不匹配时请选择完整 MSI。MSP 也需要管理员权限。
 
 | 文件标识 | 运行要求 |
 | --- | --- |

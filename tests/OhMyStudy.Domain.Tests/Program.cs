@@ -23,6 +23,7 @@ internal sealed class CompatibilitySuite
         bool nativeAot = !RuntimeFeature.IsDynamicCodeSupported && !coreClrLoaded;
         RunFixtureCases();
         RunAdditionalCases();
+        LocalizationChecks.Run((id, check) => Check("localization", id, check));
         var report = new JsonObject
         {
             ["recorded_at"] = DateTimeOffset.UtcNow.ToString("O"),

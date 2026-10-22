@@ -12,6 +12,10 @@ on:
         description: 'Existing release tag to supplement (empty builds artifacts only)'
         required: false
         type: string
+      baseline_tag:
+        description: 'Optional earlier release tag for same-variant MSP patches; incompatible layouts fail the build'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -93,7 +97,15 @@ jobs:
         id: package
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
-        run: ./packaging/Invoke-CI.ps1 -Phase Build -Variant '${{ matrix.variant }}'
+          BASELINE_TAG: ${{ inputs.baseline_tag }}
+          BUILD_VARIANT: ${{ matrix.variant }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $baseline = $null
+          if ($env:BASELINE_TAG) {
+            $baseline = ./packaging/Get-MspBaseline.ps1 -Tag $env:BASELINE_TAG -Repository $env:GITHUB_REPOSITORY -Variant $env:BUILD_VARIANT -OutputDirectory "output/ci/baseline/$env:BUILD_VARIANT"
+          }
+          ./packaging/Invoke-CI.ps1 -Phase Build -Variant $env:BUILD_VARIANT -BaselineMsi $baseline
       - name: Upload offline application
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

@@ -60,6 +60,7 @@
     <Error Condition="!Exists('$(DocumentToolchain)\pdfium\pdfium.dll')" Text="PDF dependency missing. Run ./probes/prepare-documents.ps1 before building the app." />
   </Target>
   <ItemGroup>
+    <EmbeddedResource Include="Localization/*.xml" LogicalName="OhMyStudy.App.Localization.%(Filename)%(Extension)" />
     <ProjectReference Include="../OhMyStudy.Documents/OhMyStudy.Documents.csproj" />
     <ProjectReference Include="../OhMyStudy.Infrastructure/OhMyStudy.Infrastructure.csproj" />
     <Content Include="Assets/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

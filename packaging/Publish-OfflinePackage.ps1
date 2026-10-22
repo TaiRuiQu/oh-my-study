@@ -5,11 +5,13 @@ param(
     [string]$AppPublishDirectory,
     [string]$RuntimeDirectory,
     [string]$OutputDirectory,
+    [string]$BaselineMsi,
     [switch]$DesktopSmoke,
     [switch]$WorkflowSmoke
 )
 $ErrorActionPreference='Stop'
 $workspace=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $PSScriptRoot 'ReleasePayload.ps1')
 $cache=Join-Path $workspace 'output/migration'
 $profile = & (Join-Path $PSScriptRoot 'Get-PublishProfile.ps1') -Variant $Variant
 if (-not $RuntimeDirectory) { $RuntimeDirectory=Join-Path $cache 'toolchain/runtime' }
@@ -60,7 +62,7 @@ try {
     $report.appPublishDirectory=$appSource
     $report.appSourceProvenance='Working-tree snapshot included; when supplying an existing publish, its exact source correspondence is a caller responsibility.'
     if ($profile.nativeAot -and (Test-Path -LiteralPath (Join-Path $appSource 'coreclr.dll'))) { throw 'CoreCLR runtime found; provide a fresh Native AOT publish' }
-    Copy-Tree $appSource $package
+    $excludedFiles = @(Copy-ReleasePayload $appSource $package)
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','e_sqlite3.dll','Microsoft.ui.xaml.dll','Assets/App.ico')) {
         if (-not (Test-Path -LiteralPath (Join-Path $package $required) -PathType Leaf)) { throw "Required native app output missing: $required" }
     }
@@ -87,7 +89,10 @@ try {
     foreach ($required in @('runtime-manifest.json','python/python.exe','python/execute.py','python/sandbox-worker.py')) {
         if (-not (Test-Path -LiteralPath (Join-Path $RuntimeDirectory $required) -PathType Leaf)) { throw "Private runtime incomplete: $required; run packaging/prepare-runtime.ps1 explicitly" }
     }
-    Copy-Tree $RuntimeDirectory (Join-Path $package 'runtime')
+    $excludedFiles += @(Copy-ReleasePayload $RuntimeDirectory (Join-Path $package 'runtime') -Prefix 'runtime')
+    Update-ReleaseRuntimeManifest (Join-Path $package 'runtime')
+    $report.excludedDevelopmentFiles = $excludedFiles
+    $report.excludedDevelopmentBytes = [long]($excludedFiles | Measure-Object -Property bytes -Sum).Sum
     Copy-Item -LiteralPath (Join-Path $workspace 'LICENSE') -Destination (Join-Path $package 'LICENSE')
     $notices=Join-Path $package 'licenses'; New-Item -ItemType Directory -Path $notices -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'msi/LICENSE.WiX.txt') -Destination (Join-Path $notices 'WiX-MS-RL.txt')
@@ -168,7 +173,9 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
         default { '此版本无需另行安装 .NET 运行时。' }
     }
     Add-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Value $requirements
+    Assert-ReleasePayload $package
     $files=@(Get-ChildItem -LiteralPath $package -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{ path=[IO.Path]::GetRelativePath($package,$_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
+    $report.payloadBytes = ($files | Measure-Object -Property bytes -Sum).Sum
     $sourceCommit=(& git -C $workspace rev-parse HEAD).Trim()
     $sourceStatus=@(& git -C $workspace status --porcelain --untracked-files=normal)
     $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; variant=$Variant; nativeAot=$profile.nativeAot; selfContained=$profile.selfContained; instructionSet=$profile.instructionSet; entryPoint='OhMyStudy.App.exe'; installerType='msi'; version=if($env:RELEASE_TAG){$env:RELEASE_TAG}elseif($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
@@ -183,6 +190,11 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
     $report.installerSha256 = $msi.sha256
     $report.installerType = 'msi'
     & (Join-Path $PSScriptRoot 'Test-MsiPackage.ps1') -InstallerMsi $report.installer -ReportFile (Join-Path $run 'msi-verification.json') -InstallSmoke -VerifyPayload
+    if ($BaselineMsi) {
+        $report.patch = Join-Path $run ($runId + '-patch.msp')
+        $patch = & (Join-Path $PSScriptRoot 'Build-MspPackage.ps1') -BaselineMsi $BaselineMsi -UpdateMsi $report.installer -OutputFile $report.patch
+        $report.patchMetadata = $patch
+    }
     $report.zip=$zip; $report.zipSha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); $report.fileCount=$files.Count
     $report.packageStatus='created-and-local-checks-passed'
 } catch { $report.packageStatus='failed'; $report.error=$_.Exception.Message; throw }
