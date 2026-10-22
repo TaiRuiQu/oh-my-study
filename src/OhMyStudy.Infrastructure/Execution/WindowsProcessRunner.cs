@@ -9,7 +9,7 @@ using OhMyStudy.Application.Jobs;
 namespace OhMyStudy.Infrastructure.Execution;
 
 public sealed record ProcessRequest(string Executable, IReadOnlyList<string> Arguments, string WorkingDirectory,
-    IReadOnlyDictionary<string, string> Environment, TimeSpan Timeout, int OutputLimit = 1_048_576);
+    IReadOnlyDictionary<string, string> Environment, TimeSpan Timeout, int OutputLimit = 1_048_576, AppContainerProfile? AppContainer = null);
 
 /// <summary>Starts suspended, owns the process tree before resume, and inherits only three standard handles.</summary>
 public sealed partial class WindowsProcessRunner
@@ -23,7 +23,14 @@ public sealed partial class WindowsProcessRunner
         var cwd = RuntimePaths.CheckedDirectory(request.WorkingDirectory);
         var commandLine = string.Join(' ', new[] { executable }.Concat(request.Arguments).Select(QuoteArgument));
         if (commandLine.Length > 32766 || commandLine.Contains('\0')) throw new ArgumentException("命令行过长或含无效字符。");
-        var environment = EnvironmentBlock(request.Environment);
+        var processEnvironment = new Dictionary<string, string>(request.Environment, StringComparer.OrdinalIgnoreCase);
+        if (request.AppContainer is not null)
+        {
+            processEnvironment["USERPROFILE"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            processEnvironment["LOCALAPPDATA"] = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            processEnvironment["APPDATA"] = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        }
+        var environment = EnvironmentBlock(processEnvironment);
 
         using var stdout = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
         using var stderr = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
@@ -35,8 +42,13 @@ public sealed partial class WindowsProcessRunner
         {
             if (job.IsInvalid) throw LastError();
             var limits = new Native.JobLimits { Basic = new() { LimitFlags = 0x2000 } };
+            if (request.AppContainer is not null)
+            {
+                limits.Basic.LimitFlags |= 0x200;
+                limits.JobMemory = 2_147_483_648;
+            }
             if (!Native.SetInformationJobObject(job, 9, in limits, (uint)Marshal.SizeOf<Native.JobLimits>())) throw LastError();
-            using var attributes = new StartupAttributes([stdin.DangerousGetHandle(), stdout.ClientSafePipeHandle.DangerousGetHandle(), stderr.ClientSafePipeHandle.DangerousGetHandle()]);
+            using var attributes = new StartupAttributes([stdin.DangerousGetHandle(), stdout.ClientSafePipeHandle.DangerousGetHandle(), stderr.ClientSafePipeHandle.DangerousGetHandle()], request.AppContainer);
             var startup = new Native.StartupInfoEx
             {
                 Info = new()
@@ -173,21 +185,45 @@ public sealed partial class WindowsProcessRunner
     {
         public nint Pointer { get; private set; }
         private nint _handles;
-        public StartupAttributes(nint[] handles)
+        private nint _security;
+        private nint _capability;
+        private nint _networkSid;
+        private bool _initialized;
+        public StartupAttributes(nint[] handles, AppContainerProfile? container)
         {
+            int count = container is null ? 1 : 2;
             nuint size = 0;
-            Native.InitializeProcThreadAttributeList(0, 1, 0, ref size);
+            Native.InitializeProcThreadAttributeList(0, count, 0, ref size);
             Pointer = Marshal.AllocHGlobal(checked((int)size));
-            if (!Native.InitializeProcThreadAttributeList(Pointer, 1, 0, ref size)) { Dispose(); throw LastError(); }
-            _handles = Marshal.AllocHGlobal(handles.Length * IntPtr.Size);
-            Marshal.Copy(handles, 0, _handles, handles.Length);
-            if (!Native.UpdateProcThreadAttribute(Pointer, 0, 0x20002, _handles, (nuint)(handles.Length * IntPtr.Size), 0, 0))
-            { Dispose(); throw LastError(); }
+            try
+            {
+                if (!Native.InitializeProcThreadAttributeList(Pointer, count, 0, ref size)) throw LastError();
+                _initialized = true;
+                _handles = Marshal.AllocHGlobal(handles.Length * IntPtr.Size);
+                Marshal.Copy(handles, 0, _handles, handles.Length);
+                if (!Native.UpdateProcThreadAttribute(Pointer, 0, 0x20002, _handles, (nuint)(handles.Length * IntPtr.Size), 0, 0)) throw LastError();
+                if (container is not null)
+                {
+                    if (container.Networking)
+                    {
+                        if (!Native.ConvertStringSidToSidW("S-1-15-3-1", out _networkSid)) throw LastError();
+                        _capability = Marshal.AllocHGlobal(sizeof(Native.SidAndAttributes));
+                        *(Native.SidAndAttributes*)_capability = new() { Sid = _networkSid, Attributes = 4 };
+                    }
+                    _security = Marshal.AllocHGlobal(sizeof(Native.SecurityCapabilities));
+                    *(Native.SecurityCapabilities*)_security = new() { AppContainerSid = container.Sid, Capabilities = _capability, Count = container.Networking ? 1u : 0 };
+                    if (!Native.UpdateProcThreadAttribute(Pointer, 0, 0x20009, _security, (nuint)sizeof(Native.SecurityCapabilities), 0, 0)) throw LastError();
+                }
+            }
+            catch { Dispose(); throw; }
         }
         public void Dispose()
         {
-            if (Pointer != 0) { Native.DeleteProcThreadAttributeList(Pointer); Marshal.FreeHGlobal(Pointer); Pointer = 0; }
+            if (Pointer != 0) { if (_initialized) Native.DeleteProcThreadAttributeList(Pointer); Marshal.FreeHGlobal(Pointer); Pointer = 0; }
             if (_handles != 0) { Marshal.FreeHGlobal(_handles); _handles = 0; }
+            if (_security != 0) { Marshal.FreeHGlobal(_security); _security = 0; }
+            if (_capability != 0) { Marshal.FreeHGlobal(_capability); _capability = 0; }
+            if (_networkSid != 0) { Native.LocalFree(_networkSid); _networkSid = 0; }
         }
     }
 
@@ -204,6 +240,11 @@ public sealed partial class WindowsProcessRunner
         { public uint Size; public nint Reserved, Desktop, Title; public uint X, Y, XSize, YSize, XChars, YChars, Fill, Flags; public ushort Show, ReservedSize; public nint ReservedBytes, Stdin, Stdout, Stderr; }
         [StructLayout(LayoutKind.Sequential)] internal struct StartupInfoEx { public StartupInfo Info; public nint Attributes; }
         [StructLayout(LayoutKind.Sequential)] internal struct ProcessInfo { public nint Process, Thread; public uint ProcessId, ThreadId; }
+        [StructLayout(LayoutKind.Sequential)] internal struct SidAndAttributes { public nint Sid; public uint Attributes; }
+        [StructLayout(LayoutKind.Sequential)] internal struct SecurityCapabilities { public nint AppContainerSid, Capabilities; public uint Count, Reserved; }
+
+        [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)][return: MarshalAs(UnmanagedType.Bool)] internal static partial bool ConvertStringSidToSidW(string text, out nint sid);
+        [LibraryImport("kernel32.dll")] internal static partial nint LocalFree(nint memory);
 
         [LibraryImport("kernel32.dll", EntryPoint = "CreateJobObjectW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)] internal static partial SafeFileHandle CreateJobObjectW(nint attributes, string? name);
         [LibraryImport("kernel32.dll", SetLastError = true)][return: MarshalAs(UnmanagedType.Bool)] internal static partial bool SetInformationJobObject(SafeFileHandle job, int infoClass, in JobLimits limits, uint length);

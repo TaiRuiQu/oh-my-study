@@ -1,4 +1,3 @@
-"""Isolated HOST tests of fixed worker computation; these do NOT certify Windows Sandbox."""
 import importlib.util
 import json
 from pathlib import Path
@@ -42,4 +41,4 @@ with tempfile.TemporaryDirectory(prefix="oms-sandbox-worker-") as temporary:
             assert code == 7
         assert (inputs / "资料.txt").read_text(encoding="utf-8") == "合成输入"
         results.append({"name": name, "passed": True})
-print(json.dumps({"scope": "isolated host computation; Windows Sandbox not executed", "results": results}, ensure_ascii=False))
+print(json.dumps({"scope": "host computation; AppContainer isolation tested separately", "results": results}, ensure_ascii=False))

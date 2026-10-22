@@ -8,7 +8,6 @@ using OhMyStudy.Domain;
 
 namespace OhMyStudy.Infrastructure.Execution;
 
-/// <summary>One disposable VM per authorized call. Host failure never causes local execution.</summary>
 public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? control = null) : IToolExecutor
 {
     private static readonly SemaphoreSlim SessionGate = new(1, 1);
@@ -21,8 +20,8 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
         await SessionGate.WaitAsync(live.Token).ConfigureAwait(false);
         try
         {
-            if (_cleanupFailed) throw new IOException("上次沙箱未能关闭，请关闭沙箱并重新打开应用。");
-            var sandbox = control ?? new SandboxCliControl(SandboxCapability.FindCli() ?? throw new IOException("沙箱运行组件不可用。"));
+            if (_cleanupFailed) throw new IOException("上次 AppContainer 未能清理，请重新打开应用后重试。");
+            var sandbox = control ?? new AppContainerControl();
             if (await sandbox.HasSessionsAsync(live.Token).ConfigureAwait(false)) throw new IOException("沙箱正在使用中，请结束后重试。");
             RuntimePaths.CheckedFile(Path.Combine(privateRuntime, "python.exe"));
             RuntimePaths.CheckedFile(Path.Combine(privateRuntime, "execute.py"));
@@ -46,7 +45,6 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
             Task? worker = null; bool startIssued = false;
             try
             {
-                // The random ID was minted after an empty-list preflight; no PID, window, list diff, or guest message confers ownership.
                 startIssued = true;
                 await sandbox.StartAsync(id, mappings.ToConfiguration(call.JobId, nonce, authorization.SandboxNetworking), live.Token).ConfigureAwait(false);
                 worker = sandbox.RunWorkerAsync(id, call.JobId, nonce, workerLifetime.Token);
@@ -72,7 +70,6 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
                 protocol.Disconnect();
                 if (startIssued)
                 {
-                    // Cancellation cannot cancel cleanup. Ambiguous launch failure still targets ONLY our fresh requested ID.
                     using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(35));
                     try
                     {
@@ -82,15 +79,14 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
                     catch (Exception error)
                     {
                         _cleanupFailed = true;
-                        throw new IOException("沙箱未能关闭，请手动关闭沙箱并重新打开应用。", error);
+                        throw new IOException("AppContainer 未能清理，请重新打开应用后重试。", error);
                     }
                 }
                 if (worker is not null)
                     try { await worker.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
-                    catch (Exception) { /* VM stop interrupts the control call; observe all completion paths. */ }
+                    catch (Exception) { }
             }
             live.Token.ThrowIfCancellationRequested();
-            // Read final data only AFTER the guest has stopped, eliminating guest mutation during host consumption.
             var response = ReadMessage(Path.Combine(root, "results", "response.json")); ValidateMessage(response, request);
             if (response.Status is not ("completed" or "failed" or "timed_out" or "output_limit")) throw new InvalidDataException("沙箱返回了无效结果。");
             if (response.Status == "completed" && response.ExitCode != 0) throw new InvalidDataException("沙箱返回的状态不一致。");
@@ -110,7 +106,7 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
             {
                 limit.Token.ThrowIfCancellationRequested();
                 if (worker.IsFaulted || worker.IsCanceled) await worker.ConfigureAwait(false);
-                // Some CLI versions return when the guest process is launched; only the authenticated response completes execution.
+                if (worker.IsCompleted) throw new IOException("AppContainer 工作进程已退出，未返回运行结果。");
                 await Task.Delay(50, limit.Token).ConfigureAwait(false);
             }
         }
@@ -121,7 +117,6 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
     {
         RuntimePaths.CheckedFile(path);
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        // JSON escaping can expand a one MiB UTF-8 output by up to six times.
         if (file.Length > 8_388_608) throw new InvalidDataException("沙箱返回内容过多。");
         var bytes = new byte[checked((int)file.Length)]; file.ReadExactly(bytes);
         try { return JsonSerializer.Deserialize(bytes, SandboxJson.Default.SandboxMessage) ?? throw new InvalidDataException("沙箱返回内容无效。"); }
@@ -169,7 +164,6 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
     }
 }
 
-/// <summary>Dispatches once using the frozen permission. There is no fallback branch.</summary>
 public sealed class PolicyToolExecutor(IToolExecutor host, IToolExecutor sandbox) : IToolExecutor
 {
     public Task<ToolExecutionResult> ExecuteAsync(AuthorizedCall call, string resultsDirectory, CancellationToken cancellationToken) =>
@@ -185,4 +179,5 @@ public sealed record SandboxOwnership(string Id, string JobId, string CallId, st
 [JsonSerializable(typeof(SandboxRequest))]
 [JsonSerializable(typeof(SandboxMessage))]
 [JsonSerializable(typeof(SandboxOwnership))]
+[JsonSerializable(typeof(AppContainerConfiguration))]
 public sealed partial class SandboxJson : JsonSerializerContext;

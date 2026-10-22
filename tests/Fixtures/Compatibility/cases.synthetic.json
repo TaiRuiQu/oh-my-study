@@ -504,7 +504,7 @@
       "sandbox_networking": false,
       "expected": {
         "effective_mode": "sandbox",
-        "executor_kind": "windows_sandbox",
+        "executor_kind": "app_container",
         "fallback_reason_present": false,
         "warning_present": false
       }

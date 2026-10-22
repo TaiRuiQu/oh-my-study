@@ -10,7 +10,7 @@ public enum ExecutionMode { RequestPermission, Sandbox, BypassPermission }
 [JsonConverter(typeof(StrictEnumConverter<CapabilityState>))]
 public enum CapabilityState { Ready, Unsupported, NeedsEnable, NeedsReboot, VirtualizationUnavailable, PolicyBlocked, Busy, Unknown, StartFailed }
 [JsonConverter(typeof(StrictEnumConverter<ExecutorKind>))]
-public enum ExecutorKind { Host, WindowsSandbox }
+public enum ExecutorKind { Host, WindowsSandbox, AppContainer }
 [JsonConverter(typeof(StrictEnumConverter<ToolKind>))]
 public enum ToolKind { Python, Shell }
 [JsonConverter(typeof(StrictEnumConverter<JobState>))]
@@ -48,7 +48,7 @@ public sealed record ExecutionPolicy
         {
             PreferredMode = preference,
             EffectiveMode = effective,
-            ExecutorKind = effective == ExecutionMode.Sandbox ? ExecutorKind.WindowsSandbox : ExecutorKind.Host,
+            ExecutorKind = effective == ExecutionMode.Sandbox ? ExecutorKind.AppContainer : ExecutorKind.Host,
             FallbackReason = fallback ? capability.Reason : null,
             Warning = fallback ? $"{capability.Reason}。本次代码与命令将在本机使用当前账户权限执行，可访问该账户的文件和网络。本机执行／未隔离。" : null,
             SandboxNetworking = networking

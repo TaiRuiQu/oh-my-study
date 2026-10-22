@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Xml.Linq;
 using OhMyStudy.Application.Execution;
 using OhMyStudy.Application.Jobs;
 using OhMyStudy.Domain;
@@ -31,10 +30,12 @@ internal static class SandboxChecks
             var control = new SyntheticSandbox { MutateOnStop = true };
             var result = await new SandboxToolExecutor(runtime, control).ExecuteAsync(broker.Request(Call("sandbox-good"))!, Path.Combine(root, "sandbox-good"), CancellationToken.None);
             require(result.Succeeded && result.Stdout == "after-stop" && control.Started == control.Stopped && control.Started != Guid.Empty, "ownership / read-before-stop");
-            var xml = XDocument.Parse(control.Configuration!);
-            var mappings = xml.Descendants("MappedFolder").ToArray();
-            require(mappings.Length == 4 && mappings.Take(3).All(m => m.Element("ReadOnly")!.Value == "true") && mappings[3].Element("ReadOnly")!.Value == "false", "minimal mapping write scope");
-            require(xml.Descendants("Networking").Single().Value == "Disable" && !xml.Descendants("LogonCommand").Any(), "network/default duplicate worker");
+            var settings = JsonSerializer.Deserialize(control.Configuration!, SandboxJson.Default.AppContainerConfiguration)!;
+            require(settings.Runtime == runtime && settings.Inputs == Path.Combine(root, "sandbox-good", "inputs")
+                && settings.Requests == Path.Combine(root, "sandbox-good", "requests") && settings.Results == Path.Combine(root, "sandbox-good", "results"), "minimal directory scope");
+            require(!settings.Networking, "network enabled by default");
+            require(Policy().ExecutorKind == ExecutorKind.AppContainer, "wrong sandbox executor");
+            require(DomainJson.Deserialize<ExecutorKind>("\"windows_sandbox\"") == ExecutorKind.WindowsSandbox, "legacy executor records lost");
             require(File.ReadAllText(Path.Combine(root, "sandbox-good", "inputs", "资料.txt")) == "合成输入", "input snapshot");
             require(File.ReadAllText(Path.Combine(root, "sandbox-good", "ownership.json")).Contains("stopped"), "ownership receipt");
         });
@@ -78,7 +79,7 @@ internal static class SandboxChecks
                 catch (OperationCanceledException) when (mode != "start-fail") { }
                 catch (IOException) when (mode == "start-fail") { }
                 require(control.Started == control.Stopped && !control.CleanupWasCancelled, "cleanup lost to cancellation");
-                require(XDocument.Parse(control.Configuration!).Descendants("Networking").Single().Value == "Enable", "frozen networking lost");
+                require(JsonSerializer.Deserialize(control.Configuration!, SandboxJson.Default.AppContainerConfiguration)!.Networking, "frozen networking lost");
             }
         });
         await check("sandbox-input-snapshot-limits", async () =>
@@ -91,23 +92,39 @@ internal static class SandboxChecks
             catch (IOException) { }
             require(control.Started == Guid.Empty && control.Stopped == Guid.Empty, "started before input validation");
         });
-        // Last sandbox check: a failed stop deliberately latches the process against any further VM creation.
+        await check("sandbox-worker-exit-fails-without-host-replay", async () =>
+        {
+            foreach (bool handshake in new[] { false, true })
+            {
+                var id = "sandbox-worker-exit-" + handshake;
+                using var broker = new PermissionBroker(); broker.RegisterJob(id, Policy());
+                var control = new SyntheticSandbox { ExitBeforeHandshake = !handshake, ExitBeforeResponse = handshake };
+                var host = new CountingExecutor();
+                try
+                {
+                    await new PolicyToolExecutor(host, new SandboxToolExecutor(runtime, control)).ExecuteAsync(broker.Request(Call(id))!, Path.Combine(root, id), CancellationToken.None);
+                    throw new Exception("worker exit accepted");
+                }
+                catch (IOException) { }
+                require(control.Started == control.Stopped && control.Started != Guid.Empty && host.Calls == 0, "worker exit ownership/fallback");
+            }
+        });
         await check("sandbox-cleanup-failure-blocks-later-launch", async () =>
         {
             using var broker = new PermissionBroker(); broker.RegisterJob("sandbox-stop-fail", Policy()); broker.RegisterJob("sandbox-after-fail", Policy());
             var control = new SyntheticSandbox { FailStop = true }; var executor = new SandboxToolExecutor(runtime, control);
             try { await executor.ExecuteAsync(broker.Request(Call("sandbox-stop-fail"))!, Path.Combine(root, "sandbox-stop-fail"), CancellationToken.None); throw new Exception("cleanup failure accepted"); }
-            catch (IOException error) { require(error.Message.Contains("手动关闭"), "missing recovery action"); }
+            catch (IOException error) { require(error.Message.Contains("重新打开"), "missing recovery action"); }
             try { await executor.ExecuteAsync(broker.Request(Call("sandbox-after-fail"))!, Path.Combine(root, "sandbox-after-fail"), CancellationToken.None); throw new Exception("start after failed cleanup"); }
             catch (IOException) { }
-            require(control.Starts == 1, "new VM after uncertain teardown");
+            require(control.Starts == 1, "new AppContainer after uncertain teardown");
         });
     }
 }
 
 internal sealed class SyntheticSandbox : ISandboxControl
 {
-    public bool Busy, MutateOnStop, HoldResponse, FailStart, FailStop;
+    public bool Busy, MutateOnStop, HoldResponse, FailStart, FailStop, ExitBeforeHandshake, ExitBeforeResponse;
     public string? Corrupt, Configuration;
     public Guid Started, Stopped;
     public int Starts;
@@ -124,12 +141,14 @@ internal sealed class SyntheticSandbox : ISandboxControl
     }
     public async Task RunWorkerAsync(Guid id, string jobId, string nonce, CancellationToken cancellationToken)
     {
-        var mappings = XDocument.Parse(Configuration!).Descendants("MappedFolder").ToArray();
-        var requests = mappings.Single(m => m.Element("SandboxFolder")!.Value.EndsWith("Requests")).Element("HostFolder")!.Value;
-        _results = mappings.Single(m => m.Element("SandboxFolder")!.Value.EndsWith("Results")).Element("HostFolder")!.Value;
+        if (ExitBeforeHandshake) return;
+        var settings = JsonSerializer.Deserialize(Configuration!, SandboxJson.Default.AppContainerConfiguration)!;
+        var requests = settings.Requests;
+        _results = settings.Results;
         var request = JsonSerializer.Deserialize(await File.ReadAllTextAsync(Path.Combine(requests, "request.json"), cancellationToken), SandboxJson.Default.SandboxRequest)!;
         var message = new SandboxMessage(1, Corrupt == "identity" ? "wrong-job" : jobId, request.CallId, Corrupt == "nonce" ? "wrong" : nonce, request.Digest, "ready", null, "", "");
         await WriteAsync("handshake.json", message, cancellationToken); WorkerStarted.TrySetResult();
+        if (ExitBeforeResponse) return;
         if (HoldResponse) { await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken); return; }
         _message = message with
         {

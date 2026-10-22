@@ -672,7 +672,8 @@
     ],
     "executor_kind": [
       "host",
-      "windows_sandbox"
+      "windows_sandbox",
+      "app_container"
     ],
     "capability_state": [
       "ready",

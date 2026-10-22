@@ -1,4 +1,5 @@
-using System.Xml.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using OhMyStudy.Domain;
 
 namespace OhMyStudy.Infrastructure.Execution;
@@ -17,25 +18,22 @@ public sealed class SandboxMappings
             RuntimePaths.CheckedDirectory(Path.Combine(task, "requests")), RuntimePaths.CheckedDirectory(Path.Combine(task, "results")) };
         for (int i = 0; i < paths.Length; i++)
         {
-            if (paths[i].StartsWith(@"\\", StringComparison.Ordinal)) throw new IOException("沙箱映射需要本地目录。");
+            if (paths[i].StartsWith(@"\\", StringComparison.Ordinal)) throw new IOException("AppContainer 需要本地目录。");
             for (int j = i + 1; j < paths.Length; j++)
                 if (Within(paths[i], paths[j]) || Within(paths[j], paths[i])) throw new IOException("沙箱映射目录不能重叠。");
         }
         return new(paths);
     }
 
-    public string ToConfiguration(string jobId, string nonce, bool networking, bool logonWorker = false)
+    public string ToConfiguration(string jobId, string nonce, bool networking)
     {
         if (!ExecutionCall.ValidId(jobId) || !ExecutionCall.ValidId(nonce)) throw new ArgumentException("无效的会话标识。");
-        string[] names = ["Runtime", "Inputs", "Requests", "Results"];
-        var folders = _directories.Select((directory, index) => new XElement("MappedFolder", new XElement("HostFolder", directory),
-            new XElement("SandboxFolder", @"C:\OMS\" + names[index]), new XElement("ReadOnly", index != 3 ? "true" : "false")));
-        var command = $@"C:\OMS\Runtime\python.exe -I C:\OMS\Runtime\sandbox-worker.py --job-id {jobId} --nonce {nonce}";
-        return new XElement("Configuration", new XElement("VGpu", "Disable"), new XElement("Networking", networking ? "Enable" : "Disable"),
-            new XElement("ClipboardRedirection", "Disable"), new XElement("AudioInput", "Disable"), new XElement("VideoInput", "Disable"),
-            new XElement("PrinterRedirection", "Disable"), new XElement("MemoryInMB", 2048), new XElement("MappedFolders", folders),
-            logonWorker ? new XElement("LogonCommand", new XElement("Command", command)) : null).ToString(SaveOptions.DisableFormatting);
+        return JsonSerializer.Serialize(new AppContainerConfiguration(_directories[0], _directories[1], _directories[2], _directories[3], networking),
+            SandboxJson.Default.AppContainerConfiguration);
     }
     private static bool Within(string a, string b) => a.Equals(b, StringComparison.OrdinalIgnoreCase)
         || a.StartsWith(Path.TrimEndingDirectorySeparator(b) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 }
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record AppContainerConfiguration(string Runtime, string Inputs, string Requests, string Results, bool Networking);

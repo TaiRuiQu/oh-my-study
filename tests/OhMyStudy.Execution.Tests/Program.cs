@@ -16,7 +16,7 @@ var results = new List<CheckResult>();
 async Task Check(string name, Func<Task> test)
 {
     try { await test(); results.Add(new(name, true, null)); }
-    catch (Exception error) { results.Add(new(name, false, error.GetType().Name + ": " + error.Message)); }
+    catch (Exception error) { results.Add(new(name, false, error.GetType().Name + ": " + error.Message)); Console.Error.WriteLine(error); }
     Console.WriteLine($"{(results[^1].Passed ? "PASS" : "FAIL")} {name}: {results[^1].Error}");
 }
 void Require(bool value, string detail) { if (!value) throw new InvalidOperationException(detail); }
@@ -189,6 +189,7 @@ await Check("normal-root-exit-cleans-descendant", async () =>
 });
 
 var runtimeArgument = Array.IndexOf(args, "--runtime");
+await AppContainerChecks.RunAsync(root, Check, Require);
 if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
 {
     await Check("private-python-computation-and-powershell-arguments", async () =>
@@ -213,12 +214,13 @@ if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
             root, WindowsProcessRunner.CreateEnvironment(runtime, root), TimeSpan.FromSeconds(120)));
         Require(result.Succeeded && result.Stdout.Contains("powershell-arguments"), result.Stderr + result.Stdout);
     });
+    await AppContainerChecks.RunWorkerAsync(Path.GetFullPath(args[runtimeArgument + 1]), root, Check, Require);
 }
 
 await SandboxChecks.RunAsync(root, Check, Require);
 
 var report = new CheckReport(DateTimeOffset.UtcNow, RuntimeFeature.IsDynamicCodeSupported, root, results.ToArray(),
-    runtimeArgument >= 0 ? ["real-windows-sandbox-session-ownership", "clean-windows-matrix"] : ["real-windows-sandbox-session-ownership", "private-python-packages-when-not-prepared", "clean-windows-matrix"]);
+    runtimeArgument >= 0 ? ["clean-windows-matrix"] : ["private-python-packages-when-not-prepared", "clean-windows-matrix"]);
 File.WriteAllText(Path.Combine(output, "execution-report.json"), JsonSerializer.Serialize(report, TestJson.Default.CheckReport));
 return results.All(r => r.Passed) ? 0 : 1;
 
@@ -256,6 +258,8 @@ internal static class Child
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         switch (arguments[0])
         {
+            case "appcontainer": return AppContainerChecks.Probe(arguments[1..]);
+            case "appcontainer-descendant": return await AppContainerChecks.ProbeDescendantAsync(arguments[1..]);
             case "echo": Console.WriteLine(string.Join('|', arguments[1..])); Console.WriteLine("secret=" + (Environment.GetEnvironmentVariable("OMS_SYNTHETIC_SECRET") is null ? "absent" : "present")); Console.WriteLine(Environment.CurrentDirectory); return 0;
             case "failure": Console.Error.WriteLine("synthetic failure"); return 7;
             case "sleep": await Task.Delay(30000); return 0;

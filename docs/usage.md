@@ -54,7 +54,7 @@ Choose an execution mode under "Settings → Execution → Code and commands (�
 | Option | Behavior |
 | --- | --- |
 | Ask every time (每次询问) | You review and decide whether to allow code or commands before they run on this machine |
-| Run in sandbox (沙箱运行) | Runs in Windows Sandbox when available; sandbox network access is denied by default |
+| Run in sandbox (沙箱运行) | Runs code and commands in a separate Windows AppContainer for each call; sandbox network access is denied by default |
 | Run directly on this machine (直接在本机运行) | Runs with the current Windows account's permissions without asking each time; can access that account's files and network |
 
 The default mode is "Run directly on this machine (直接在本机运行)". If you want to review what will run first, change it to "Ask every time (每次询问)" before starting a task. Changes to execution settings affect only new tasks.
@@ -64,6 +64,8 @@ When a task is waiting for permission, click "View execution request (查看执�
 Whether the sandbox is available depends on the check performed when the task starts. If it is unavailable, the dialog explains that this run will use the local machine instead and what that means; cancel the start if you do not accept it. If code execution fails in the sandbox, it is not automatically retried on the local machine.
 
 The sandbox applies only to code and commands. Model requests for AI recognition still send materials to the selected provider over the network.
+
+AppContainer does not require Windows Sandbox, virtualization, or an optional Windows feature. Each call receives a copy of its input files, read access to the private computation runtime, and write access to its own result folder. It uses Windows process isolation rather than a virtual machine. Enabling sandbox networking grants outbound Internet access; it does not grant access to other files or the local network.
 
 ## Exporting PDFs
 

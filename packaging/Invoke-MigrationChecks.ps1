@@ -19,7 +19,7 @@ $savedLocation = Get-Location
 $savedEnvironment = @{}
 foreach ($key in @('DOTNET_CLI_HOME','NUGET_PACKAGES','DOTNET_CLI_TELEMETRY_OPTOUT','DOTNET_GENERATE_ASPNET_CERTIFICATE')) { $savedEnvironment[$key] = [Environment]::GetEnvironmentVariable($key,'Process') }
 $report = [ordered]@{ schemaVersion=1; runId=$runId; timestampUtc=[DateTimeOffset]::UtcNow.ToString('O'); status='release-candidate-unvalidated'; checkStatus='running'; runRoot=$run; checks=@(); notRun=@(
-    'clean-Windows-10-11-offline-installation-matrix','real-library-cutover-and-rollback','real-provider-and-paper-semantics','real-Sandbox-session-ownership','physical-printing','DPI-accessibility-and-performance-budget','real-credential-store-migration') }
+    'clean-Windows-10-11-offline-installation-matrix','real-library-cutover-and-rollback','real-provider-and-paper-semantics','physical-printing','DPI-accessibility-and-performance-budget','real-credential-store-migration') }
 $projects = @(
     @{name='domain'; project='tests/OhMyStudy.Domain.Tests/OhMyStudy.Domain.Tests.csproj'; executable='OhMyStudy.Domain.Tests.exe'},
     @{name='storage'; project='tests/OhMyStudy.Storage.Tests/OhMyStudy.Storage.Tests.csproj'; executable='OhMyStudy.Storage.Tests.exe'},

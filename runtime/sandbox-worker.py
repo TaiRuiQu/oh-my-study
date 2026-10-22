@@ -1,8 +1,3 @@
-"""Fixed computation worker. C# owns permissions, new VM identity, mappings and teardown.
-
-Only the private Python runtime and approved PowerShell computation run here. This
-program never contacts the host except through the dedicated mapped result folder.
-"""
 import argparse
 import json
 import os
@@ -31,7 +26,6 @@ def run_computation(request, runtime, inputs, results):
     shutil.copytree(inputs, work)
     temporary = results / "temp"
     temporary.mkdir()
-    # Build a fresh guest environment. Host credentials are never inherited.
     system = Path(os.environ.get("SystemRoot", r"C:\Windows"))
     environment = {
         "SystemRoot": str(system), "WINDIR": str(system),
@@ -96,7 +90,6 @@ def run_computation(request, runtime, inputs, results):
     if process.poll() is None:
         process.kill()
     code = process.wait(timeout=5)
-    # Descendants may retain stdout pipes. C# stops the entire owned VM before reading results.
     for thread in readers:
         thread.join(timeout=0.25)
     with lock:
@@ -104,7 +97,6 @@ def run_computation(request, runtime, inputs, results):
             status = "output_limit"
         if status == "completed" and code != 0:
             status = "failed"
-        # Truncating a UTF-8 byte sequence must not grow the total output on re-encoding.
         output = [bytes(value).decode("utf-8", errors="ignore") for value in captured]
     return status, code & 0xffffffff, output
 
@@ -113,12 +105,18 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--job-id", required=True)
     parser.add_argument("--nonce", required=True)
+    parser.add_argument("--runtime", required=True, type=Path)
+    parser.add_argument("--inputs", required=True, type=Path)
+    parser.add_argument("--requests", required=True, type=Path)
+    parser.add_argument("--results", required=True, type=Path)
     options = parser.parse_args()
     for value in (options.job_id, options.nonce):
         if not 0 < len(value) <= 128 or any(not (c.isascii() and (c.isalnum() or c in "-_")) for c in value):
             raise ValueError("invalid session identity")
-    root = Path(r"C:\OMS")
-    request_file = root / "Requests/request.json"
+    for path in (options.runtime, options.inputs, options.requests, options.results):
+        if not path.is_absolute() or not path.is_dir():
+            raise ValueError("invalid sandbox directory")
+    request_file = options.requests / "request.json"
     if request_file.stat().st_size > 2_097_152:
         raise ValueError("request exceeds limit")
     request = json.loads(request_file.read_text(encoding="utf-8"))
@@ -130,14 +128,13 @@ def main():
         raise ValueError("invalid computation request")
     result = {key: request[key] for key in ("protocol_version", "job_id", "call_id", "nonce", "digest")}
     result.update(status="ready", exit_code=None, stdout="", stderr="")
-    atomic_json(root / "Results/handshake.json", result)
+    atomic_json(options.results / "handshake.json", result)
     try:
-        status, code, output = run_computation(request, root / "Runtime", root / "Inputs", root / "Results")
+        status, code, output = run_computation(request, options.runtime, options.inputs, options.results)
         result.update(status=status, exit_code=code, stdout=output[0], stderr=output[1])
     except Exception:
-        # Do not return exception payloads containing sensitive paths or script contents.
         result.update(status="failed", exit_code=None, stdout="", stderr="运行未完成，请检查代码和输入文件。")
-    atomic_json(root / "Results/response.json", result)
+    atomic_json(options.results / "response.json", result)
 
 
 if __name__ == "__main__":

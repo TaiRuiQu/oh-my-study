@@ -85,7 +85,7 @@ try {
         cpython=$lock.cpython.version; packages=@($lock.wheels | Select-Object name,version); lockSha256=(Get-FileHash -LiteralPath $lockFile -Algorithm SHA256).Hash.ToLowerInvariant();
         workerSha256=(Get-FileHash -LiteralPath (Join-Path $workspace 'runtime/execute.py') -Algorithm SHA256).Hash.ToLowerInvariant(); files=$files;
         sandboxWorkerSha256=(Get-FileHash -LiteralPath (Join-Path $workspace 'runtime/sandbox-worker.py') -Algorithm SHA256).Hash.ToLowerInvariant();
-        notRun=@('real-windows-sandbox-session','clean-windows-matrix','dependency-security-audit') }
+        notRun=@('appcontainer-execution','clean-windows-matrix','dependency-security-audit') }
     $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $stage 'runtime-manifest.json') -Encoding utf8
     Move-Item -LiteralPath $stage -Destination $target
     Write-Host "Private computation runtime: $target"
