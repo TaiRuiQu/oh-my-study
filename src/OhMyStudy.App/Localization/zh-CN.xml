@@ -760,4 +760,10 @@
     <text key="S0751" xml:space="preserve">已有更新的任务处理过这份试卷，请重试最新的失败任务。</text>
     <text key="S0752" xml:space="preserve">此任务创建于重试恢复记录功能推出之前。请在试卷中使用“重新识别”，以保留已保存的结果。</text>
     <text key="S0753" xml:space="preserve">此任务保存的题目已有手工编辑。请在试卷中使用“重新识别”，以保留这些编辑。</text>
+    <text key="S0754" xml:space="preserve">支持 Files API</text>
+    <text key="S0755" xml:space="preserve">仅在供应商支持文件上传和图片文件 ID 时启用。文件在 1 小时后过期，并在任务结束时主动删除。</text>
+    <text key="S0756" xml:space="preserve">图片将上传至供应商的 Files API，后续通过文件 ID 引用。文件在 1 小时后过期，并在任务结束时主动删除；供应商可能收取存储或模型费用。</text>
+    <text key="S0757" xml:space="preserve">正在向供应商的 Files API 上传图片</text>
+    <text key="S0758" xml:space="preserve">供应商拒绝了 Files API 操作。请检查是否支持 Files API，以及文件权限和过期参数。</text>
+    <text key="S0759" xml:space="preserve">请求体过大。如果供应商支持，请启用 Files API；也可减少单次识别的页数。</text>
 </resources>

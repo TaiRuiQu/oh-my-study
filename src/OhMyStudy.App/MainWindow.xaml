@@ -535,6 +535,8 @@
                                             <TextBox x:Name="ProviderUrl" Grid.Row="1" Header="{l:Text Key=S0543}" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
                                             <PasswordBox x:Name="ProviderKey" Grid.Row="1" Grid.Column="1" Header="{l:Text Key=S0544}" PlaceholderText="{l:Text Key=S0545}" />
                                         </Grid>
+                                        <CheckBox x:Name="ProviderFilesApi" Content="{l:Text Key=S0754}" />
+                                        <TextBlock Text="{l:Text Key=S0755}" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <Button Content="{l:Text Key=S0065}" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
                                             <Button x:Name="DeleteProviderButton" Content="{l:Text Key=S0546}" Click="DeleteProvider_Click" IsEnabled="False" />

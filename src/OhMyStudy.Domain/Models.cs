@@ -17,6 +17,8 @@ public sealed record Provider : IJsonOnDeserialized
     public required string Name { get; init; }
     public required Protocol Protocol { get; init; }
     public required string BaseUrl { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool SupportsFilesApi { get; init; }
     public string? KeyRef { get; init; }
     // This is a credential-store observation; persisted or caller-supplied JSON cannot assert it.
     [JsonConverter(typeof(IgnoredInputBooleanConverter))]

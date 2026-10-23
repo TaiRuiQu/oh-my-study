@@ -40,6 +40,7 @@ internal static partial class Program
             await PdfRelationships();
             await GradingAndJobs();
             await JobRetryChecks();
+            await ProviderFilesChecks();
             await PaperMetadata();
             await RetiredProviders();
             await CredentialAtomicity();

@@ -15,6 +15,7 @@ if (RuntimeFeature.IsDynamicCodeSupported && !args.Contains("--managed-sdk-check
 var fixtures = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "round-trips.synthetic.json")))!;
 var completed = 0;
 await Run("native requests, images, opaque tool context and usage", NativeRoundTrips);
+await Run("Files API image reuse, expiration, cleanup and opt-in", () => FilesApiRegression.RunAsync(fixtures));
 await Run("native thinking and collision checks", Thinking);
 await Run("native image capability checks", CapabilityChecks);
 await Run("incremental Unicode SSE for all protocols", Streams);

@@ -416,6 +416,7 @@ public sealed partial class MainWindow
     {
         _selectedProviderId = provider.Id; ProviderName.Text = provider.Name; ProviderUrl.Text = provider.BaseUrl;
         ProtocolPicker.SelectedIndex = (int)provider.Protocol; ProviderKey.Password = "";
+        ProviderFilesApi.IsChecked = provider.SupportsFilesApi;
         ProviderFeedback.Text = "";
         UpdateModelList(provider);
         ModelFeedback.Text = provider.Models.Count == 0 ? UiText.Get("No models yet. Fetch the list or add one manually.") : "";
@@ -429,6 +430,7 @@ public sealed partial class MainWindow
     {
         ProviderPicker.SelectedIndex = -1; _selectedProviderId = null; ProviderName.Text = ""; ProviderUrl.Text = ""; ProviderKey.Password = ""; ProviderFeedback.Text = "";
         ProtocolPicker.SelectedIndex = 0;
+        ProviderFilesApi.IsChecked = false;
         _modelSelectionSuppressed = true;
         try { ModelPicker.ItemsSource = null; }
         finally { _modelSelectionSuppressed = false; }
@@ -459,6 +461,7 @@ public sealed partial class MainWindow
                 Name = ProviderName.Text.Trim(),
                 Protocol = protocol,
                 BaseUrl = ProviderUrl.Text.Trim(),
+                SupportsFilesApi = ProviderFilesApi.IsChecked == true,
                 Models = models
             };
             if (!string.IsNullOrEmpty(ProviderKey.Password)) key = Encoding.UTF8.GetBytes(ProviderKey.Password);
@@ -604,6 +607,9 @@ public sealed partial class MainWindow
         if (importing) content.Children.Insert(0, modeChoice);
         if (policy.Warning is not null) content.Children.Add(new TextBlock { Text = UiText.Get("Sandbox unavailable. Code and commands will run locally with access to this account's files and network."), TextWrapping = TextWrapping.Wrap });
         content.Children.Add(new TextBlock { Text = UiText.Get("Materials will be sent to the selected model and may incur charges."), TextWrapping = TextWrapping.Wrap });
+        var filesNotice = new TextBlock { Text = UiText.Get("Images will be uploaded to the provider Files API and referenced by file ID. Files expire after 1 hour and are deleted when the task ends. Provider storage or model charges may apply."), TextWrapping = TextWrapping.Wrap, Visibility = provider.SupportsFilesApi ? Visibility.Visible : Visibility.Collapsed };
+        choice.SelectionChanged += (_, _) => filesNotice.Visibility = choice.SelectedIndex >= 0 && availableModels[choice.SelectedIndex].Provider.SupportsFilesApi ? Visibility.Visible : Visibility.Collapsed;
+        content.Children.Add(filesNotice);
         if (!references && _settings.EmbeddingModel is { } embedding)
             content.Children.Add(new TextBlock { Text = UiText.Format("New question text will also be sent to {0} using {1} for automatic indexing. Additional charges may apply.", embedding.BaseUrl, embedding.Model), TextWrapping = TextWrapping.Wrap });
         var dialog = new ContentDialog

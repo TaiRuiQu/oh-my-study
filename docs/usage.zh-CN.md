@@ -24,6 +24,10 @@
 
 任务页显示预估费用，点击“明细”查看费用与用量。缺少价格或必要用量时，费用可能无法计算；未显示费用不表示免费。
 
+若供应商支持 Files API 和图片文件 ID，可在供应商设置中勾选“支持 Files API”并保存。默认关闭，仅影响新任务，使用所选 Responses 或 Messages 协议及同一供应商地址和密钥。只上传识别过程中实际请求的图片，包括原页、裁剪图和生成图片。同一任务中内容相同的图片只上传一次，后续模型调用通过文件 ID 引用，避免反复阅读后请求体越来越大；不同裁剪结果仍分别上传，不降低清晰度。
+
+上传时请求文件在**创建后 1 小时过期**，任务完成、失败或取消时还会主动尝试删除。应用异常退出后仍依赖供应商执行过期策略。供应商必须支持对应协议的过期参数；上传被拒绝时会显示明确的任务错误，不会悄悄退回到巨大的内嵌请求，也不会省略过期时间重传。删除失败和请求大小会写入本机诊断日志，不记录上传图片的二进制内容。供应商可能收取存储或模型输入费用；文件 ID 减少传输体积，不会取消模型的输入 token 和图片数量限制。协议参数参见 [Responses 文件上传](https://developers.openai.com/api/reference/resources/files/methods/create)和 [Messages 文件上传](https://platform.claude.com/docs/en/api/http/files/upload)。
+
 ## 配置题意搜索
 
 在**设置 → 题意搜索模型**中，为 Embedding 和 Rerank 分别选择 **API 类型**，再填写 **Base URL**、**模型名称**和可选的 **API 密钥**。“OpenAI 兼容”使用 `/embeddings` 向量接口，并保留支持 `/rerank` 的服务接口；“DashScope”使用原生[向量接口](https://help.aliyun.com/zh/model-studio/text-embedding-synchronous-api)和[排序接口](https://help.aliyun.com/zh/model-studio/text-rerank-api)，请填写对应地域和业务空间、以 `/api/v1` 结尾的 Base URL，具体操作路径由程序追加。旧配置默认沿用 OpenAI 兼容类型。这两组连接仍独立于识别供应商。密钥分别保存在 Windows 凭据管理器中；密钥栏留空保留原密钥，勾选“删除已保存的密钥”可删除。Base URL 和模型名称均留空可停用该模型，修改后点击“保存搜索模型”。

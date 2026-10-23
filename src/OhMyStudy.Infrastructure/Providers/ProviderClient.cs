@@ -21,6 +21,7 @@ public interface IModelClient
     Protocol Protocol { get; }
     Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress = null, CancellationToken cancellationToken = default);
     Task<ModelPage> ListModelsAsync(ProviderCredentials credentials, string? cursor = null, CancellationToken cancellationToken = default);
+    Task DeleteFilesAsync(ProviderCredentials credentials, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 /// <summary>Explicit opt-in retries of HTTP rejections only. Ambiguous network failures never replay.</summary>
@@ -45,14 +46,15 @@ public sealed class ProviderClient : IModelClient, IDisposable
     private readonly bool _ownsHttp;
     private readonly ResponsesSdkClient? _responses;
     private readonly MessagesSdkClient? _messages;
+    private readonly ProviderFileSession? _files;
     public Protocol Protocol { get; }
 
-    public ProviderClient(Protocol protocol, string baseUri, IReadOnlyDictionary<string, string>? headers = null)
+    public ProviderClient(Protocol protocol, string baseUri, IReadOnlyDictionary<string, string>? headers = null, bool supportsFilesApi = false)
         // SDK streams run until the caller cancels; each SDK bounds non-streaming calls itself.
-        : this(new HttpClient(new DiagnosticHttpHandler(new SocketsHttpHandler { AllowAutoRedirect = false })) { Timeout = Timeout.InfiniteTimeSpan }, protocol, baseUri, headers)
+        : this(new HttpClient(new DiagnosticHttpHandler(new SocketsHttpHandler { AllowAutoRedirect = false })) { Timeout = Timeout.InfiniteTimeSpan }, protocol, baseUri, headers, supportsFilesApi)
         => _ownsHttp = true;
 
-    public ProviderClient(HttpClient httpClient, Protocol protocol, string baseUri, IReadOnlyDictionary<string, string>? headers = null)
+    public ProviderClient(HttpClient httpClient, Protocol protocol, string baseUri, IReadOnlyDictionary<string, string>? headers = null, bool supportsFilesApi = false)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         if (!Enum.IsDefined(protocol)) throw ProviderProtocol.Invalid("unknown protocol");
@@ -71,6 +73,7 @@ public sealed class ProviderClient : IModelClient, IDisposable
         if (OpenRouter.IsEndpoint(endpoint)) OpenRouter.AddAttribution(customHeaders);
         if (protocol == Protocol.Responses) _responses = new ResponsesSdkClient(httpClient, endpoint, customHeaders);
         if (protocol == Protocol.Messages) _messages = new MessagesSdkClient(httpClient, endpoint, customHeaders);
+        if (supportsFilesApi) _files = new ProviderFileSession(httpClient, protocol, endpoint, customHeaders);
     }
 
     public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress = null, CancellationToken cancellationToken = default)
@@ -88,6 +91,11 @@ public sealed class ProviderClient : IModelClient, IDisposable
     {
         retryPolicy.Validate();
         if (cancellationToken.IsCancellationRequested) throw new ProviderException(ErrorKind.Cancelled, "provider call cancelled");
+        if (_files is not null)
+        {
+            history = await _files.PrepareAsync(credentials, history, progress, cancellationToken).ConfigureAwait(false);
+            progress?.Invoke(new(Status: "Waiting for the model response"));
+        }
         if (_responses is not null)
             return await CallSdkWithRetryAsync(retryPolicy, cancellationToken, () => _responses.CallAsync(credentials, options, history, tools, progress, cancellationToken)).ConfigureAwait(false);
         if (_messages is not null)
@@ -116,6 +124,9 @@ public sealed class ProviderClient : IModelClient, IDisposable
             return await _messages.ListModelsAsync(credentials, cursor, cancellationToken).ConfigureAwait(false);
         throw ProviderProtocol.Invalid("unknown protocol");
     }
+
+    public Task DeleteFilesAsync(ProviderCredentials credentials, CancellationToken cancellationToken = default)
+        => _files?.DeleteAsync(credentials, cancellationToken) ?? Task.CompletedTask;
 
     private static bool IsLoopback(Uri uri) => uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || uri.Host is "127.0.0.1" or "[::1]" or "::1";
     private static async Task DelayAsync(string? retryAfter, int attempt, ProviderRetryPolicy policy, CancellationToken cancellationToken)

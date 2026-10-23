@@ -6,7 +6,7 @@ using static OhMyStudy.Infrastructure.Providers.ProviderProtocol;
 
 namespace OhMyStudy.Infrastructure.Providers;
 
-public sealed record ProviderProgress(string? Text = null, string? ToolName = null, bool Thinking = false);
+public sealed record ProviderProgress(string? Text = null, string? ToolName = null, bool Thinking = false, string? Status = null);
 public sealed record SseEvent(string? Event, string Data);
 
 /// <summary>Incremental SSE framing with strict UTF-8, byte limits and EOF validation.</summary>

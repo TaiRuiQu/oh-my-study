@@ -38,6 +38,18 @@ public sealed partial class MainWindow
         var model = new ModelConfig { Id = "study-model", DisplayName = "示例模型", ContextWindow = 200000, PriceInput = 1.25, PriceCacheRead = 0.125, PriceCacheWrite = 1.5625, PriceOutput = 5, Currency = "USD", Capabilities = new() { Vision = true, Tools = true, Thinking = [new ResponsesThinking { Effort = "high" }] }, MaxOutputTokens = 32000, Reasoning = true, InputModalities = ["text", "image", "pdf"], OutputModalities = ["text"] };
         var provider = new Provider { Id = Guid.NewGuid().ToString(), Name = "示例供应商", Protocol = Protocol.Responses, BaseUrl = "https://synthetic.invalid/v1", KeyRef = null, Models = [model] };
         await _library!.UpsertProviderAsync(provider); await RefreshProvidersAsync(); ProviderPicker.SelectedItem = _providers.Single(); PopulateModelEditor(model);
+        Require(ProviderFilesApi.IsChecked == false, "files-api-defaults-off");
+        ProviderFilesApi.IsChecked = true;
+        Require(HasProviderDraft, "files-api-change-is-an-unsaved-provider-setting");
+        await SaveProviderAsync();
+        var filesProvider = (await _library.ListProvidersAsync()).Single();
+        Require(filesProvider.SupportsFilesApi, "files-api-option-saves");
+        PopulateProviderEditor(filesProvider);
+        Require(ProviderFilesApi.IsChecked == true && !HasProviderDraft, "files-api-option-reloads");
+        ProviderFilesApi.IsChecked = false;
+        DiscardSettingsForm();
+        Require(ProviderFilesApi.IsChecked == true && !HasProviderDraft, "discard-restores-files-api-option");
+        SettingsPanel.ChangeView(null, 0, null, true); await Capture("files-api");
         await UpdateModelCnyPreviewAsync(); RootGrid.UpdateLayout(); SettingsPanel.UpdateLayout();
         double priceY = ModelPriceFields.TransformToVisual((UIElement)SettingsPanel.Content).TransformPoint(new(0, 0)).Y;
         SettingsPanel.ChangeView(null, Math.Max(0, priceY - 100), null, true); await Capture("model-usd"); Require(ModelCnyPreview.Text.Contains("8.9"), "usd-cny-preview");

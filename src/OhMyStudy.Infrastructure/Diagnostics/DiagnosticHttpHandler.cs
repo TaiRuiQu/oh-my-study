@@ -29,7 +29,9 @@ public sealed class DiagnosticHttpHandler(HttpMessageHandler inner) : Delegating
             if (request.Content is { } content)
             {
                 requestFields["content_headers"] = Headers(content.Headers, secrets);
-                requestFields["body"] = DiagnosticRedaction.Body(await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), secrets);
+                requestFields["body_bytes"] = content.Headers.ContentLength;
+                requestFields["body"] = content is MultipartContent ? "[multipart file content omitted]"
+                    : DiagnosticRedaction.Body(await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false), secrets);
             }
             var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
             try
@@ -38,6 +40,7 @@ public sealed class DiagnosticHttpHandler(HttpMessageHandler inner) : Delegating
                 fields["method"] = request.Method.Method;
                 fields["url"] = requestFields["url"]?.DeepClone();
                 fields["status"] = (int)response.StatusCode;
+                fields["request_bytes"] = requestFields["body_bytes"]?.DeepClone();
                 if (!response.IsSuccessStatusCode)
                 {
                     fields["request"] = requestFields.DeepClone();

@@ -760,4 +760,10 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0751" xml:space="preserve">더 최근의 작업이 이 시험을 처리했습니다. 가장 최근에 실패한 작업을 다시 시도하세요.</text>
     <text key="S0752" xml:space="preserve">이 작업에는 다시 시도를 위한 복구 기록이 없습니다. 시험에서 다시 인식을 사용하여 저장된 결과를 유지하세요.</text>
     <text key="S0753" xml:space="preserve">이 작업이 저장한 문제가 수동 편집되었습니다. 시험에서 다시 인식을 사용하여 편집 내용을 유지하세요.</text>
+    <text key="S0754" xml:space="preserve">Files API 지원</text>
+    <text key="S0755" xml:space="preserve">파일 업로드 및 이미지 파일 ID를 지원하는 제공업체에서만 활성화하세요. 파일은 1시간 후 만료되며 작업이 끝나면 삭제됩니다.</text>
+    <text key="S0756" xml:space="preserve">이미지를 제공업체의 Files API에 업로드한 후 파일 ID로 참조합니다. 파일은 1시간 후 만료되며 작업이 끝나면 삭제됩니다. 저장소 또는 모델 요금이 발생할 수 있습니다.</text>
+    <text key="S0757" xml:space="preserve">제공업체의 Files API에 이미지 업로드 중</text>
+    <text key="S0758" xml:space="preserve">제공업체가 Files API 작업을 거부했습니다. Files API 지원 여부, 파일 권한 및 만료 매개변수를 확인하세요.</text>
+    <text key="S0759" xml:space="preserve">요청 본문이 너무 큽니다. 제공업체가 지원하는 경우 Files API를 활성화하거나 한 번에 인식할 페이지 수를 줄이세요.</text>
 </resources>

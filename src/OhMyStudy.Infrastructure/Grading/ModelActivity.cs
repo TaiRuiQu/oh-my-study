@@ -27,7 +27,7 @@ internal static class ModelActivity
             {
                 if (progress.Text is { } delta && text.Length < 16000)
                     text.Append(delta.AsSpan(0, Math.Min(delta.Length, 16000 - text.Length)));
-                detail = progress.Thinking ? "Model is reasoning" : progress.ToolName is not null ? "Preparing the next action" : "Receiving the model response";
+                detail = progress.Status ?? (progress.Thinking ? "Model is reasoning" : progress.ToolName is not null ? "Preparing the next action" : "Receiving the model response");
                 dirty = true;
             }
         }
@@ -147,6 +147,8 @@ internal static class ModelActivity
 
     private static string FailureDetail(Exception error) => error switch
     {
+        ProviderException { Diagnostic: "files_api_rejected" } => "The provider rejected a Files API operation. Check Support Files API and the provider's file permissions or expiration support.",
+        ProviderException { Diagnostic: "request_too_large" } => "The request is too large. Enable Support Files API if the provider supports it, or recognize fewer pages at a time.",
         ProviderException { Diagnostic: "thinking_effort_rejected" } => "The provider does not support this reasoning effort. Check model settings and retry.",
         ProviderException { Diagnostic: "thinking_budget_rejected" or "thinking_configuration_rejected" } => "The provider rejected the reasoning settings. Check supported options and retry.",
         ProviderException { Diagnostic: "output_token_limit_rejected" } => "The output limit exceeds the model's limit. Update model settings and retry.",

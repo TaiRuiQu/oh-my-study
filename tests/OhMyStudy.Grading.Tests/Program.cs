@@ -30,6 +30,7 @@ internal static partial class Program
             ModelProfileChecks.Run(Check);
             await ModelProfilesAtTaskStart();
             await OutputTokenChecks();
+            await FilesLifecycleChecks();
             await ThreeProtocolsAndModes();
             await OptionalFields();
             await BatchedTools();
@@ -823,6 +824,7 @@ internal static partial class Program
             var job = await fixture.Run(client);
             var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
             Check(job.State == JobState.Failed && result.Questions.Count == 1 && result.Coverage.Count == 0, noTools ? "plain model text cannot complete and previous save remains" : "network failure preserves durable previous result");
+            Check(client.CleanupAttempts == 1 && !client.CleanupTokenCancelled, "failed task cleans uploaded files with a separate cancellation token");
             Check(client.Attempts == (noTools ? 4 : 5) && result.ModelCalls.Count == (noTools ? 4 : 1),
                 noTools ? "bounded text continuations account for every model call" : "bounded network retries preserve successful results without fabricating usage");
             await fixture.AssertDurableEvents(job);
@@ -852,6 +854,7 @@ internal static partial class Program
         // A new storage diagnostic runs only once the cancelled runner has actually left the execution slot.
         var sentinel = await queue.SubmitAsync(DiagnosticKind.Storage, Policy, null);
         Check((await Wait(queue, sentinel.Id)).State == JobState.Completed, "cancelled runner releases queue after late result returns");
+        Check(client.CleanupAttempts == 1 && !client.CleanupTokenCancelled, "canceled task still attempts remote file cleanup");
         var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
         Check(cancelled.State == JobState.Cancelled && (await queue.GetAsync(submitted.Id)).State == JobState.Cancelled, "late result cannot change terminal cancellation");
         Check(result.Questions.Count == 1 && result.Questions.Single().Question.DraftKey == first.DraftKey && result.ModelCalls.Count == 1 && result.Coverage.Count == 0, "late save, usage and finish all blocked after cancellation");
@@ -996,6 +999,14 @@ internal static partial class Program
     {
         public Protocol Protocol => protocol;
         public int Attempts { get; private set; }
+        public int CleanupAttempts { get; private set; }
+        public bool CleanupTokenCancelled { get; private set; }
+        public Func<CancellationToken, Task>? Cleanup { get; init; }
+        public Task DeleteFilesAsync(ProviderCredentials credentials, CancellationToken cancellationToken = default)
+        {
+            CleanupAttempts++; CleanupTokenCancelled = cancellationToken.IsCancellationRequested;
+            return Cleanup?.Invoke(cancellationToken) ?? Task.CompletedTask;
+        }
         public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress = null, CancellationToken cancellationToken = default) => script(++Attempts, history, cancellationToken);
         public Task<ModelPage> ListModelsAsync(ProviderCredentials credentials, string? cursor = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }

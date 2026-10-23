@@ -760,4 +760,10 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0751" xml:space="preserve">この試験は新しいタスクで処理されています。最新の失敗したタスクを再試行してください。</text>
     <text key="S0752" xml:space="preserve">このタスクには再試行用の復元記録がありません。試験の「再認識」を使用して保存済みの結果を保持してください。</text>
     <text key="S0753" xml:space="preserve">このタスクが保存した問題は手動編集されています。試験の「再認識」を使用して編集内容を保持してください。</text>
+    <text key="S0754" xml:space="preserve">Files API に対応</text>
+    <text key="S0755" xml:space="preserve">ファイルのアップロードと画像ファイル ID に対応したプロバイダーでのみ有効にしてください。ファイルは 1 時間後に期限切れとなり、タスク終了時に削除されます。</text>
+    <text key="S0756" xml:space="preserve">画像をプロバイダーの Files API にアップロードし、以後はファイル ID で参照します。ファイルは 1 時間後に期限切れとなり、タスク終了時に削除されます。保存やモデルの料金が発生する場合があります。</text>
+    <text key="S0757" xml:space="preserve">プロバイダーの Files API に画像をアップロード中</text>
+    <text key="S0758" xml:space="preserve">プロバイダーが Files API 操作を拒否しました。Files API への対応、ファイル権限、有効期限パラメーターを確認してください。</text>
+    <text key="S0759" xml:space="preserve">リクエストが大きすぎます。対応するプロバイダーでは Files API を有効にするか、一度に認識するページ数を減らしてください。</text>
 </resources>

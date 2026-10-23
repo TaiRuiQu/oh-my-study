@@ -760,4 +760,10 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0751" xml:space="preserve">A newer task has processed this exam. Retry its latest failed task instead.</text>
     <text key="S0752" xml:space="preserve">This task predates retry recovery records. Use Recognize again in Exams to preserve its saved results.</text>
     <text key="S0753" xml:space="preserve">Questions saved by this task were edited. Use Recognize again in Exams to preserve your edits.</text>
+    <text key="S0754" xml:space="preserve">Support Files API</text>
+    <text key="S0755" xml:space="preserve">Enable only if the provider supports file uploads and image file IDs. Files expire after 1 hour and are deleted when the task ends.</text>
+    <text key="S0756" xml:space="preserve">Images will be uploaded to the provider Files API and referenced by file ID. Files expire after 1 hour and are deleted when the task ends. Provider storage or model charges may apply.</text>
+    <text key="S0757" xml:space="preserve">Uploading images to the provider Files API</text>
+    <text key="S0758" xml:space="preserve">The provider rejected a Files API operation. Check Support Files API and the provider&apos;s file permissions or expiration support.</text>
+    <text key="S0759" xml:space="preserve">The request is too large. Enable Support Files API if the provider supports it, or recognize fewer pages at a time.</text>
 </resources>

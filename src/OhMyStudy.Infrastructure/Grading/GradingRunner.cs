@@ -28,9 +28,21 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         var input = job.Input ?? throw new ArgumentException("Whole-paper input is missing.");
         bool referenceOnly = job.Kind == DiagnosticKind.References;
         var credentials = (credentialReader ?? ReadCredentials)(input.Provider);
-        var client = (clientFactory ?? (provider => new ProviderClient(provider.Protocol, provider.BaseUrl)))(input.Provider);
+        var client = (clientFactory ?? (provider => new ProviderClient(provider.Protocol, provider.BaseUrl, supportsFilesApi: provider.SupportsFilesApi)))(input.Provider);
         try { await RunPaperAsync(job, context, input, client, credentials, referenceOnly).ConfigureAwait(false); }
-        finally { if (clientFactory is null && client is IDisposable disposable) disposable.Dispose(); }
+        finally
+        {
+            try
+            {
+                using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                await client.DeleteFilesAsync(credentials, cleanup.Token).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                OperationDiagnostics.Record("Files.CleanupFailed", new() { ["job_id"] = job.Id, ["provider_id"] = input.Provider.Id, ["exception"] = error.ToString() }, true);
+            }
+            finally { if (clientFactory is null && client is IDisposable disposable) disposable.Dispose(); }
+        }
     }
 
     private static ProviderCredentials ReadCredentials(Provider provider)

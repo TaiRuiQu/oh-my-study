@@ -41,6 +41,18 @@ internal static partial class Program
                 && !entries[0].Detail.Contains("synthetic successful", StringComparison.Ordinal)
                 && !entries[0].Detail.Contains("headers", StringComparison.Ordinal), "successful HTTP calls emit one summary without headers or payloads");
 
+            entries.Clear(); inner.Success = false;
+            using (var multipart = new MultipartFormDataContent())
+            {
+                multipart.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("synthetic-private-image-bytes")), "file", "synthetic.png");
+                using var uploadResponse = await http.PostAsync("https://synthetic.invalid/v1/files", multipart);
+                var uploadFailure = entries.Single(entry => entry.Phase == "Http.Rejected");
+                using var uploadJson = JsonDocument.Parse(uploadFailure.Detail);
+                Check(!uploadFailure.Detail.Contains("synthetic-private-image-bytes", StringComparison.Ordinal)
+                    && uploadJson.RootElement.GetProperty("request").GetProperty("body_bytes").GetInt64() > 0
+                    && uploadFailure.Detail.Contains("multipart file content omitted", StringComparison.Ordinal), "multipart diagnostics retain byte counts without logging image bytes");
+            }
+
             entries.Clear();
             inner.StreamFailure = true;
             using var streamRequest = new HttpRequestMessage(HttpMethod.Post, "https://synthetic.invalid/v1/responses");
