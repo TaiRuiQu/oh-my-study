@@ -73,8 +73,8 @@ internal sealed class ProviderFileSession(HttpClient http, Protocol protocol, Ur
         var form = new MultipartFormDataContent(); request.Content = form;
         if (protocol == Protocol.Responses)
         {
-            fields["purpose"] = "vision";
-            form.Add(new StringContent("vision"), "purpose");
+            fields["purpose"] = "user_data";
+            form.Add(new StringContent("user_data"), "purpose");
             form.Add(new StringContent("created_at"), "expires_after[anchor]");
             form.Add(new StringContent("3600"), "expires_after[seconds]");
         }

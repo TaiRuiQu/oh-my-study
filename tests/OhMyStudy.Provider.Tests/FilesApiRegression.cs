@@ -15,6 +15,7 @@ internal static class FilesApiRegression
             await PartialFailure(protocol);
         }
         await Disabled(fixtures);
+        await UserDataPurpose(fixtures);
         await Cancellation();
     }
 
@@ -47,7 +48,7 @@ internal static class FilesApiRegression
                 if (protocol == Protocol.Responses)
                 {
                     Require(request.Headers.Authorization?.Parameter == "synthetic-key", "Responses file authentication");
-                    Require(await parts["purpose"].ReadAsStringAsync(token) == "vision" && await parts["expires_after[anchor]"].ReadAsStringAsync(token) == "created_at"
+                    Require(await parts["purpose"].ReadAsStringAsync(token) == "user_data" && await parts["expires_after[anchor]"].ReadAsStringAsync(token) == "created_at"
                         && await parts["expires_after[seconds]"].ReadAsStringAsync(token) == "3600", "Responses files expire after one hour");
                 }
                 else
@@ -118,6 +119,42 @@ internal static class FilesApiRegression
         await client.CallAsync(new("synthetic-key"), Options(), ProviderProtocol.Initial(Protocol.Responses, "exam", [Image("page")]), []);
         await client.DeleteFilesAsync(new("synthetic-key"));
         Require(calls == 1, "Files API is opt-in");
+    }
+
+    private static async Task UserDataPurpose(JsonNode fixtures)
+    {
+        int uploads = 0, calls = 0, deleted = 0;
+        using var http = new HttpClient(new FakeHandler(async (request, token) =>
+        {
+            if (request.Method == HttpMethod.Delete)
+            {
+                Require(request.RequestUri!.AbsolutePath == "/files/file-api-study", "user-data cleanup uses the uploaded file ID");
+                deleted++;
+                return Response("{}");
+            }
+            if (request.RequestUri!.AbsolutePath == "/files")
+            {
+                var parts = ((MultipartFormDataContent)request.Content!).ToDictionary(p => p.Headers.ContentDisposition!.Name!.Trim('"'));
+                if (await parts["purpose"].ReadAsStringAsync(token) != "user_data")
+                    return Response("""{"error":{"message":"The 'vision' purpose is not supported. Supported purposes: [\"user_data\"]","type":"invalid_request_error"}}""", 400);
+                Require(await parts["expires_after[anchor]"].ReadAsStringAsync(token) == "created_at"
+                    && await parts["expires_after[seconds]"].ReadAsStringAsync(token) == "3600", "user-data uploads retain one-hour expiration");
+                uploads++;
+                return Response("""{"id":"file-api-study","purpose":"user_data"}""");
+            }
+            Require(request.RequestUri.AbsolutePath == "/responses", "user-data files reach the Responses endpoint");
+            string body = await request.Content!.ReadAsStringAsync(token);
+            Require(body.Contains("file-api-study", StringComparison.Ordinal) && !body.Contains("base64", StringComparison.Ordinal), "inference reuses the user-data file without inline images");
+            calls++;
+            return Response(fixtures["responses"]!["final"]!.ToJsonString());
+        }));
+        using var client = new ProviderClient(http, Protocol.Responses, "https://api.deepseek.com", supportsFilesApi: true);
+        var credentials = new ProviderCredentials("synthetic-key");
+        var history = ProviderProtocol.Initial(Protocol.Responses, "exam", [Image("page")]);
+        await client.CallAsync(credentials, Options(), history, []);
+        await client.CallAsync(credentials, Options(), history, []);
+        await client.DeleteFilesAsync(credentials);
+        Require(uploads == 1 && calls == 2 && deleted == 1, "user-data-only providers support upload, reuse, inference and cleanup");
     }
 
     private static async Task Cancellation()

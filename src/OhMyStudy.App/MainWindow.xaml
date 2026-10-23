@@ -433,7 +433,7 @@
                     <controls:ColumnSplitter x:Name="TaskColumnSplitter" Grid.Column="1" MinimumBefore="220" MinimumAfter="360" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
                     <Border x:Name="TaskDetail" Grid.Column="2" SizeChanged="TasksPanel_SizeChanged" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="2*" MinHeight="120" /><RowDefinition Height="12" /><RowDefinition Height="3*" MinHeight="140" /></Grid.RowDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" MinHeight="120" /><RowDefinition Height="12" /><RowDefinition Height="*" MinHeight="140" /></Grid.RowDefinitions>
                             <ScrollViewer x:Name="TaskSummaryScroll" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel x:Name="TaskSummary" Spacing="24" Padding="24">
                                     <Grid ColumnSpacing="24">

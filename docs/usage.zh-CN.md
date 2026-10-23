@@ -146,3 +146,5 @@ AppContainer 不需要 Windows Sandbox、虚拟化或额外启用 Windows 功能
 | 无法导出 | 先保存题目，检查题图与保存位置；内容过多时分批导出 |
 
 主题可在“设置 → 外观”中选择“跟随 Windows”“浅色”或“深色”。
+
+[Wiki 目录](wiki/Home-zh-CN.md)

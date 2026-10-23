@@ -148,3 +148,5 @@ Provider keys are stored in the Credential Manager of the current Windows accoun
 | Cannot export | Save the questions first, check the question images and save location; export in batches if there is too much content |
 
 You can choose "Follow Windows (跟随 Windows)", "Light (浅色)", or "Dark (深色)" under "Settings → Appearance (设置 → 外观)".
+
+[Wiki contents](wiki/Home.md)

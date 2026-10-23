@@ -59,6 +59,7 @@ public sealed partial class MainWindow
             TaskColumnSplitter.Resize(32); await Task.Delay(100);
             Check(TaskListColumn.ActualWidth > sidebarWidth + 20, "task-columns-resize");
             double summaryHeight = TaskSummaryScroll.ActualHeight;
+            Check(Math.Abs(summaryHeight - TaskSummary.ActualHeight) < 1, "task-summary-default-height-follows-content");
             TaskSummarySplitter.Resize(-32); await Task.Delay(100);
             Check(TaskSummaryScroll.ActualHeight < summaryHeight - 20 && TaskLogScroll.ActualHeight > 140, "task-summary-and-log-resize");
             foreach (int width in new[] { 820, 460 })

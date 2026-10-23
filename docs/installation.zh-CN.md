@@ -80,3 +80,5 @@ msiexec /p "C:\Downloads\OhMyStudy-patch.msp" REINSTALL=ALL REINSTALLMODE=omus /
 在“设置”中添加供应商、密钥和模型并保存，然后导入试卷。详细操作见[使用指南](usage.zh-CN.md)。
 
 普通分支提交和拉取请求只执行回归检查，不再生成四套下载包。Provider 和 grading 测试以托管模式运行，避免反复进行耗时的 SDK Native AOT 编译；其余原生测试继续保留。标签发布和手动运行会执行完整 Native AOT 验证并构建四套安装包。同一分支的旧运行会被取消。
+
+[Wiki 目录](wiki/Home-zh-CN.md)

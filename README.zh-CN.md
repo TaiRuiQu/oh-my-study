@@ -24,7 +24,7 @@ AI 识别与批改需要联网，会将材料发送给所选供应商，并可�
 
 ## 使用文档
 
-- [维基](https://github.com/TaiRuiQu/oh-my-study/wiki/Home-zh-CN)：[快速开始](https://github.com/TaiRuiQu/oh-my-study/wiki/Quick-Start-zh-CN)、[功能详解](https://github.com/TaiRuiQu/oh-my-study/wiki/Feature-Guide-zh-CN)与 [Tech for nerds：技术内幕](https://github.com/TaiRuiQu/oh-my-study/wiki/Tech-for-nerds-zh-CN)。
+- [维基](docs/wiki/Home-zh-CN.md)：[快速开始](docs/wiki/Quick-Start-zh-CN.md)、[功能详解](docs/wiki/Feature-Guide-zh-CN.md)与 [Tech for nerds：技术内幕](docs/wiki/Tech-for-nerds-zh-CN.md)。
 - [安装、升级与卸载](docs/installation.zh-CN.md)：下载选择、安装步骤和资料保留。
 - [使用指南](docs/usage.zh-CN.md)：模型设置、试卷导入、题目整理、PDF 导出和常见问题。
 
