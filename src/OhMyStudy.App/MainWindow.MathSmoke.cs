@@ -58,6 +58,15 @@ public sealed partial class MainWindow
             Show(table); await Capture("table-parts");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("table-compact");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+            long invalidBeforeBlank = NativeFormulaReadingSession.InvalidFormulas;
+            Show(WithBody(question with { Number = "14" }, [new TextContent
+            {
+                Text = @"已知函数 $f(x)=\cos x+\frac12\cos 2x+\frac13\cos 3x$，则 $f(x)$ 的最小值为\(______\)。"
+            }]));
+            await Capture("legacy-answer-blank");
+            if (NativeFormulaReadingSession.InvalidFormulas != invalidBeforeBlank)
+                throw new InvalidOperationException("Legacy answer blank or dollar formula failed to render.");
+            evidence.Add("legacy-answer-blank=PASS");
             var longQuestion = WithBody(question, [new TextContent { Text = string.Concat(Enumerable.Repeat(@"文字应随窗口自然换行，\(x^2+y^2=1\) 与正文保持一致。", 6)) + "\n" }, new FormulaContent { Latex = "$$" + string.Join("+", Enumerable.Range(1, 32).Select(index => @"\dfrac{x_{" + index + @"}^2}{" + index + "}")) + "$$" }]);
             Show(longQuestion); await Capture("long");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("long-compact");

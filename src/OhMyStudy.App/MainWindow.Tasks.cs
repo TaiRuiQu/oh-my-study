@@ -245,8 +245,8 @@ public sealed partial class MainWindow
                 var members = activities.Skip(start).Take(count).Select(item => item.Activity).ToArray();
                 string title = first.Kind switch
                 {
-                    "read_page" => UiText.Get("Read pages"),
-                    "save_question" => UiText.Get("Save questions"),
+                    "read_page" or "read_pages" => UiText.Get("Read pages"),
+                    "save_question" or "save_questions" => UiText.Get("Save questions"),
                     "save_references" => UiText.Get("Save reference answers"),
                     "python" or "shell" => UiText.Get("Run calculations"),
                     _ => UiText.ActivityText(first.Title)
@@ -368,7 +368,7 @@ public sealed partial class MainWindow
             var secondary = brush("TaskSecondaryBrush");
             _icon.Foreground = error ? brush("TaskErrorBrush") : secondary;
             _icon.Glyph = error ? "\uE7BA" : step.Kind switch
-            { "model" => "\uE945", "read_page" => "\uE8A5", "save_question" => "\uE74E", "save_references" => "\uE8F1", "finish" => "\uE73E", "python" or "shell" => "\uE8EF", _ => "\uE9F9" };
+            { "model" => "\uE945", "read_page" or "read_pages" => "\uE8A5", "save_question" or "save_questions" => "\uE74E", "save_references" => "\uE8F1", "finish" => "\uE73E", "python" or "shell" => "\uE8EF", _ => "\uE9F9" };
             string output = model ? step.Text.TrimEnd() : "";
             string stateLabel = state switch { "completed" => UiText.Get("Completed"), "failed" => UiText.Get("Failed"), "cancelled" => UiText.Get("Canceled"), "waiting" => UiText.Get("Awaiting confirmation"), _ => UiText.Get("In progress") };
             _title.Text = (model ? UiText.Get("Recognition") : UiText.ActivityText(step.Title)) + (model && step.Text.Length >= 16000 ? UiText.Get(" (output excerpt)") : "");

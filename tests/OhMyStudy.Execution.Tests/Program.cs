@@ -209,6 +209,7 @@ if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
         ("arguments", "param($a,$b,$c);[Console]::WriteLine(($a,$b,$c -join '|'))", ["a b", "尾\\", "中文"], "a b|尾\\|中文", 0),
         ("literal", "param($a,$b,$c);if($a -ne ''){throw 'empty argument changed'};[Console]::WriteLine($b);[Console]::WriteLine($c)" + new string(' ', 40000), ["", "a'\";$(throw 'must-not-run')", "line1\nline2"], "a'\";$(throw 'must-not-run')", 0),
         ("no-arguments", "[Console]::WriteLine($args.Count)", [], "0", 0),
+        ("working-directory", "if(-not (Test-Path -LiteralPath 'plot.png')){throw 'missing Python plot'};Copy-Item -LiteralPath 'plot.png' -Destination 'shell-plot.png';[Console]::WriteLine((Get-Location).Path)", [], root, 0),
         ("nonzero", "exit 7", [], "", 7),
         ("error", "throw 'synthetic error'", [], "", 1)
     })

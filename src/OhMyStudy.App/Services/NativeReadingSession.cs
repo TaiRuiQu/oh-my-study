@@ -7,10 +7,7 @@ namespace OhMyStudy.App.Services;
 /// <summary>All reading surfaces use the NuGet VelociTex renderer.</summary>
 internal sealed class NativeReadingSession(double width, bool preview = false, ElementTheme initialTheme = ElementTheme.Default)
 {
-    private readonly double _width = width;
     private readonly NativeFormulaReadingSession _native = new(width, preview, initialTheme);
-    internal double Width => _width;
-    internal NativeReadingSession WithWidth(double width) => new(Math.Clamp(Math.Floor(width), 80, 4000), initialTheme: initialTheme);
 
     public static async Task<NativeReadingSession> CreateAsync(Question question, double availableWidth, CancellationToken token, ElementTheme theme = ElementTheme.Default)
     {
@@ -40,9 +37,7 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
             if (item is TextContent text) paragraph.Append(text.Text);
             else if (item is FormulaContent formula)
             {
-                string latex = formula.Latex.Trim();
-                paragraph.Append(latex.StartsWith('$') || latex.StartsWith(@"\(", StringComparison.Ordinal) || latex.StartsWith(@"\[", StringComparison.Ordinal)
-                    ? latex : @"\(" + latex + @"\)");
+                paragraph.Append(QuestionText.Delimit(formula.Latex));
             }
             else
             {
@@ -53,13 +48,23 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
         if (paragraph.Length > 0) yield return new TextContent { Text = paragraph.ToString() };
     }
 
+    internal static IEnumerable<Content> ItemPrompt(QuestionItem item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.Label))
+        {
+            string points = item.Attempt is null && item.Points is { } possible ? " (" + UiText.Format("{0:g} points", possible) + ")" : "";
+            yield return new TextContent { Text = item.Label.Trim() + points + " " };
+        }
+        foreach (var content in item.Prompt) yield return content;
+    }
+
     private static IEnumerable<string> Collect(Question question)
     {
         foreach (string text in Texts(question.Stem)) yield return text;
         foreach (var item in question.Items)
         {
             if (item.Points is { } points) yield return UiText.Format("{0:g} points", points);
-            foreach (string text in Texts(item.Prompt)) yield return text;
+            foreach (string text in Texts(ItemPrompt(item))) yield return text;
             foreach (string option in item.Options) yield return option;
             foreach (string feedback in FeedbackSections(item).SelectMany(section => section.Texts)) yield return feedback;
             if (!string.IsNullOrWhiteSpace(item.Answer)) yield return item.Answer;

@@ -687,4 +687,7 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0678" xml:space="preserve">あなたの解答</text>
     <text key="S0679" xml:space="preserve">解答と解説を表示</text>
     <text key="S0680" xml:space="preserve">保存できませんでした。再試行してください。</text>
+    <text key="S0681" xml:space="preserve">Python を実行</text>
+    <text key="S0682" xml:space="preserve">PowerShell を実行</text>
+    <text key="S0683" xml:space="preserve">コードの実行が完了しました</text>
 </resources>

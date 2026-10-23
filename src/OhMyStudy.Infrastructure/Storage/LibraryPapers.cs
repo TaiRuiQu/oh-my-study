@@ -33,13 +33,14 @@ public sealed partial class LibraryRepository
                 DocumentIdle(id);
                 if (Scalar("SELECT 1 FROM documents WHERE id=$p0", id) is null) throw new KeyNotFoundException("Exam not found");
                 var jobs = Query("SELECT job_id FROM grading_runs WHERE document_id=$p0", r => r.GetString(0), id);
-                var assets = Query("SELECT a.id,a.original_file,a.thumbnail_file FROM assets a WHERE a.id IN (SELECT asset_id FROM source_pages WHERE document_id=$p0 UNION SELECT original_asset_id FROM source_pages WHERE document_id=$p0 AND original_asset_id IS NOT NULL)",
+                var assets = Query("SELECT a.id,a.original_file,a.thumbnail_file FROM assets a WHERE a.id IN (SELECT asset_id FROM source_pages WHERE document_id=$p0 UNION SELECT original_asset_id FROM source_pages WHERE document_id=$p0 AND original_asset_id IS NOT NULL UNION SELECT asset_id FROM question_assets WHERE document_id=$p0)",
                     r => (Id: r.GetString(0), Original: r.GetString(1), Thumbnail: NullableText(r, 2)), id);
                 foreach (var job in jobs) Execute("DELETE FROM model_calls WHERE job_id=$p0", job);
                 Execute("DELETE FROM grading_runs WHERE document_id=$p0", id);
                 foreach (var job in jobs) Execute("DELETE FROM jobs WHERE id=$p0", job);
                 Execute("DELETE FROM questions WHERE document_id=$p0", id);
                 Execute("DELETE FROM source_pages WHERE document_id=$p0", id);
+                Execute("DELETE FROM question_assets WHERE document_id=$p0", id);
                 Execute("DELETE FROM paper_info WHERE document_id=$p0", id);
                 if (Execute("DELETE FROM documents WHERE id=$p0", id) != 1) throw new KeyNotFoundException("Exam not found");
                 foreach (var asset in assets)

@@ -122,11 +122,4 @@
     <Style x:Key="ReviewIconStyle" TargetType="FontIcon">
         <Setter Property="Foreground" Value="{ThemeResource SystemFillColorAttentionBrush}" />
     </Style>
-    <Style x:Key="ResponseCardStyle" TargetType="Border">
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="16" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{ThemeResource WorkspaceBorderBrush}" />
-        <Setter Property="Background" Value="{ThemeResource WorkspaceSurfaceBrush}" />
-    </Style>
 </ResourceDictionary>

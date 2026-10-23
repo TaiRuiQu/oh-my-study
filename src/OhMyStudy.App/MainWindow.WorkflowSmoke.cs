@@ -72,6 +72,8 @@ public sealed partial class MainWindow
             JobEvent Event(Job snapshot, string kind) => new() { Id = snapshot.Id + "-" + snapshot.Sequence, JobId = snapshot.Id, Sequence = snapshot.Sequence, CreatedAt = snapshot.UpdatedAt, Kind = kind, Payload = DomainJson.ToElement(snapshot) };
             await _library.SaveJobEventAsync(job, Event(job, "started"));
             await _library.BeginGradingAsync(job);
+            var processedImage = await new Services.NativePageImages().ReadAsync(bytes, null, 90, _lifetime.Token);
+            var processedAsset = await _library.SaveGradingImageAsync(job.Id, Convert.FromBase64String(processedImage.Image.Base64), _lifetime.Token);
             var saved = await _library.SaveGradingQuestionAsync(job.Id, question);
             job = job with { State = JobState.Completed, Sequence = 2, UpdatedAt = 2, Progress = 100 };
             await _library.SaveJobEventAsync(job, Event(job, "completed"));
@@ -86,7 +88,7 @@ public sealed partial class MainWindow
             var complex = restored.Question with
             {
                 Stem = [.. restored.Question.Stem, new TableContent { Rows = [["x", "f(x)"], ["−2", "−2"]] },
-                    new ImageContent { Caption = "函数图像", ContainsHandwriting = false, Region = region }],
+                    new ImageContent { Caption = "函数图像", ContainsHandwriting = false, Region = region, AssetId = processedAsset.Id }],
                 Items = [firstItem with { Label = "(1)", Options = ["A. 最大值为2", "B. 最大值为3"], Prompt = [new TextContent { Text = "求最大值。" }] },
                     firstItem with { Key = "workflow-nested", Label = "(2)①", Prompt = [new TextContent { Text = "求最小值。" }] }]
             };
@@ -109,10 +111,22 @@ public sealed partial class MainWindow
             checks["complex-editor-preserves-structure"] = complexSaved.Question.Stem.OfType<FormulaContent>().Count() == 1
                 && complexSaved.Question.Stem.OfType<TableContent>().Single().Rows[1][1] == "−2"
                 && complexSaved.Question.Stem.OfType<ImageContent>().Single().Region == region
+                && complexSaved.Question.Stem.OfType<ImageContent>().Single().AssetId == processedAsset.Id
                 && complexSaved.Question.Items.Count == 2 && complexSaved.Question.Items[0].Options.Count == 2 && complexSaved.Question.Items[1].Label == "(2)①"
                 && complexSaved.Question.Sources.Single() == region && complexSaved.Question.Items.All(item => item.Attempt is null)
                 && partEdited && complexSaved.Question.Items[0].Answer == "编辑后的参考答案"
                 && nestedEdited && complexSaved.Question.Items[1].Answer == "嵌套小问答案" && complexSaved.Question.Notes == "已核对端点和驻点。";
+            var imageSegments = await ExportSegmentsAsync(complexSaved.Question.Stem.OfType<ImageContent>(), _library,
+                document.Pages.ToDictionary(page => page.Id), new Services.NativePageImages(), new ExportImageBudget(), _lifetime.Token);
+            var exportedImage = imageSegments.Single().Image!.Bytes;
+            checks["processed-image-export-keeps-full-transformed-image"] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(exportedImage.AsSpan(16, 4)) == 1200
+                && System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(exportedImage.AsSpan(20, 4)) == 900
+                && (await _library.ReadAssetAsync(document.Pages[0].AssetId)).Bytes.AsSpan().SequenceEqual(bytes);
+            await File.WriteAllBytesAsync(Path.Combine(root, "processed-image-export.png"), exportedImage);
+            ShowQuestionWorkspace();
+            ViewModel.SelectedQuestion = ViewModel.Questions.Single();
+            await _questionPresentationTask;
+            await CaptureWorkspaceAsync(Path.Combine(root, "processed-image-preview.png"));
             var invalidEditor = new QuestionFields(complexSaved.Question with { Items = [complexSaved.Question.Items[0]] }, document);
             SetEditorText(invalidEditor.Panel, "满分（未知留空）", "-1");
             bool invalidRejected = false;

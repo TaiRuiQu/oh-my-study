@@ -238,7 +238,7 @@
                     </Grid>
                     <Border Grid.Row="1" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Background="{ThemeResource WorkspaceCardBrush}">
                         <ScrollViewer x:Name="QuestionPageScroll" Padding="32,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" SizeChanged="QuestionPageScroll_SizeChanged">
-                            <StackPanel x:Name="QuestionPageBody" HorizontalAlignment="Left" Spacing="28">
+                            <StackPanel x:Name="QuestionPageBody" HorizontalAlignment="Stretch" Spacing="28">
                                 <ContentControl x:Name="QuestionPageHost" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" IsTabStop="False" SizeChanged="QuestionPageHost_SizeChanged" AutomationProperties.Name="{l:Text Key=S0512}" />
                                 <Border x:Name="QuestionPageNotes" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0" Padding="0,24,0,0">
                                     <StackPanel Spacing="10">

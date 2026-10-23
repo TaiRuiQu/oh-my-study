@@ -25,6 +25,7 @@ await Run("four-bucket pricing, missing rates and protocol accounting", Billing)
 await Run("daily persistent bounded cache, refresh and stale fallback", DailyCache);
 await Run("native HTTP endpoints, headers and streaming bodies", HttpFraming);
 await Run("official SDK framing: opaque context, images, native extras and terminal events", SdkFraming);
+await Run("OpenRouter Responses cache breakpoints and growing tool history", OpenRouterCaching);
 await Run("Anthropic SDK: automatic cache, tool continuation, errors, bounds and cancellation", () => MessagesSdkRegression.RunAsync(fixtures));
 await Run("sanitized errors and bounded explicit retries", ErrorsAndRetries);
 await Run("cancellation and ambiguous failures never replay", Cancellation);
@@ -333,6 +334,51 @@ static string FinalStream(Protocol protocol, JsonNode final) => protocol switch
     Protocol.Responses => Sse(new JsonObject { ["type"] = "response.output_text.delta", ["delta"] = "完成。" }) + Sse(new JsonObject { ["type"] = "response.completed", ["response"] = final.DeepClone() }),
     _ => Sse(JsonNode.Parse("{\"type\":\"message_start\",\"message\":{\"content\":[],\"usage\":{\"input_tokens\":100}}}")!) + Sse(JsonNode.Parse("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}")!) + Sse(JsonNode.Parse("{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"完成。\"}}")!) + "data: {\"type\":\"content_block_stop\",\"index\":0}\n\n" + "data: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":20}}\n\n" + "data: {\"type\":\"message_stop\"}\n\n"
 };
+
+async Task OpenRouterCaching()
+{
+    foreach (var (endpoint, model, enabled) in new[]
+    {
+        ("https://openrouter.ai/api/v1", "anthropic/claude-sonnet-4.6", true),
+        ("https://openrouter.ai/api/v1", "google/gemini-2.5-pro", true),
+        ("https://openrouter.ai/api/v1", "openai/gpt-5", false),
+        ("https://example.invalid/v1", "anthropic/claude-sonnet-4.6", false),
+        ("https://openrouter.ai.example.invalid/v1", "google/gemini-2.5-pro", false)
+    })
+        foreach (bool stream in new[] { false, true })
+        {
+            var history = ProviderProtocol.Initial(Protocol.Responses, "SYNTHETIC stable exam context", [Image()]);
+            var options = Options(stream) with { Model = Model.Manual(model), Extra = new() { ["instructions"] = Json("\"SYNTHETIC stable instructions\"") } };
+            var final = fixtures["responses"]!["final"]!.DeepClone();
+            final["usage"]!["input_tokens_details"] = new JsonObject { ["cache_write_tokens"] = 5, ["cached_tokens"] = 20 };
+            int calls = 0;
+            using var http = new HttpClient(new FakeHandler(async (request, token) =>
+            {
+                var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(token))!;
+                var input = body["input"]!.AsArray();
+                Check(body["instructions"]!.GetValue<string>() == "SYNTHETIC stable instructions", "cache keeps instructions stable");
+                Check(input[0]!["content"]![1]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "cache marker scoped to OpenRouter Claude and Gemini");
+                Check(!body.ToJsonString().Contains("cache_control", StringComparison.Ordinal), "Responses uses its supported breakpoint field");
+                if (calls++ > 0)
+                {
+                    Check(input[3]!["output"]![1]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "latest image tool result receives a breakpoint");
+                    Check(JsonNode.DeepEquals(input[1], fixtures["responses"]!["tool"]!["output"]![0]), "cache preserves opaque reasoning");
+                    Check(input[3]!["output"]![1]!["image_url"]!.GetValue<string>().Contains("SYNTHETIC_IMAGE", StringComparison.Ordinal), "cache preserves page images");
+                }
+                return stream ? Prepare(Response(FinalStream(Protocol.Responses, final)), "text/event-stream") : Response(final.ToJsonString());
+            }));
+            using var client = new ProviderClient(http, Protocol.Responses, endpoint);
+            var snapshot = history.ToJsonString();
+            var result = await client.CallAsync(new("synthetic-key"), options, history, [Tool()]);
+            Check(snapshot == history.ToJsonString(), "cache shaping leaves caller history unchanged");
+            Check(result.Usage.CacheWrite == 5 && result.Usage.CacheRead == 20, "cache reads and writes survive SDK streaming and JSON");
+            var toolTurn = ProviderProtocol.Parse(Protocol.Responses, Element(fixtures["responses"]!["tool"]!));
+            ProviderProtocol.ContinueWith(Protocol.Responses, history, toolTurn, [new ToolResult { Call = toolTurn.Calls[0], Text = "page", Images = [Image()], IsError = false }]);
+            snapshot = history.ToJsonString();
+            await client.CallAsync(new("synthetic-key"), options, history, [Tool()]);
+            Check(snapshot == history.ToJsonString() && calls == 2, "growing cache history remains append-only");
+        }
+}
 
 async Task SdkFraming()
 {

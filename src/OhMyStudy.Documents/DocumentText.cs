@@ -13,13 +13,14 @@ public static class DocumentText
         string leading = text.TrimStart();
         bool option = leading.Length > 1 && leading[0] is >= 'A' and <= 'H' or >= 'a' and <= 'h'
             && leading[1] is '.' or ')' or '．' or '、' or '）';
-        if (!text.Contains('\\') && !text.Contains('^') && !text.Contains('_') && !option) return text;
+        if (!text.Contains('\\') && !text.Contains('^') && !text.Contains('_') && !text.Contains('$') && !option) return text;
         var result = new StringBuilder(text.Length);
         foreach (var run in Split(text))
         {
             if (run.IsFormula)
             {
-                result.Append(run.IsDisplay ? @"\[" : @"\(").Append(run.Text).Append(run.IsDisplay ? @"\]" : @"\)");
+                string delimiter = run.IsDisplay ? "$$" : "$";
+                result.Append(delimiter).Append(NormalizeFormula(run.Text)).Append(delimiter);
                 continue;
             }
             int start = 0;
@@ -50,12 +51,12 @@ public static class DocumentText
                     || math.Any(char.IsAsciiDigit) && math.All(value => !char.IsAsciiLetter(value))
                     || math.IndexOfAny(['=', '+', '-', '(', '[', '{']) >= 0);
                 for (int index = 0; index + 1 < math.Length && !syntax; index++)
-                    syntax = math[index] == '\\' && (char.IsAsciiLetter(math[index + 1]) || math[index + 1] is '{' or '}' or '|' or '%' or '$');
+                    syntax = math[index] == '\\' && (char.IsAsciiLetter(math[index + 1]) || math[index + 1] is '{' or '}' or '|');
                 // Imported identifiers such as ANSWER_ONLY_1 are prose, not implicit TeX.
                 // Explicit delimiters and commands are never filtered by this heuristic.
                 if (!math.Contains('\\') && System.Text.RegularExpressions.Regex.IsMatch(math, @"[A-Za-z]{2,}_|_[A-Za-z]{2,}")) syntax = false;
                 result.Append(candidate.AsSpan(0, prefix));
-                if (syntax) result.Append(@"\(").Append(math).Append(@"\)");
+                if (syntax) result.Append('$').Append(NormalizeFormula(math)).Append('$');
                 else result.Append(math);
                 result.Append(candidate.AsSpan(tail));
                 start = end;
@@ -63,6 +64,9 @@ public static class DocumentText
         }
         return result.ToString();
     }
+
+    public static string NormalizeFormula(string formula) => System.Text.RegularExpressions.Regex.Replace(formula, @"(?<!\\)_{2,}",
+        static match => @"\underline{" + string.Concat(Enumerable.Repeat(@"\quad", Math.Min(match.Length, 12))) + "}");
 
     private static bool IsMathCharacter(char value) => char.IsAsciiLetterOrDigit(value) || value is ' ' or '\t'
         or '\\' or '{' or '}' or '(' or ')' or '[' or ']' or '^' or '_' or '=' or '+' or '-' or '*' or '/' or '<' or '>'

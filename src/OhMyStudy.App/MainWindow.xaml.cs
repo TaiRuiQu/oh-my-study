@@ -309,8 +309,7 @@ public sealed partial class MainWindow : Window
         if (clear) QuestionContentHost.Content = new TextBlock { Text = UiText.Get("Loading question…") };
         try
         {
-            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme,
-                selectedItem: _openItems.GetValueOrDefault(question.Id), selectionChanged: item => _openItems[question.Id] = item);
+            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme);
             if (!_closed && generation == _questionPresentationGeneration && ReferenceEquals(ViewModel.SelectedQuestion.Saved, question))
             {
                 QuestionContentHost.Content = content;

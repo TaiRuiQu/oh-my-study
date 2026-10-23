@@ -204,6 +204,12 @@ internal sealed class CompatibilitySuite
 
     private void RunAdditionalCases()
     {
+        Check("reading", "dollar-formula-delimiters", () =>
+        {
+            foreach (string formula in new[] { "x^2", "$x^2$", "$$x^2$$", @"\(x^2\)", @"\[x^2\]" })
+                Assert(QuestionText.Delimit(formula) == "$x^2$");
+            Assert(QuestionText.Reading([new TextContent { Text = "计算" }, new FormulaContent { Latex = @"\(x^2\)" }]) == "计算$x^2$");
+        });
         var document = Contract<Document>("document");
         var question = Contract<Question>("question");
         var refs = Contract<List<ReferenceAnswer>>("references");

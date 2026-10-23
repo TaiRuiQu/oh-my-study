@@ -42,6 +42,7 @@ public sealed class HostToolExecutor(string privateRuntime, WindowsProcessRunner
             await File.WriteAllTextAsync(scriptFile, script, new UTF8Encoding(false), linked.Token).ConfigureAwait(false);
             var literal = "'" + scriptFile.Replace("'", "''", StringComparison.Ordinal) + "'";
             var wrapper = "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); "
+                + "Set-Location -LiteralPath (" + PowerShellString(call.WorkingDirectory) + "); "
                 + "& ([scriptblock]::Create([IO.File]::ReadAllText(" + literal + "))); if(-not $?){exit 1}";
             arguments = ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Convert.ToBase64String(Encoding.Unicode.GetBytes(wrapper))];
         }

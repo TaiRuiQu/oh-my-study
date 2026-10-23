@@ -57,7 +57,9 @@ def run_computation(request, runtime, inputs, results):
         with script_path.open("x", encoding="ascii") as stream:
             stream.write(script)
         literal = "'" + str(script_path).replace("'", "''") + "'"
-        wrapper = ("$ErrorActionPreference='Stop';[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"
+        wrapper = ("$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"
+                   "New-PSDrive -Name Task -PSProvider FileSystem -Root (" + expression(str(work)) + ") -Scope Global|Out-Null;"
+                   "Set-Location -LiteralPath 'Task:\\';"
                    "& ([scriptblock]::Create([IO.File]::ReadAllText(" + literal + ")));if(-not $?){exit 1}")
         command = [str(system / "System32/WindowsPowerShell/v1.0/powershell.exe"),
                    "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand",

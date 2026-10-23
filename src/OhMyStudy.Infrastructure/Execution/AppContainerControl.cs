@@ -66,7 +66,7 @@ public sealed class AppContainerControl : ISandboxControl
         _worker = new WindowsProcessRunner().RunAsync(request, _lifetime.Token);
         var result = await _worker.ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!result.Succeeded) throw new IOException("The AppContainer worker did not complete. Check runtime components and retry.");
+        if (!result.Succeeded) throw new IOException($"The AppContainer worker did not complete (status={result.Status}, exit={result.ExitCode}). Check runtime components and retry. {result.Stderr}");
     }
 
     public async Task StopAsync(Guid id, CancellationToken cancellationToken)

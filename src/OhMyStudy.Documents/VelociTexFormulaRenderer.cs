@@ -21,7 +21,7 @@ public static class VelociTexFormulaRenderer
     {
         token.ThrowIfCancellationRequested();
         var runs = DocumentText.Split(source.Trim());
-        string tex = runs.Count == 1 && runs[0].IsFormula ? runs[0].Text : source;
+        string tex = DocumentText.NormalizeFormula(runs.Count == 1 && runs[0].IsFormula ? runs[0].Text : source);
         using var workspace = new MathWorkspace();
         var options = new MathOptions { FontSize = fontSizePoints * 96 / 72, DisplayMode = display, TextShaper = new WindowsMathTextShaper() };
         if (!new MathEngine().TryCompile(tex, in options, workspace, token, out var document, out var error))

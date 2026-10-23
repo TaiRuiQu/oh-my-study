@@ -104,27 +104,48 @@ public sealed partial class MainWindow
 
             int multiIndex = _bankQuestions.ToList().FindIndex(item => item.Summary.ItemCount > 1);
             await OpenBankQuestionAsync(multiIndex); await Settle();
-            var bar = NativeDescendants(QuestionPageHost).OfType<SelectorBar>().SingleOrDefault();
-            Require(QuestionReaderPage.Visibility == Visibility.Visible && bar is not null && bar.Items.Count == 3 && ReferenceEquals(bar.SelectedItem, bar.Items[0]), "detail-subquestion-selector");
-            Require(NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 1 && QuestionPosition.Text.Contains('/'), "detail-one-subquestion-at-a-time");
+            Require(QuestionReaderPage.Visibility == Visibility.Visible && !NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Any(), "detail-continuous-paper-without-subquestion-tabs");
+            Require(NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 3 && QuestionPosition.Text.Contains('/'), "detail-all-subquestions-and-answer-controls-present");
+            Require(ParagraphTexts().Where(text => text.StartsWith("(1) ", StringComparison.Ordinal) || text.StartsWith("(2) ", StringComparison.Ordinal) || text.StartsWith("(3) ", StringComparison.Ordinal)).Count() == 3
+                && !NativeDescendants(QuestionPageHost).OfType<TextBlock>().Any(text => text.Text is "(1)" or "(2)" or "(3)"), "detail-labels-share-prompt-paragraphs");
+            Require(QuestionPageBody.ActualWidth > 880 && Math.Abs(QuestionPageBody.ActualWidth - (QuestionPageScroll.ActualWidth - QuestionPageScroll.Padding.Left - QuestionPageScroll.Padding.Right)) < 2
+                && Math.Abs(PageNotesEditor.ActualWidth - QuestionPageBody.ActualWidth) < 2, "detail-and-notes-use-full-available-width");
             await Capture("detail-parts");
-            bar!.SelectedItem = bar.Items[1]; await Settle();
-            Require(_openItems[ViewModel.OpenQuestion.Saved!.Id] == 1 && NativeDescendants(QuestionPageHost).OfType<TextBlock>().Any(text => text.Text == "(2)"), "detail-subquestion-switch");
-            await Capture("detail-part-2");
-            NativeDescendants(QuestionPageHost).OfType<Expander>().Single().IsExpanded = true; await Settle();
+            NativeDescendants(QuestionPageHost).OfType<Expander>().ElementAt(1).IsExpanded = true; await Settle();
             await Capture("detail-answer");
             string firstTitle = ViewModel.DocumentTitle;
             NextQuestion_Click(this, new RoutedEventArgs()); await Settle();
             Require(ViewModel.DocumentTitle != firstTitle && _openIndex == multiIndex + 1, "detail-next");
             await Capture("detail-single");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Settle(); await Capture("detail-single-compact");
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Settle(); await Capture("detail-single-dark");
+            RootGrid.RequestedTheme = ElementTheme.Light;
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Settle();
             PreviousQuestion_Click(this, new RoutedEventArgs()); await Settle();
-            Require(ViewModel.DocumentTitle == firstTitle && NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Single().SelectedItem is { } remembered
-                && NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Single().Items.IndexOf(remembered) == 1, "detail-previous-remembers-subquestion");
+            Require(ViewModel.DocumentTitle == firstTitle && NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 3
+                && ParagraphTexts().Any(text => text.StartsWith("(3) ", StringComparison.Ordinal)), "detail-previous-restores-complete-question");
             ViewModel.OpenQuestion.Notes = "复习：先写定义域，再讨论单调性。"; await Settle();
             Require(ViewModel.HasUnsavedChanges, "notes-dirty");
             await Capture("detail-notes");
             await ViewModel.SaveAsync(ViewModel.OpenQuestion);
             Require(!ViewModel.OpenQuestion.IsDirty && (await _library!.GetQuestionAsync(ViewModel.OpenQuestion.Saved!.Id)).Question.Notes == "复习：先写定义域，再讨论单调性。", "notes-saved");
+            var recorded = ViewModel.OpenQuestion.Saved!;
+            var paper = recorded.Question with
+            {
+                Stem = [new TextContent { Text = "阅读胚胎工程流程示意图，回答下列问题。" }, new ImageContent { Region = recorded.Question.Sources[0], Caption = "胚胎工程流程示意图" }],
+                Items = [new QuestionItem { Key = "paper-1", Label = "(1)", Prompt = [new TextContent { Text = "①将组织分散为单个细胞时需要使用哪类酶？②写出重构胚被激活后的变化。" }] },
+                    new QuestionItem { Key = "paper-2", Label = "(2)", Prompt = [new TextContent { Text = "选择适宜的早期胚胎阶段，说明获得多个胚胎的方法。" }] },
+                    new QuestionItem { Key = "paper-3", Label = "(3)", Prompt = [new FormulaContent { Latex = "$A=B$" }, new TextContent { Text = " 能否推出后代全部性状相同？结合材料说明理由。" }] }]
+            };
+            ViewModel.Open(recorded with { Question = paper }); await PresentOpenQuestionAsync(); await Settle();
+            Require(ParagraphTexts().Any(text => text.StartsWith("(1) ①", StringComparison.Ordinal))
+                && ParagraphTexts().Any(text => text.StartsWith("(2) 选择", StringComparison.Ordinal))
+                && NativeDescendants(QuestionPageHost).OfType<NativeFormulaParagraph>().Any(paragraph => paragraph.Source.StartsWith("(3) ", StringComparison.Ordinal)), "paper-labels-inline-with-text-and-leading-formula");
+            Require(!NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Any(), "paper-shows-every-subquestion-in-source-order");
+            await Capture("detail-paper-parts");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Settle(); await Capture("detail-paper-compact");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+            ViewModel.Open(recorded); await PresentOpenQuestionAsync(); await Settle();
             await ReturnToBankAsync(reload: false); await Settle();
             Require(QuestionsPanel.Visibility == Visibility.Visible && QuestionReaderPage.Visibility == Visibility.Collapsed && BankList.ContainerFromIndex(multiIndex) is not null, "back-restores-list-position");
 
@@ -133,8 +154,8 @@ public sealed partial class MainWindow
             await Capture("mistakes");
             int mistakeMulti = _bankQuestions.ToList().FindIndex(item => item.Summary.ItemCount > 1);
             await OpenBankQuestionAsync(mistakeMulti); await Settle();
-            var mistakeBar = NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Single();
-            Require(mistakeBar.Items.IndexOf(mistakeBar.SelectedItem) == 1 && QuestionBackLabel.Text == UiText.Get("Mistakes"), "mistakes-open-first-wrong-subquestion");
+            Require(!NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Any() && NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 3
+                && QuestionBackLabel.Text == UiText.Get("Mistakes"), "mistakes-shows-complete-question-with-all-subquestion-results");
             await Capture("mistakes-detail");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Settle(); await Capture("mistakes-detail-dark");
             await ReturnToBankAsync(reload: false); await Settle(); await Capture("mistakes-dark");
@@ -165,6 +186,8 @@ public sealed partial class MainWindow
         }
 
         void Require(bool value, string label) { if (!value) throw new InvalidOperationException(label); checks.Add(label); }
+        IEnumerable<string> ParagraphTexts() => NativeDescendants(QuestionPageHost).OfType<TextBlock>().Select(text => text.Text)
+            .Concat(NativeDescendants(QuestionPageHost).OfType<NativeFormulaParagraph>().Select(paragraph => paragraph.Source));
         List<QuestionPreview> Previews() => NativeDescendants(BankList).OfType<QuestionPreview>().Where(preview => preview.IsLoaded).ToList();
         async Task Settle(int delay = 300)
         {

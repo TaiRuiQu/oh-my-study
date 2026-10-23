@@ -93,6 +93,8 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
                 throw new InvalidDataException("The sandbox returned inconsistent states.");
             if (response.Stdout is null || response.Stderr is null || Encoding.UTF8.GetByteCount(response.Stdout + response.Stderr) > 1_048_576)
                 throw new InvalidDataException("The sandbox output is too large or invalid.");
+            var work = Path.Combine(root, "results", "work");
+            if (Directory.Exists(work)) await SnapshotInputsAsync(work, call.WorkingDirectory, live.Token, overwrite: true).ConfigureAwait(false);
             return new(response.Status, response.ExitCode, response.Stdout, response.Stderr);
         }
         finally { SessionGate.Release(); }
@@ -134,7 +136,7 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
         await stream.WriteAsync(Encoding.UTF8.GetBytes(value), token).ConfigureAwait(false);
         await stream.FlushAsync(token).ConfigureAwait(false);
     }
-    private static async Task SnapshotInputsAsync(string source, string destination, CancellationToken token)
+    private static async Task SnapshotInputsAsync(string source, string destination, CancellationToken token, bool overwrite = false)
     {
         var input = RuntimePaths.CheckedDirectory(source); long bytes = 0; int files = 0, entries = 0;
         async Task CopyAsync(string from, string to, int depth)
@@ -149,14 +151,15 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
                     || Path.GetFullPath(entry).Equals(destination, StringComparison.OrdinalIgnoreCase))
                     throw new IOException("Use a separate working directory for the task.");
                 var target = Path.Combine(to, Path.GetFileName(entry));
-                if (Directory.Exists(entry)) { Directory.CreateDirectory(target); await CopyAsync(entry, target, depth + 1).ConfigureAwait(false); }
+                if (Directory.Exists(entry)) { RuntimePaths.CheckedDirectory(target, create: true); await CopyAsync(entry, target, depth + 1).ConfigureAwait(false); }
                 else
                 {
                     RuntimePaths.CheckedFile(entry);
                     await using var read = new FileStream(entry, FileMode.Open, FileAccess.Read, FileShare.Read);
                     bytes += read.Length;
-                    if (++files > 256 || bytes > 67_108_864) throw new IOException("The working directory is too large. Keep only files needed for this task.");
-                    await using var write = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                    if (++files > 256 || bytes > 268_435_456) throw new IOException("The working directory is too large. Keep only files needed for this task.");
+                    if (overwrite && File.Exists(target)) RuntimePaths.CheckedFile(target);
+                    await using var write = new FileStream(target, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     await read.CopyToAsync(write, token).ConfigureAwait(false);
                 }
             }

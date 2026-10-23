@@ -185,13 +185,26 @@ internal static partial class AppContainerChecks
                 "from pathlib import Path;import os,sys,numpy,sympy,matplotlib;assert sys.stdin.read() == '';assert all(os.environ.get(k) for k in ('USERPROFILE','LOCALAPPDATA','APPDATA'));assert 'OMS_SYNTHETIC_SECRET' not in os.environ;matplotlib.use('Agg');import matplotlib.pyplot as p;print(Path('资料.txt').read_text(encoding='utf-8'));print('|'.join(sys.argv[1:]));Path('资料.txt').write_text('临时修改',encoding='utf-8');p.plot([0,1],[0,1]);p.savefig('plot.png')");
             require(result.Succeeded && result.Stdout.Contains("合成输入") && result.Stdout.Contains(@"中文|a b|尾\")
                 && File.Exists(Path.Combine(root, "container-worker-python", "results", "work", "plot.png")), $"container Python: {result.Status}; {result.Stdout}{result.Stderr}");
-            require(File.ReadAllText(Path.Combine(input, "资料.txt")) == "合成输入", "worker changed original input");
+            require(File.ReadAllText(Path.Combine(input, "资料.txt")) == "临时修改" && File.Exists(Path.Combine(input, "plot.png")), "worker output did not return to the task workspace");
         });
         await check("appcontainer-private-powershell", async () =>
         {
             var result = await ExecuteAsync("shell", ToolKind.Shell, "param($a,$b,$c);[Console]::WriteLine(($a,$b,$c -join '|'));[Console]::Error.WriteLine('中文错误流')");
             require(result.Succeeded && result.Stdout.Contains(@"中文|a b|尾\"), $"container PowerShell: {result.Status}; {result.Stdout}{result.Stderr}");
             require(result.Stderr.Contains("中文错误流"), "PowerShell stderr encoding changed");
+        });
+        await check("appcontainer-image-processing-across-code-calls", async () =>
+        {
+            var result = await ExecuteAsync("image-create", ToolKind.Python,
+                "from PIL import Image,ImageFilter;im=Image.new('RGB',(80,40),'white');im.rotate(90,expand=True).resize((80,160)).filter(ImageFilter.SHARPEN).save('processed.png');print('processed image: 80x160')");
+            require(result.Succeeded && result.Stdout.Contains("80x160"), $"image processing: {result.Stdout}{result.Stderr}");
+            var bytes = await File.ReadAllBytesAsync(Path.Combine(input, "processed.png"));
+            require(System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(16, 4)) == 80
+                && System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20, 4)) == 160, "processed image dimensions changed");
+            result = await ExecuteAsync("image-shell", ToolKind.Shell, "if(-not (Test-Path -LiteralPath 'processed.png')){throw 'missing image'};Copy-Item -LiteralPath 'processed.png' -Destination 'shell-image.png';[Console]::WriteLine('image reused')");
+            require(result.Succeeded && result.Stdout.Contains("image reused") && File.Exists(Path.Combine(input, "shell-image.png")), $"shell image reuse: {result.Stdout}{result.Stderr}");
+            result = await ExecuteAsync("image-reopen", ToolKind.Python, "from PIL import Image;im=Image.open('shell-image.png');assert im.size==(80,160);im.resize((40,80)).save('final-image.png');print('image verified')");
+            require(result.Succeeded && result.Stdout.Contains("image verified") && File.Exists(Path.Combine(input, "final-image.png")), $"Python image reuse: {result.Stdout}{result.Stderr}");
         });
         foreach (var item in new (string Id, ToolKind Tool, string Code, string Status, uint? Exit, ulong Timeout)[]
         {

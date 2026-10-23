@@ -57,7 +57,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
             {
                 FlushParagraph();
                 var result = await CompileAsync(run.Text, true, 20, token);
-                if (result.Document is null) blocks.Add(Plain(@"\[" + run.Text + @"\]"));
+                if (result.Document is null) blocks.Add(Plain("$$" + run.Text + "$$"));
                 else
                 {
                     MathView formula = new() { Result = result.Document, AccessibleDescription = run.Text };
@@ -102,7 +102,8 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                     paragraphSource.Append('…'); parts.Add(new("…", null));
                     break;
                 }
-                string marked = run.IsDisplay ? @"\[" + run.Text + @"\]" : @"\(" + run.Text + @"\)";
+                string delimiter = run.IsDisplay ? "$$" : "$";
+                string marked = delimiter + run.Text + delimiter;
                 paragraphSource.Append(marked); parts.Add(new(result.Document is null ? marked : string.Empty, result.Document));
             }
             else

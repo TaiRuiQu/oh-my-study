@@ -44,7 +44,7 @@ Imported originals are copied into the library, so you can still view them after
 - "Question bank (题库)" lists every saved question across exams. Search question text, answers, notes, or exam names, filter by subject or result ("All results (全部结果)", "Mistakes (错题)", "Needs review (待确认)", "Correct (正确)"), and sort the list. More questions load as you scroll, so large banks stay responsive.
 - "Mistakes (错题)" lists questions with at least one partially correct, incorrect, or unanswered subquestion.
 - Click a question to open its page. Use the arrows to move to the previous or next question in the current list, and the back button to return to the same position in the list.
-- A question page shows the shared stem first. For a question with subquestions, choose a subquestion from the tabs above it; each tab shows that subquestion's result, and opening a question from "Mistakes (错题)" selects the first subquestion to review. Each subquestion shows its prompt, your answer, its score, and grading notes. Click "Show answer and explanation (查看答案与解析)" to reveal the standard answer, explanation, and solution steps.
+- A question page uses the available width and shows the shared stem followed by every subquestion in order, like a printed paper. Subquestion labels such as `(1)` appear inline with their prompts. Each subquestion keeps its own response, score, and grading notes. Click its "Show answer and explanation (查看答案与解析)" control to reveal the standard answer, explanation, and solution steps.
 - Write your own review notes in "My notes (我的笔记)" and click "Save notes (保存笔记)". Notes are kept when an exam is recognized again.
 - Click "View in exam (在试卷中查看)" to open the question's exam with the original page and the question highlighted. Inside an exam, click "View original (查看原件)" to expand the original, or "Locate original (定位原件)" on a question to see its position; you can page, zoom, and rotate.
 - Click "Edit question (编辑题目)" to modify the stem, subquestions, options, answers, explanations, or grading, then click "Save (保存)". A grade you change is marked as edited by you and is kept when the exam is recognized again. Save your changes before exiting or switching libraries.
@@ -53,6 +53,8 @@ Imported originals are copied into the library, so you can still view them after
 
 AI recognition and grading results may be wrong. Verify the original question, answer, score, and reference answer, especially for blurry images, handwriting, and complex formulas.
 
+Recognition saves questions, responses, teacher annotations, and reference answers as structured text linked to their source pages. Diagrams and figures retain their crop regions. Newly recognized questions locate the whole source page; existing precise regions are preserved when recognized again. Mathematics uses `$...$` delimiters, including in options, answers, and tables; older formula delimiters remain readable.
+
 "Delete exam (删除试卷)" in the exam list context menu or in the "More (更多)" menu inside an exam also deletes that exam's questions, reference answers, task records, and the original copy in the library. This cannot be undone after confirmation; back up any materials you want to keep first.
 
 ## Viewing tasks and handling execution requests
@@ -60,6 +62,8 @@ AI recognition and grading results may be wrong. Verify the original question, a
 The "Tasks (任务)" page shows progress, saved questions, execution logs, and estimated costs. One AI task runs at a time and the rest queue; you can cancel a task, and questions that have already been saved successfully are kept. Tasks continue after the window is minimized; quitting the app stops them.
 
 The task log shows when the model is thinking or receiving a response. Successful tools show only their names; running, pending, and failed tools show their state, with guidance on failures. If the model replies with text without using tools, the task can prompt it to continue twice in a row; those calls still count toward usage and cost. Missing cache statistics are shown as not provided, separately from an explicit zero.
+
+The model can read multiple pages with `read_pages` and save multiple questions with `save_questions` in one call. Each entry reports its own result; successful entries are kept if another fails. OpenRouter Responses requests for Claude and Gemini include cache breakpoints for shared context and the latest page results. Cache hits still depend on the model's minimum prompt size, expiry, and provider support.
 
 Choose an execution mode under "Settings → Execution → Code and commands (设置 → 执行 → 代码与命令)":
 
@@ -78,6 +82,10 @@ Whether the sandbox is available depends on the check performed when the task st
 The sandbox applies only to code and commands. Model requests for AI recognition still send materials to the selected provider over the network.
 
 AppContainer does not require Windows Sandbox, virtualization, or an optional Windows feature. Each call receives a copy of its input files, read access to the private computation runtime, and write access to its own result folder. It uses Windows process isolation rather than a virtual machine. Enabling sandbox networking grants outbound Internet access; it does not grant access to other files or the local network.
+
+The model can execute Python and Windows PowerShell scripts for calculations, file processing, and image processing. The bundled Python includes Pillow, NumPy, SymPy, and Matplotlib. Page reads provide local copies of the displayed image and the unrotated original. Working files and generated outputs carry over to later calls, including sandbox calls. The task details show execution results and errors so failed code can be corrected.
+
+The model can request previews of generated PNG, JPEG, or WebP images and use their returned asset IDs in saved question images. These processed images are stored in the library and used in question previews and PDF exports; the original documents and source regions remain available. Image regions use `[left, top, right, bottom]` with integer coordinates from 0 to 999 on the full unrotated original page; `[0, 0, 999, 999]` means the full page. Existing saved regions remain compatible.
 
 ## Exporting PDFs
 
@@ -98,7 +106,7 @@ The default library location is `%LOCALAPPDATA%/OhMyStudy/Library`. Check the ac
 - Manual backup: save your changes and quit the app, then copy the entire library folder to another location. Do not copy only some of the question or original files.
 - Open existing materials: click "Select existing library (选择已有资料库)" and choose a complete library folder created by the current version. When you need to use a backup, keep the original backup and select a copy of it to avoid overwriting existing materials.
 - Location unavailable: confirm the disk is connected and the folder is accessible, then select an existing library in Settings. If changing the location fails, follow the prompt to check the target location and free space, then retry.
-- Upgrading a library: the first time this version opens a library, it converts saved questions to the current question format and keeps a copy of the previous database file (`study.sqlite3.pre-v4-…`) in the library folder. Earlier app versions cannot open a converted library, so keep a backup if you may need to go back.
+- Upgrading a library: the first time this version opens a library, it converts saved questions to the current question format and keeps a copy of the previous database file (`study.sqlite3.pre-v5-…`) in the library folder. Earlier app versions cannot open a converted library, so keep a backup if you may need to go back.
 
 Provider keys are stored in the Credential Manager of the current Windows account. After copying the library to another account or computer, you may need to re-enter the keys. Back up older-version materials completely first; do not overwrite old materials directly with a new version.
 

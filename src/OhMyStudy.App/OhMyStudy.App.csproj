@@ -55,6 +55,7 @@
     <Content Include="$(DocumentToolchain)\pdfium\pdfium.dll" Link="native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\pdfium\pdfium.dll')" />
     <Content Include="$(DocumentToolchain)\libwebp\libwebp-1.6.0-windows-x64\bin\dwebp.exe" Link="native\webp\dwebp.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\libwebp\libwebp-1.6.0-windows-x64\bin\dwebp.exe')" />
     <Content Include="$(DocumentToolchain)\typst-x86_64-pc-windows-msvc\typst.exe" Link="native\typst\typst.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\typst-x86_64-pc-windows-msvc\typst.exe')" />
+    <None Include="$(DocumentToolchain)\runtime\**\*" Link="runtime\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Condition="Exists('$(DocumentToolchain)\runtime\runtime-manifest.json')" />
   </ItemGroup>
   <Target Name="RequireDocumentTools" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
     <Error Condition="!Exists('$(DocumentToolchain)\pdfium\pdfium.dll')" Text="PDF dependency missing. Run ./probes/prepare-documents.ps1 before building the app." />

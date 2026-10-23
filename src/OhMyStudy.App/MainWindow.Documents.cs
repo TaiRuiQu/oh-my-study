@@ -119,8 +119,8 @@ public sealed partial class MainWindow
                 case TableContent table: segments.Add(new("", Rows: table.Rows.Select(row => (IReadOnlyList<string>)row.ToArray()).ToArray())); break;
                 case ImageContent image:
                     if (!pages.TryGetValue(image.Region.PageId, out var page)) throw new InvalidDataException(UiText.Get("The source of a question image no longer exists."));
-                    var asset = await library.ReadAssetAsync(page.AssetId, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    var result = await reader.ReadAsync(asset.Bytes, image.Region, page.Rotation, cancellationToken).ConfigureAwait(false);
+                    var asset = await library.ReadAssetAsync(image.AssetId ?? page.AssetId, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    var result = await reader.ReadAsync(asset.Bytes, image.AssetId is null ? image.Region : null, image.AssetId is null ? page.Rotation : (ushort)0, cancellationToken).ConfigureAwait(false);
                     segments.Add(new("", Image: new ExamImage(imageBudget.Intern(Convert.FromBase64String(result.Image.Base64)), image.Caption, image.ContainsHandwriting)));
                     break;
                 default: throw new InvalidDataException(UiText.Get("Question content could not be read completely."));

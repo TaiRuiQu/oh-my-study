@@ -11,36 +11,47 @@ public static class GradingTools
     {
         var result = new List<Tool>
         {
-            Define("read_page", "Read a full page or crop from the current document. Read full pages before saving; use crops to inspect details. Returns an image plus page_id, rotation, crop, displayed width/height, and coordinate_system. Only a full-page read counts toward finish coverage. All regions remain relative to the unrotated full source page.", Object(new()
+            Define("read_pages", "Read full pages or crops. Returns ordered page metadata and images. Only full-page reads count toward completion.", Object(new()
             {
-                ["page_id"] = String("Exact ID from document.pages; never a page number or file path."),
-                ["crop"] = Describe(Nullable(Region()), "Omit or use null for the full page. For a crop, use the same page_id and normalized coordinates on the unrotated full page."),
-                ["rotation"] = Describe(Nullable(new JsonObject { ["type"] = "integer", ["enum"] = new JsonArray(0, 90, 180, 270) }), "Clockwise display rotation in degrees. Omit or use null to keep the page's configured rotation. Coordinates do not rotate.")
-            }, ["page_id"])),
-            Define("save_references", "Replace the current reference-answer list after reading its source pages. Verify matches by number and content; give a reason for unmatched answers. Send the complete list on every call, preserving keys already used by saved questions. Does not regrade questions. Returns saved=true on success.", Object(new()
+                ["pages"] = Describe(Array(Object(new()
+                {
+                    ["page_id"] = String("Exact ID from document.pages."),
+                    ["crop"] = Describe(Nullable(Region()), "Omit for a full page; crop coordinates use the unrotated source page."),
+                    ["rotation"] = Describe(Nullable(new JsonObject { ["type"] = "integer", ["enum"] = new JsonArray(0, 90, 180, 270) }), "Clockwise display rotation; omit to use the page's configured rotation.")
+                }, ["page_id"])), "Pages or crops to read in order.")
+            })),
+            Define("save_references", "Replace the complete reference-answer list, preserving existing keys. Verify item matches; explain unmatched answers. Does not regrade questions.", Object(new()
             {
                 ["references"] = Describe(Array(Reference()), "Complete reference-answer list, at most 1000 entries. Each key must be unique, and each item can match at most one entry.")
             }, ["references"])),
-            Define("finish", "Validate page coverage and saved results, then complete the task. Call only after reading every required page in full and resolving save errors; this must be the final tool call in the response. Whole-paper tasks must save every top-level question in this run; all reference matches must name saved item keys. Reference-only tasks cover reference pages only. Returns finished=true on success; an error means the task is still incomplete.", Object(new()
+            Define("finish", "Validate coverage and complete the task. Call last, after full-page reads and successful saves. Whole-paper tasks must save every question in this run. Reference matches must name saved item keys.", Object(new()
             {
                 ["coverage"] = Describe(Array(Coverage()), "Exactly one entry per document page for whole-paper tasks, or per reference page for reference-only tasks. No duplicate or missing page IDs.")
             }, ["coverage"]))
         };
         if (!referenceOnly)
         {
-            result.Add(Define("save_paper_info", "Save the paper's subject and total scores before finish. Use explicitly printed totals or the sum of complete item grades. Never guess unknown scores. Returns saved=true, or saved=false with manual_values_kept=true when user-edited paper information is preserved.", Object(new()
+            result.Add(Define("save_paper_info", "Save the subject and printed or fully derived total scores. User-edited values are preserved.", Object(new()
             {
                 ["subject"] = Describe(Nullable(String()), "Subject inferred from this paper, in Simplified Chinese; use a general-studies label for mixed subjects or null if unknown."),
                 ["earned"] = Describe(Nullable(Number()), "Total earned points. Use null when unknown, when possible is unknown, or for blank papers. Cannot exceed possible."),
                 ["possible"] = Describe(Nullable(Number()), "Total possible points, or null when unknown. Omitted score fields are treated as null.")
             }, ["subject"])));
-            result.Add(Define("save_question", "Save one top-level question with its shared stem and all of its gradable items after reading its sources and saving applicable references. Reuse stable draft_key and item key values on regrading. Omitted auxiliary question/item/attempt fields preserve saved values; explicit empty values replace them. Existing manual grades and explicit teacher results in teacher mode are protected. Returns saved_id and draft_key on success.", QuestionSchema()));
-            foreach (var name in new[] { "python", "shell" })
-                result.Add(Define(name, name == "python"
-                    ? "Run Python code for calculations needed to solve or check this paper; prefer this tool for numerical work. Returns stdout on success. Execution may wait for user approval and has a 60-second timeout. Do not access unrelated files, credentials, services, or system settings."
-                    : "Run Windows PowerShell code only when a calculation needed for this paper requires it. Prefer python for numerical work. Returns stdout on success. Execution may wait for user approval and has a 60-second timeout. Do not access unrelated files, credentials, services, or system settings.",
-                    Object(new() { ["code"] = String("Complete code in this tool's language. Print the calculation result to stdout. The application supplies the working directory; no path or command-line arguments are accepted separately.") }, ["code"])));
+            result.Add(Define("save_questions", "Save questions with their shared stems and gradable items. Returns an ordered result for each question; successful entries remain saved if another fails. Omitted auxiliary fields preserve saved values; explicit empty values replace them. Manual and teacher grades are protected.", Object(new()
+            {
+                ["questions"] = Describe(Array(QuestionSchema()), "Top-level questions to save in order.")
+            })));
         }
+        foreach (var name in new[] { "python", "shell" })
+            result.Add(Define(name, name == "python"
+                ? "Execute arbitrary Python code for this task, including Pillow image processing and plotting. Files persist between calls. Returns status, stdout, stderr, and requested output images with reusable asset IDs. May require user approval."
+                : "Execute arbitrary Windows PowerShell code for this task, including file and image processing. Files persist between calls. Returns status, stdout, stderr, and requested output images with reusable asset IDs. May require user approval.",
+                Object(new()
+                {
+                    ["code"] = String("Complete executable code. Use relative paths in the supplied task working directory. Read page files from read_pages.local_file. Print textual results; save images to new files and list them in outputs."),
+                    ["outputs"] = Describe(Array(String()), "Optional relative paths to generated PNG, JPEG, or WebP images to inspect and reuse. At most 8 images per call. Omit when no image output is needed."),
+                    ["timeout_ms"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 300000 }, "Optional timeout in milliseconds; defaults to 60000.")
+                }, ["code"])));
         return result;
     }
 
@@ -56,12 +67,15 @@ public static class GradingTools
     { ["type"] = "object", ["properties"] = properties, ["required"] = new JsonArray((required ?? properties.Select(p => p.Key).ToArray()).Select(v => (JsonNode?)JsonValue.Create(v)).ToArray()), ["additionalProperties"] = false };
     private static JsonObject Region() => Describe(Object(new()
     {
-        ["page_id"] = String("Exact source page ID. Question/attempt regions require role=material; reference-answer regions require role=reference."),
-        ["x"] = Describe(Number(), "Left edge divided by unrotated source width: 0 <= x < 1."),
-        ["y"] = Describe(Number(), "Top edge divided by unrotated source height: 0 <= y < 1."),
-        ["width"] = Describe(Number(), "Positive fraction of unrotated source width; x + width <= 1."),
-        ["height"] = Describe(Number(), "Positive fraction of unrotated source height; y + height <= 1.")
-    }), "Rectangle on the full unrotated source page, never in pixels or relative to a crop or rotated display.");
+        ["page_id"] = String("Exact source page ID. Image content must use a material page."),
+        ["bbox"] = Describe(new JsonObject
+        {
+            ["type"] = "array",
+            ["minItems"] = 4,
+            ["maxItems"] = 4,
+            ["items"] = new JsonObject { ["type"] = "integer", ["minimum"] = 0, ["maximum"] = 999 }
+        }, "[left,top,right,bottom] in integer coordinates normalized to 0..999. left < right and top < bottom. Full page: [0,0,999,999].")
+    }), "Rectangle on the full unrotated source page, normalized to integer coordinates 0..999; never pixels, fractions, or relative to a crop or rotated display.");
     private static JsonObject Grade() => Object(new()
     {
         ["verdict"] = Describe(Enum("correct", "partial", "incorrect", "unanswered", "uncertain"), "correct=fully correct; partial=partly correct; incorrect=wrong; unanswered=visibly blank on an answered paper; uncertain=unreadable or insufficient evidence."),
@@ -76,10 +90,10 @@ public static class GradingTools
         ["number"] = String("Question or subquestion number as printed in the reference."),
         ["answer"] = String("Nonempty answer transcribed from the reference, preserving its language and LaTeX notation."),
         ["explanation"] = String("Explanation supported by the reference; omit when unavailable."),
-        ["sources"] = Describe(Array(Region()), "Nonempty evidence regions on reference pages, including continuations."),
+        ["source_page_ids"] = Describe(Array(String()), "Source reference page IDs, including continuations."),
         ["matched_item_key"] = Describe(Nullable(String()), "Verified item key; null or omitted if unmatched. In reference-only tasks, match only existing saved item keys."),
         ["uncertain_reason"] = Describe(Nullable(String()), "Required nonempty reason when unmatched; null or omitted for a verified match.")
-    }, ["key", "number", "answer", "sources"]);
+    }, ["key", "number", "answer", "source_page_ids"]);
     private static JsonObject Coverage() => Object(new()
     {
         ["page_id"] = String("Exact ID of a required page already read in full during this run."),
@@ -90,12 +104,13 @@ public static class GradingTools
     public static JsonObject QuestionSchema()
     {
         var text = Object(new() { ["kind"] = Describe(Enum("text"), "Text content block."), ["text"] = String("Transcribed question text in the source language; exclude student answers and teacher marks.") });
-        var formula = Object(new() { ["kind"] = Describe(Enum("formula"), "Mathematical formula block."), ["latex"] = String("Formula in LaTeX, without surrounding Markdown math delimiters.") });
+        var formula = Object(new() { ["kind"] = Describe(Enum("formula"), "Mathematical formula block."), ["latex"] = String("LaTeX formula wrapped in $...$.") });
         var table = Object(new() { ["kind"] = Describe(Enum("table"), "Table content block."), ["rows"] = Describe(Array(Array(String())), "Rows in reading order; each row contains its cell texts in column order.") });
         var image = Object(new()
         {
             ["kind"] = Describe(Enum("image"), "Diagram, figure, or content retained as an image."),
             ["region"] = Describe(Region(), "Source region for the diagram or unreadable content on a material page."),
+            ["asset_id"] = String("Optional processed image asset ID returned by python or shell, or retained from this question. Displays the entire processed image; region still identifies original source evidence."),
             ["contains_handwriting"] = Describe(Bool(), "True if this image region contains handwriting."),
             ["caption"] = String("Brief description in Simplified Chinese; omit if unnecessary.")
         }, ["kind", "region"]);
@@ -103,11 +118,9 @@ public static class GradingTools
         var attempt = Object(new()
         {
             ["student_answer"] = String("Student response to this item only, preserving its language. Do not include teacher marks, reference answers, or AI solutions."),
-            ["student_regions"] = Describe(Array(Region()), "Material-page regions showing the student's response to this item."),
             ["teacher"] = Describe(Nullable(Object(new()
             {
                 ["raw"] = String("Verbatim teacher comments or deduction marks for this item; do not invent missing text."),
-                ["regions"] = Describe(Array(Region()), "Material-page regions showing teacher marks; omit when unavailable."),
                 ["grade"] = Describe(Nullable(Grade()), "Explicit teacher result, with source=teacher. In teacher mode its verdict/scores/source must agree with attempt.grade. Omit or use null if unknown.")
             }, [])), "Teacher annotations, separate from the student response. Omit when unavailable; explicit null clears this field unless protected."),
             ["reference_key"] = Describe(Nullable(String()), "Key of a saved reference matched to this exact item key. Required when grading by a matched reference; null when none applies."),
@@ -133,11 +146,45 @@ public static class GradingTools
             ["subject"] = String("Subject label in Simplified Chinese; omit if unknown."),
             ["question_type"] = String("Question type in Simplified Chinese; omit if unknown."),
             ["stem"] = Content("Nonempty shared question text in reading order: the material, context, diagrams, and instructions that precede or apply to all items. A question without subquestions puts its whole text here."),
-            ["sources"] = Describe(Array(Region()), "Nonempty material-page regions covering the whole question, including every continuation page."),
+            ["source_page_ids"] = Describe(Array(String()), "Source material page IDs, including every continuation page."),
             ["knowledge_points"] = Describe(Array(String()), "Relevant knowledge-point labels in Simplified Chinese; omit if unsupported."),
             ["uncertainties"] = Describe(Array(String()), "Specific unresolved transcription or interpretation issues in Simplified Chinese; retain image evidence instead of guessing."),
             ["items"] = Describe(Array(item), "Ordered gradable items, 1 to 100. Use exactly one item when the question has no subquestions. Otherwise use one item per answerable subquestion; flatten nested subquestions into separate items with combined labels such as (2)(a). Preserve protected items on regrading.")
-        }, ["draft_key", "number", "stem", "sources", "items"]);
+        }, ["draft_key", "number", "stem", "source_page_ids", "items"]);
+    }
+
+    internal static JsonObject WithSourceRegions(JsonElement args, IReadOnlyList<Region>? previous)
+    {
+        var result = JsonNode.Parse(args.GetRawText()) as JsonObject ?? throw new JsonException("Expected an object.");
+        GradingCoordinates.ToStoredRegions(result);
+        if (!result.Remove("source_page_ids", out var pages)) return result;
+        if (result.ContainsKey("sources") || pages is not JsonArray { Count: > 0 } pageIds)
+            throw new JsonException("Provide a nonempty source_page_ids array.");
+        var sources = new JsonArray();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var value in pageIds)
+        {
+            if (value is not JsonValue page || !page.TryGetValue<string>(out var id) || string.IsNullOrWhiteSpace(id) || !seen.Add(id))
+                throw new JsonException("Source page IDs must be nonempty and unique.");
+            var retained = previous?.Where(region => region.PageId == id).ToList() ?? [];
+            if (retained.Count == 0) retained.Add(new Region { PageId = id, X = 0, Y = 0, Width = 1, Height = 1 });
+            foreach (var region in retained) sources.Add(JsonNode.Parse(DomainJson.Serialize(region)));
+        }
+        result["sources"] = sources;
+        return result;
+    }
+
+    internal static void UsePageSources(JsonNode? node)
+    {
+        if (node is JsonArray array) { foreach (var item in array) UsePageSources(item); }
+        if (node is not JsonObject obj) return;
+        if (obj.Remove("sources", out var sources) && sources is JsonArray regions)
+            obj["source_page_ids"] = new JsonArray(regions.Select(region => region!["page_id"]!.GetValue<string>())
+                .Distinct(StringComparer.Ordinal).Select(id => (JsonNode?)JsonValue.Create(id)).ToArray());
+        obj.Remove("student_regions");
+        obj.Remove("regions");
+        if (obj["region"] is JsonObject region) obj["region"] = GradingCoordinates.ToModelRegion(DomainJson.Deserialize<Region>(region.ToJsonString()));
+        foreach (var property in obj) UsePageSources(property.Value);
     }
 
     internal static void Fields(JsonElement args, params string[] allowed)

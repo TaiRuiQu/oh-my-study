@@ -28,9 +28,12 @@ internal static class Program
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
             await ThreeProtocolsAndModes();
             await OptionalFields();
+            await BatchedTools();
             await StreamingActivity();
             await MessagesThinkingContinuation();
             await CropAndCoverageRecovery();
+            await DiscreteCoordinates();
+            await CodeImageOutputs();
             await CoverageAndToolValidation();
             await InvalidToolsAndReferencePriority();
             await FinishMustBeLast();
@@ -59,12 +62,34 @@ internal static class Program
     }
     private static JsonElement Element(JsonNode node) { using var doc = JsonDocument.Parse(node.ToJsonString()); return doc.RootElement.Clone(); }
     private static JsonObject Args(string key, JsonNode? value) => new() { [key] = value };
-    private static ToolCall Call(string name, JsonNode arguments) => new() { Id = "synthetic-call-" + Guid.NewGuid().ToString("N"), Name = name, Arguments = Element(arguments) };
-    private static ToolCall Save(Question q) => new() { Id = "synthetic-save-" + Guid.NewGuid().ToString("N"), Name = "save_question", Arguments = DomainJson.ToElement(q) };
-    private static ToolCall Read(SourcePage page, Region? crop = null, ushort? rotation = null) => Call("read_page", new JsonObject { ["page_id"] = page.Id, ["crop"] = crop is null ? null : JsonNode.Parse(DomainJson.Serialize(crop)), ["rotation"] = rotation });
+    private static ToolCall Call(string name, JsonNode arguments)
+    {
+        PageSources(arguments);
+        if (name == "read_page") { name = "read_pages"; arguments = Args("pages", new JsonArray(arguments)); }
+        if (name == "save_question") { name = "save_questions"; arguments = Args("questions", new JsonArray(arguments)); }
+        return new() { Id = "synthetic-call-" + Guid.NewGuid().ToString("N"), Name = name, Arguments = Element(arguments) };
+    }
+    private static void PageSources(JsonNode? node)
+    {
+        if (node is JsonArray array) { foreach (var item in array) PageSources(item); }
+        if (node is not JsonObject obj) return;
+        if (obj.Remove("sources", out var sources))
+            obj["source_page_ids"] = new JsonArray(sources!.AsArray().Select(region => region!["page_id"]!.GetValue<string>()).Distinct().Select(id => (JsonNode?)JsonValue.Create(id)).ToArray());
+        obj.Remove("student_regions");
+        obj.Remove("regions");
+        if (obj["region"] is JsonObject region) obj["region"] = ModelRegion(DomainJson.Deserialize<Region>(region.ToJsonString()));
+        foreach (var property in obj) PageSources(property.Value);
+    }
+    private static ToolCall Save(Question q) => Call("save_question", JsonNode.Parse(DomainJson.Serialize(q))!);
+    private static JsonObject ModelRegion(Region region) => new()
+    {
+        ["page_id"] = region.PageId,
+        ["bbox"] = new JsonArray((int)Math.Round(region.X * 999), (int)Math.Round(region.Y * 999), (int)Math.Round((region.X + region.Width) * 999), (int)Math.Round((region.Y + region.Height) * 999))
+    };
+    private static ToolCall Read(SourcePage page, Region? crop = null, ushort? rotation = null) => Call("read_page", new JsonObject { ["page_id"] = page.Id, ["crop"] = crop is null ? null : ModelRegion(crop), ["rotation"] = rotation });
     private static ToolCall Refs(List<ReferenceAnswer> references) => Call("save_references", Args("references", JsonNode.Parse(DomainJson.Serialize(references))));
     private static ToolCall Finish(List<Coverage> coverage) => Call("finish", Args("coverage", JsonNode.Parse(DomainJson.Serialize(coverage))));
-    private static Region Region(SourcePage page) => new() { PageId = page.Id, X = 0.1, Y = 0.1, Width = 0.5, Height = 0.5 };
+    private static Region Region(SourcePage page) => new() { PageId = page.Id, X = 100 / 999d, Y = 100 / 999d, Width = 500 / 999d, Height = 500 / 999d };
 
     private static Question Question(Document document, string key = "synthetic-q1", bool reference = true)
     {
@@ -113,6 +138,62 @@ internal static class Program
         QuestionKeys = page.Role == "material" ? keys.ToList() : [],
         Reason = page.Role == "reference" ? "Reference answer page" : ""
     }).ToList();
+
+    private static async Task BatchedTools()
+    {
+        foreach (var protocol in Enum.GetValues<Protocol>())
+        {
+            await using var fixture = await Fixture.Create(ImportMode.TeacherGraded, protocol, materialPages: 2);
+            var first = Question(fixture.Document, reference: false);
+            var second = Question(fixture.Document, "batch-q2", false) with
+            {
+                Sources = fixture.Document.Pages.Where(p => p.Role == "material").Select(Region).ToList(),
+                Stem = [new TextContent { Text = "Diagram and formula $x^2$" }, new OhMyStudy.Domain.ImageContent { Region = Region(fixture.Document.Pages[1]) }]
+            };
+            var invalid = Question(fixture.Document, "batch-invalid", false) with { Stem = [] };
+            var api = new ScriptApi(protocol, async (round, request, _) =>
+            {
+                if (round == 1)
+                {
+                    var pages = new JsonArray(fixture.Document.Pages.Select(page => (JsonNode)new JsonObject { ["page_id"] = page.Id }).ToArray());
+                    pages.Insert(1, new JsonObject { ["page_id"] = "unknown-page" });
+                    return [Call("read_pages", Args("pages", pages)), Call("save_questions", Args("questions", new JsonArray(
+                        JsonNode.Parse(DomainJson.Serialize(first)), JsonNode.Parse(DomainJson.Serialize(invalid)), JsonNode.Parse(DomainJson.Serialize(second)))))];
+                }
+                Check(HasToolError(protocol, request), "batch reports individual read and save failures");
+                Check(request.ToJsonString().Contains("image_index", StringComparison.Ordinal), "page batch identifies image attachments");
+                var saved = await fixture.Library.GradingQuestionsAsync(fixture.Document.Id);
+                Check(saved.Count == 2, "valid questions before and after an invalid entry remain saved");
+                Check(saved.Single(q => q.Question.DraftKey == second.DraftKey).Question.Sources.Count == 2, "page IDs retain cross-page coverage without question coordinates");
+                Check(saved.Single(q => q.Question.DraftKey == second.DraftKey).Question.Stem.OfType<OhMyStudy.Domain.ImageContent>().Single().Region == Region(fixture.Document.Pages[1]), "material image crop remains exact");
+                return [Finish(Coverage(fixture.Document, first.DraftKey, second.DraftKey).Select(c => c.PageId == fixture.Document.Pages[1].Id ? c with { QuestionKeys = [second.DraftKey] } : c).ToList())];
+            });
+            Check((await fixture.Run(api)).State == JobState.Completed && api.Attempts == 2, "batched read and save complete across protocols");
+            var original = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single(q => q.Question.DraftKey == first.DraftKey);
+            var region = Region(fixture.Document.Pages[0]);
+            var edited = original.Question with
+            {
+                Sources = [region],
+                Items = [original.Question.Items[0] with
+            {
+                Attempt = AttemptOf(original.Question) with { StudentRegions = [region], Teacher = AttemptOf(original.Question).Teacher! with { Regions = [region] } }
+            }]
+            };
+            await fixture.Library.EditQuestionAsync(original.Id, edited);
+            var retry = new ScriptApi(protocol, (_, request, _) =>
+            {
+                var context = request[protocol == Protocol.Responses ? "input" : "messages"]![0]!["content"]![0]!["text"]!.GetValue<string>();
+                Check(!context.Contains("student_regions", StringComparison.Ordinal) && !context.Contains("\"sources\"", StringComparison.Ordinal), "saved question context uses page IDs without answer boxes");
+                return Task.FromResult<List<ToolCall>>([Call("read_pages", Args("pages", new JsonArray(fixture.Document.Pages.Select(p => (JsonNode)new JsonObject { ["page_id"] = p.Id }).ToArray()))),
+                    Call("save_questions", Args("questions", new JsonArray(JsonNode.Parse(DomainJson.Serialize(first)), JsonNode.Parse(DomainJson.Serialize(second))))),
+                    Finish(Coverage(fixture.Document, first.DraftKey, second.DraftKey).Select(c => c.PageId == fixture.Document.Pages[1].Id ? c with { QuestionKeys = [second.DraftKey] } : c).ToList())]);
+            });
+            Check((await fixture.Run(retry)).State == JobState.Completed, "batch regrading completes with existing data");
+            var retained = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single(q => q.Id == original.Id).Question;
+            Check(retained.Sources.Single() == region && AttemptOf(retained).StudentRegions.Single() == region && AttemptOf(retained).Teacher!.Regions.Single() == region,
+                "page-only regrading preserves stored question and annotation regions");
+        }
+    }
 
     private static async Task OptionalFields()
     {
@@ -198,7 +279,7 @@ internal static class Program
                 var latest = trace.GroupBy(a => a.Key).Select(g => g.Last()).ToList();
                 Check(latest.Count(a => a.Kind == "model" && a.State == "completed") == 2 && latest.Any(a => a.Kind == "finish" && a.State == "completed"), "model rounds and validated finish retained in history");
                 Check(latest.Max(a => a.PagesRead) == 2 && latest.Max(a => a.QuestionsSaved) == 1, "trace counts follow committed distinct pages and questions");
-                Check(trace.Where(a => a.Kind == "save_question").GroupBy(a => a.Key).All(g => g.First().State == "running" && g.Last().State == "completed"), "tool starts and committed outcomes retained");
+                Check(trace.Where(a => a.Kind == "save_questions").GroupBy(a => a.Key).All(g => g.First().State == "running" && g.Last().State == "completed"), "tool starts and committed outcomes retained");
                 await fixture.Library.VerifyIntegrityAsync();
             }
     }
@@ -298,10 +379,10 @@ internal static class Program
     private static void AssertPromptContract(Protocol protocol, JsonObject request, ImportMode mode, bool referenceOnly)
     {
         var instructions = request[protocol == Protocol.Responses ? "instructions" : "system"]!.GetValue<string>();
-        Check(instructions.All(char.IsAscii) && instructions.StartsWith("# Role\n", StringComparison.Ordinal), "native high-priority instructions are structured English");
+        Check(instructions.All(char.IsAscii) && instructions.StartsWith("Organize the exam", StringComparison.Ordinal), "native high-priority instructions are structured English");
         Check(instructions.Contains("Simplified Chinese", StringComparison.Ordinal)
             && instructions.Contains("Preserve the source language", StringComparison.Ordinal), "English instructions preserve the content-language contract");
-        var task = instructions.Split("# Current task\n", StringSplitOptions.None);
+        var task = new[] { "", instructions[(instructions.LastIndexOf("\n\n", StringComparison.Ordinal) + 2)..] };
         Check(task.Length == 2 && task[1].StartsWith(referenceOnly ? "Organize reference answers only." : mode switch
         {
             ImportMode.TeacherGraded => "Organize and grade the whole paper.",
@@ -325,7 +406,7 @@ internal static class Program
             && context.RootElement.GetProperty("references").ValueKind == JsonValueKind.Array, "typed task context remains valid JSON in both protocols");
 
         var tools = request["tools"]!.AsArray().Select(t => t!.AsObject()).ToList();
-        Check(tools.Count == (referenceOnly ? 3 : 7), "task exposes only its supported tools");
+        Check(tools.Count == (referenceOnly ? 5 : 7), "task exposes only its supported tools");
         foreach (var tool in tools)
         {
             string name = tool["name"]!.GetValue<string>();
@@ -334,10 +415,10 @@ internal static class Program
             var schema = tool[protocol == Protocol.Responses ? "parameters" : "input_schema"]!.AsObject();
             Check(DescribedClosedSchema(schema), name + ": nested parameter descriptions and closed objects survive SDK serialization without references");
             if (protocol == Protocol.Responses) Check(tool["strict"]!.GetValue<bool>() == false, name + ": omission semantics remain available");
-            if (name == "save_question")
-                Check(schema["required"]!.AsArray().Select(n => n!.GetValue<string>()).ToHashSet().SetEquals(["draft_key", "number", "stem", "sources", "items"])
-                    && schema["properties"]!["items"]!["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).SequenceEqual(["key"])
-                    && schema["properties"]!["items"]!["items"]!["properties"]!["attempt"]!["anyOf"]![0]!["required"]!.AsArray().Count == 0,
+            if (name == "save_questions")
+                Check(schema["properties"]!["questions"]!["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).ToHashSet().SetEquals(["draft_key", "number", "stem", "source_page_ids", "items"])
+                    && schema["properties"]!["questions"]!["items"]!["properties"]!["items"]!["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).SequenceEqual(["key"])
+                    && schema["properties"]!["questions"]!["items"]!["properties"]!["items"]!["items"]!["properties"]!["attempt"]!["anyOf"]![0]!["required"]!.AsArray().Count == 0,
                     "question, item and attempt auxiliary fields remain optional for regrading");
         }
     }
@@ -386,6 +467,142 @@ internal static class Program
         var job = await fixture.Run(api);
         Check(job.State == JobState.Completed && api.Attempts == 2, "full-page reread repairs coverage");
         Check(fixture.Reader.Requests.Count == 3 && fixture.Reader.Requests[0].Crop == Region(material) && fixture.Reader.Requests[0].Rotation == 90, "crop and rotation reach image reader unchanged");
+    }
+
+    private static IEnumerable<JsonObject> FeedbackObjects(JsonNode? node)
+    {
+        if (node is JsonObject obj)
+        {
+            yield return obj;
+            foreach (var property in obj)
+                foreach (var nested in FeedbackObjects(property.Value)) yield return nested;
+        }
+        else if (node is JsonArray array)
+        {
+            foreach (var item in array)
+                foreach (var nested in FeedbackObjects(item)) yield return nested;
+        }
+        else if (node is JsonValue value && value.TryGetValue<string>(out var text))
+        {
+            const string prefix = "Tool execution failed: ";
+            if (text.StartsWith(prefix, StringComparison.Ordinal)) text = text[prefix.Length..];
+            if (!text.StartsWith('{')) yield break;
+            JsonNode? parsed;
+            try { parsed = JsonNode.Parse(text); }
+            catch (JsonException) { yield break; }
+            foreach (var nested in FeedbackObjects(parsed)) yield return nested;
+        }
+    }
+
+    private static async Task DiscreteCoordinates()
+    {
+        foreach (var protocol in Enum.GetValues<Protocol>())
+        {
+            await using var fixture = await Fixture.Create(ImportMode.AiGrading, protocol);
+            var page = fixture.Document.Pages[0];
+            var full = new Region { PageId = page.Id, X = 0, Y = 0, Width = 1, Height = 1 };
+            var question = Question(fixture.Document, reference: false) with { Stem = [new OhMyStudy.Domain.ImageContent { Region = full }] };
+            var client = new DelegateClient(protocol, (round, history, _) =>
+            {
+                List<ToolCall> calls;
+                if (round == 1)
+                {
+                    var pages = new JsonArray();
+                    foreach (var bbox in new[] { new JsonArray(0, 0, 999, 999), new JsonArray(0, 0, 1.5, 999), new JsonArray(500, 0, 100, 999), new JsonArray(0, 0, 1000, 999), new JsonArray(0, 0, 0, 999) })
+                        pages.Add((JsonNode)new JsonObject { ["page_id"] = page.Id, ["crop"] = new JsonObject { ["page_id"] = page.Id, ["bbox"] = bbox } });
+                    calls = [Call("read_pages", Args("pages", pages)), .. fixture.Document.Pages.Select(value => Read(value)), Save(question)];
+                }
+                else
+                {
+                    var feedback = FeedbackObjects(history).ToList();
+                    Check(feedback.Any(value => value["error"]?.ToString() == "4 entries failed. Successful entries were retained; retry only the failed entries."), "fractional, reversed, out-of-range and empty discrete boxes are rejected");
+                    Check(fixture.Reader.Requests.First().Crop == full, "0..999 full-page box converts to the entire original image");
+                    calls = [Finish(Coverage(fixture.Document, question.DraftKey))];
+                }
+                return Task.FromResult(NativeTurn(protocol, calls));
+            });
+            Check((await fixture.Run(client)).State == JobState.Completed, "discrete region validation recovers across provider protocols");
+            Check((await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single().Question.Stem.OfType<OhMyStudy.Domain.ImageContent>().Single().Region == full, "discrete image box persists in the compatible normalized storage format");
+        }
+    }
+
+    private static async Task CodeImageOutputs()
+    {
+        foreach (var protocol in Enum.GetValues<Protocol>())
+        {
+            await using var fixture = await Fixture.Create(ImportMode.AiGrading, protocol);
+            var executor = new OutputExecutor(); fixture.CodeExecutor = executor;
+            string? assetId = null;
+            var question = Question(fixture.Document, reference: false);
+            var client = new DelegateClient(protocol, (round, history, _) =>
+            {
+                var feedback = FeedbackObjects(history).ToList();
+                List<ToolCall> calls;
+                if (round == 1) calls = fixture.Document.Pages.Select(page => Read(page)).ToList();
+                else if (round == 2)
+                {
+                    executor.Input = feedback.First(value => value["local_file"] is not null)["local_file"]!.GetValue<string>();
+                    Check(feedback.Any(value => value["coordinate_system"]?.ToString() == "unrotated_source_discrete_0_999"), "page feedback declares discrete coordinates");
+                    calls = [Call("python", new JsonObject { ["code"] = "synthetic failure" })];
+                }
+                else if (round == 3)
+                {
+                    Check(feedback.Any(value => value["stderr"]?.ToString() == "synthetic actionable traceback" && value["stdout"]?.ToString() == "partial output" && value["exit_code"]?.GetValue<uint>() == 1), "failed code returns status, stdout, stderr and exit code for recovery");
+                    calls = [Call("python", new JsonObject { ["code"] = "must not execute", ["outputs"] = new JsonArray("../escape.png") }),
+                        Call("python", new JsonObject { ["code"] = "must not execute", ["timeout_ms"] = -1 }),
+                        Call("shell", new JsonObject { ["code"] = "startup failure" }),
+                        Call("shell", new JsonObject { ["code"] = "synthetic image output", ["outputs"] = new JsonArray("processed.png", "missing.png"), ["timeout_ms"] = 120000 })];
+                }
+                else if (round == 4)
+                {
+                    assetId = feedback.Single(value => value["path"]?.ToString() == "processed.png" && value["asset_id"] is not null)["asset_id"]!.GetValue<string>();
+                    Check(feedback.Any(value => value["path"]?.ToString() == "missing.png" && value["error"] is not null), "missing output returns a recoverable per-image error");
+                    Check(feedback.Any(value => value["stderr"]?.ToString() == "synthetic worker startup failure"), "worker startup errors are returned to the model without switching executors");
+                    var image = new OhMyStudy.Domain.ImageContent { Region = Region(fixture.Document.Pages[0]), AssetId = assetId, Caption = "Processed diagram" };
+                    question = question with { Stem = [new TextContent { Text = "Question with processed image" }, image] };
+                    var invalid = question with { DraftKey = "invalid-image", Items = [question.Items[0] with { Key = "invalid-image" }], Stem = [image with { AssetId = Guid.NewGuid().ToString() }] };
+                    calls = [Save(invalid), Save(question)];
+                }
+                else calls = [Finish(Coverage(fixture.Document, question.DraftKey))];
+                return Task.FromResult(NativeTurn(protocol, calls));
+            });
+            await using var queue = await fixture.Queue(client);
+            var submitted = await queue.SubmitAsync(DiagnosticKind.Grading, Policy with { PreferredMode = ExecutionMode.BypassPermission, EffectiveMode = ExecutionMode.BypassPermission }, fixture.Input);
+            var job = await Wait(queue, submitted.Id);
+            Check(job.State == JobState.Completed && executor.Calls == 3, "code processing recovers and rejects invalid output paths and timeouts before execution");
+            var saved = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single();
+            var stored = saved.Question.Stem.OfType<OhMyStudy.Domain.ImageContent>().Single();
+            Check(stored.AssetId == assetId && stored.Region == Region(fixture.Document.Pages[0]), "processed asset and original evidence region persist together");
+            Check((await fixture.Library.ReadAssetAsync(assetId!)).Bytes.SequenceEqual(png), "processed image remains readable from the library");
+            var edited = await fixture.Library.EditQuestionAsync(saved.Id, saved.Question with { Number = "edited" });
+            Check(edited.Question.Stem.OfType<OhMyStudy.Domain.ImageContent>().Single().AssetId == assetId, "editing retains the processed image");
+            var events = await fixture.Library.ListJobEventsAsync(job.Id);
+            Check(events.Any(value => value.Payload.GetRawText().Contains("synthetic actionable traceback", StringComparison.Ordinal)), "execution failure details remain visible in task activities");
+            await fixture.Library.DeletePaperAsync(fixture.Document.Id);
+            try { await fixture.Library.ReadAssetAsync(assetId!); throw new InvalidOperationException("Processed asset survived paper deletion"); }
+            catch (KeyNotFoundException) { }
+            Check((await fixture.Library.RecoverOrphanedAssetsAsync(false)).Count == 0, "deleting the paper removes generated assets and files");
+        }
+    }
+
+    private sealed class OutputExecutor : IToolExecutor
+    {
+        public int Calls { get; private set; }
+        public string Input { get; set; } = "";
+        public async Task<ToolExecutionResult> ExecuteAsync(AuthorizedCall authorization, string resultsDirectory, CancellationToken cancellationToken)
+        {
+            var call = authorization.Consume(); Calls++;
+            Check(File.Exists(Path.Combine(call.WorkingDirectory, Input)), "read_pages exposes a real local input file");
+            if (call.Content == "startup failure") throw new IOException("synthetic worker startup failure");
+            if (call.Tool == ToolKind.Python)
+            {
+                await File.WriteAllTextAsync(Path.Combine(call.WorkingDirectory, "scratch.txt"), "preserved", cancellationToken);
+                return new("failed", 1, "partial output", "synthetic actionable traceback");
+            }
+            Check(File.ReadAllText(Path.Combine(call.WorkingDirectory, "scratch.txt")) == "preserved" && call.TimeoutMs == 120000, "code files persist between tools and requested timeout is honored");
+            File.Copy(Path.Combine(call.WorkingDirectory, Input), Path.Combine(call.WorkingDirectory, "processed.png"));
+            return new("completed", 0, "image saved", "");
+        }
     }
 
     private static async Task CoverageAndToolValidation()
@@ -502,8 +719,8 @@ internal static class Program
             {
                 AssertPromptContract(protocol, request, ImportMode.AiGrading, referenceOnly: true);
                 var definitions = (JsonArray)request["tools"]!;
-                Check(!definitions.OfType<JsonObject>().Any(t => t["name"]?.ToString() is "save_question" or "save_paper_info" or "python" or "shell"), "reference-only schema excludes grading/execution tools");
-                if (round == 1) return Task.FromResult<List<ToolCall>>([Save(Question(fixture.Document, reference: false)), Call("python", new JsonObject { ["code"] = "print('not executed')" })]);
+                Check(!definitions.OfType<JsonObject>().Any(t => t["name"]?.ToString() is "save_questions" or "save_paper_info"), "reference-only schema excludes grading tools");
+                if (round == 1) return Task.FromResult<List<ToolCall>>([Save(Question(fixture.Document, reference: false)), Call("unknown", new JsonObject { ["code"] = "print('not executed')" })]);
                 Check(HasToolError(protocol, request), "reference-only task rejects unexpected tools");
                 var page = fixture.Document.Pages.Single(p => p.Role == "reference");
                 return Task.FromResult<List<ToolCall>>([Read(page), Refs(References(fixture.Document, match: null)), Finish([new() { PageId = page.Id, Status = "no_questions", QuestionKeys = [], Reason = "Only reference answers" }])]);
@@ -614,6 +831,7 @@ internal static class Program
         public required GradingInput Input { get; init; }
         public PixelReader Reader { get; } = new();
         public RejectExecutor Executor { get; } = new();
+        public IToolExecutor? CodeExecutor { get; set; }
         public static async Task<Fixture> Create(ImportMode mode, Protocol protocol, int materialPages = 1)
         {
             var repository = await LibraryRepository.OpenAsync(new(Path.Combine(Root, Guid.NewGuid().ToString("N")), LibraryOpenMode.CreateNew) { MediaProcessor = new PixelProcessor() });
@@ -630,7 +848,7 @@ internal static class Program
         public async Task<JobQueue> Queue(IModelClient client)
         {
             var runner = new GradingRunner(Library, Reader, _ => client, _ => new ProviderCredentials("synthetic-key"));
-            return await JobQueue.CreateAsync(new RepositoryJobStore(Library), runner, Executor, Path.Combine(Root, "results", Guid.NewGuid().ToString("N")));
+            return await JobQueue.CreateAsync(new RepositoryJobStore(Library), runner, CodeExecutor ?? Executor, Path.Combine(Root, "results", Guid.NewGuid().ToString("N")));
         }
         public async Task<Job> Run(IModelClient client, DiagnosticKind kind = DiagnosticKind.Grading)
         {

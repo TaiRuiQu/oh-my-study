@@ -7,8 +7,12 @@ public static class QuestionText
     public static string Delimit(string latex)
     {
         string trimmed = latex.Trim();
-        return trimmed.StartsWith('$') || trimmed.StartsWith(@"\(", StringComparison.Ordinal) || trimmed.StartsWith(@"\[", StringComparison.Ordinal)
-            ? trimmed : @"\(" + latex + @"\)";
+        if (trimmed.Length >= 4 && (trimmed.StartsWith("$$", StringComparison.Ordinal) && trimmed.EndsWith("$$", StringComparison.Ordinal)
+            || trimmed.StartsWith(@"\(", StringComparison.Ordinal) && trimmed.EndsWith(@"\)", StringComparison.Ordinal)
+            || trimmed.StartsWith(@"\[", StringComparison.Ordinal) && trimmed.EndsWith(@"\]", StringComparison.Ordinal)))
+            trimmed = trimmed[2..^2];
+        else if (trimmed.Length >= 2 && trimmed.StartsWith('$') && trimmed.EndsWith('$')) trimmed = trimmed[1..^1];
+        return "$" + trimmed + "$";
     }
 
     public static string Reading(IEnumerable<Content> content) => string.Concat(content.Select(item => item switch

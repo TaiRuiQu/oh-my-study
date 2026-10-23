@@ -43,6 +43,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(context.Cancellation);
         deadline.CancelAfter(TimeSpan.FromMinutes(20));
         var cancellation = deadline.Token;
+        var workspace = new GradingWorkspace(job.Id, library, images);
         await context.CommitAsync(token => library.BeginGradingAsync(job, token)).ConfigureAwait(false);
         var existing = await library.GradingQuestionsAsync(input.Document.Id, cancellation).ConfigureAwait(false);
         var references = await library.GradingReferencesAsync(input.Document.Id, cancellation).ConfigureAwait(false);
@@ -52,6 +53,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             ["existing_questions"] = JsonNode.Parse(DomainJson.Serialize(existing.Select(saved => saved with { Question = saved.Question with { Notes = "" } }).ToList())),
             ["references"] = JsonNode.Parse(DomainJson.Serialize(references))
         };
+        GradingTools.UsePageSources(payload);
         var history = ProviderProtocol.Initial(input.Provider.Protocol, GradingPrompts.Input(payload.ToJsonString()), []);
         var instructions = GradingPrompts.Instructions(input.Document.Mode, referenceOnly);
         var extra = new Dictionary<string, JsonElement>();
@@ -150,12 +152,13 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     Kind = call.Name,
                     Title = call.Name switch
                     {
-                        "read_page" => pageIndex >= 0 ? $"Read page {pageIndex + 1}" : "Read pages",
+                        "read_pages" => "Read pages",
                         "save_paper_info" => "Organize exam details",
-                        "save_question" => "Save questions",
+                        "save_questions" => "Save questions",
                         "save_references" => "Organize reference answers",
                         "finish" => "Check exam results",
-                        "python" or "shell" => "Run calculations",
+                        "python" => "Run Python",
+                        "shell" => "Run PowerShell",
                         _ => "Check action"
                     },
                     PageId = pageIndex >= 0 ? pageId : null,
@@ -172,8 +175,14 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     if (finished) throw new InvalidOperationException("Tools cannot be called after finish.");
                     switch (call.Name)
                     {
-                        case "read_page":
-                            result = await ReadPageAsync(input, call.Arguments, viewed, attachments, cancellation).ConfigureAwait(false); break;
+                        case "read_pages":
+                            result = await BatchAsync(call.Arguments, "pages", async page =>
+                            {
+                                int imageIndex = attachments.Count;
+                                var metadata = await ReadPageAsync(input, page, viewed, attachments, workspace, cancellation).ConfigureAwait(false);
+                                metadata["image_index"] = imageIndex;
+                                return metadata;
+                            }).ConfigureAwait(false); break;
                         case "save_paper_info" when !referenceOnly:
                             GradingTools.Fields(call.Arguments, "subject", "earned", "possible");
                             var subject = call.Arguments.GetProperty("subject");
@@ -184,17 +193,24 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                                 earned.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? null : earned.GetDouble(),
                                 possible.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? null : possible.GetDouble(), token)).ConfigureAwait(false);
                             result = new() { ["saved"] = paperInfoSaved, ["manual_values_kept"] = !paperInfoSaved }; break;
-                        case "save_question" when !referenceOnly:
-                            var question = DomainJson.Deserialize<Question>(call.Arguments.GetRawText());
-                            question = FillOmittedFields(question, call.Arguments, existing.FirstOrDefault(q => q.Question.DraftKey == question.DraftKey)?.Question, input.Document.Mode);
-                            var stored = await context.CommitAsync(token => library.SaveGradingQuestionAsync(job.Id, question, token)).ConfigureAwait(false);
-                            saved.Add(stored.Question.DraftKey);
-                            existing.RemoveAll(q => q.Question.DraftKey == stored.Question.DraftKey); existing.Add(stored);
-                            result = new() { ["saved_id"] = stored.Id, ["draft_key"] = stored.Question.DraftKey }; break;
+                        case "save_questions" when !referenceOnly:
+                            result = await BatchAsync(call.Arguments, "questions", async args =>
+                            {
+                                var previous = existing.FirstOrDefault(q => q.Question.DraftKey == args.GetProperty("draft_key").GetString())?.Question;
+                                var question = DomainJson.Deserialize<Question>(GradingTools.WithSourceRegions(args, previous?.Sources).ToJsonString());
+                                question = FillOmittedFields(question, args, previous, input.Document.Mode);
+                                var stored = await context.CommitAsync(token => library.SaveGradingQuestionAsync(job.Id, question, token)).ConfigureAwait(false);
+                                saved.Add(stored.Question.DraftKey);
+                                existing.RemoveAll(q => q.Question.DraftKey == stored.Question.DraftKey); existing.Add(stored);
+                                return new JsonObject { ["saved_id"] = stored.Id, ["draft_key"] = stored.Question.DraftKey };
+                            }).ConfigureAwait(false); break;
                         case "save_references":
                             GradingTools.Fields(call.Arguments, "references");
-                            var refs = DomainJson.Deserialize<List<ReferenceAnswer>>(call.Arguments.GetProperty("references").GetRawText());
+                            var refs = call.Arguments.GetProperty("references").EnumerateArray().Select(answer =>
+                                DomainJson.Deserialize<ReferenceAnswer>(GradingTools.WithSourceRegions(answer,
+                                    references.FirstOrDefault(r => r.Key == answer.GetProperty("key").GetString())?.Sources).ToJsonString())).ToList();
                             await context.CommitAsync(token => library.SaveGradingReferencesAsync(job.Id, refs, token)).ConfigureAwait(false);
+                            references = refs;
                             result = new() { ["saved"] = true }; break;
                         case "finish":
                             if (index + 1 != turn.Calls.Count) throw new InvalidOperationException("finish must be the last tool call.");
@@ -202,8 +218,15 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                             var coverage = DomainJson.Deserialize<List<Coverage>>(call.Arguments.GetProperty("coverage").GetRawText());
                             await context.CommitAsync(token => library.FinishGradingAsync(job.Id, coverage, viewed, referenceOnly, saved, token)).ConfigureAwait(false);
                             result = new() { ["finished"] = true }; finished = true; break;
-                        case "python" or "shell" when !referenceOnly:
-                            GradingTools.Fields(call.Arguments, "code");
+                        case "python" or "shell":
+                            GradingTools.Fields(call.Arguments, "code", "outputs", "timeout_ms");
+                            var outputPaths = GradingWorkspace.OutputPaths(call.Arguments);
+                            foreach (string path in outputPaths) _ = workspace.OutputPath(path);
+                            ulong timeout = 60000;
+                            if (call.Arguments.TryGetProperty("timeout_ms", out var timeoutJson)
+                                && (timeoutJson.ValueKind != JsonValueKind.Number || !timeoutJson.TryGetUInt64(out timeout)))
+                                throw new DomainValidationException("timeout_ms must be an integer between 1 and 300000.");
+                            if (timeout is 0 or > 300000) throw new DomainValidationException("timeout_ms must be between 1 and 300000.");
                             var execution = new ExecutionCall
                             {
                                 ProtocolVersion = 1,
@@ -212,35 +235,51 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                                 Tool = call.Name == "python" ? ToolKind.Python : ToolKind.Shell,
                                 Content = call.Arguments.GetProperty("code").GetString() ?? throw new JsonException(),
                                 Arguments = [],
-                                WorkingDirectory = Path.Combine(Path.GetTempPath(), "OhMyStudy", "tasks", job.Id),
-                                TimeoutMs = 60000
+                                WorkingDirectory = workspace.DirectoryPath,
+                                TimeoutMs = timeout
                             };
-                            // The directory is application-owned; it is never taken from model arguments.
-                            RuntimePathsForTask(execution.WorkingDirectory);
+                            workspace.Prepare();
                             var executionResult = await context.ExecuteAsync(execution).ConfigureAwait(false);
-                            if (!executionResult.Succeeded) throw new InvalidOperationException("Code execution did not complete.");
-                            result = new() { ["stdout"] = executionResult.Stdout }; break;
+                            cancellation.ThrowIfCancellationRequested();
+                            result = new()
+                            {
+                                ["status"] = executionResult.Status,
+                                ["exit_code"] = executionResult.ExitCode,
+                                ["stdout"] = executionResult.Stdout,
+                                ["stderr"] = executionResult.Stderr,
+                                ["outputs"] = await workspace.ReadOutputsAsync(outputPaths, attachments, operation => context.CommitAsync(operation), cancellation).ConfigureAwait(false)
+                            };
+                            if (!executionResult.Succeeded) result["error"] = "Code execution did not complete. Inspect status and stderr, then correct the code or timeout.";
+                            else if (result["outputs"]!.AsArray().Any(output => output?["error"] is not null)) result["error"] = "Some output images could not be read. Inspect outputs and correct their paths or formats.";
+                            break;
                         default: throw new InvalidOperationException("This tool is not allowed for the current task.");
                     }
+                    error = result.ContainsKey("error");
                 }
                 catch (OperationCanceledException) { throw; }
-                catch (Exception caught) when (caught is DomainValidationException or JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException)
+                catch (Exception caught) when (caught is DomainValidationException or JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException
+                    || (call.Name is "python" or "shell") && (caught is IOException or System.ComponentModel.Win32Exception))
                 {
-                    // Tool validation is useful feedback to the model; transport, credentials and IO failures do not loop.
-                    result = new() { ["error"] = caught is DomainValidationException ? caught.Message : "Tool arguments or business constraints are invalid. Correct them according to the definitions." };
+                    bool executionFailure = (call.Name is "python" or "shell") && (caught is IOException or System.ComponentModel.Win32Exception);
+                    result = new() { ["error"] = caught is DomainValidationException || executionFailure ? caught.Message : "Tool arguments or business constraints are invalid. Correct them according to the definitions." };
+                    if (executionFailure)
+                    {
+                        result["status"] = "failed";
+                        result["stderr"] = caught.Message;
+                    }
                     error = true;
                 }
                 string detail = error ? result["error"]!.GetValue<string>() : call.Name switch
                 {
-                    "read_page" => call.Arguments.TryGetProperty("crop", out var cropValue) && cropValue.ValueKind == JsonValueKind.Object ? "Page region viewed" : "Original read",
+                    "read_pages" => "Original pages read",
                     "save_paper_info" => result["saved"]!.GetValue<bool>() ? "Exam details saved" : "Manual exam details preserved",
-                    "save_question" => "Question added to question bank",
+                    "save_questions" => "Questions added to question bank",
                     "save_references" => "Reference answers saved",
                     "finish" => "Page coverage and saved results verified",
-                    "python" or "shell" => "Calculation completed",
+                    "python" or "shell" => "Code execution completed",
                     _ => "Action completed"
                 };
-                string stepText = call.Name is "python" or "shell" && !error ? result["stdout"]?.GetValue<string>() ?? "" : "";
+                string stepText = call.Name is "python" or "shell" ? string.Join('\n', new[] { result["stdout"]?.GetValue<string>(), result["stderr"]?.GetValue<string>() }.Where(value => !string.IsNullOrEmpty(value))) : "";
                 await context.ActivityAsync(activity with
                 {
                     State = error ? "failed" : "completed",
@@ -259,13 +298,38 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         throw new InvalidOperationException("The task reached the call limit. Saved results will be kept.");
     }
 
-    private async Task<JsonObject> ReadPageAsync(GradingInput input, JsonElement arguments, HashSet<string> viewed, List<Image> attachments, CancellationToken cancellationToken)
+    private static async Task<JsonObject> BatchAsync(JsonElement arguments, string name, Func<JsonElement, Task<JsonObject>> execute)
+    {
+        GradingTools.Fields(arguments, name);
+        var entries = arguments.GetProperty(name);
+        if (entries.ValueKind != JsonValueKind.Array || entries.GetArrayLength() == 0)
+            throw new JsonException("A batch must contain at least one entry.");
+        var results = new JsonArray();
+        int failures = 0;
+        foreach (var entry in entries.EnumerateArray())
+        {
+            JsonObject result;
+            try { result = await execute(entry).ConfigureAwait(false); }
+            catch (Exception error) when (error is DomainValidationException or JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException)
+            {
+                result = new() { ["error"] = error is DomainValidationException ? error.Message : "Invalid entry. Correct it according to the tool definition." };
+                failures++;
+            }
+            result["index"] = results.Count;
+            results.Add((JsonNode)result);
+        }
+        var batch = new JsonObject { [name] = results };
+        if (failures != 0) batch["error"] = $"{failures} entries failed. Successful entries were retained; retry only the failed entries.";
+        return batch;
+    }
+
+    private async Task<JsonObject> ReadPageAsync(GradingInput input, JsonElement arguments, HashSet<string> viewed, List<Image> attachments, GradingWorkspace workspace, CancellationToken cancellationToken)
     {
         GradingTools.Fields(arguments, "page_id", "crop", "rotation");
         var id = arguments.GetProperty("page_id").GetString();
         var page = input.Document.Pages.FirstOrDefault(p => p.Id == id) ?? throw new DomainValidationException("The source page does not belong to this document.");
         if (page.PreviewStatus != "ready") throw new DomainValidationException("The page has not been read.");
-        Region? crop = arguments.TryGetProperty("crop", out var cropJson) && cropJson.ValueKind != JsonValueKind.Null ? DomainJson.Deserialize<Region>(cropJson.GetRawText()) : null;
+        Region? crop = arguments.TryGetProperty("crop", out var cropJson) && cropJson.ValueKind != JsonValueKind.Null ? GradingCoordinates.FromModel(cropJson) : null;
         if (crop is not null)
         {
             if (crop.PageId != page.Id) throw new DomainValidationException("The crop does not match the source page.");
@@ -285,10 +349,14 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         {
             ["page_id"] = page.Id,
             ["rotation"] = rotation,
-            ["crop"] = crop is null ? null : JsonNode.Parse(DomainJson.Serialize(crop)),
+            ["crop"] = crop is null ? null : GradingCoordinates.ToModelRegion(crop),
             ["width"] = image.Width,
             ["height"] = image.Height,
-            ["coordinate_system"] = "unrotated_source_normalized"
+            ["coordinate_system"] = "unrotated_source_discrete_0_999",
+            ["source_file"] = await workspace.WriteImageAsync(asset.Bytes, cancellationToken, asset.Mime).ConfigureAwait(false),
+            ["source_width"] = page.Width,
+            ["source_height"] = page.Height,
+            ["local_file"] = await workspace.WriteImageAsync(Convert.FromBase64String(image.Image.Base64), cancellationToken).ConfigureAwait(false)
         };
     }
 
@@ -320,7 +388,10 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             {
                 StudentAnswer = raw.TryGetProperty("student_answer", out _) ? attempt.StudentAnswer : previous?.StudentAnswer ?? "",
                 StudentRegions = raw.TryGetProperty("student_regions", out _) ? attempt.StudentRegions : previous?.StudentRegions ?? [],
-                Teacher = raw.TryGetProperty("teacher", out _) ? attempt.Teacher : previous?.Teacher,
+                Teacher = raw.TryGetProperty("teacher", out var teacher)
+                    ? attempt.Teacher is { } mark && teacher.ValueKind == JsonValueKind.Object && !teacher.TryGetProperty("regions", out _)
+                        ? mark with { Regions = previous?.Teacher?.Regions ?? [] } : attempt.Teacher
+                    : previous?.Teacher,
                 Grade = raw.TryGetProperty("grade", out _) ? attempt.Grade : previous?.Grade ?? attempt.Grade,
                 ReferenceKey = raw.TryGetProperty("reference_key", out _) ? attempt.ReferenceKey : previous?.ReferenceKey,
                 AiSolution = raw.TryGetProperty("ai_solution", out _) ? attempt.AiSolution : previous?.AiSolution ?? "",
@@ -339,6 +410,5 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         };
     }
 
-    private static void RuntimePathsForTask(string directory) => Execution.RuntimePaths.CheckedDirectory(directory, create: true);
     private static JsonElement Parse(JsonNode value) { using var document = JsonDocument.Parse(value.ToJsonString()); return document.RootElement.Clone(); }
 }

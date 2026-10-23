@@ -16,7 +16,6 @@ public sealed partial class MainWindow
     private Task _openPresentationTask = Task.CompletedTask;
     private double _openPresentationWidth;
     private int _openLayoutRevision;
-    private readonly Dictionary<string, int> _openItems = new(StringComparer.Ordinal);
 
     private async Task OpenBankQuestionAsync(int index)
     {
@@ -62,12 +61,10 @@ public sealed partial class MainWindow
         long generation = _openGeneration;
         QuestionPageHost.UpdateLayout();
         _openPresentationWidth = Math.Max(110, QuestionPageHost.ActualWidth);
-        int selected = _openItems.TryGetValue(saved.Id, out int remembered) ? remembered
-            : _bankSection == "mistakes" ? NativeQuestionPresenter.FirstMistake(saved.Question) : 0;
         try
         {
             var content = await NativeQuestionPresenter.CreateAsync(saved.Question, library, cancellation, _openPresentationWidth, RootGrid.ActualTheme,
-                _openContext, selected, item => _openItems[saved.Id] = item);
+                _openContext);
             if (!_closed && generation == _openGeneration && ReferenceEquals(ViewModel.OpenQuestion.Saved, saved)) QuestionPageHost.Content = content;
         }
         catch (OperationCanceledException) { }
@@ -128,7 +125,7 @@ public sealed partial class MainWindow
     }
 
     private void QuestionPageScroll_SizeChanged(object sender, SizeChangedEventArgs e) =>
-        QuestionPageBody.Width = Math.Clamp(e.NewSize.Width - QuestionPageScroll.Padding.Left - QuestionPageScroll.Padding.Right, 0, 880);
+        QuestionPageBody.Width = Math.Max(0, e.NewSize.Width - QuestionPageScroll.Padding.Left - QuestionPageScroll.Padding.Right);
 
     private async void QuestionPageHost_SizeChanged(object sender, SizeChangedEventArgs e)
     {

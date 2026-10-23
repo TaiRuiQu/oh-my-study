@@ -128,6 +128,8 @@ public sealed record TableContent : Content { public required List<List<string>>
 public sealed record ImageContent : Content
 {
     public required Region Region { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AssetId { get; init; }
     public bool ContainsHandwriting { get; init; }
     public string Caption { get; set; } = "";
 }

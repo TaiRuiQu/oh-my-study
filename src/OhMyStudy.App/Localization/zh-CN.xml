@@ -687,4 +687,7 @@
     <text key="S0678" xml:space="preserve">你的作答</text>
     <text key="S0679" xml:space="preserve">查看答案与解析</text>
     <text key="S0680" xml:space="preserve">无法保存，请重试。</text>
+    <text key="S0681" xml:space="preserve">运行 Python</text>
+    <text key="S0682" xml:space="preserve">运行 PowerShell</text>
+    <text key="S0683" xml:space="preserve">代码执行完成</text>
 </resources>

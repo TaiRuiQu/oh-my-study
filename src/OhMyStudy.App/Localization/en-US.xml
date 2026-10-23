@@ -687,4 +687,7 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0678" xml:space="preserve">Your answer</text>
     <text key="S0679" xml:space="preserve">Show answer and explanation</text>
     <text key="S0680" xml:space="preserve">Could not save. Try again.</text>
+    <text key="S0681" xml:space="preserve">Run Python</text>
+    <text key="S0682" xml:space="preserve">Run PowerShell</text>
+    <text key="S0683" xml:space="preserve">Code execution completed</text>
 </resources>

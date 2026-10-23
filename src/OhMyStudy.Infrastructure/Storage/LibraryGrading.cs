@@ -44,6 +44,7 @@ public sealed partial class LibraryRepository
 
     private SavedQuestion WriteQuestion(string documentId, Question question, string? id = null)
     {
+        ValidateQuestionAssets(documentId, question);
         Execute("INSERT INTO questions(id,document_id,draft_key,content_json,updated_at) VALUES($p0,$p1,$p2,$p3,$p4) ON CONFLICT(document_id,draft_key) DO UPDATE SET content_json=excluded.content_json,updated_at=excluded.updated_at", id ?? NewId(), documentId, question.DraftKey, DomainJson.Serialize(question), Now());
         WriteQuestionSummary(documentId, question);
         return Questions(documentId).Single(q => q.Question.DraftKey == question.DraftKey);
