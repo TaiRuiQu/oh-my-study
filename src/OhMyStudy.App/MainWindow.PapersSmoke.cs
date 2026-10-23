@@ -77,6 +77,9 @@ public sealed partial class MainWindow
             contextMenu.ShowAt(firstRow!, new FlyoutShowOptions { Position = new Windows.Foundation.Point(40, 24) });
             await CaptureMenu("paper-context-menu"); contextMenu.Hide(); await Task.Delay(220);
             var paperRow = NativeDescendants(firstRow!).OfType<FrameworkElement>().FirstOrDefault(element => element.DataContext is PaperViewModel) ?? firstRow!;
+            var rowSurface = NativeDescendants(firstRow!).OfType<Grid>().Single(grid => grid.Padding == new Thickness(12, 14, 12, 14));
+            var blankPosition = rowSurface.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point(rowSurface.ActualWidth / 2, 2));
+            Require(VisualTreeHelper.FindElementsInHostCoordinates(blankPosition, RootGrid).Contains(rowSurface), "paper-row-blank-space-hit-test");
             var requested = new Microsoft.UI.Xaml.Input.ContextRequestedEventArgs();
             PaperRow_ContextRequested(paperRow, requested); await Task.Delay(300);
             Require(requested.Handled && VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Any(popup => popup.Child is MenuFlyoutPresenter), "paper-context-request-opens");

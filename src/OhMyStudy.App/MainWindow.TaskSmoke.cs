@@ -26,6 +26,11 @@ public sealed partial class MainWindow
             TaskSampleMark.Visibility = Visibility.Visible;
             await Capture("empty");
             Check(TaskEmpty.Visibility == Visibility.Visible, "empty-state");
+            var taskTop = TasksPanel.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point()).Y;
+            Navigation.SelectedItem = Navigation.MenuItems[2]; await Task.Delay(150);
+            var mistakesTop = WorkspaceGrid.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point()).Y;
+            Check(Math.Abs(taskTop - mistakesTop) < 1, "task-content-top-matches-mistakes");
+            Navigation.SelectedItem = Navigation.MenuItems[3]; await Task.Delay(150); await RefreshTasksAsync();
             await _jobs!.DisposeAsync();
             _diagnosticRate = new(7.12, "2026-10-20", false);
             var image = await MakeSyntheticPngAsync();
@@ -50,6 +55,18 @@ public sealed partial class MainWindow
             Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputCached.Text == "缓存命中 1,102,400"
                 && TaskInputUncached.Text == "缓存未命中 29,454" && TaskInputCacheWrite.Text == "缓存写入 4,096", "cache-buckets-visible");
             await Capture("completed");
+            foreach (int width in new[] { 820, 460 })
+            {
+                AppWindow.Resize(new Windows.Graphics.SizeInt32(width, 960));
+                await Capture("completed-" + width);
+                if (width == 460)
+                {
+                    Check(TaskTitle.ActualHeight < 40 && Grid.GetRow(TaskButtons) == 1, "compact-task-title-has-room-above-actions");
+                }
+                RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("completed-dark-" + width);
+                RootGrid.RequestedTheme = ElementTheme.Light;
+            }
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Task.Delay(150);
             Check(_taskSteps["read-1"].Heading == "阅读页面（4 次）" && !_taskSteps["read-1"].DetailVisible, "successful-tool-log-shows-only-tool-name");
             Check(_taskSteps["model-1"].OutputVisible && FindVisualChild<ScrollViewer>(_taskSteps["model-1"].Root) is null, "model-reply-is-inline-prose-with-one-page-scroll");
             Check(_taskSteps["model-1"].OutputTrailingSpace <= 12, "reply-followed-by-action-has-no-extra-bottom-gap");

@@ -34,6 +34,13 @@ public sealed partial class MainWindow
         TaskListRow.Height = stacked ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
         TasksPanel.RowDefinitions[1].Height = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
         Grid.SetColumn(TaskDetail, stacked ? 0 : 1); Grid.SetRow(TaskDetail, stacked ? 1 : 0);
+        bool compactHeading = TaskDetail.ActualWidth < 600;
+        Grid.SetColumnSpan(TaskHeading, compactHeading ? 2 : 1);
+        Grid.SetColumn(TaskButtons, compactHeading ? 0 : 1);
+        Grid.SetRow(TaskButtons, compactHeading ? 1 : 0);
+        Grid.SetColumnSpan(TaskButtons, compactHeading ? 2 : 1);
+        TaskButtons.HorizontalAlignment = compactHeading ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+        TaskButtons.Margin = new Thickness(0, compactHeading ? 12 : 0, 0, 0);
         TaskSidebar.Visibility = !stacked && TaskDetail.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
         TaskCompactPicker.Visibility = stacked && TaskDetail.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
         TaskSummaryScroll.MaxHeight = Math.Max(120, (TasksPanel.ActualHeight - (stacked ? 46 : 0)) * .54);

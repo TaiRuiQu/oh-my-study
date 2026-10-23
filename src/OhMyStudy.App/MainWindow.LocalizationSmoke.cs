@@ -31,7 +31,7 @@ public sealed partial class MainWindow
             checks["language"] = RootGrid.Language == UiText.Language && LanguagePicker.SelectedIndex > 0;
             checks["currency"] = ((ComboBoxItem)ModelCurrency.Items[0]).Content?.ToString() == UiText.Get("US dollar");
             checks["sort"] = ((ComboBoxItem)PaperSort.Items[0]).Content?.ToString() == UiText.Get("Newest first");
-            foreach (int width in new[] { 1440, 820 })
+            foreach (int width in new[] { 1440, 820, 460 })
             {
                 AppWindow.Resize(new SizeInt32(width, 960));
                 Navigation.SelectedItem = Navigation.MenuItems[0];
@@ -47,6 +47,15 @@ public sealed partial class MainWindow
                 await CaptureWorkspaceAsync(settings); captures.Add((JsonNode?)JsonValue.Create(settings));
                 checks["settings-width-" + width] = LanguagePicker.ActualWidth > 0 && LanguagePicker.ActualWidth <= SettingsPanel.ViewportWidth;
                 checks["language-header-" + width] = LanguagePicker.Header?.ToString() == UiText.Get("Language");
+                var themePosition = ThemePicker.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point());
+                var languagePosition = LanguagePicker.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point());
+                checks["appearance-row-" + width] = Math.Abs(themePosition.Y - languagePosition.Y) < 1
+                    && languagePosition.X >= themePosition.X + ThemePicker.ActualWidth + 15;
+                RootGrid.RequestedTheme = ElementTheme.Dark;
+                await Task.Delay(150);
+                string darkSettings = Path.ChangeExtension(reportPath, $".{width}.settings-dark.png");
+                await CaptureWorkspaceAsync(darkSettings); captures.Add((JsonNode?)JsonValue.Create(darkSettings));
+                RootGrid.RequestedTheme = ElementTheme.Light;
             }
             checks["sample-content-preserved"] = UiText.ActivityText("中文 English 日本語 한국어 \\(x^2\\)") == "中文 English 日本語 한국어 \\(x^2\\)";
             bool passed = checks.All(pair => pair.Value!.GetValue<bool>());

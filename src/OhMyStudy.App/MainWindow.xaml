@@ -134,7 +134,7 @@
                         <Grid>
                             <ListView x:Name="PaperList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="PaperList_ItemClick" HorizontalContentAlignment="Stretch" Padding="8" AutomationProperties.Name="{l:Text Key=S0485}">
                                 <ListView.ItemTemplate><DataTemplate x:DataType="vm:PaperViewModel">
-                                    <Grid Padding="12,14" ColumnSpacing="16" ContextRequested="PaperRow_ContextRequested">
+                                    <Grid Padding="12,14" ColumnSpacing="16" Background="Transparent" ContextRequested="PaperRow_ContextRequested">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <StackPanel Spacing="7">
                                             <TextBlock Text="{x:Bind Title}" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
@@ -276,7 +276,7 @@
                         </Grid>
                     </Border>
                 </Grid>
-                <Grid x:Name="TasksPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" ColumnSpacing="16" RowSpacing="12" SizeChanged="TasksPanel_SizeChanged">
+                <Grid x:Name="TasksPanel" Grid.Row="2" Visibility="Collapsed" ColumnSpacing="16" RowSpacing="12" SizeChanged="TasksPanel_SizeChanged">
                     <Grid.Resources>
                         <Style x:Key="QuietTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
                             <Setter Property="FontSize" Value="14" />
@@ -310,7 +310,8 @@
                                 <StackPanel x:Name="TaskSummary" Spacing="24" Padding="24">
                                     <Grid ColumnSpacing="24">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <Grid ColumnSpacing="12">
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <Grid x:Name="TaskHeading" ColumnSpacing="12">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                             <FontIcon x:Name="TaskHeroIcon" Glyph="&#xE9F9;" FontSize="20" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Top" Margin="0,4,0,0" />
                                             <StackPanel Grid.Column="1" Spacing="6">
@@ -494,16 +495,19 @@
                         <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0585}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
-                                <ComboBox x:Name="ThemePicker" Header="{l:Text Key=S0586}" SelectedIndex="0" SelectionChanged="ThemePicker_SelectionChanged" MinWidth="220">
-                                    <ComboBoxItem Content="{l:Text Key=S0587}" Tag="system" /><ComboBoxItem Content="{l:Text Key=S0588}" Tag="light" /><ComboBoxItem Content="{l:Text Key=S0589}" Tag="dark" />
-                                </ComboBox>
-                                <ComboBox x:Name="LanguagePicker" Header="{l:Text Key=S0590}" SelectionChanged="LanguagePicker_SelectionChanged" MinWidth="220" HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="{l:Text Key=S0587}" Tag="system" />
-                                    <ComboBoxItem Content="简体中文" Tag="zh-CN" />
-                                    <ComboBoxItem Content="English" Tag="en-US" />
-                                    <ComboBoxItem Content="日本語" Tag="ja-JP" />
-                                    <ComboBoxItem Content="한국어" Tag="ko-KR" />
-                                </ComboBox>
+                                <Grid ColumnSpacing="16">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="ThemePicker" Header="{l:Text Key=S0586}" SelectedIndex="0" SelectionChanged="ThemePicker_SelectionChanged" MinWidth="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="{l:Text Key=S0587}" Tag="system" /><ComboBoxItem Content="{l:Text Key=S0588}" Tag="light" /><ComboBoxItem Content="{l:Text Key=S0589}" Tag="dark" />
+                                    </ComboBox>
+                                    <ComboBox x:Name="LanguagePicker" Grid.Column="1" Header="{l:Text Key=S0590}" SelectionChanged="LanguagePicker_SelectionChanged" MinWidth="0" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="{l:Text Key=S0587}" Tag="system" />
+                                        <ComboBoxItem Content="简体中文" Tag="zh-CN" />
+                                        <ComboBoxItem Content="English" Tag="en-US" />
+                                        <ComboBoxItem Content="日本語" Tag="ja-JP" />
+                                        <ComboBoxItem Content="한국어" Tag="ko-KR" />
+                                    </ComboBox>
+                                </Grid>
                                 <TextBlock x:Name="LanguageFeedback" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                         </Border>

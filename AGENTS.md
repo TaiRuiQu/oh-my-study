@@ -27,3 +27,4 @@ Oh My Study is a Windows study app built with C# 14, .NET 10, and WinUI. It impo
 - Add focused regression coverage for changed behavior. Check affected UI and document output visually when relevant.
 - Update English and Chinese user documentation together when workflows change. Keep generated artifacts out of commits and preserve unrelated work.
 - Report changes, verification performed, and any checks that could not run.
+- Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.
