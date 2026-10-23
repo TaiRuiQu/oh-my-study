@@ -340,15 +340,16 @@ async Task OpenRouterCaching()
     foreach (var (endpoint, model, enabled) in new[]
     {
         ("https://openrouter.ai/api/v1", "anthropic/claude-sonnet-4.6", true),
-        ("https://openrouter.ai/api/v1", "google/gemini-2.5-pro", true),
+        ("https://openrouter.ai/api/v1", "google/gemini-2.5-pro", false),
         ("https://openrouter.ai/api/v1", "openai/gpt-5", false),
         ("https://example.invalid/v1", "anthropic/claude-sonnet-4.6", false),
         ("https://openrouter.ai.example.invalid/v1", "google/gemini-2.5-pro", false)
     })
         foreach (bool stream in new[] { false, true })
         {
+            bool openRouter = endpoint == "https://openrouter.ai/api/v1";
             var history = ProviderProtocol.Initial(Protocol.Responses, "SYNTHETIC stable exam context", [Image()]);
-            var options = Options(stream) with { Model = Model.Manual(model), Extra = new() { ["instructions"] = Json("\"SYNTHETIC stable instructions\"") } };
+            var options = Options(stream) with { Model = Model.Manual(model), Extra = new() { ["instructions"] = Json("\"SYNTHETIC stable instructions\"") }, SessionId = "synthetic-task-1" };
             var final = fixtures["responses"]!["final"]!.DeepClone();
             final["usage"]!["input_tokens_details"] = new JsonObject { ["cache_write_tokens"] = 5, ["cached_tokens"] = 20 };
             int calls = 0;
@@ -357,13 +358,18 @@ async Task OpenRouterCaching()
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(token))!;
                 var input = body["input"]!.AsArray();
                 Check(body["instructions"]!.GetValue<string>() == "SYNTHETIC stable instructions", "cache keeps instructions stable");
-                Check(input[0]!["content"]![0]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "cache marker scoped to OpenRouter Claude and Gemini");
+                Check(input[0]!["content"]![0]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "cache marker scoped to OpenRouter Claude");
                 Check(!body.ToJsonString().Contains("cache_control", StringComparison.Ordinal), "Responses uses its supported breakpoint field");
+                Check(body["session_id"]?.GetValue<string>() == (openRouter ? "synthetic-task-1" : null), "sticky session sent only to OpenRouter");
+                Check(request.Headers.TryGetValues("HTTP-Referer", out var referers) == openRouter
+                    && (!openRouter || referers!.Single() == "https://github.com/TaiRuiQu/oh-my-study")
+                    && request.Headers.TryGetValues("X-OpenRouter-Title", out var titles) == openRouter
+                    && (!openRouter || titles!.Single() == "Oh My Study"), "app attribution sent only to OpenRouter");
                 if (calls > 0)
                 {
                     var results = input.OfType<JsonObject>().Where(item => item["type"]?.ToString() == "function_call_output").ToArray();
                     for (int i = 0; i < results.Length; i++)
-                        Check(results[i]["output"]![0]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled && (model.StartsWith("google/", StringComparison.Ordinal) || i >= results.Length - 3) ? "explicit" : null), "tool results retain cache boundaries within the model's marker limit");
+                        Check(results[i]["output"]![0]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled && i >= results.Length - 3 ? "explicit" : null), "tool results retain cache boundaries within Claude's four-marker limit");
                     Check(JsonNode.DeepEquals(input[1], fixtures["responses"]!["tool"]!["output"]![0]), "cache preserves opaque reasoning");
                     Check(input[3]!["output"]![1]!["image_url"]!.GetValue<string>().Contains("SYNTHETIC_IMAGE", StringComparison.Ordinal), "cache preserves page images");
                     Check(input[3]!["output"]![1]!["prompt_cache_breakpoint"] is null, "cache markers use supported text blocks while preserving images");

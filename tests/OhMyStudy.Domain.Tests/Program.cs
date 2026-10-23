@@ -274,6 +274,12 @@ internal sealed class CompatibilitySuite
         });
         foreach (var thinking in new Thinking[] { new ResponsesThinking { Effort = "low" }, new AdaptiveThinking { Effort = "high" }, new BudgetThinking { Tokens = ulong.MaxValue } })
             Check("json", "thinking_" + thinking.GetType().Name, () => Assert(DomainJson.Deserialize<Thinking>(DomainJson.Serialize(thinking)) == thinking));
+        Check("request", "session_id_boundary", () =>
+        {
+            (Options() with { SessionId = new string('a', 256) }).Validate(Protocol.Messages, true, true);
+            Assert(!Accepted(() => (Options() with { SessionId = new string('a', 257) }).Validate(Protocol.Messages, true, true)));
+            Assert(!Accepted(() => (Options() with { SessionId = "" }).Validate(Protocol.Messages, true, true)));
+        });
 
         Check("coverage", "complete", () => GradingValidation.ValidateCoverage(document, coverage, [saved], false, viewed));
         Check("coverage", "reference_only", () => GradingValidation.ValidateCoverage(document, [coverage[1]], [saved], true, viewed));

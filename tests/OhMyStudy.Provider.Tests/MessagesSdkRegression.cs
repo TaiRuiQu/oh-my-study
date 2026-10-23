@@ -13,6 +13,7 @@ internal static class MessagesSdkRegression
         await GatewayDiagnostics();
         await ConnectionProbeDetails();
         await CacheUsage();
+        await OpenRouterSession();
         var credentials = new ProviderCredentials("synthetic-key");
         var toolReply = fixtures["messages"]!["tool"]!;
         var finalReply = fixtures["messages"]!["final"]!;
@@ -122,6 +123,35 @@ internal static class MessagesSdkRegression
         using (var http = new HttpClient(new FakeHandler((_, _) => Task.FromResult(Reply("event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"content\":[]}}\n\n", true)))))
         using (var client = new ProviderClient(http, Protocol.Messages, "https://example.invalid/v1"))
             await Reject(() => client.CallAsync(credentials, Options(true), [], []), ErrorKind.Incomplete);
+    }
+
+    private static async Task OpenRouterSession()
+    {
+        foreach (var (endpoint, model, sent, marked) in new[]
+        {
+            ("https://openrouter.ai/api/v1", "anthropic/claude-sonnet-4.6", true, true),
+            ("https://openrouter.ai/api/v1", "google/gemini-2.5-pro", true, false),
+            ("https://example.invalid/v1", "anthropic/claude-sonnet-4.6", false, true)
+        })
+        {
+            using var http = new HttpClient(new FakeHandler(async (request, ct) =>
+            {
+                var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(ct))!;
+                Require((body["cache_control"] is null) == !marked, "automatic cache marked only where it is free or required");
+                Require(body["session_id"]?.ToString() == (sent ? "synthetic-task-1" : null), "sticky session sent only to OpenRouter");
+                Require(request.Headers.TryGetValues("HTTP-Referer", out var referers) == sent
+                    && (!sent || referers!.Single() == "https://github.com/TaiRuiQu/oh-my-study"), "app attribution sent only to OpenRouter");
+                Require(request.Headers.TryGetValues("X-OpenRouter-Title", out var titles) == sent
+                    && (!sent || titles!.Single() == "Oh My Study"), "app title sent only to OpenRouter");
+                return Reply("""
+                    {"id":"msg_session_synthetic","type":"message","role":"assistant","model":"synthetic","content":[],"stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":1}}
+                    """, false);
+            }));
+            using var client = new ProviderClient(http, Protocol.Messages, endpoint);
+            await client.CallAsync(new("synthetic-key"), Options() with { Model = Model.Manual(model), SessionId = "synthetic-task-1" }, ProviderProtocol.Initial(Protocol.Messages, "Synthetic session", []), []);
+        }
+        await Reject(() => Task.FromResult(ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { Extra = new() { ["session_id"] = Json("\"x\"") } }, [], [])), ErrorKind.InvalidRequest);
+        await Reject(() => Task.FromResult(ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { SessionId = new string('a', 257) }, [], [])), ErrorKind.InvalidRequest);
     }
 
     private static async Task CacheUsage()

@@ -19,7 +19,8 @@ namespace OhMyStudy.Infrastructure.Providers;
 internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyDictionary<string, string> headers)
 {
     private static readonly string[] ReservedKeys =
-        ["model", "messages", "max_tokens", "stream", "tools", "thinking", "output_config", "cache_control"];
+        ["model", "messages", "max_tokens", "stream", "tools", "thinking", "output_config", "cache_control", "session_id"];
+    private readonly bool _openRouter = OpenRouter.IsEndpoint(baseUri);
 
     public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress, CancellationToken cancellationToken)
         => CallCoreAsync(credentials, options, history, tools, progress, cancellationToken, connectionProbe: false);
@@ -35,7 +36,7 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var request = BuildOptions(options, history, tools);
+            var request = BuildOptions(options, history, tools, _openRouter);
             using var client = Client(credentials, options.Stream, connectionProbe);
             if (!options.Stream)
             {
@@ -72,9 +73,9 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
     }
 
     public static JsonObject BuildBody(RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools)
-        => Object(BuildOptions(options, history, tools).RawBodyData);
+        => Object(BuildOptions(options, history, tools, openRouter: false).RawBodyData);
 
-    private static MessageCreateParams BuildOptions(RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools)
+    private static MessageCreateParams BuildOptions(RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, bool openRouter)
     {
         try { options.Validate(Protocol.Messages, ProviderProtocol.HasImages(Protocol.Messages, history), tools.Count > 0); }
         catch (DomainValidationException error) { throw ProviderProtocol.Invalid(error.Message); }
@@ -94,15 +95,19 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
                 ["input_schema"] = JsonNode.Parse(tool.Schema.GetRawText())
             })))).ToArray(),
             // Automatic prefix caching advances the breakpoint as history grows; default TTL is five minutes.
-            CacheControl = new CacheControlEphemeral()
+            // Gemini caches a repeated prefix implicitly at no write cost, so marking it only bills that write.
+            CacheControl = openRouter && OpenRouter.IsGemini(options.Model.Id) ? null : new CacheControlEphemeral()
         };
         if (options.Thinking is AdaptiveThinking adaptive)
             request = request with { Thinking = new ThinkingConfigAdaptive(), OutputConfig = OutputConfig.FromRawUnchecked(Properties(new JsonObject { ["effort"] = adaptive.Effort })) };
         else if (options.Thinking is BudgetThinking budget)
             request = request with { Thinking = new ThinkingConfigEnabled { BudgetTokens = (long)budget.Tokens } };
         var body = request.RawBodyData.ToDictionary(p => p.Key, p => p.Value);
+        // An explicit null would still travel on the wire; Gemini's implicit cache needs the field absent.
+        if (request.CacheControl is null) body.Remove("cache_control");
         body["stream"] = JsonElement.Parse(options.Stream ? "true" : "false");
         foreach (var (key, value) in options.Extra) body.Add(key, value.Clone());
+        if (openRouter && options.SessionId is { } session) body["session_id"] = JsonElement.Parse(JsonValue.Create(session)!.ToJsonString());
         return MessageCreateParams.FromRawUnchecked(request.RawHeaderData, request.RawQueryData, body);
     }
 

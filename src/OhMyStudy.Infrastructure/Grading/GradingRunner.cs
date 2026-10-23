@@ -72,7 +72,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             Stream = true,
             Thinking = input.Thinking,
             AllowUnknownCapabilities = input.AllowUnknown,
-            Extra = extra
+            Extra = extra,
+            SessionId = input.Document.Id
         };
         try { options.Validate(input.Provider.Protocol, true, true); }
         catch (DomainValidationException)

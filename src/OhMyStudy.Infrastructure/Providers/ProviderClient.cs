@@ -67,6 +67,7 @@ public sealed class ProviderClient : IModelClient, IDisposable
             catch (Exception e) when (e is FormatException or InvalidOperationException or ArgumentException) { throw ProviderProtocol.Invalid("invalid custom header"); }
             customHeaders[name] = value;
         }
+        if (OpenRouter.IsEndpoint(endpoint)) OpenRouter.AddAttribution(customHeaders);
         if (protocol == Protocol.Responses) _responses = new ResponsesSdkClient(httpClient, endpoint, customHeaders);
         if (protocol == Protocol.Messages) _messages = new MessagesSdkClient(httpClient, endpoint, customHeaders);
     }

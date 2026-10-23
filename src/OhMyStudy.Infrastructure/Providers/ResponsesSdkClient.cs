@@ -24,12 +24,14 @@ internal sealed class ResponsesSdkClient
     private readonly Uri _base;
     private readonly IReadOnlyDictionary<string, string> _headers;
     private readonly HttpClientPipelineTransport _transport;
+    private readonly bool _openRouter;
 
     public ResponsesSdkClient(HttpClient http, Uri baseUri, IReadOnlyDictionary<string, string> headers)
     {
         _base = baseUri;
         _headers = headers;
         _transport = new HttpClientPipelineTransport(http);
+        _openRouter = OpenRouter.IsEndpoint(baseUri);
     }
 
     public async Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress, CancellationToken cancellationToken)
@@ -38,10 +40,7 @@ internal sealed class ResponsesSdkClient
         {
             cancellationToken.ThrowIfCancellationRequested();
             var request = BuildOptions(options, history, tools);
-            if (_base.Host.Equals("openrouter.ai", StringComparison.OrdinalIgnoreCase)
-                && (options.Model.Id.StartsWith("anthropic/", StringComparison.OrdinalIgnoreCase)
-                    || options.Model.Id.StartsWith("google/", StringComparison.OrdinalIgnoreCase)))
-                ApplyCacheBreakpoints(request, options.Model.Id.StartsWith("anthropic/", StringComparison.OrdinalIgnoreCase) ? 4 : int.MaxValue);
+            if (_openRouter) ApplyOpenRouterOptions(request, options);
             var client = Client(credentials, options.Stream);
             if (!options.Stream)
             {
@@ -104,7 +103,7 @@ internal sealed class ResponsesSdkClient
                 request.Instructions = value.GetString();
                 continue;
             }
-            if (EmittedKeys.Contains(key, StringComparer.Ordinal) || key is "reasoning" or "previous_response_id" or "conversation")
+            if (EmittedKeys.Contains(key, StringComparer.Ordinal) || key is "reasoning" or "previous_response_id" or "conversation" or "session_id")
                 throw ProviderProtocol.Invalid($"native parameter collision: {key}");
             if (!key.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')) throw ProviderProtocol.Invalid("invalid native parameter name");
             request.Patch.Set(Encoding.UTF8.GetBytes("$." + key), Encoding.UTF8.GetBytes(value.GetRawText()));
@@ -112,18 +111,33 @@ internal sealed class ResponsesSdkClient
         return request;
     }
 
-    private static void ApplyCacheBreakpoints(CreateResponseOptions request, int limit)
+    /// <summary>
+    /// A session id pins every turn of one task to the same provider endpoint, so the next turn reads the
+    /// cache the previous turn wrote. Claude caches only a marked prefix. Gemini caches a repeated prefix
+    /// implicitly with no write cost; marking blocks there switches to a billed explicit cache instead.
+    /// </summary>
+    private static void ApplyOpenRouterOptions(CreateResponseOptions request, RequestOptions options)
     {
         var body = JsonNode.Parse(ModelReaderWriter.Write(request, ModelReaderWriterOptions.Json, OpenAI.OpenAIContext.Default).ToString())!;
-        var input = body["input"]!.AsArray();
+        if (options.SessionId is { } session)
+        {
+            body["session_id"] = session;
+            request.Patch.Set("$.session_id"u8, Encoding.UTF8.GetBytes(body["session_id"]!.ToJsonString()));
+        }
+        if (!OpenRouter.IsClaude(options.Model.Id)) return;
+        Breakpoint(body["input"]!.AsArray());
+        request.Patch.Set("$.input"u8, Encoding.UTF8.GetBytes(body["input"]!.ToJsonString()));
+    }
+
+    /// <summary>Claude accepts four breakpoints: the shared context plus the three most recent tool results.</summary>
+    private static void Breakpoint(JsonArray input)
+    {
         var blocks = input.OfType<JsonObject>().Select(item => item["content"] as JsonArray ?? item["output"] as JsonArray)
-            .Where(parts => parts is not null)
-            .Select(parts => parts!.OfType<JsonObject>().LastOrDefault(part => Text(part, "type") == "input_text"))
+            .Select(parts => parts?.OfType<JsonObject>().LastOrDefault(part => Text(part, "type") == "input_text"))
             .OfType<JsonObject>().ToList();
         if (blocks.Count == 0) return;
-        foreach (var block in blocks.Take(1).Concat(blocks.Skip(1).TakeLast(limit - 1)))
+        foreach (var block in blocks.Take(1).Concat(blocks.Skip(1).TakeLast(3)))
             block["prompt_cache_breakpoint"] = new JsonObject { ["mode"] = "explicit" };
-        request.Patch.Set("$.input"u8, Encoding.UTF8.GetBytes(input.ToJsonString()));
     }
 
     /// <summary>Converts stored native items to SDK models; opaque context is preserved byte for byte.</summary>
