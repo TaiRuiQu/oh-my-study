@@ -12,6 +12,7 @@ using Microsoft.UI.System;
 using OhMyStudy.App.Diagnostics;
 using OhMyStudy.App.ViewModels;
 using OhMyStudy.Documents;
+using OhMyStudy.Domain;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
 using Windows.Graphics.Printing;
@@ -61,6 +62,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         InitializeLanguagePicker();
         InitializePaperMenu();
+        BankList.ItemsSource = _bankQuestions;
         QuestionContentHost.SizeChanged += QuestionContent_SizeChanged;
         InitializeSettingsLayout();
         InitializeWorkspaceAccessibility();
@@ -88,6 +90,7 @@ public sealed partial class MainWindow : Window
             _closed = true;
             _questionPresentationCancellation?.Cancel();
             _questionPresentationCancellation?.Dispose();
+            CancelOpenPresentation();
             _themeSettings.Changed -= ThemeSettings_Changed;
             CancelPreviewLoad();
             ReleaseReadingResources();
@@ -180,6 +183,10 @@ public sealed partial class MainWindow : Window
         {
             await RunPapersSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[papersIndex + 1])); return;
         }
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--question-bank-smoke") is int bankIndex && bankIndex > 0)
+        {
+            await RunQuestionBankSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[bankIndex + 1])); return;
+        }
         else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--task-smoke") is int taskIndex && taskIndex > 0)
         {
             await RunTaskSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[taskIndex + 1]));
@@ -214,6 +221,7 @@ public sealed partial class MainWindow : Window
         int index = args.SelectedItem is null ? -1 : sender.MenuItems.IndexOf(args.SelectedItem);
         string tag = args.IsSettingsSelected ? "settings" : index switch { 1 => "library", 2 => "mistakes", 3 => "tasks", _ => "materials" };
         bool settings = tag == "settings";
+        bool questions = tag is "library" or "mistakes";
         bool sampleMaterials = tag == "materials" && ViewModel.IsSample;
         SourcePane.Visibility = Visibility.Collapsed;
         if (SettingsPanel.Visibility == Visibility.Visible && !settings && HasUnsavedSettingsChanges)
@@ -233,7 +241,8 @@ public sealed partial class MainWindow : Window
         WorkspaceActions.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceStatus.Visibility = tag == "tasks" ? Visibility.Collapsed : Visibility.Visible;
         WorkspaceNotice.Visibility = tag == "materials" ? Visibility.Visible : Visibility.Collapsed;
-        WorkspaceGrid.Visibility = settings || tag is "tasks" or "materials" && !sampleMaterials ? Visibility.Collapsed : Visibility.Visible;
+        WorkspaceGrid.Visibility = settings || questions || tag is "tasks" or "materials" && !sampleMaterials ? Visibility.Collapsed : Visibility.Visible;
+        if (!questions) HideQuestionPanels();
         PapersPanel.Visibility = tag == "materials" && !sampleMaterials ? Visibility.Visible : Visibility.Collapsed;
         TasksPanel.Visibility = tag == "tasks" ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = Visibility.Collapsed;
@@ -243,17 +252,10 @@ public sealed partial class MainWindow : Window
         UpdateQuestionState();
         try
         {
-            if (_library is not null)
+            if (questions) await ShowQuestionBankAsync(tag);
+            else if (_library is not null)
             {
-                if (tag is "library" or "mistakes" && !ViewModel.IsSample)
-                {
-                    var questions = await _library.ListQuestionsAsync(_lifetime.Token);
-                    if (_closed || generation != _documentGeneration) return;
-                    ViewModel.LoadLibrary(questions, tag == "mistakes");
-                    await RestoreWorkspaceContextAsync(tag, generation);
-                    EditQuestionButton.IsEnabled = ViewModel.SelectedQuestion.Saved is not null;
-                }
-                else if (tag == "materials") { await RefreshDocumentsAsync(); ShowPaperList(); }
+                if (tag == "materials") { await RefreshDocumentsAsync(); ShowPaperList(); }
                 else if (tag == "tasks") await RefreshTasksAsync();
             }
         }
@@ -307,7 +309,8 @@ public sealed partial class MainWindow : Window
         if (clear) QuestionContentHost.Content = new TextBlock { Text = UiText.Get("Loading question…") };
         try
         {
-            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme);
+            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme,
+                selectedItem: _openItems.GetValueOrDefault(question.Id), selectionChanged: item => _openItems[question.Id] = item);
             if (!_closed && generation == _questionPresentationGeneration && ReferenceEquals(ViewModel.SelectedQuestion.Saved, question))
             {
                 QuestionContentHost.Content = content;
@@ -349,22 +352,7 @@ public sealed partial class MainWindow : Window
 
     private async void LocateSource_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.SelectedQuestion.Saved is { } saved && saved.Question.Sources.FirstOrDefault() is { } region && _library is not null)
-        {
-            try
-            {
-                if (ViewModel.CurrentDocument?.Id != saved.DocumentId) await LoadDocumentAsync(await _library.GetDocumentAsync(saved.DocumentId, _lifetime.Token));
-                SourcePane.Visibility = Visibility.Visible; ApplyWorkspaceLayout();
-                if (ViewModel.Questions.FirstOrDefault(q => q.Saved?.Id == saved.Id) is { } selected) ViewModel.SelectedQuestion = selected;
-                var document = ViewModel.CurrentDocument!;
-                int pageIndex = document.Pages.FindIndex(p => p.Id == region.PageId);
-                if (pageIndex >= 0 && _sourcePageId != region.PageId) await ShowSourcePageAsync(pageIndex);
-                var point = PageTransform.TransformPoint(new Windows.Foundation.Point((region.X + region.Width / 2) * _pageWidth, (region.Y + region.Height / 2) * _pageHeight));
-                SourceViewer.ChangeView(Math.Max(0, point.X * SourceViewer.ZoomFactor - SourceViewer.ViewportWidth / 2), Math.Max(0, point.Y * SourceViewer.ZoomFactor - SourceViewer.ViewportHeight / 2), null, true);
-            }
-            catch { ViewModel.StatusMessage = UiText.Get("Could not locate the original. Reopen the material."); }
-            return;
-        }
+        if (ViewModel.SelectedQuestion.Saved is { } saved) { await LocateQuestionAsync(saved); return; }
         if (_hasImportedImage)
         {
             ViewModel.StatusMessage = UiText.Get("This question has no corresponding source location.");
@@ -377,6 +365,27 @@ public sealed partial class MainWindow : Window
         SourceViewer.ChangeView(Math.Max(0, center.X * zoom - SourceViewer.ViewportWidth / 2),
             Math.Max(0, center.Y * zoom - SourceViewer.ViewportHeight / 2), null, true);
         ViewModel.StatusMessage = "";
+    }
+
+    private async Task LocateQuestionAsync(SavedQuestion saved)
+    {
+        if (saved.Question.Sources.FirstOrDefault() is { } region && _library is not null)
+        {
+            try
+            {
+                if (ViewModel.CurrentDocument?.Id != saved.DocumentId || WorkspaceGrid.Visibility != Visibility.Visible) await LoadDocumentAsync(await _library.GetDocumentAsync(saved.DocumentId, _lifetime.Token));
+                SourcePane.Visibility = Visibility.Visible; ApplyWorkspaceLayout();
+                if (ViewModel.Questions.FirstOrDefault(q => q.Saved?.Id == saved.Id) is { } selected) ViewModel.SelectedQuestion = selected;
+                var document = ViewModel.CurrentDocument!;
+                int pageIndex = document.Pages.FindIndex(p => p.Id == region.PageId);
+                if (pageIndex >= 0 && _sourcePageId != region.PageId) await ShowSourcePageAsync(pageIndex);
+                var point = PageTransform.TransformPoint(new Windows.Foundation.Point((region.X + region.Width / 2) * _pageWidth, (region.Y + region.Height / 2) * _pageHeight));
+                SourceViewer.ChangeView(Math.Max(0, point.X * SourceViewer.ZoomFactor - SourceViewer.ViewportWidth / 2), Math.Max(0, point.Y * SourceViewer.ZoomFactor - SourceViewer.ViewportHeight / 2), null, true);
+            }
+            catch { ViewModel.StatusMessage = UiText.Get("Could not locate the original. Reopen the material."); }
+            return;
+        }
+        ViewModel.StatusMessage = UiText.Get("This question has no corresponding source location.");
     }
 
     private async void RotateLeft_Click(object sender, RoutedEventArgs e) => await RotateSourceAsync(-90);
@@ -774,31 +783,31 @@ public sealed partial class MainWindow : Window
                 AppTitleBar.IsPaneToggleButtonVisible && !Navigation.IsPaneToggleButtonVisible;
             Navigation.SelectedItem = Navigation.MenuItems[1];
             await Task.Delay(30);
-            bool libraryNavigation = ViewModel.SectionTitle == "Question bank" && ViewModel.Questions.Count == 500;
-            string libraryDetail = $"library: {ViewModel.SectionTitle}, {ViewModel.Questions.Count}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
+            bool libraryNavigation = ViewModel.SectionTitle == UiText.Get("Question bank") && _bankTotal == 500 && _bankQuestions.Count == BankPageSize && QuestionsPanel.Visibility == Visibility.Visible;
+            string libraryDetail = $"library: {ViewModel.SectionTitle}, {_bankTotal}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
             Navigation.SelectedItem = Navigation.MenuItems[2];
             await Task.Delay(30);
-            bool mistakeNavigation = ViewModel.SectionTitle == "Mistakes" && ViewModel.Questions.Count is > 0 and < 500;
-            string mistakeDetail = $"mistakes: {ViewModel.SectionTitle}, {ViewModel.Questions.Count}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
+            bool mistakeNavigation = ViewModel.SectionTitle == UiText.Get("Mistakes") && _bankTotal is > 0 and < 500 && QuestionResultFilter.Visibility == Visibility.Collapsed;
+            string mistakeDetail = $"mistakes: {ViewModel.SectionTitle}, {_bankTotal}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
             Navigation.SelectedItem = Navigation.SettingsItem;
             await Task.Delay(30);
             bool settingsNavigation = SettingsPanel.Visibility == Visibility.Visible &&
                 Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(
-                    WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem)) == "Settings";
+                    WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem)) == UiText.Get("Settings");
             string settingsDetail = $"settings: {SettingsPanel.Visibility}, {Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem))}";
             Navigation.SelectedItem = Navigation.MenuItems[0];
             await Task.Delay(30);
             report.NativeNavigation = libraryNavigation && mistakeNavigation && settingsNavigation &&
-                WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == "Exams";
+                WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == UiText.Get("Exams");
             report.NavigationDetails = [libraryDetail, mistakeDetail, settingsDetail, $"returned: {ViewModel.SectionTitle}, {WorkspaceGrid.Visibility}"];
             var selected = ViewModel.SelectedQuestion;
-            string originalAnswer = selected.Answer;
-            selected.Answer = "原生绑定自检 · 中文输入";
+            string originalNotes = selected.Notes;
+            selected.Notes = "原生绑定自检 · 中文输入";
             await Task.Delay(30);
-            report.CompiledBinding = AnswerEditor.Text == selected.Answer;
-            AnswerEditor.Text = "双向绑定自检";
-            report.TwoWayBinding = selected.Answer == "双向绑定自检";
-            selected.Answer = originalAnswer;
+            report.CompiledBinding = NotesEditor.Text == selected.Notes;
+            NotesEditor.Text = "双向绑定自检";
+            report.TwoWayBinding = selected.Notes == "双向绑定自检";
+            selected.Notes = originalNotes;
 
             QuestionList.UpdateLayout();
             report.TotalItems = QuestionList.Items.Count;
@@ -850,7 +859,7 @@ public sealed partial class MainWindow : Window
             await Task.Delay(60);
             ViewModel.CancelTaskCommand.Execute(null);
             await task;
-            report.Cancellation = !ViewModel.IsTaskRunning && ViewModel.TaskStatus.Contains("Canceled", StringComparison.Ordinal);
+            report.Cancellation = !ViewModel.IsTaskRunning && ViewModel.TaskStatus.Contains(UiText.Get("Canceled"), StringComparison.Ordinal);
             if (_smokePreviewPdfPath is not null)
             {
                 report.PdfLoaded = await PreviewPdfAsync(_smokePreviewPdfPath, 0);

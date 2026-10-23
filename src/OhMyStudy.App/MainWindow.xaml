@@ -156,6 +156,101 @@
                         </Grid>
                     </Border>
                 </Grid>
+                <Grid x:Name="QuestionsPanel" Grid.Row="2" Visibility="Collapsed" RowSpacing="12">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid x:Name="QuestionFilters" ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /><ColumnDefinition Width="160" /><ColumnDefinition Width="170" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBox x:Name="QuestionSearch" PlaceholderText="{l:Text Key=S0651}" TextChanged="QuestionSearch_TextChanged" AutomationProperties.Name="{l:Text Key=S0652}" />
+                        <ComboBox x:Name="QuestionSubjectFilter" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="QuestionFilter_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0653}" />
+                        <ComboBox x:Name="QuestionResultFilter" Grid.Column="2" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="QuestionFilter_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0654}">
+                            <ComboBoxItem Content="{l:Text Key=S0656}" /><ComboBoxItem Content="{l:Text Key=S0011}" /><ComboBoxItem Content="{l:Text Key=S0106}" /><ComboBoxItem Content="{l:Text Key=S0102}" />
+                        </ComboBox>
+                        <ComboBox x:Name="QuestionSort" Grid.Column="3" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="QuestionFilter_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0655}">
+                            <ComboBoxItem Content="{l:Text Key=S0594}" /><ComboBoxItem Content="{l:Text Key=S0595}" /><ComboBoxItem Content="{l:Text Key=S0657}" /><ComboBoxItem Content="{l:Text Key=S0658}" /><ComboBoxItem Content="{l:Text Key=S0659}" />
+                        </ComboBox>
+                    </Grid>
+                    <TextBlock x:Name="BankCount" Grid.Row="1" Style="{StaticResource QuietTextStyle}" />
+                    <Border Grid.Row="2" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Background="{ThemeResource WorkspaceSurfaceBrush}">
+                        <Grid>
+                            <ListView x:Name="BankList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BankList_ItemClick" HorizontalContentAlignment="Stretch" Padding="8"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled" Loaded="BankList_Loaded" AutomationProperties.Name="{l:Text Key=S0510}">
+                                <ListView.ItemsPanel><ItemsPanelTemplate><ItemsStackPanel Orientation="Vertical" /></ItemsPanelTemplate></ListView.ItemsPanel>
+                                <ListView.ItemTemplate><DataTemplate x:DataType="vm:QuestionSummaryViewModel">
+                                    <Grid Padding="12,14" ColumnSpacing="20" Background="Transparent" AutomationProperties.Name="{x:Bind AccessibleName}">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{x:Bind Title}" FontSize="16" FontWeight="SemiBold" />
+                                                <TextBlock Grid.Column="1" Text="{x:Bind Exam}" Style="{StaticResource QuietTextStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind Exam}" />
+                                            </Grid>
+                                            <controls:QuestionPreview Item="{x:Bind}" />
+                                            <StackPanel Orientation="Horizontal" Spacing="14">
+                                                <TextBlock Text="{x:Bind Details}" Style="{StaticResource QuietTextStyle}" Visibility="{x:Bind DetailsVisibility}" />
+                                                <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ReviewVisibility}">
+                                                    <FontIcon Glyph="&#xE9CE;" FontSize="12" Style="{StaticResource ReviewIconStyle}" /><TextBlock Text="{l:Text Key=S0106}" Style="{StaticResource QuietTextStyle}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="8" MinWidth="96" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind Score}" HorizontalAlignment="Right" FontSize="17" FontWeight="SemiBold" />
+                                            <Border Style="{x:Bind ChipStyle}" HorizontalAlignment="Right" Visibility="{x:Bind OutcomeVisibility}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon Glyph="{x:Bind OutcomeGlyph}" FontSize="12" Style="{x:Bind IconStyle}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{x:Bind OutcomeLabel}" FontSize="13" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate></ListView.ItemTemplate>
+                            </ListView>
+                            <StackPanel x:Name="BankEmpty" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" MaxWidth="380" Visibility="Collapsed">
+                                <FontIcon x:Name="BankEmptyIcon" Glyph="&#xE8F1;" FontSize="32" />
+                                <TextBlock x:Name="BankEmptyTitle" TextWrapping="Wrap" FontSize="20" HorizontalAlignment="Center" TextAlignment="Center" />
+                                <TextBlock x:Name="BankEmptyMessage" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
+                            </StackPanel>
+                            <ProgressRing x:Name="BankProgress" IsActive="False" Visibility="Collapsed" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="{l:Text Key=S0530}" />
+                        </Grid>
+                    </Border>
+                </Grid>
+                <Grid x:Name="QuestionReaderPage" Grid.Row="2" Visibility="Collapsed" RowSpacing="12">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid x:Name="QuestionPageToolbar" ColumnSpacing="12" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Button x:Name="QuestionBackButton" Click="QuestionBack_Click" ToolTipService.ToolTip="{l:Text Key=S0665}">
+                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72B;" FontSize="16" /><TextBlock x:Name="QuestionBackLabel" TextWrapping="Wrap" /></StackPanel>
+                        </Button>
+                        <StackPanel x:Name="QuestionPager" Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button x:Name="PreviousQuestionButton" Click="PreviousQuestion_Click" ToolTipService.ToolTip="{l:Text Key=S0660}" AutomationProperties.Name="{l:Text Key=S0660}"><FontIcon Glyph="&#xE76B;" FontSize="14" /></Button>
+                            <TextBlock x:Name="QuestionPosition" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center" Style="{StaticResource QuietTextStyle}" AutomationProperties.LiveSetting="Polite" />
+                            <Button x:Name="NextQuestionButton" Click="NextQuestion_Click" ToolTipService.ToolTip="{l:Text Key=S0661}" AutomationProperties.Name="{l:Text Key=S0661}"><FontIcon Glyph="&#xE76C;" FontSize="14" /></Button>
+                        </StackPanel>
+                        <StackPanel x:Name="QuestionPageActions" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <Button x:Name="ViewInExamButton" Click="ViewInExam_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7B3;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0662}" /></StackPanel>
+                            </Button>
+                            <Button x:Name="EditOpenQuestionButton" Click="EditOpenQuestion_Click" ToolTipService.ToolTip="{l:Text Key=S0477}">
+                                <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE70F;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0077}" /></StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <Border Grid.Row="1" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Background="{ThemeResource WorkspaceCardBrush}">
+                        <ScrollViewer x:Name="QuestionPageScroll" Padding="32,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" SizeChanged="QuestionPageScroll_SizeChanged">
+                            <StackPanel x:Name="QuestionPageBody" HorizontalAlignment="Left" Spacing="28">
+                                <ContentControl x:Name="QuestionPageHost" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" IsTabStop="False" SizeChanged="QuestionPageHost_SizeChanged" AutomationProperties.Name="{l:Text Key=S0512}" />
+                                <Border x:Name="QuestionPageNotes" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0" Padding="0,24,0,0">
+                                    <StackPanel Spacing="10">
+                                        <TextBox x:Name="PageNotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" MaxHeight="280" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                            Text="{x:Bind ViewModel.OpenQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        <Button Content="{l:Text Key=S0664}" Click="SaveOpenQuestion_Click" IsEnabled="{x:Bind ViewModel.OpenQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
                 <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="16">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="WorkspaceColumnsRight" Width="424" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition x:Name="WorkspaceQuestionsRow" Height="0" /></Grid.RowDefinitions>
@@ -251,21 +346,22 @@
                                 </ListView.ItemTemplate>
                             </ListView>
                             <ScrollViewer x:Name="QuestionDetail" Grid.Column="1" Grid.RowSpan="3" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1,0,0,0" Padding="24,20" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                                <StackPanel Spacing="16">
+                                <StackPanel Spacing="20">
                                     <Grid ColumnSpacing="10">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <TextBlock Text="{x:Bind ViewModel.SelectedQuestion.Label, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                            <Button x:Name="LocateSourceButton" Content="{l:Text Key=S0511}" Click="LocateSource_Click" />
-                                            <Button Content="{l:Text Key=S0065}" Command="{x:Bind ViewModel.FinishEditCommand}" Style="{StaticResource AccentButtonStyle}" />
-                                        </StackPanel>
+                                        <Button x:Name="LocateSourceButton" Grid.Column="1" Click="LocateSource_Click">
+                                            <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7B3;" FontSize="16" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0511}" /></StackPanel>
+                                        </Button>
                                     </Grid>
                                     <ScrollViewer x:Name="QuestionContentHost" VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="{l:Text Key=S0512}" IsTabStop="True" />
-                                    <TextBox x:Name="AnswerEditor" Header="{l:Text Key=S0513}" AcceptsReturn="True" TextWrapping="Wrap"
-                                        MinHeight="100" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                        Text="{x:Bind ViewModel.SelectedQuestion.Answer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <TextBox Header="{l:Text Key=S0514}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                        Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Border BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0" Padding="0,20,0,0">
+                                        <StackPanel Spacing="10">
+                                            <TextBox x:Name="NotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="88" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <Button x:Name="SaveNotesButton" Content="{l:Text Key=S0664}" Click="SaveSelectedNotes_Click" IsEnabled="{x:Bind ViewModel.SelectedQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </ScrollViewer>
                             <StackPanel x:Name="EmptyQuestionState" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="24">

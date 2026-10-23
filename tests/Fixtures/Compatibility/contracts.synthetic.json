@@ -88,7 +88,7 @@
     "number": "1",
     "subject": "数学",
     "question_type": "计算",
-    "content": [
+    "stem": [
       {
         "kind": "text",
         "text": "合成夹具：计算下面的分式。"
@@ -123,13 +123,6 @@
         "caption": "合成定位图"
       }
     ],
-    "options": [],
-    "points": 2,
-    "standard_answer": "x + 1，x ≠ 1",
-    "explanation": "只用于序列化与业务边界验证，不作为识别正确率样本。",
-    "knowledge_points": [
-      "因式分解"
-    ],
     "sources": [
       {
         "page_id": "30000000-0000-4000-8000-000000000001",
@@ -139,31 +132,45 @@
         "height": 0.2
       }
     ],
+    "knowledge_points": [
+      "因式分解"
+    ],
     "uncertainties": [],
-    "attempt": {
-      "student_answer": "x + 1",
-      "student_regions": [
-        {
-          "page_id": "30000000-0000-4000-8000-000000000001",
-          "x": 0.1,
-          "y": 0.2,
-          "width": 0.7,
-          "height": 0.2
+    "items": [
+      {
+        "key": "synthetic-q1",
+        "label": "",
+        "prompt": [],
+        "options": [],
+        "points": 2,
+        "answer": "x + 1，x ≠ 1",
+        "explanation": "只用于序列化与业务边界验证，不作为识别正确率样本。",
+        "attempt": {
+          "student_answer": "x + 1",
+          "student_regions": [
+            {
+              "page_id": "30000000-0000-4000-8000-000000000001",
+              "x": 0.1,
+              "y": 0.2,
+              "width": 0.7,
+              "height": 0.2
+            }
+          ],
+          "teacher": null,
+          "reference_key": "synthetic-ref1",
+          "ai_solution": "x + 1，x ≠ 1",
+          "conflict": null,
+          "grade": {
+            "verdict": "partial",
+            "earned": 1,
+            "possible": 2,
+            "source": "ai_reference",
+            "reason": "合成夹具：保留一步得分。"
+          }
         }
-      ],
-      "teacher": null,
-      "reference_key": "synthetic-ref1",
-      "ai_solution": "x + 1，x ≠ 1",
-      "conflict": null,
-      "grade": {
-        "verdict": "partial",
-        "earned": 1,
-        "possible": 2,
-        "source": "ai_reference",
-        "reason": "合成夹具：保留一步得分。"
       }
-    },
-    "parts": []
+    ],
+    "notes": ""
   },
   "teacher_grade": {
     "verdict": "incorrect",
@@ -187,7 +194,7 @@
           "height": 0.2
         }
       ],
-      "matched_draft_key": "synthetic-q1",
+      "matched_item_key": "synthetic-q1",
       "uncertain_reason": null
     }
   ],
@@ -216,7 +223,7 @@
       "number": "1",
       "subject": "数学",
       "question_type": "计算",
-      "content": [
+      "stem": [
         {
           "kind": "text",
           "text": "合成夹具：计算下面的分式。"
@@ -251,13 +258,6 @@
           "caption": "合成定位图"
         }
       ],
-      "options": [],
-      "points": 2,
-      "standard_answer": "x + 1，x ≠ 1",
-      "explanation": "只用于序列化与业务边界验证，不作为识别正确率样本。",
-      "knowledge_points": [
-        "因式分解"
-      ],
       "sources": [
         {
           "page_id": "30000000-0000-4000-8000-000000000001",
@@ -267,31 +267,45 @@
           "height": 0.2
         }
       ],
+      "knowledge_points": [
+        "因式分解"
+      ],
       "uncertainties": [],
-      "attempt": {
-        "student_answer": "x + 1",
-        "student_regions": [
-          {
-            "page_id": "30000000-0000-4000-8000-000000000001",
-            "x": 0.1,
-            "y": 0.2,
-            "width": 0.7,
-            "height": 0.2
+      "items": [
+        {
+          "key": "synthetic-q1",
+          "label": "",
+          "prompt": [],
+          "options": [],
+          "points": 2,
+          "answer": "x + 1，x ≠ 1",
+          "explanation": "只用于序列化与业务边界验证，不作为识别正确率样本。",
+          "attempt": {
+            "student_answer": "x + 1",
+            "student_regions": [
+              {
+                "page_id": "30000000-0000-4000-8000-000000000001",
+                "x": 0.1,
+                "y": 0.2,
+                "width": 0.7,
+                "height": 0.2
+              }
+            ],
+            "teacher": null,
+            "reference_key": "synthetic-ref1",
+            "ai_solution": "x + 1，x ≠ 1",
+            "conflict": null,
+            "grade": {
+              "verdict": "partial",
+              "earned": 1,
+              "possible": 2,
+              "source": "ai_reference",
+              "reason": "合成夹具：保留一步得分。"
+            }
           }
-        ],
-        "teacher": null,
-        "reference_key": "synthetic-ref1",
-        "ai_solution": "x + 1，x ≠ 1",
-        "conflict": null,
-        "grade": {
-          "verdict": "partial",
-          "earned": 1,
-          "possible": 2,
-          "source": "ai_reference",
-          "reason": "合成夹具：保留一步得分。"
         }
-      },
-      "parts": []
+      ],
+      "notes": ""
     }
   },
   "grading_input": {

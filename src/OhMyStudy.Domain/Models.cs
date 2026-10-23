@@ -164,22 +164,53 @@ public sealed record Attempt
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record QuestionItem
+{
+    public required string Key { get; init; }
+    public string Label { get; set; } = "";
+    public List<Content> Prompt { get; set; } = [];
+    public List<string> Options { get; set; } = [];
+    public double? Points { get; init; }
+    public string Answer { get; set; } = "";
+    public string Explanation { get; set; } = "";
+    public Attempt? Attempt { get; init; }
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record Question
 {
     public required string DraftKey { get; init; }
     public required string Number { get; init; }
     public string Subject { get; set; } = "";
     public string QuestionType { get; set; } = "";
-    public required List<Content> Content { get; init; }
-    public List<string> Options { get; set; } = [];
-    public double? Points { get; init; }
-    public string StandardAnswer { get; set; } = "";
-    public string Explanation { get; set; } = "";
-    public List<string> KnowledgePoints { get; set; } = [];
+    public required List<Content> Stem { get; init; }
     public required List<Region> Sources { get; init; }
+    public List<string> KnowledgePoints { get; set; } = [];
     public List<string> Uncertainties { get; set; } = [];
-    public Attempt? Attempt { get; init; }
-    public List<Question> Parts { get; set; } = [];
+    public required List<QuestionItem> Items { get; init; }
+    public string Notes { get; set; } = "";
+
+    [JsonIgnore]
+    public double? Points => Items.All(item => item.Points.HasValue) ? Items.Sum(item => item.Points!.Value) : null;
+    [JsonIgnore]
+    public double? Earned => Items.Count != 0 && Items.All(item => item.Attempt?.Grade.Earned is not null) ? Items.Sum(item => item.Attempt!.Grade.Earned!.Value) : null;
+    [JsonIgnore]
+    public Verdict? Outcome
+    {
+        get
+        {
+            var verdicts = Items.Where(item => item.Attempt is not null).Select(item => item.Attempt!.Grade.Verdict).ToList();
+            if (verdicts.Count == 0) return null;
+            if (verdicts.All(verdict => verdict == Verdict.Unanswered)) return Verdict.Unanswered;
+            bool wrong = verdicts.Any(verdict => verdict is Verdict.Partial or Verdict.Incorrect or Verdict.Unanswered);
+            if (!wrong) return verdicts.Contains(Verdict.Uncertain) ? Verdict.Uncertain : Verdict.Correct;
+            return verdicts.Any(verdict => verdict is Verdict.Correct or Verdict.Partial) ? Verdict.Partial : Verdict.Incorrect;
+        }
+    }
+    [JsonIgnore]
+    public bool IsMistake => Items.Any(item => item.Attempt?.Grade.Verdict is Verdict.Partial or Verdict.Incorrect or Verdict.Unanswered);
+    [JsonIgnore]
+    public bool NeedsReview => Uncertainties.Count != 0 || Items.Any(item => item.Attempt?.Grade.Verdict == Verdict.Uncertain);
 }
 
 public sealed record SavedQuestion
@@ -198,7 +229,7 @@ public sealed record ReferenceAnswer
     public required string Answer { get; init; }
     public string Explanation { get; set; } = "";
     public required List<Region> Sources { get; init; }
-    public string? MatchedDraftKey { get; init; }
+    public string? MatchedItemKey { get; init; }
     public string? UncertainReason { get; init; }
 }
 

@@ -9,9 +9,10 @@ namespace OhMyStudy.App.Controls;
 /// <summary>Only realized rows request previews. Visible requests share a bounded batch and the reading caches.</summary>
 public sealed partial class QuestionPreview : Grid
 {
-    public static readonly DependencyProperty ItemProperty = DependencyProperty.Register(nameof(Item), typeof(QuestionViewModel), typeof(QuestionPreview),
+    public static readonly DependencyProperty ItemProperty = DependencyProperty.Register(nameof(Item), typeof(object), typeof(QuestionPreview),
         new PropertyMetadata(null, (sender, _) => ((QuestionPreview)sender).Schedule()));
-    public QuestionViewModel? Item { get => (QuestionViewModel?)GetValue(ItemProperty); set => SetValue(ItemProperty, value); }
+    public object? Item { get => GetValue(ItemProperty); set => SetValue(ItemProperty, value); }
+    internal IQuestionPreview? Source => Item as IQuestionPreview;
     private CancellationTokenSource? _render;
     private int _generation;
     private bool _nearViewport;
@@ -43,12 +44,12 @@ public sealed partial class QuestionPreview : Grid
     {
         _generation++;
         _render?.Cancel();
-        if (!IsLoaded || !_nearViewport || Item is null || ActualWidth < 64) return;
-        Height = NativeReadingSession.CachedPreviewHeight(Item.PreviewText, Math.Floor(ActualWidth)) ?? 48;
-        Ready = RenderAsync(Item, Math.Floor(ActualWidth), _generation);
+        if (!IsLoaded || !_nearViewport || Source is not { } source || ActualWidth < 64) return;
+        Height = NativeReadingSession.CachedPreviewHeight(source.PreviewText, Math.Floor(ActualWidth)) ?? 48;
+        Ready = RenderAsync(source, Math.Floor(ActualWidth), _generation);
     }
 
-    private async Task RenderAsync(QuestionViewModel item, double width, int generation)
+    private async Task RenderAsync(IQuestionPreview item, double width, int generation)
     {
         using var cancellation = new CancellationTokenSource();
         _render = cancellation;
@@ -61,7 +62,7 @@ public sealed partial class QuestionPreview : Grid
                 ? await NativeReadingSession.CreatePreviewsAsync(new[] { item.PreviewText }, width, token)
                 : await EnqueueAsync(item.PreviewText, width, token);
             var body = await session.PresentAsync(item.PreviewText, token, theme: ActualTheme);
-            if (generation != _generation || token.IsCancellationRequested || !ReferenceEquals(item, Item)) return;
+            if (generation != _generation || token.IsCancellationRequested || !ReferenceEquals(item, Source)) return;
             Children.Clear(); Children.Add(body); RenderedSource = item.PreviewText;
             Height = NativeReadingSession.CachedPreviewHeight(item.PreviewText, width) ?? 20;
         }

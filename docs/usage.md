@@ -41,9 +41,13 @@ Imported originals are copied into the library, so you can still view them after
 ## Viewing and organizing questions
 
 - In "Exams (试卷)", search by title or subject and open an exam to view its questions; "Exam information (试卷信息)" lets you edit the title, subject, and score.
-- In "Question bank (题库)", view saved questions; in "Wrong questions (错题)", view questions that need review after grading.
-- Click "View original (查看原件)" to expand the original, or click "Locate in original (定位原件)" on a question to see its position; you can page, zoom, and rotate.
-- Click "Edit question (编辑题目)" to modify the stem, options, answer, reference answer, explanation, or score, then click "Save (保存)". Save your changes before exiting or switching libraries.
+- "Question bank (题库)" lists every saved question across exams. Search question text, answers, notes, or exam names, filter by subject or result ("All results (全部结果)", "Mistakes (错题)", "Needs review (待确认)", "Correct (正确)"), and sort the list. More questions load as you scroll, so large banks stay responsive.
+- "Mistakes (错题)" lists questions with at least one partially correct, incorrect, or unanswered subquestion.
+- Click a question to open its page. Use the arrows to move to the previous or next question in the current list, and the back button to return to the same position in the list.
+- A question page shows the shared stem first. For a question with subquestions, choose a subquestion from the tabs above it; each tab shows that subquestion's result, and opening a question from "Mistakes (错题)" selects the first subquestion to review. Each subquestion shows its prompt, your answer, its score, and grading notes. Click "Show answer and explanation (查看答案与解析)" to reveal the standard answer, explanation, and solution steps.
+- Write your own review notes in "My notes (我的笔记)" and click "Save notes (保存笔记)". Notes are kept when an exam is recognized again.
+- Click "View in exam (在试卷中查看)" to open the question's exam with the original page and the question highlighted. Inside an exam, click "View original (查看原件)" to expand the original, or "Locate original (定位原件)" on a question to see its position; you can page, zoom, and rotate.
+- Click "Edit question (编辑题目)" to modify the stem, subquestions, options, answers, explanations, or grading, then click "Save (保存)". A grade you change is marked as edited by you and is kept when the exam is recognized again. Save your changes before exiting or switching libraries.
 - In an exam, click "Add reference answers (添加参考答案)" to supplement materials; to recognize reference answers, choose "Organize reference answers (整理参考答案)" from "More (更多)". To reprocess an exam, click "Re-recognize (重新识别)"; this calls the model again and may incur costs.
 - Use "More → Manage pages (更多 → 管理页面)" to organize the original; pages still referenced by questions or reference answers cannot be removed directly.
 
@@ -77,7 +81,7 @@ AppContainer does not require Windows Sandbox, virtualization, or an optional Wi
 
 ## Exporting PDFs
 
-1. Open the exam or question list you want to export, and save your changes first.
+1. Open the exam you want to export, and save your changes first.
 2. Click "Export questions (导出题目)" and confirm the number of questions being exported.
 3. Choose A4 or A3 landscape, and "Questions" or "Answers and explanations".
 4. Click "Continue (继续)" and choose where to save the PDF.
@@ -94,6 +98,7 @@ The default library location is `%LOCALAPPDATA%/OhMyStudy/Library`. Check the ac
 - Manual backup: save your changes and quit the app, then copy the entire library folder to another location. Do not copy only some of the question or original files.
 - Open existing materials: click "Select existing library (选择已有资料库)" and choose a complete library folder created by the current version. When you need to use a backup, keep the original backup and select a copy of it to avoid overwriting existing materials.
 - Location unavailable: confirm the disk is connected and the folder is accessible, then select an existing library in Settings. If changing the location fails, follow the prompt to check the target location and free space, then retry.
+- Upgrading a library: the first time this version opens a library, it converts saved questions to the current question format and keeps a copy of the previous database file (`study.sqlite3.pre-v4-…`) in the library folder. Earlier app versions cannot open a converted library, so keep a backup if you may need to go back.
 
 Provider keys are stored in the Credential Manager of the current Windows account. After copying the library to another account or computer, you may need to re-enter the keys. Back up older-version materials completely first; do not overwrite old materials directly with a new version.
 

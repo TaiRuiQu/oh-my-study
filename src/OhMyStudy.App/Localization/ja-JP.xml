@@ -657,4 +657,34 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0648" xml:space="preserve">認識がタイムアウトしました。後で再試行するか、分割してください。</text>
     <text key="S0649" xml:space="preserve">モデルの呼び出しが完了しませんでした。設定を確認してください。</text>
     <text key="S0650" xml:space="preserve">サンプルを表示</text>
+    <text key="S0651" xml:space="preserve">問題文・解答・メモ・試験名で検索</text>
+    <text key="S0652" xml:space="preserve">問題を検索</text>
+    <text key="S0653" xml:space="preserve">科目で問題を絞り込む</text>
+    <text key="S0654" xml:space="preserve">採点結果で問題を絞り込む</text>
+    <text key="S0655" xml:space="preserve">問題の並べ替え</text>
+    <text key="S0656" xml:space="preserve">すべての結果</text>
+    <text key="S0657" xml:space="preserve">試験順</text>
+    <text key="S0658" xml:space="preserve">得点率の低い順</text>
+    <text key="S0659" xml:space="preserve">最近更新した順</text>
+    <text key="S0660" xml:space="preserve">前の問題</text>
+    <text key="S0661" xml:space="preserve">次の問題</text>
+    <text key="S0662" xml:space="preserve">試験で表示</text>
+    <text key="S0663" xml:space="preserve">自分のメモ</text>
+    <text key="S0664" xml:space="preserve">メモを保存</text>
+    <text key="S0665" xml:space="preserve">一覧に戻る</text>
+    <text key="S0666" xml:space="preserve">保存されていません。問題番号、点数、小問ラベル、元画像の範囲を確認してください。</text>
+    <text key="S0667" xml:space="preserve">小問一覧</text>
+    <text key="S0668" xml:space="preserve">解答と採点</text>
+    <text key="S0669" xml:space="preserve">小問ラベル</text>
+    <text key="S0670" xml:space="preserve">小問の本文</text>
+    <text key="S0671" xml:space="preserve">問題を読み込めませんでした。しばらくしてから再試行してください。</text>
+    <text key="S0672" xml:space="preserve">問題：{0} / {1} 問</text>
+    <text key="S0673" xml:space="preserve">問題が見つかりません</text>
+    <text key="S0674" xml:space="preserve">別のキーワード、科目、採点結果でお試しください。</text>
+    <text key="S0675" xml:space="preserve">この問題はもう存在しません。</text>
+    <text key="S0676" xml:space="preserve">学習項目</text>
+    <text key="S0677" xml:space="preserve">小問 {0} 個</text>
+    <text key="S0678" xml:space="preserve">あなたの解答</text>
+    <text key="S0679" xml:space="preserve">解答と解説を表示</text>
+    <text key="S0680" xml:space="preserve">保存できませんでした。再試行してください。</text>
 </resources>

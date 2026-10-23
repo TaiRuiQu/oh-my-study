@@ -77,30 +77,34 @@ internal static class Program
             Number = key,
             Subject = "数学",
             QuestionType = "计算",
-            Content = [new TextContent { Text = "SYNTHETIC: 1 + 1" }],
-            Options = [],
-            Points = 2,
-            StandardAnswer = "2",
-            Explanation = "Synthetic transport assertion only",
+            Stem = [new TextContent { Text = "SYNTHETIC: 1 + 1" }],
             KnowledgePoints = ["加法"],
             Sources = [region],
             Uncertainties = [],
-            Parts = [],
-            Attempt = document.Mode == ImportMode.Blank ? null : new Attempt
+            Items = [new QuestionItem
             {
-                StudentAnswer = "synthetic answer",
-                StudentRegions = [region],
-                AiSolution = "2",
-                ReferenceKey = reference ? "synthetic-ref1" : null,
-                Teacher = document.Mode == ImportMode.TeacherGraded ? new TeacherMark { Raw = "Synthetic teacher mark", Regions = [region], Grade = grade } : null,
-                Grade = grade
-            }
+                Key = key,
+                Points = 2,
+                Answer = "2",
+                Explanation = "Synthetic transport assertion only",
+                Attempt = document.Mode == ImportMode.Blank ? null : new Attempt
+                {
+                    StudentAnswer = "synthetic answer",
+                    StudentRegions = [region],
+                    AiSolution = "2",
+                    ReferenceKey = reference ? "synthetic-ref1" : null,
+                    Teacher = document.Mode == ImportMode.TeacherGraded ? new TeacherMark { Raw = "Synthetic teacher mark", Regions = [region], Grade = grade } : null,
+                    Grade = grade
+                }
+            }]
         };
     }
+    private static Attempt AttemptOf(Question question) => question.Items[0].Attempt!;
+    private static Question WithAttempt(Question question, Attempt? attempt) => question with { Items = [question.Items[0] with { Attempt = attempt }] };
     private static List<ReferenceAnswer> References(Document document, string? match = "synthetic-q1") => [new()
     {
         Key = "synthetic-ref1", Number = "1", Answer = "2", Explanation = "Synthetic reference", Sources = [Region(document.Pages.First(p => p.Role == "reference"))],
-        MatchedDraftKey = match, UncertainReason = match is null ? "Synthetic unmatched answer" : null
+        MatchedItemKey = match, UncertainReason = match is null ? "Synthetic unmatched answer" : null
     }];
     private static List<Coverage> Coverage(Document document, params string[] keys) => document.Pages.Select(page => new Coverage
     {
@@ -118,15 +122,29 @@ internal static class Program
         {
             ["draft_key"] = "minimal-q",
             ["number"] = "1",
-            ["content"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = "一道仅有必要字段的题目。" }),
+            ["stem"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = "一道仅有必要字段的题目。" }),
             ["sources"] = JsonNode.Parse(DomainJson.Serialize(new List<Region> { Region(page) })),
-            ["attempt"] = new JsonObject { ["grade"] = new JsonObject { ["verdict"] = "partial", ["source"] = "teacher", ["earned"] = 1, ["possible"] = 2 } }
+            ["items"] = new JsonArray(new JsonObject { ["key"] = "minimal-q", ["attempt"] = new JsonObject { ["grade"] = new JsonObject { ["verdict"] = "partial", ["source"] = "teacher", ["earned"] = 1, ["possible"] = 2 } } })
         };
-        var api = new ScriptApi(Protocol.Responses, (_, _, _) => Task.FromResult<List<ToolCall>>([.. fixture.Document.Pages.Select(p => Read(p)), Call("save_question", args), Finish(Coverage(fixture.Document, "minimal-q"))]));
+        var parts = new JsonObject
+        {
+            ["draft_key"] = "multi-q",
+            ["number"] = "2",
+            ["stem"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = "阅读材料，回答下列问题。" }),
+            ["sources"] = JsonNode.Parse(DomainJson.Serialize(new List<Region> { Region(page) })),
+            ["items"] = new JsonArray(
+                new JsonObject { ["key"] = "multi-q-1", ["label"] = "(1)", ["prompt"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = "第一问" }), ["points"] = 2, ["attempt"] = new JsonObject { ["grade"] = new JsonObject { ["verdict"] = "correct", ["source"] = "teacher", ["earned"] = 2, ["possible"] = 2 } } },
+                new JsonObject { ["key"] = "multi-q-2", ["label"] = "(2)①", ["prompt"] = new JsonArray(new JsonObject { ["kind"] = "formula", ["latex"] = "x^2" }), ["points"] = 3, ["attempt"] = new JsonObject { ["grade"] = new JsonObject { ["verdict"] = "incorrect", ["source"] = "teacher", ["earned"] = 0, ["possible"] = 3 } } })
+        };
+        var api = new ScriptApi(Protocol.Responses, (_, _, _) => Task.FromResult<List<ToolCall>>([.. fixture.Document.Pages.Select(p => Read(p)), Call("save_question", args), Call("save_question", parts), Finish(Coverage(fixture.Document, "minimal-q", "multi-q"))]));
         var job = await fixture.Run(api);
         Check(job.State == JobState.Completed && api.Attempts == 1, "minimal tool fields and teacher score without evidence accepted");
-        var question = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single().Question;
-        Check(question.Subject == "" && question.Options.Count == 0 && question.Attempt!.Teacher is null && question.Attempt.Grade.Earned == 1, "omitted auxiliary fields use empty defaults without inventing evidence");
+        var saved = await fixture.Library.GradingQuestionsAsync(fixture.Document.Id);
+        var question = saved.Single(q => q.Question.DraftKey == "minimal-q").Question;
+        Check(question.Subject == "" && question.Items.Single().Options.Count == 0 && question.Items.Single().Label == "" && AttemptOf(question).Teacher is null && AttemptOf(question).Grade.Earned == 1, "omitted auxiliary fields use empty defaults without inventing evidence");
+        var multi = saved.Single(q => q.Question.DraftKey == "multi-q").Question;
+        Check(multi.Items.Select(item => item.Label).SequenceEqual(["(1)", "(2)①"]) && multi.Points == 5 && multi.Earned == 2 && multi.Outcome == Verdict.Partial && multi.IsMistake,
+            "subquestions save as flat items with derived totals");
         Check(!GradingTools.QuestionSchema()["required"]!.ToJsonString().Contains("subject"), "schema required set is core content only");
     }
 
@@ -170,9 +188,10 @@ internal static class Program
                 try { await fixture.Library.UpdatePaperAsync(fixture.Document.Id, "", "数学", 101, 100); } catch (ArgumentException) { invalid = true; }
                 Check(invalid && (await fixture.Library.ListPapersAsync()).Single().Document.Name == "整理后的标题", "invalid metadata does not partially update");
                 var saved = result.Questions.Single().Question;
-                Check(mode == ImportMode.Blank ? saved.Attempt is null : saved.Attempt is not null, "blank/answered attempts remain distinct");
-                if (mode == ImportMode.TeacherGraded) Check(saved.Attempt!.Grade == saved.Attempt.Teacher!.Grade && saved.Attempt.Grade.Source == GradeSource.Teacher, "teacher mark has priority over matched reference");
-                if (mode == ImportMode.AiGrading) Check(saved.Attempt!.Grade.Source == GradeSource.AiReference && saved.Attempt.ReferenceKey == "synthetic-ref1" && GradingValidation.IsWrongQuestion(saved), "reference grading and partial enters wrong questions");
+                var attempt = saved.Items.Single().Attempt;
+                Check(mode == ImportMode.Blank ? attempt is null : attempt is not null, "blank/answered attempts remain distinct");
+                if (mode == ImportMode.TeacherGraded) Check(attempt!.Grade == attempt.Teacher!.Grade && attempt.Grade.Source == GradeSource.Teacher, "teacher mark has priority over matched reference");
+                if (mode == ImportMode.AiGrading) Check(attempt!.Grade.Source == GradeSource.AiReference && attempt.ReferenceKey == "synthetic-ref1" && GradingValidation.IsWrongQuestion(saved), "reference grading and partial enters wrong questions");
                 Check(fixture.Reader.Requests.Count == 2 && fixture.Reader.Requests.All(r => r.Crop is null && r.Rotation == 0), "all originals read once without crop");
                 await fixture.AssertDurableEvents(job);
                 var trace = (await fixture.Library.ListJobEventsAsync(job.Id)).Where(e => e.Kind == "activity").Select(e => DomainJson.Deserialize<JobActivity>(e.Payload.GetRawText())).ToList();
@@ -313,25 +332,26 @@ internal static class Program
             string description = tool["description"]!.GetValue<string>();
             Check(!string.IsNullOrWhiteSpace(description) && description.All(char.IsAscii), name + ": English description survives SDK serialization");
             var schema = tool[protocol == Protocol.Responses ? "parameters" : "input_schema"]!.AsObject();
-            Check(DescribedClosedSchema(schema, schema), name + ": nested parameter descriptions, closed objects and local references survive SDK serialization");
+            Check(DescribedClosedSchema(schema), name + ": nested parameter descriptions and closed objects survive SDK serialization without references");
             if (protocol == Protocol.Responses) Check(tool["strict"]!.GetValue<bool>() == false, name + ": omission semantics remain available");
             if (name == "save_question")
-                Check(schema["required"]!.AsArray().Select(n => n!.GetValue<string>()).ToHashSet().SetEquals(["draft_key", "number", "content", "sources"])
-                    && schema["properties"]!["attempt"]!["anyOf"]![0]!["required"]!.AsArray().Count == 0,
-                    "question and attempt auxiliary fields remain optional for regrading");
+                Check(schema["required"]!.AsArray().Select(n => n!.GetValue<string>()).ToHashSet().SetEquals(["draft_key", "number", "stem", "sources", "items"])
+                    && schema["properties"]!["items"]!["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).SequenceEqual(["key"])
+                    && schema["properties"]!["items"]!["items"]!["properties"]!["attempt"]!["anyOf"]![0]!["required"]!.AsArray().Count == 0,
+                    "question, item and attempt auxiliary fields remain optional for regrading");
         }
     }
 
-    private static bool DescribedClosedSchema(JsonNode? node, JsonObject root)
+    private static bool DescribedClosedSchema(JsonNode? node)
     {
-        if (node is JsonArray array) return array.All(item => DescribedClosedSchema(item, root));
+        if (node is JsonArray array) return array.All(DescribedClosedSchema);
         if (node is not JsonObject obj) return true;
-        if (obj["$ref"] is { } reference && (reference.GetValue<string>() != "#/$defs/question" || root["$defs"]?["question"] is null)) return false;
+        if (obj.ContainsKey("$ref") || obj.ContainsKey("$defs")) return false;
         if (obj["type"]?.ToString() == "object" && obj["additionalProperties"]?.GetValue<bool>() != false) return false;
         if (obj["properties"] is JsonObject properties && properties.Any(p =>
             p.Value?["description"] is not JsonValue description || !description.TryGetValue<string>(out var text)
                 || string.IsNullOrWhiteSpace(text) || !text.All(char.IsAscii))) return false;
-        return obj.All(p => DescribedClosedSchema(p.Value, root));
+        return obj.All(p => DescribedClosedSchema(p.Value));
     }
     private static bool HasImageFeedback(Protocol protocol, JsonObject request) => protocol switch
     {
@@ -423,20 +443,23 @@ internal static class Program
             var first = new ScriptApi(Protocol.Responses, (_, _, _) => Task.FromResult<List<ToolCall>>([.. fixture.Document.Pages.Select(p => Read(p)), Save(original), Finish(Coverage(fixture.Document, original.DraftKey))]));
             Check((await fixture.Run(first)).State == JobState.Completed, "initial protected-grade paper completed");
             var saved = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single();
-            if (!teacher) saved = await fixture.Library.EditQuestionAsync(saved.Id, saved.Question with { Attempt = saved.Question.Attempt! with { Grade = saved.Question.Attempt.Grade with { Verdict = Verdict.Incorrect, Earned = 0 } } });
-            var protectedGrade = saved.Question.Attempt!.Grade;
-            var incoming = original with { Attempt = original.Attempt! with { Teacher = null, Grade = original.Attempt.Grade with { Verdict = Verdict.Correct, Earned = 2, Source = GradeSource.AiSolution } } };
+            if (!teacher) saved = await fixture.Library.EditQuestionAsync(saved.Id, WithAttempt(saved.Question, AttemptOf(saved.Question) with { Grade = AttemptOf(saved.Question).Grade with { Verdict = Verdict.Incorrect, Earned = 0 } }));
+            var protectedGrade = AttemptOf(saved.Question).Grade;
+            var incoming = WithAttempt(original, AttemptOf(original) with { Teacher = null, Grade = AttemptOf(original).Grade with { Verdict = Verdict.Correct, Earned = 2, Source = GradeSource.AiSolution } });
+            saved = await fixture.Library.SaveQuestionNotesAsync(saved.Id, "PRIVATE-REVIEW-NOTE");
             var retry = new ScriptApi(Protocol.Responses, async (round, request, _) =>
             {
-                if (round == 1) return [.. fixture.Document.Pages.Select(p => Read(p)), Save(incoming with { Attempt = null })];
+                Check(!request.ToJsonString().Contains("PRIVATE-REVIEW-NOTE", StringComparison.Ordinal), "private notes are never sent to the provider");
+                if (round == 1) return [.. fixture.Document.Pages.Select(p => Read(p)), Save(WithAttempt(incoming, null))];
                 Check(HasToolError(Protocol.Responses, request), "explicit null cannot remove protected attempt");
-                Check((await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single().Question.Attempt!.Grade == protectedGrade, "failed removal retains old grade");
+                Check(AttemptOf((await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single().Question).Grade == protectedGrade, "failed removal retains old grade");
                 return [Save(incoming), Finish(Coverage(fixture.Document, incoming.DraftKey))];
             });
             Check((await fixture.Run(retry)).State == JobState.Completed, "protected regrade recovers and completes");
             var final = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single();
-            Check(final.Id == saved.Id && final.Question.Attempt!.Grade == protectedGrade, teacher ? "teacher original grade survives AI regrade" : "manual grade survives AI regrade with same saved ID");
-            if (teacher) Check(DomainJson.Serialize(final.Question.Attempt!.Teacher) == DomainJson.Serialize(saved.Question.Attempt.Teacher), "teacher evidence survives AI replacement");
+            Check(final.Id == saved.Id && AttemptOf(final.Question).Grade == protectedGrade, teacher ? "teacher original grade survives AI regrade" : "manual grade survives AI regrade with same saved ID");
+            if (teacher) Check(DomainJson.Serialize(AttemptOf(final.Question).Teacher) == DomainJson.Serialize(AttemptOf(saved.Question).Teacher), "teacher evidence survives AI replacement");
+            Check(final.Question.Notes == "PRIVATE-REVIEW-NOTE", "regrade keeps private notes");
         }
     }
 
@@ -445,8 +468,8 @@ internal static class Program
         await using var fixture = await Fixture.Create(ImportMode.AiGrading, Protocol.Responses);
         var question = Question(fixture.Document);
         var page = fixture.Document.Pages[0];
-        var forgedManual = question with { Attempt = question.Attempt! with { Grade = question.Attempt.Grade with { Source = GradeSource.Manual } } };
-        var bypass = question with { Attempt = question.Attempt! with { ReferenceKey = null, Grade = question.Attempt.Grade with { Source = GradeSource.AiSolution } } };
+        var forgedManual = WithAttempt(question, AttemptOf(question) with { Grade = AttemptOf(question).Grade with { Source = GradeSource.Manual } });
+        var bypass = WithAttempt(question, AttemptOf(question) with { ReferenceKey = null, Grade = AttemptOf(question).Grade with { Source = GradeSource.AiSolution } });
         var api = new ScriptApi(Protocol.Responses, async (round, request, _) =>
         {
             if (round == 1) return
@@ -467,7 +490,7 @@ internal static class Program
         var job = await fixture.Run(api);
         var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
         Check(job.State == JobState.Completed && api.Attempts == 3 && fixture.Reader.Requests.Count == 2, "invalid page, crop, rotation, field and grade recover without extra image reads");
-        Check(result.Questions.Single().Question.Attempt!.Grade.Source == GradeSource.AiReference, "matched reference cannot be bypassed by AI source");
+        Check(AttemptOf(result.Questions.Single().Question).Grade.Source == GradeSource.AiReference, "matched reference cannot be bypassed by AI source");
     }
 
     private static async Task ReferencesOnly()

@@ -36,7 +36,7 @@ public sealed partial class MainWindow
 
     private void ShowPaperList()
     {
-        PapersPanel.Visibility = Visibility.Visible; WorkspaceGrid.Visibility = Visibility.Collapsed;
+        PapersPanel.Visibility = Visibility.Visible; WorkspaceGrid.Visibility = Visibility.Collapsed; HideQuestionPanels();
         DocumentToolbar.Visibility = Visibility.Collapsed; SourcePane.Visibility = Visibility.Collapsed;
         SettingsPanel.Visibility = Visibility.Collapsed; TasksPanel.Visibility = Visibility.Collapsed;
         WorkspaceActions.Visibility = Visibility.Visible; GradeButton.Visibility = Visibility.Collapsed;

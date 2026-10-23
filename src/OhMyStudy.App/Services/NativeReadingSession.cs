@@ -9,7 +9,8 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
 {
     private readonly double _width = width;
     private readonly NativeFormulaReadingSession _native = new(width, preview, initialTheme);
-    internal NativeReadingSession Nested() => new(Math.Max(80, _width - 12), initialTheme: initialTheme);
+    internal double Width => _width;
+    internal NativeReadingSession WithWidth(double width) => new(Math.Clamp(Math.Floor(width), 80, 4000), initialTheme: initialTheme);
 
     public static async Task<NativeReadingSession> CreateAsync(Question question, double availableWidth, CancellationToken token, ElementTheme theme = ElementTheme.Default)
     {
@@ -54,32 +55,36 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
 
     private static IEnumerable<string> Collect(Question question)
     {
-        if (question.Points is { } points) yield return UiText.Format("{0:g} points", points);
-        foreach (var content in Coalesce(question.Content))
+        foreach (string text in Texts(question.Stem)) yield return text;
+        foreach (var item in question.Items)
         {
-            if (content is TextContent text) yield return text.Text;
-            else if (content is TableContent table)
+            if (item.Points is { } points) yield return UiText.Format("{0:g} points", points);
+            foreach (string text in Texts(item.Prompt)) yield return text;
+            foreach (string option in item.Options) yield return option;
+            foreach (string feedback in FeedbackSections(item).SelectMany(section => section.Texts)) yield return feedback;
+            if (!string.IsNullOrWhiteSpace(item.Answer)) yield return item.Answer;
+            if (!string.IsNullOrWhiteSpace(item.Explanation)) yield return item.Explanation;
+        }
+        foreach (string issue in question.Uncertainties) yield return issue;
+    }
+
+    private static IEnumerable<string> Texts(IEnumerable<Content> content)
+    {
+        foreach (var block in Coalesce(content))
+        {
+            if (block is TextContent text) yield return text.Text;
+            else if (block is TableContent table)
                 foreach (var row in table.Rows)
                     foreach (var cell in row) yield return cell;
         }
-        foreach (var option in question.Options) yield return option;
-        foreach (var feedback in Feedback(question)) yield return feedback;
-        foreach (var part in question.Parts)
-            foreach (var key in Collect(part)) yield return key;
     }
 
     internal sealed record FeedbackSection(string Title, string Glyph, IReadOnlyList<string> Texts);
-    internal static IEnumerable<FeedbackSection> FeedbackSections(Question question)
+    internal static IEnumerable<FeedbackSection> FeedbackSections(QuestionItem item)
     {
-        if (question.Attempt is { } attempt)
-        {
-            yield return new(UiText.Get("Response"), "\uE70F", new[] { string.IsNullOrWhiteSpace(attempt.StudentAnswer) ? attempt.Grade.Verdict == Verdict.Unanswered ? UiText.Get("Unanswered") : UiText.Get("No response recorded") : attempt.StudentAnswer });
-            if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return new(UiText.Get("Grading notes"), "\uE9D9", new[] { attempt.Grade.Reason });
-            if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return new(UiText.Get("Teacher annotations"), "\uE8F2", new[] { teacher.Raw });
-            if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return new(UiText.Get("Grading differences"), "\uE7BA", new[] { attempt.Conflict });
-            if (!string.IsNullOrWhiteSpace(attempt.AiSolution)) yield return new(UiText.Get("Solution steps"), "\uE8A5", new[] { attempt.AiSolution });
-        }
-        if (question.Uncertainties.Count > 0) yield return new(UiText.Get("Needs review"), "\uE9CE", question.Uncertainties);
+        if (item.Attempt is not { } attempt) yield break;
+        if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return new(UiText.Get("Grading notes"), "\uE9D9", new[] { attempt.Grade.Reason });
+        if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return new(UiText.Get("Teacher annotations"), "\uE8F2", new[] { teacher.Raw });
+        if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return new(UiText.Get("Grading differences"), "\uE7BA", new[] { attempt.Conflict });
     }
-    internal static IEnumerable<string> Feedback(Question question) => FeedbackSections(question).SelectMany(section => section.Texts);
 }

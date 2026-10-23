@@ -1,0 +1,13 @@
+ALTER TABLE questions ADD COLUMN number TEXT NOT NULL DEFAULT '';
+ALTER TABLE questions ADD COLUMN subject TEXT NOT NULL DEFAULT '';
+ALTER TABLE questions ADD COLUMN question_type TEXT NOT NULL DEFAULT '';
+ALTER TABLE questions ADD COLUMN preview TEXT NOT NULL DEFAULT '';
+ALTER TABLE questions ADD COLUMN search_text TEXT NOT NULL DEFAULT '';
+ALTER TABLE questions ADD COLUMN item_count INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE questions ADD COLUMN verdict TEXT;
+ALTER TABLE questions ADD COLUMN earned REAL;
+ALTER TABLE questions ADD COLUMN possible REAL;
+ALTER TABLE questions ADD COLUMN mistake INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE questions ADD COLUMN review INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX questions_document ON questions(document_id);
+CREATE INDEX questions_mistake ON questions(mistake, document_id);

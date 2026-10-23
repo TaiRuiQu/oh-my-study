@@ -83,20 +83,22 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         connection.Open();
         Execute("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
         var version = Convert.ToInt32(Scalar("PRAGMA user_version"));
-        if (version is < 0 or > 3) throw new InvalidDataException("Unsupported library version");
+        if (version is < 0 or > 4) throw new InvalidDataException("Unsupported library version");
         ValidateSchema(version);
         if (Writable)
         {
             Execute("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
-            if (version < 3)
+            if (version < 4)
             {
-                if (version != 0) BackupDatabase(dbFile + ".pre-v3-" + Guid.NewGuid().ToString("N"));
+                if (version != 0) BackupDatabase(dbFile + ".pre-v4-" + Guid.NewGuid().ToString("N"));
                 Transaction(CancellationToken.None, () =>
                 {
                     if (version == 0) Execute(Migration("001_initial.sql"));
                     if (version < 2) Execute(Migration("002_grading.sql"));
-                    Execute(Migration("003_paper_info.sql"));
-                    Execute("PRAGMA user_version=3"); return 0;
+                    if (version < 3) Execute(Migration("003_paper_info.sql"));
+                    Execute(Migration("004_question_items.sql"));
+                    UpgradeQuestionRecords();
+                    Execute("PRAGMA user_version=4"); return 0;
                 });
             }
             Directory.CreateDirectory(AssetRoot);
@@ -104,6 +106,8 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
         }
         else if (version == 0) throw new InvalidDataException("The library has not been initialized");
     }
+
+    private static readonly string[] QuestionSummaryColumns = ["number", "subject", "question_type", "preview", "search_text", "item_count", "verdict", "earned", "possible", "mistake", "review"];
 
     private static string Migration(string name)
     {
@@ -145,6 +149,7 @@ public sealed partial class LibraryRepository : IDisposable, IAsyncDisposable
             expected["model_calls"] = ["job_id", "ordinal", "details_json"];
         }
         if (version >= 3) expected["paper_info"] = ["document_id", "subject", "earned", "possible", "manual"];
+        if (version >= 4) expected["questions"] = [.. expected["questions"], .. QuestionSummaryColumns];
         foreach (var (table, columns) in expected)
         {
             var actual = Query("SELECT name FROM pragma_table_info($p0)", r => r.GetString(0), table).ToHashSet(StringComparer.Ordinal);

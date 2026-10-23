@@ -19,29 +19,15 @@ public sealed partial class MainWindow
         try
         {
             await InitializeLibraryAsync(Path.Combine(root, "library"));
-            await ShowQuestionLibraryAsync();
+            ShowQuestionWorkspace();
+            ViewModel.LoadLibrary([], false);
             await Capture("empty");
-            var question = new Question
-            {
-                DraftKey = "math",
-                Number = "1",
-                Subject = "数学",
-                QuestionType = "选择",
-                Points = 5,
-                Content = [new TextContent { Text = "已知集合" },
+            var question = SmokeQuestion("math", "1", [new TextContent { Text = "已知集合" },
                     new FormulaContent { Latex = @"A=\{0,1,2,3,4,5\},\ B=\{x\mid x^{2}-7x+6\le 0\}" },
                     new TextContent { Text = @"，则 $A\cap B=$。" },
                     new TextContent { Text = "\n下列各式用于检查分式、根式和上下标：\n" + @"$\dfrac{x^2-1}{x-1}+\dfrac{1}{\sqrt{x+2}}$，\(S_n=\sum_{k=1}^{n}k^2\)。" },
                     new TextContent { Text = @"\[f(x)=\begin{cases}x^2&x\ge0\\-x&x<0\end{cases}\]" }],
-                Options = [@"A. \([1,5]\)", @"B. $[0,6]$", @"C. $\{2,3,4,5\}$", @"D. \(\{1,2,3,4,5\}\)"],
-                StandardAnswer = "D",
-                Explanation = "",
-                KnowledgePoints = [],
-                Sources = [],
-                Uncertainties = [],
-                Parts = [],
-                Attempt = null
-            };
+                options: [@"A. \([1,5]\)", @"B. $[0,6]$", @"C. $\{2,3,4,5\}$", @"D. \(\{1,2,3,4,5\}\)"], points: 5, answer: "D", subject: "数学", questionType: "选择");
             // A saved item makes the normal detail pane and controls visible.
             if (_library is null) throw new InvalidOperationException("Isolated library unavailable");
             var saved = new SavedQuestion { Id = "math", DocumentId = "math", UpdatedAt = "1", Question = question };
@@ -59,19 +45,24 @@ public sealed partial class MainWindow
             RootGrid.RequestedTheme = ElementTheme.Light;
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("compact");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
-            var vector = question with { Number = "2", Content = [new TextContent { Text = @"向量 \(\boldsymbol{a}=(0,1),\ \boldsymbol{b}=(1,2)\)，求 \(\boldsymbol{a}\cdot\boldsymbol{b}\)。" }, new TextContent { Text = "\n" + @"无效公式保留原文：$\unsupported{x}$；未闭合：\(x。" }], Options = [] };
+            var vector = WithBody(question with { Number = "2" }, [new TextContent { Text = @"向量 \(\boldsymbol{a}=(0,1),\ \boldsymbol{b}=(1,2)\)，求 \(\boldsymbol{a}\cdot\boldsymbol{b}\)。" }, new TextContent { Text = "\n" + @"无效公式保留原文：$\unsupported{x}$；未闭合：\(x。" }]);
             Show(vector); await Capture("errors");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("errors-dark");
             RootGrid.RequestedTheme = ElementTheme.Light;
-            var table = question with { Content = [new TextContent { Text = "根据表格中的函数，完成下面的小题。" }, new TableContent { Rows = [["函数", "导数"], [@"\(f(x)=x^2\)", @"$f'(x)=2x$"], [@"\(g(x)=\sqrt{x}\)", @"$g'(x)=\dfrac{1}{2\sqrt{x}}$"]] }], Options = [], Parts = [vector with { Number = "(1)", Content = [new TextContent { Text = @"求 \(\dfrac{d}{dx}(x^3)\)，并说明过程。" }] }] };
+            var table = question with
+            {
+                Stem = [new TextContent { Text = "根据表格中的函数，完成下面的小题。" }, new TableContent { Rows = [["函数", "导数"], [@"\(f(x)=x^2\)", @"$f'(x)=2x$"], [@"\(g(x)=\sqrt{x}\)", @"$g'(x)=\dfrac{1}{2\sqrt{x}}$"]] }],
+                Items = [new QuestionItem { Key = "math-1", Label = "(1)", Prompt = [new TextContent { Text = @"求 \(\dfrac{d}{dx}(x^3)\)，并说明过程。" }], Points = 2, Answer = @"\(3x^2\)" },
+                    new QuestionItem { Key = "math-2", Label = "(2)", Prompt = [new TextContent { Text = @"求 \(g'(4)\)。" }], Points = 3, Answer = @"\(\tfrac{1}{4}\)" }]
+            };
             Show(table); await Capture("table-parts");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("table-compact");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
-            var longQuestion = question with { Content = [new TextContent { Text = string.Concat(Enumerable.Repeat(@"文字应随窗口自然换行，\(x^2+y^2=1\) 与正文保持一致。", 6)) + "\n" }, new FormulaContent { Latex = "$$" + string.Join("+", Enumerable.Range(1, 32).Select(index => @"\dfrac{x_{" + index + @"}^2}{" + index + "}")) + "$$" }], Options = [] };
+            var longQuestion = WithBody(question, [new TextContent { Text = string.Concat(Enumerable.Repeat(@"文字应随窗口自然换行，\(x^2+y^2=1\) 与正文保持一致。", 6)) + "\n" }, new FormulaContent { Latex = "$$" + string.Join("+", Enumerable.Range(1, 32).Select(index => @"\dfrac{x_{" + index + @"}^2}{" + index + "}")) + "$$" }]);
             Show(longQuestion); await Capture("long");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("long-compact");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
-            Show(question with { Content = [new TextContent { Text = "不含公式的普通题目，文字仍可选择和复制。" }], Options = [] }); await Capture("plain");
+            Show(WithBody(question, [new TextContent { Text = "不含公式的普通题目，文字仍可选择和复制。" }])); await Capture("plain");
             var other = saved with { Id = "other", Question = vector, UpdatedAt = "2" };
             ViewModel.LoadLibrary(new[] { saved, other }, false);
             await Capture("multiple");

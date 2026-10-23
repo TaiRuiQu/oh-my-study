@@ -16,7 +16,8 @@ public sealed partial class MainWindow
             long generation = _documentGeneration;
             var result = await library.GradingResultAsync(document.Id, _lifetime.Token);
             if (_closed || generation != _documentGeneration || ViewModel.CurrentDocument?.Id != document.Id) return;
-            var questionNumbers = result.Questions.SelectMany(saved => Flatten(saved.Question)).ToDictionary(question => question.DraftKey, question => question.Number, StringComparer.Ordinal);
+            var questionNumbers = result.Questions.SelectMany(saved => saved.Question.Items.Select(item => (item.Key, Number: saved.Question.Number + item.Label)))
+                .ToDictionary(item => item.Key, item => item.Number, StringComparer.Ordinal);
             var body = new StackPanel { Spacing = 16, MinWidth = 360 };
             body.Children.Add(new TextBlock { Text = UiText.Get("Reference answers"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
             Region? destination = null;
@@ -25,7 +26,7 @@ public sealed partial class MainWindow
             foreach (var reference in result.References)
             {
                 var card = new StackPanel { Spacing = 8 };
-                string match = reference.MatchedDraftKey is { } key && questionNumbers.TryGetValue(key, out var number) ? UiText.Format("Matches question {0}", number) : UiText.Get("Not matched yet");
+                string match = reference.MatchedItemKey is { } key && questionNumbers.TryGetValue(key, out var number) ? UiText.Format("Matches question {0}", number) : UiText.Get("Not matched yet");
                 card.Children.Add(new TextBlock { Text = reference.Number + " · " + match, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
                 card.Children.Add(ResultText(reference.Answer));
                 if (!string.IsNullOrWhiteSpace(reference.Explanation)) card.Children.Add(ResultText(reference.Explanation));
@@ -68,5 +69,4 @@ public sealed partial class MainWindow
         SourceViewer.ChangeView(Math.Max(0, point.X * SourceViewer.ZoomFactor - SourceViewer.ViewportWidth / 2), Math.Max(0, point.Y * SourceViewer.ZoomFactor - SourceViewer.ViewportHeight / 2), null, true);
     }
     private static TextBlock ResultText(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
-    private static IEnumerable<Question> Flatten(Question question) => new[] { question }.Concat(question.Parts.SelectMany(Flatten));
 }

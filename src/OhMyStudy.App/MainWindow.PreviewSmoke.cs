@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Automation;
 using OhMyStudy.App.Controls;
 using OhMyStudy.App.Diagnostics;
 using OhMyStudy.App.Services;
+using OhMyStudy.App.ViewModels;
 using VelociTex.WinUI;
 using OhMyStudy.Domain;
 using OhMyStudy.Documents;
@@ -25,24 +26,8 @@ public sealed partial class MainWindow
         try
         {
             await InitializeLibraryAsync(Path.Combine(root, "library"));
-            await ShowQuestionLibraryAsync();
-            var template = new Question
-            {
-                DraftKey = "preview",
-                Number = "1",
-                Subject = "数学",
-                QuestionType = "选择",
-                Points = 5,
-                Content = [],
-                Options = [],
-                StandardAnswer = "",
-                Explanation = "",
-                KnowledgePoints = [],
-                Sources = [],
-                Uncertainties = [],
-                Parts = [],
-                Attempt = null
-            };
+            ShowQuestionWorkspace();
+            var template = SmokeQuestion("preview", "1", [], points: 5, subject: "数学", questionType: "选择");
             var bodies = new List<Content>[] {
                 [new TextContent { Text = "已知集合" }, new FormulaContent { Latex = @"A=\{0,1,2,3,4,5\},\ B=\{x\mid x^2-7x+6\le0\}" }, new TextContent { Text = @"，则 \(A\cap B=\)" }],
                 [new TextContent { Text = "已知向量" }, new FormulaContent { Latex = @"\boldsymbol a=(0,1),\ \boldsymbol b=(1,2)" }, new TextContent { Text = @"，求 \(\boldsymbol a\cdot\boldsymbol b\)。" }],
@@ -64,14 +49,10 @@ public sealed partial class MainWindow
                 [new TableContent { Rows = [["函数", "导数"], [@"$x^2$", @"$2x$"]] }],
                 [new TextContent { Text = @"已知 \(\alpha+\beta=\pi\)，求 \(\sin\alpha+\cos\beta\)。" }]
             };
-            var items = bodies.Select((body, index) => Save(template with
-            {
-                Number = (index + 1).ToString(),
-                Content = body,
-                Options = index == 3 ? ["A. 充分不必要条件", "B. 必要不充分条件", "C. 既不充分也不必要条件", "D. 充要条件"]
+            var items = bodies.Select((body, index) => Save(WithBody(template with { Number = (index + 1).ToString() }, body,
+                index == 3 ? ["A. 充分不必要条件", "B. 必要不充分条件", "C. 既不充分也不必要条件", "D. 充要条件"]
                     : index == 15 ? [@"A. \dfrac{1}{2}", @"B. $\sqrt{2}$", @"C. 当 x>0 时，\frac{1}{x} 为正", @"D. \(x^2+1\)"]
-                    : ["A. [1,5]", "B. [0,6]", @"C. $\{2,3,4,5\}$", @"D. \(\{1,2,3,4,5\}\)"]
-            }, index)).ToArray();
+                    : ["A. [1,5]", "B. [0,6]", @"C. $\{2,3,4,5\}$", @"D. \(\{1,2,3,4,5\}\)"]), index)).ToArray();
             var clock = Stopwatch.StartNew();
             ViewModel.LoadLibrary(items, false);
             await Capture("list"); checks.Add($"first-scene-with-screenshot-ms={clock.Elapsed.TotalMilliseconds:F2}");
@@ -99,12 +80,9 @@ public sealed partial class MainWindow
             QuestionList.ScrollIntoView(ViewModel.Questions[^1], ScrollIntoViewAlignment.Leading); await Capture("bottom");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("bottom-dark"); RootGrid.RequestedTheme = ElementTheme.Light;
             ViewModel.LoadLibrary(new[] { items[16] }, false); await Capture("single-formula");
-            await ShowQuestionLibraryAsync(); await Capture("empty");
-            var many = Enumerable.Range(0, 500).Select(index => Save(template with
-            {
-                Number = (index + 1).ToString(),
-                Content = [new TextContent { Text = "已知第 " + (index + 1) + " 组函数 " }, new FormulaContent { Latex = "f_{" + (index + 1) + "}(x)=x^2+" + (index + 1) }, new TextContent { Text = "，求函数的值。" }]
-            }, index)).ToArray();
+            ViewModel.LoadLibrary([], false); await Capture("empty");
+            var many = Enumerable.Range(0, 500).Select(index => Save(WithBody(template with { Number = (index + 1).ToString() },
+                [new TextContent { Text = "已知第 " + (index + 1) + " 组函数 " }, new FormulaContent { Latex = "f_{" + (index + 1) + "}(x)=x^2+" + (index + 1) }, new TextContent { Text = "，求函数的值。" }]), index)).ToArray();
             ViewModel.LoadLibrary(many, false); await Capture("large-top");
             Check(Realized().Count is > 0 and < 100, "five-hundred-rows-remain-virtualized");
             QuestionList.ScrollIntoView(ViewModel.Questions[250], ScrollIntoViewAlignment.Leading); await Capture("large-middle");
@@ -114,9 +92,9 @@ public sealed partial class MainWindow
             var buffered = Realized().Where(preview => !PreviewRendered(preview)).ToArray();
             checks.Add("unpainted-buffered-rows=" + buffered.Length);
             foreach (var preview in buffered)
-                checks.Add($"buffer-row={preview.Item?.Number};width={preview.ActualWidth:F1};y={preview.TransformToVisual(QuestionList).TransformPoint(new Windows.Foundation.Point()).Y:F1};task={preview.Ready.Status}");
+                checks.Add($"buffer-row={(preview.Item as QuestionViewModel)?.Number};width={preview.ActualWidth:F1};y={preview.TransformToVisual(QuestionList).TransformPoint(new Windows.Foundation.Point()).Y:F1};task={preview.Ready.Status}");
             Check(VisiblePreviews().All(preview => preview.Item is not null && PreviewRendered(preview)), "recycled-rows-show-current-vector-previews");
-            Check(VisiblePreviews().All(preview => preview.RenderedSource == preview.Item!.PreviewText), "recycled-preview-content-matches-current-item");
+            Check(VisiblePreviews().All(preview => preview.RenderedSource == preview.Source!.PreviewText), "recycled-preview-content-matches-current-item");
             var delays = new List<double>();
             for (int index = 0; index < 12; index++)
             {
@@ -136,7 +114,7 @@ public sealed partial class MainWindow
 
         SavedQuestion Save(Question question, int index) => new() { Id = "preview-" + index, DocumentId = "preview", UpdatedAt = "1", Question = question };
         void Check(bool condition, string name) { if (!condition) throw new InvalidOperationException(name); checks.Add(name + "=PASS"); }
-        bool PreviewRendered(QuestionPreview preview) => preview.Ready.IsCompletedSuccessfully && preview.RenderedSource == preview.Item?.PreviewText && preview.Children.Count == 1;
+        bool PreviewRendered(QuestionPreview preview) => preview.Ready.IsCompletedSuccessfully && preview.RenderedSource == preview.Source?.PreviewText && preview.Children.Count == 1;
         List<QuestionPreview> Realized() => Descendants(QuestionList).OfType<QuestionPreview>().Where(preview => preview.IsLoaded).ToList();
         List<QuestionPreview> VisiblePreviews() => Realized().Where(preview =>
         {

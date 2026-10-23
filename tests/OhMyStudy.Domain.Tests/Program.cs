@@ -134,7 +134,7 @@ internal sealed class CompatibilitySuite
             Check("grade", test["id"]!.GetValue<string>(), () =>
             {
                 var grade = DomainJson.Deserialize<Grade>(test["grade"]!.ToJsonString());
-                var q = question with { Attempt = question.Attempt! with { ReferenceKey = null, Grade = grade } };
+                var q = WithAttempt(question, AttemptOf(question) with { ReferenceKey = null, Grade = grade });
                 Assert(Accepted(() => GradingValidation.ValidateQuestion(q, document, [], false)) == test["accepted"]!.GetValue<bool>());
             });
         }
@@ -154,7 +154,7 @@ internal sealed class CompatibilitySuite
             {
                 if (test["verdict"] is { } verdict)
                 {
-                    var q = question with { Attempt = question.Attempt! with { Grade = question.Attempt.Grade with { Verdict = DomainJson.Deserialize<Verdict>(verdict.ToJsonString()) } } };
+                    var q = WithAttempt(question, AttemptOf(question) with { Grade = AttemptOf(question).Grade with { Verdict = DomainJson.Deserialize<Verdict>(verdict.ToJsonString()) } });
                     Assert(GradingValidation.IsWrongQuestion(q) == test["wrong_question"]!.GetValue<bool>());
                     return;
                 }
@@ -197,6 +197,9 @@ internal sealed class CompatibilitySuite
         _ => throw new InvalidOperationException($"Unknown contract {type}")
     })!;
 
+    private static Attempt AttemptOf(Question question) => question.Items[0].Attempt!;
+    private static Question WithAttempt(Question question, Attempt? attempt) => question with { Items = [question.Items[0] with { Attempt = attempt }] };
+
     private RequestOptions Options() => new() { Model = new() { Id = "synthetic", Capabilities = Contract<Provider>("provider").Models[0].Capabilities, Raw = JsonDocument.Parse("null").RootElement.Clone() }, MaxOutputTokens = 16384, Stream = false, AllowUnknownCapabilities = true, Extra = [] };
 
     private void RunAdditionalCases()
@@ -233,12 +236,12 @@ internal sealed class CompatibilitySuite
         Check("json", "required_scalars_and_null_collections_rejected", () =>
         {
             Assert(!Accepted(() => DomainJson.Deserialize<Region>("{\"page_id\":\"p\",\"y\":0,\"width\":1,\"height\":1}")));
-            var value = _contracts["question"]!.DeepClone(); value["options"] = null;
+            var value = _contracts["question"]!.DeepClone(); value["knowledge_points"] = null;
             Assert(!Accepted(() => DomainJson.Deserialize<Question>(value.ToJsonString())));
         });
         Check("json", "null_collection_elements_and_duplicate_fields_rejected", () =>
         {
-            var value = _contracts["question"]!.DeepClone(); value["options"] = new JsonArray((JsonNode?)null);
+            var value = _contracts["question"]!.DeepClone(); value["items"]![0]!["options"] = new JsonArray((JsonNode?)null);
             Assert(!Accepted(() => DomainJson.Deserialize<Question>(value.ToJsonString())));
             Assert(!Accepted(() => DomainJson.Deserialize<Grade>("{\"verdict\":\"correct\",\"verdict\":\"incorrect\",\"reason\":\"\",\"source\":\"ai_solution\"}")));
             DomainJson.Deserialize<AppSettings>("{\"execution_mode\":\"sandbox\",\"sandbox_networking\":false,\"unknown\":1,\"unknown\":2}");
@@ -277,48 +280,70 @@ internal sealed class CompatibilitySuite
         CoverageFailure("covered_material_needs_key", [coverage[0] with { QuestionKeys = [] }, coverage[1]], [saved], viewed);
         CoverageFailure("key_source_must_match_page", coverage, [saved with { Question = question with { Sources = [question.Sources[0] with { PageId = document.Pages[1].Id }] } }], viewed);
 
-        Check("grade", "nonfinite_rejected", () => { foreach (double number in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity }) Assert(!Accepted(() => GradingValidation.ValidateGrade(question.Attempt!.Grade with { Possible = number }))); });
+        Check("grade", "nonfinite_rejected", () => { foreach (double number in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity }) Assert(!Accepted(() => GradingValidation.ValidateGrade(AttemptOf(question).Grade with { Possible = number }))); });
         Check("region", "nonfinite_rejected", () => Assert(!Accepted(() => GradingValidation.ValidateRegion(question.Sources[0] with { X = double.NaN }, document, "material"))));
         Check("question", "utf8_key_128_boundary", () =>
         {
             var blank = document with { Mode = ImportMode.Blank };
             var key128 = new string('中', 42) + "ab";
-            GradingValidation.ValidateQuestion(question with { DraftKey = key128, Attempt = null }, blank, [], false);
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { DraftKey = new string('中', 43), Attempt = null }, blank, [], false)));
+            GradingValidation.ValidateQuestion(WithAttempt(question with { DraftKey = key128 }, null), blank, [], false);
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(WithAttempt(question with { DraftKey = new string('中', 43) }, null), blank, [], false)));
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Items = [question.Items[0] with { Key = new string('中', 43), Attempt = null }] }, blank, [], false)));
         });
-        Check("question", "duplicate_keys_rejected", () => Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Parts = [question] }, document, refs, false))));
-        Check("question", "depth_eight_boundary", () =>
+        Check("question", "duplicate_item_keys_rejected", () => Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Items = [question.Items[0] with { Label = "(1)" }, question.Items[0] with { Label = "(2)" }] }, document, refs, true))));
+        Check("question", "item_count_boundary", () =>
         {
-            Question q = question with { Attempt = null, Points = null };
-            for (int i = 1; i <= 8; i++) q = question with { DraftKey = "depth" + i, Attempt = null, Points = null, Parts = [q] };
             var blank = document with { Mode = ImportMode.Blank };
-            GradingValidation.ValidateQuestion(q, blank, [], false);
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { DraftKey = "depth9", Attempt = null, Parts = [q] }, blank, [], false)));
+            List<QuestionItem> Items(int count) => [.. Enumerable.Range(1, count).Select(i => question.Items[0] with { Key = "item" + i, Label = $"({i})", Attempt = null })];
+            GradingValidation.ValidateQuestion(question with { Items = Items(GradingValidation.MaximumItems) }, blank, [], false);
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Items = Items(GradingValidation.MaximumItems + 1) }, blank, [], false)));
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Items = [] }, blank, [], false)));
+        });
+        Check("question", "multi_part_labels_required", () =>
+        {
+            var blank = document with { Mode = ImportMode.Blank };
+            var first = question.Items[0] with { Key = "a", Attempt = null }; var second = first with { Key = "b" };
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Items = [first, second] }, blank, [], false)));
+            GradingValidation.ValidateQuestion(question with { Items = [first with { Label = "(1)" }, second with { Label = "(2)" }] }, blank, [], false);
+            GradingValidation.ValidateQuestion(question with { Items = [first] }, blank, [], false);
         });
         Check("question", "teacher_priority_and_evidence", () =>
         {
             var grade = Contract<Grade>("teacher_grade");
-            var attempt = question.Attempt! with { Teacher = new() { Raw = "教师批注", Regions = question.Sources, Grade = grade }, Grade = grade, ReferenceKey = null };
+            var attempt = AttemptOf(question) with { Teacher = new() { Raw = "教师批注", Regions = question.Sources, Grade = grade }, Grade = grade, ReferenceKey = null };
             var teacher = document with { Mode = ImportMode.TeacherGraded };
-            GradingValidation.ValidateQuestion(question with { Attempt = attempt }, teacher, refs, false);
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Attempt = attempt with { Grade = grade with { Verdict = Verdict.Correct, Earned = grade.Possible } } }, teacher, refs, false)));
-            GradingValidation.ValidateQuestion(question with { Attempt = attempt with { Teacher = null } }, teacher, refs, false);
+            GradingValidation.ValidateQuestion(WithAttempt(question, attempt), teacher, refs, false);
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(WithAttempt(question, attempt with { Grade = grade with { Verdict = Verdict.Correct, Earned = grade.Possible } }), teacher, refs, false)));
+            GradingValidation.ValidateQuestion(WithAttempt(question, attempt with { Teacher = null }), teacher, refs, false);
         });
-        Check("question", "reference_cannot_be_bypassed", () => Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Attempt = question.Attempt! with { ReferenceKey = null, Grade = question.Attempt.Grade with { Source = GradeSource.AiSolution } } }, document, refs, false))));
-        Check("question", "part_scores_must_sum", () =>
+        Check("question", "reference_cannot_be_bypassed", () => Assert(!Accepted(() => GradingValidation.ValidateQuestion(WithAttempt(question, AttemptOf(question) with { ReferenceKey = null, Grade = AttemptOf(question).Grade with { Source = GradeSource.AiSolution } }), document, refs, false))));
+        Check("question", "item_grade_possible_matches_points", () =>
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(WithAttempt(question, AttemptOf(question) with { Grade = AttemptOf(question).Grade with { Earned = 1, Possible = 3 } }), document, refs, false))));
+        Check("question", "derived_totals_and_outcome", () =>
         {
-            var part = question with { DraftKey = "part", Points = 1, Attempt = question.Attempt! with { ReferenceKey = null, Grade = question.Attempt.Grade with { Earned = 1, Possible = 1, Verdict = Verdict.Correct, Source = GradeSource.AiSolution } } };
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(question with { Parts = [part] }, document, refs, false)));
+            QuestionItem Graded(string key, Verdict verdict, double? earned, double points) => question.Items[0] with
+            { Key = key, Label = key, Points = points, Attempt = AttemptOf(question) with { ReferenceKey = null, Grade = new() { Verdict = verdict, Earned = earned, Possible = points, Source = GradeSource.AiSolution } } };
+            var mixed = question with { Items = [Graded("(1)", Verdict.Correct, 1, 1), Graded("(2)", Verdict.Incorrect, 0, 2)] };
+            Assert(mixed.Points == 3 && mixed.Earned == 1 && mixed.Outcome == Verdict.Partial && mixed.IsMistake && !mixed.NeedsReview);
+            var review = question with { Items = [Graded("(1)", Verdict.Correct, 1, 1), Graded("(2)", Verdict.Uncertain, null, 2)] };
+            Assert(review.Points == 3 && review.Earned is null && review.Outcome == Verdict.Uncertain && !review.IsMistake && review.NeedsReview);
+            var wrong = question with { Items = [Graded("(1)", Verdict.Incorrect, 0, 1), Graded("(2)", Verdict.Uncertain, null, 2)] };
+            Assert(wrong.Outcome == Verdict.Incorrect && wrong.IsMistake && wrong.NeedsReview);
+            var blank = question with { Items = [Graded("(1)", Verdict.Unanswered, 0, 1), Graded("(2)", Verdict.Unanswered, 0, 2)] };
+            Assert(blank.Outcome == Verdict.Unanswered && blank.IsMistake && blank.Earned == 0);
+            var correct = question with { Items = [Graded("(1)", Verdict.Correct, 1, 1), Graded("(2)", Verdict.Correct, 2, 2)] };
+            Assert(correct.Outcome == Verdict.Correct && correct.Earned == 3 && !correct.IsMistake);
+            Assert(WithAttempt(question, null).Outcome is null && !WithAttempt(question, null).IsMistake);
         });
         Check("question", "one_mib_utf8_limit", () =>
         {
             var blank = document with { Mode = ImportMode.Blank };
-            var q = question with { Attempt = null, Content = [new TextContent { Text = "" }] };
+            var q = WithAttempt(question, null) with { Stem = [new TextContent { Text = "" }] };
             int fixedBytes = GradingValidation.QuestionByteSize(q);
-            q = q with { Content = [new TextContent { Text = new string('a', 1_048_576 - fixedBytes) }] };
+            q = q with { Stem = [new TextContent { Text = new string('a', 1_048_576 - fixedBytes) }] };
             GradingValidation.ValidateQuestion(q, blank, [], false);
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(q with { Content = [new TextContent { Text = new string('a', 1_048_577 - fixedBytes) }] }, blank, [], false)));
-            Assert(!Accepted(() => GradingValidation.ValidateQuestion(q with { Content = [new TextContent { Text = new string('中', 349_526) }] }, blank, [], false)));
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(q with { Stem = [new TextContent { Text = new string('a', 1_048_577 - fixedBytes) }] }, blank, [], false)));
+            Assert(!Accepted(() => GradingValidation.ValidateQuestion(q with { Stem = [new TextContent { Text = new string('中', 349_526) }] }, blank, [], false)));
         });
         Check("execution", "utf8_content_argument_limits", () =>
         {

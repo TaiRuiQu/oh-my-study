@@ -34,3 +34,10 @@ public static class LibraryLimits
 }
 
 public sealed record PaperSummary(Document Document, string? Subject, double? Earned, double? Possible, int QuestionCount);
+
+public enum QuestionFilter { All, Mistakes, NeedsReview, Correct }
+public enum QuestionSort { Newest, Oldest, Exam, LowestScore, RecentlyUpdated }
+public sealed record QuestionQuery(QuestionFilter Filter = QuestionFilter.All, QuestionSort Sort = QuestionSort.Newest, string? Search = null, string? Subject = null, int Offset = 0, int Limit = 100);
+public sealed record QuestionSummary(string Id, string DocumentId, string DocumentName, string Number, string Subject, string QuestionType, string Preview,
+    int ItemCount, double? Earned, double? Possible, Verdict? Verdict, bool Mistake, bool NeedsReview);
+public sealed record QuestionPage(IReadOnlyList<QuestionSummary> Items, int Matching, int Total);

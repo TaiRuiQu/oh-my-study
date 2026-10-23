@@ -21,6 +21,7 @@ public sealed partial class MainWindow
         try { Navigation.SelectedItem = Navigation.MenuItems[0]; }
         finally { _suppressNavigation = false; }
         SettingsPanel.Visibility = Visibility.Collapsed; TasksPanel.Visibility = Visibility.Collapsed; PapersPanel.Visibility = Visibility.Collapsed;
+        HideQuestionPanels();
         WorkspaceActions.Visibility = Visibility.Visible; WorkspaceNotice.Visibility = Visibility.Visible;
         SectionCaption.Visibility = Visibility.Visible;
         WorkspaceGrid.Visibility = Visibility.Visible; DocumentToolbar.Visibility = Visibility.Visible; DocumentCommands.Visibility = Visibility.Visible;
@@ -33,11 +34,11 @@ public sealed partial class MainWindow
     {
         if (!_initialized || _closed || RootGrid.XamlRoot is null || WorkspaceGrid.Visibility != Visibility.Visible) return;
         var focused = FocusManager.GetFocusedElement(RootGrid.XamlRoot) as DependencyObject;
-        string focus = IsWithin(focused, AnswerEditor) ? "answer" : IsWithin(focused, QuestionList) ? "list"
+        string focus = IsWithin(focused, NotesEditor) ? "notes" : IsWithin(focused, QuestionList) ? "list"
             : IsWithin(focused, SourceViewer) ? "source" : IsWithin(focused, QuestionContentHost) ? "content" : "";
         _workspaceContexts[_workspaceContextKey] = new(ViewModel.SelectedQuestion.Saved?.Id, ViewModel.SelectedQuestion.Number,
             FindVisualChild<ScrollViewer>(QuestionList)?.VerticalOffset ?? 0, QuestionDetail.VerticalOffset,
-            focus, AnswerEditor.SelectionStart, AnswerEditor.SelectionLength);
+            focus, NotesEditor.SelectionStart, NotesEditor.SelectionLength);
     }
 
     private void RestoreQuestionContentOffset()
@@ -66,9 +67,9 @@ public sealed partial class MainWindow
         QuestionDetail.ChangeView(null, context.ContentY, null, true);
         switch (context.Focus)
         {
-            case "answer":
-                AnswerEditor.Focus(FocusState.Programmatic);
-                AnswerEditor.Select(Math.Min(context.SelectionStart, AnswerEditor.Text.Length), Math.Min(context.SelectionLength, Math.Max(0, AnswerEditor.Text.Length - context.SelectionStart)));
+            case "notes":
+                NotesEditor.Focus(FocusState.Programmatic);
+                NotesEditor.Select(Math.Min(context.SelectionStart, NotesEditor.Text.Length), Math.Min(context.SelectionLength, Math.Max(0, NotesEditor.Text.Length - context.SelectionStart)));
                 break;
             case "list": QuestionList.Focus(FocusState.Programmatic); break;
             case "source": SourceViewer.Focus(FocusState.Programmatic); break;

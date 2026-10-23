@@ -89,11 +89,13 @@
       "source": "src-tauri/src/domain/grading.rs:Grade"
     },
     {
-      "id": "missing_optional_question_options_default_empty",
+      "id": "missing_optional_question_fields_default_empty",
       "type": "Question",
       "base": "/question",
       "remove": [
-        "options"
+        "knowledge_points",
+        "uncertainties",
+        "notes"
       ],
       "expected": {
         "accepted": true
@@ -427,29 +429,29 @@
     {
       "id": "blank_null_attempt",
       "base": "/question",
-      "set": {
-        "attempt": null
-      },
       "document_mode": "blank",
       "manual": false,
       "accepted": true,
-      "wrong_question": false
+      "wrong_question": false,
+      "set_paths": {
+        "/items/0/attempt": null
+      }
     },
     {
       "id": "answered_requires_attempt",
       "base": "/question",
-      "set": {
-        "attempt": null
-      },
       "document_mode": "ai_grading",
       "manual": false,
-      "accepted": false
+      "accepted": false,
+      "set_paths": {
+        "/items/0/attempt": null
+      }
     },
     {
       "id": "manual_source_by_ai_rejected",
       "base": "/question",
       "set_paths": {
-        "/attempt/grade/source": "manual"
+        "/items/0/attempt/grade/source": "manual"
       },
       "document_mode": "ai_grading",
       "manual": false,
@@ -459,7 +461,7 @@
       "id": "manual_source_by_editor_accepted",
       "base": "/question",
       "set_paths": {
-        "/attempt/grade/source": "manual"
+        "/items/0/attempt/grade/source": "manual"
       },
       "document_mode": "ai_grading",
       "manual": true,
@@ -623,7 +625,7 @@
     },
     {
       "id": "teacher_and_manual_preservation",
-      "expected": "Regrade preserves teacher evidence in teacher mode and manual grades recursively; protected parts cannot disappear.",
+      "expected": "Regrade preserves teacher evidence in teacher mode and manual grades per item; protected items cannot disappear.",
       "tests": [
         "src-tauri/tests/grading_integration.rs:teacher_evidence_and_manual_grades_survive_regrading"
       ]
@@ -831,7 +833,7 @@
     {
       "id": "library5000",
       "root_questions": 5000,
-      "parts_per_question": 3,
+      "items_per_question": 3,
       "contains": [
         "Chinese text",
         "formula",
@@ -843,7 +845,7 @@
     {
       "id": "library20000",
       "root_questions": 20000,
-      "parts_per_question": 3,
+      "items_per_question": 3,
       "contains": [
         "Chinese text",
         "formula",

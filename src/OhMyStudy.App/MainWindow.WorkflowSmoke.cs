@@ -52,23 +52,8 @@ public sealed partial class MainWindow
             document = await _library.GetDocumentAsync(document.Id);
 
             var region = new Region { PageId = document.Pages[0].Id, X = .1, Y = .16, Width = .8, Height = .2 };
-            var question = new Question
-            {
-                DraftKey = "workflow-q1",
-                Number = "1",
-                Subject = "数学",
-                QuestionType = "计算",
-                Content = [new TextContent { Text = "已知函数 f(x) = x³ − 3x，求函数在区间 [−2, 2] 上的最大值与最小值。" }, new FormulaContent { Latex = @"f'(x)=3x^2-3" }],
-                Options = [],
-                Points = null,
-                StandardAnswer = "最大值为2，最小值为−2。",
-                Explanation = "比较端点与驻点的函数值。",
-                KnowledgePoints = ["导数"],
-                Sources = [region],
-                Uncertainties = [],
-                Attempt = null,
-                Parts = []
-            };
+            var question = SmokeQuestion("workflow-q1", "1", [new TextContent { Text = "已知函数 f(x) = x³ − 3x，求函数在区间 [−2, 2] 上的最大值与最小值。" }, new FormulaContent { Latex = @"f'(x)=3x^2-3" }],
+                [region], answer: "最大值为2，最小值为−2。", explanation: "比较端点与驻点的函数值。", subject: "数学", questionType: "计算", topics: ["导数"]);
             var provider = new Provider { Id = Guid.NewGuid().ToString(), Name = "synthetic", Protocol = Protocol.Responses, BaseUrl = "https://synthetic.invalid/", Models = [] };
             var model = new ModelConfig { Id = "synthetic", Capabilities = Capabilities.Unknown, Currency = "USD" };
             var job = new Job
@@ -92,18 +77,18 @@ public sealed partial class MainWindow
             await _library.SaveJobEventAsync(job, Event(job, "completed"));
             await ReloadQuestionsAsync();
             checks["question-loaded"] = ViewModel.Questions.Count == 1 && ViewModel.SelectedQuestion.Saved?.Id == saved.Id;
-            ViewModel.SelectedQuestion.Answer = "最大值为 2，最小值为 −2。";
             ViewModel.SelectedQuestion.Notes = "已核对端点和驻点。";
             await ViewModel.SaveQuestionAsync!(ViewModel.SelectedQuestion);
             ViewModel.StatusMessage = "已保存。";
             var restored = (await _library.GradingQuestionsAsync(document.Id)).Single();
-            checks["edit-saved"] = restored.Question.StandardAnswer == "最大值为 2，最小值为 −2。" && restored.Question.Explanation == "已核对端点和驻点。";
+            checks["edit-saved"] = restored.Question.Notes == "已核对端点和驻点。" && restored.Question.Items.Single().Answer == "最大值为2，最小值为−2。" && !ViewModel.SelectedQuestion.IsDirty;
+            var firstItem = restored.Question.Items[0];
             var complex = restored.Question with
             {
-                Options = ["A. 最大值为2", "B. 最大值为3"],
-                Content = [.. restored.Question.Content, new TableContent { Rows = [["x", "f(x)"], ["−2", "−2"]] },
+                Stem = [.. restored.Question.Stem, new TableContent { Rows = [["x", "f(x)"], ["−2", "−2"]] },
                     new ImageContent { Caption = "函数图像", ContainsHandwriting = false, Region = region }],
-                Parts = [question with { DraftKey = "workflow-part", Number = "(1)", Parts = [question with { DraftKey = "workflow-nested", Number = "①" }] }]
+                Items = [firstItem with { Label = "(1)", Options = ["A. 最大值为2", "B. 最大值为3"], Prompt = [new TextContent { Text = "求最大值。" }] },
+                    firstItem with { Key = "workflow-nested", Label = "(2)①", Prompt = [new TextContent { Text = "求最小值。" }] }]
             };
             var complexEditor = new QuestionFields(complex, document);
             checks["complex-editor-roundtrip"] = DomainJson.Serialize(complexEditor.Read()) == DomainJson.Serialize(complex);
@@ -112,43 +97,46 @@ public sealed partial class MainWindow
             var partSection = FindEditorSection(complexEditor.Panel, "小问 (1)");
             if (partSection is not null) partSection.IsExpanded = true;
             await Task.Yield();
-            var nestedSection = FindEditorSection(complexEditor.Panel, "小问 ①");
+            var nestedSection = FindEditorSection(complexEditor.Panel, "小问 (2)①");
             if (nestedSection is not null) nestedSection.IsExpanded = true;
             await Task.Yield();
             bool nestedEdited = nestedSection?.Content is FrameworkElement nestedFields && SetEditorText(nestedFields, "标准答案", "嵌套小问答案");
             SetEditorText(complexEditor.Panel, "文字", "已核对函数题干。");
-            SetEditorText(complexEditor.Panel, "标准答案", "编辑后的参考答案");
+            bool partEdited = partSection?.Content is FrameworkElement partFields && SetEditorText(partFields, "标准答案", "编辑后的参考答案");
             editorDialog.Hide(); await editorShown;
             var complexSaved = await _library.EditQuestionAsync(saved.Id, complexEditor.Read());
             await ReloadQuestionsAsync();
-            checks["complex-editor-preserves-structure"] = complexSaved.Question.Content.OfType<FormulaContent>().Count() == 1
-                && complexSaved.Question.Content.OfType<TableContent>().Single().Rows[1][1] == "−2"
-                && complexSaved.Question.Content.OfType<ImageContent>().Single().Region == region
-                && complexSaved.Question.Options.Count == 2 && complexSaved.Question.Parts.Single().Parts.Single().Number == "①"
-                && complexSaved.Question.Sources.Single() == region && complexSaved.Question.Attempt is null
-                && complexSaved.Question.StandardAnswer == "编辑后的参考答案"
-                && nestedEdited && complexSaved.Question.Parts.Single().Parts.Single().StandardAnswer == "嵌套小问答案";
-            var invalidEditor = new QuestionFields(complexSaved.Question, document);
+            checks["complex-editor-preserves-structure"] = complexSaved.Question.Stem.OfType<FormulaContent>().Count() == 1
+                && complexSaved.Question.Stem.OfType<TableContent>().Single().Rows[1][1] == "−2"
+                && complexSaved.Question.Stem.OfType<ImageContent>().Single().Region == region
+                && complexSaved.Question.Items.Count == 2 && complexSaved.Question.Items[0].Options.Count == 2 && complexSaved.Question.Items[1].Label == "(2)①"
+                && complexSaved.Question.Sources.Single() == region && complexSaved.Question.Items.All(item => item.Attempt is null)
+                && partEdited && complexSaved.Question.Items[0].Answer == "编辑后的参考答案"
+                && nestedEdited && complexSaved.Question.Items[1].Answer == "嵌套小问答案" && complexSaved.Question.Notes == "已核对端点和驻点。";
+            var invalidEditor = new QuestionFields(complexSaved.Question with { Items = [complexSaved.Question.Items[0]] }, document);
             SetEditorText(invalidEditor.Panel, "满分（未知留空）", "-1");
             bool invalidRejected = false;
             try { await _library.EditQuestionAsync(saved.Id, invalidEditor.Read()); }
             catch (DomainValidationException) { invalidRejected = true; }
             checks["invalid-edit-keeps-saved-content"] = invalidRejected
-                && (await _library.GradingQuestionsAsync(document.Id)).Single().Question.StandardAnswer == "编辑后的参考答案";
-            var inFlightDraft = new QuestionViewModel(complexSaved, document) { Answer = "提交的答案" };
-            var submitted = inFlightDraft.EditedQuestion;
-            inFlightDraft.Answer = "保存期间继续输入";
-            inFlightDraft.AcceptSaved(complexSaved with { Question = submitted }, submitted);
-            checks["save-keeps-newer-typing"] = inFlightDraft.IsDirty && inFlightDraft.Answer == "保存期间继续输入";
+                && (await _library.GradingQuestionsAsync(document.Id)).Single().Question.Items[0].Answer == "编辑后的参考答案";
+            var inFlightDraft = new QuestionViewModel(complexSaved, document) { Notes = "提交的笔记" };
+            string submitted = inFlightDraft.Notes;
+            inFlightDraft.Notes = "保存期间继续输入";
+            inFlightDraft.AcceptSaved(complexSaved with { Question = complexSaved.Question with { Notes = submitted } }, submitted);
+            checks["save-keeps-newer-typing"] = inFlightDraft.IsDirty && inFlightDraft.Notes == "保存期间继续输入";
             // Return to the original simple fixture so the remaining smoke checks keep their purpose.
             restored = await _library.EditQuestionAsync(saved.Id, restored.Question);
             await ReloadQuestionsAsync();
             UpdateSourceHighlight();
             checks["source-highlight"] = SourceOverlay.Visibility == Visibility.Visible && Math.Abs(SourceHighlight.Width - .8 * _pageWidth) < .1;
-            Navigation.SelectedItem = Navigation.MenuItems[1]; await Task.Delay(100);
-            checks["library-native-navigation"] = ViewModel.Questions.Count == 1;
-            Navigation.SelectedItem = Navigation.MenuItems[2]; await Task.Delay(100);
-            checks["blank-no-false-mistake"] = ViewModel.Questions.Count == 0;
+            Navigation.SelectedItem = Navigation.MenuItems[1]; await Task.Delay(150);
+            checks["library-native-navigation"] = _bankTotal == 1 && QuestionsPanel.Visibility == Visibility.Visible && WorkspaceGrid.Visibility == Visibility.Collapsed;
+            await OpenBankQuestionAsync(0); await _openPresentationTask;
+            checks["bank-opens-question-page"] = QuestionReaderPage.Visibility == Visibility.Visible && ViewModel.OpenQuestion.Saved?.Id == saved.Id && QuestionPageHost.Content is StackPanel;
+            await ReturnToBankAsync(reload: false);
+            Navigation.SelectedItem = Navigation.MenuItems[2]; await Task.Delay(150);
+            checks["blank-no-false-mistake"] = _bankTotal == 0 && BankEmpty.Visibility == Visibility.Visible;
             Navigation.SelectedItem = Navigation.MenuItems[0]; await Task.Delay(150);
             checks["paper-list-navigation"] = PapersPanel.Visibility == Visibility.Visible;
             await LoadDocumentAsync(document);
@@ -169,7 +157,7 @@ public sealed partial class MainWindow
             checks["resolution-upgrade-does-not-regress"] = largestLevel >= 2400 && _currentRasterLevel >= largestLevel;
             await ShowSourcePageAsync(3);
             SourceViewer.ChangeView(45, 70, 1.1f, true); await Task.Delay(100);
-            AnswerEditor.Focus(FocusState.Programmatic); AnswerEditor.Select(2, 3);
+            NotesEditor.Focus(FocusState.Programmatic); NotesEditor.Select(2, 3);
             RememberViewport();
             var storedView = _viewports[document.Id];
             var storedContext = _workspaceContexts["materials:" + document.Id];
@@ -179,7 +167,7 @@ public sealed partial class MainWindow
             await LoadDocumentAsync(document);
             checks["reading-context-roundtrip"] = _sourcePageIndex == 3 && Math.Abs(SourceViewer.ZoomFactor - storedView.Zoom) < .02
                 && ViewModel.SelectedQuestion.Saved?.Id == saved.Id
-                && AnswerEditor.SelectionStart == storedContext.SelectionStart && AnswerEditor.SelectionLength == storedContext.SelectionLength;
+                && NotesEditor.SelectionStart == storedContext.SelectionStart && NotesEditor.SelectionLength == storedContext.SelectionLength;
             Navigation.SelectedItem = Navigation.MenuItems[1];
             Navigation.SelectedItem = Navigation.MenuItems[2];
             Navigation.SelectedItem = Navigation.MenuItems[0]; await Task.Delay(200); await LoadDocumentAsync(document);
@@ -194,30 +182,34 @@ public sealed partial class MainWindow
             await using (var reopened = await LibraryRepository.OpenAsync(new(copy)))
             {
                 var stored = (await reopened.GradingQuestionsAsync(document.Id)).Single();
-                checks["backup-reopen-edit"] = stored.Question.StandardAnswer == restored.Question.StandardAnswer && (await reopened.GetDocumentAsync(document.Id)).Pages.Count == 12;
+                checks["backup-reopen-edit"] = stored.Question.Items[0].Answer == restored.Question.Items[0].Answer && stored.Question.Notes == restored.Question.Notes && (await reopened.GetDocumentAsync(document.Id)).Pages.Count == 12;
             }
             // A background refresh or navigation must retain an unfinished edit until explicit save.
             ViewModel.SelectedQuestion.Notes = "未保存的草稿";
             await ReloadQuestionsAsync();
             checks["dirty-refresh-keeps-edit"] = ViewModel.SelectedQuestion.Notes == "未保存的草稿" && ViewModel.SelectedQuestion.IsDirty;
-            ViewModel.SelectedQuestion.Notes = restored.Question.Explanation;
+            ViewModel.SelectedQuestion.Notes = restored.Question.Notes;
             var teacherDocument = await _library.ImportDocumentAsync("教师批改示例", ImportMode.TeacherGraded, new ImportSource[] { new("教师批改.png", bytes) });
             var teacherRegion = region with { PageId = teacherDocument.Pages[0].Id };
             var teacherGrade = new Grade { Verdict = Verdict.Incorrect, Earned = 0, Possible = 2, Source = GradeSource.Teacher, Reason = "教师判错" };
             var teacherQuestion = question with
             {
                 DraftKey = "workflow-teacher",
-                Points = 2,
                 Sources = [teacherRegion],
-                Attempt = new Attempt
+                Items = [question.Items[0] with
                 {
-                    StudentAnswer = "原作答",
-                    StudentRegions = [teacherRegion],
-                    AiSolution = "原解题过程",
-                    Conflict = "保留判断差异",
-                    Grade = teacherGrade,
-                    Teacher = new TeacherMark { Raw = "× 0/2", Regions = [teacherRegion], Grade = teacherGrade }
-                }
+                    Key = "workflow-teacher",
+                    Points = 2,
+                    Attempt = new Attempt
+                    {
+                        StudentAnswer = "原作答",
+                        StudentRegions = [teacherRegion],
+                        AiSolution = "原解题过程",
+                        Conflict = "保留判断差异",
+                        Grade = teacherGrade,
+                        Teacher = new TeacherMark { Raw = "× 0/2", Regions = [teacherRegion], Grade = teacherGrade }
+                    }
+                }]
             };
             var teacherJob = job with { Id = Guid.NewGuid().ToString(), State = JobState.Running, Sequence = 1, Input = job.Input! with { Document = teacherDocument } };
             await _library.SaveJobEventAsync(teacherJob, Event(teacherJob, "started")); await _library.BeginGradingAsync(teacherJob);
@@ -227,13 +219,14 @@ public sealed partial class MainWindow
             SetEditorText(teacherEditor.Panel, "学生作答", "更正后的学生作答");
             SetEditorText(teacherEditor.Panel, "标准答案", "独立的标准答案");
             var teacherEdited = await _library.EditQuestionAsync(teacherSaved.Id, teacherEditor.Read());
-            checks["manual-edit-keeps-answer-evidence-separate"] = teacherEdited.Question.StandardAnswer == "独立的标准答案"
-                && teacherEdited.Question.Attempt?.StudentAnswer == "更正后的学生作答"
-                && teacherEdited.Question.Attempt.Teacher?.Raw == "× 0/2"
-                && teacherEdited.Question.Attempt.Teacher.Grade?.Source == GradeSource.Teacher
-                && teacherEdited.Question.Attempt.Grade.Source == GradeSource.Manual
-                && teacherEdited.Question.Attempt.StudentRegions.Single() == teacherRegion
-                && teacherEdited.Question.Attempt.Conflict == "保留判断差异";
+            var teacherItem = teacherEdited.Question.Items.Single();
+            checks["manual-edit-keeps-answer-evidence-separate"] = teacherItem.Answer == "独立的标准答案"
+                && teacherItem.Attempt?.StudentAnswer == "更正后的学生作答"
+                && teacherItem.Attempt.Teacher?.Raw == "× 0/2"
+                && teacherItem.Attempt.Teacher.Grade?.Source == GradeSource.Teacher
+                && teacherItem.Attempt.Grade.Source == GradeSource.Manual
+                && teacherItem.Attempt.StudentRegions.Single() == teacherRegion
+                && teacherItem.Attempt.Conflict == "保留判断差异";
             var failedDirectory = Path.Combine(root, "invalid-settings-library");
             await using (var invalidSettingsLibrary = await LibraryRepository.OpenAsync(new(failedDirectory, LibraryOpenMode.CreateNew)))
                 await invalidSettingsLibrary.SaveSettingsAsync(AppSettings.Default);
@@ -357,7 +350,7 @@ public sealed partial class MainWindow
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".dark.png"));
             RootGrid.RequestedTheme = ElementTheme.Light; await Task.Delay(100);
             checks["light-caption"] = AppWindow.TitleBar.ButtonForegroundColor == CaptionForeground;
-            checks["keyboard-editor-focus"] = AnswerEditor.Focus(FocusState.Programmatic);
+            checks["keyboard-editor-focus"] = NotesEditor.Focus(FocusState.Programmatic);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".png"));
             checks["native-aot"] = !RuntimeFeature.IsDynamicCodeSupported && !Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Any(m => m.ModuleName.Equals("coreclr.dll", StringComparison.OrdinalIgnoreCase));
             exitCode = checks.Where(check => check.Key != "native-aot").All(check => check.Value) ? 0 : 1;

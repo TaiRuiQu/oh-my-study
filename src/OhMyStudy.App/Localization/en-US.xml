@@ -657,4 +657,34 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0648" xml:space="preserve">Recognition timed out. Retry later or use smaller batches.</text>
     <text key="S0649" xml:space="preserve">The model call did not complete. Check model settings and retry.</text>
     <text key="S0650" xml:space="preserve">View sample</text>
+    <text key="S0651" xml:space="preserve">Search question text, answers, notes, or exams</text>
+    <text key="S0652" xml:space="preserve">Search questions</text>
+    <text key="S0653" xml:space="preserve">Filter questions by subject</text>
+    <text key="S0654" xml:space="preserve">Filter questions by result</text>
+    <text key="S0655" xml:space="preserve">Sort questions</text>
+    <text key="S0656" xml:space="preserve">All results</text>
+    <text key="S0657" xml:space="preserve">By exam</text>
+    <text key="S0658" xml:space="preserve">Lowest score first</text>
+    <text key="S0659" xml:space="preserve">Recently updated</text>
+    <text key="S0660" xml:space="preserve">Previous question</text>
+    <text key="S0661" xml:space="preserve">Next question</text>
+    <text key="S0662" xml:space="preserve">View in exam</text>
+    <text key="S0663" xml:space="preserve">My notes</text>
+    <text key="S0664" xml:space="preserve">Save notes</text>
+    <text key="S0665" xml:space="preserve">Back to the list</text>
+    <text key="S0666" xml:space="preserve">Not saved. Check question numbers, scores, subquestion labels, and source regions.</text>
+    <text key="S0667" xml:space="preserve">Subquestions</text>
+    <text key="S0668" xml:space="preserve">Answer and grading</text>
+    <text key="S0669" xml:space="preserve">Subquestion label</text>
+    <text key="S0670" xml:space="preserve">Subquestion text</text>
+    <text key="S0671" xml:space="preserve">Could not load questions. Try again later.</text>
+    <text key="S0672" xml:space="preserve">Questions: {0} / {1}</text>
+    <text key="S0673" xml:space="preserve">No questions found</text>
+    <text key="S0674" xml:space="preserve">Try another keyword, subject, or result filter.</text>
+    <text key="S0675" xml:space="preserve">This question no longer exists.</text>
+    <text key="S0676" xml:space="preserve">Topics</text>
+    <text key="S0677" xml:space="preserve">{0} parts</text>
+    <text key="S0678" xml:space="preserve">Your answer</text>
+    <text key="S0679" xml:space="preserve">Show answer and explanation</text>
+    <text key="S0680" xml:space="preserve">Could not save. Try again.</text>
 </resources>

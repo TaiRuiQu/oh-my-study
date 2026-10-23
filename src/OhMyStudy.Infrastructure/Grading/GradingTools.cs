@@ -4,7 +4,7 @@ using OhMyStudy.Domain;
 
 namespace OhMyStudy.Infrastructure.Grading;
 
-/// <summary>Closed JSON schemas; recursive questions use local references, never model-provided executable templates.</summary>
+/// <summary>Closed JSON schemas without references or model-provided executable templates.</summary>
 public static class GradingTools
 {
     public static IReadOnlyList<Tool> Create(bool referenceOnly)
@@ -19,22 +19,22 @@ public static class GradingTools
             }, ["page_id"])),
             Define("save_references", "Replace the current reference-answer list after reading its source pages. Verify matches by number and content; give a reason for unmatched answers. Send the complete list on every call, preserving keys already used by saved questions. Does not regrade questions. Returns saved=true on success.", Object(new()
             {
-                ["references"] = Describe(Array(Reference()), "Complete reference-answer list, at most 1000 entries. Each key must be unique, and each question or part can match at most one entry.")
+                ["references"] = Describe(Array(Reference()), "Complete reference-answer list, at most 1000 entries. Each key must be unique, and each item can match at most one entry.")
             }, ["references"])),
-            Define("finish", "Validate page coverage and saved results, then complete the task. Call only after reading every required page in full and resolving save errors; this must be the final tool call in the response. Whole-paper tasks must save every top-level question in this run; all reference matches must name saved questions or parts. Reference-only tasks cover reference pages only. Returns finished=true on success; an error means the task is still incomplete.", Object(new()
+            Define("finish", "Validate page coverage and saved results, then complete the task. Call only after reading every required page in full and resolving save errors; this must be the final tool call in the response. Whole-paper tasks must save every top-level question in this run; all reference matches must name saved item keys. Reference-only tasks cover reference pages only. Returns finished=true on success; an error means the task is still incomplete.", Object(new()
             {
                 ["coverage"] = Describe(Array(Coverage()), "Exactly one entry per document page for whole-paper tasks, or per reference page for reference-only tasks. No duplicate or missing page IDs.")
             }, ["coverage"]))
         };
         if (!referenceOnly)
         {
-            result.Add(Define("save_paper_info", "Save the paper's subject and total scores before finish. Use explicit totals or complete grading without double-counting parents and parts. Never guess unknown scores. Returns saved=true, or saved=false with manual_values_kept=true when user-edited paper information is preserved.", Object(new()
+            result.Add(Define("save_paper_info", "Save the paper's subject and total scores before finish. Use explicitly printed totals or the sum of complete item grades. Never guess unknown scores. Returns saved=true, or saved=false with manual_values_kept=true when user-edited paper information is preserved.", Object(new()
             {
                 ["subject"] = Describe(Nullable(String()), "Subject inferred from this paper, in Simplified Chinese; use a general-studies label for mixed subjects or null if unknown."),
                 ["earned"] = Describe(Nullable(Number()), "Total earned points. Use null when unknown, when possible is unknown, or for blank papers. Cannot exceed possible."),
                 ["possible"] = Describe(Nullable(Number()), "Total possible points, or null when unknown. Omitted score fields are treated as null.")
             }, ["subject"])));
-            result.Add(Define("save_question", "Save one top-level question with its complete part tree after reading its sources and saving applicable references. Reuse stable draft_key values on regrading. Omitted auxiliary question/attempt fields preserve saved values; explicit empty values replace them. Existing manual grades and explicit teacher results in teacher mode are protected. Returns saved_id and draft_key on success.", QuestionSchema()));
+            result.Add(Define("save_question", "Save one top-level question with its shared stem and all of its gradable items after reading its sources and saving applicable references. Reuse stable draft_key and item key values on regrading. Omitted auxiliary question/item/attempt fields preserve saved values; explicit empty values replace them. Existing manual grades and explicit teacher results in teacher mode are protected. Returns saved_id and draft_key on success.", QuestionSchema()));
             foreach (var name in new[] { "python", "shell" })
                 result.Add(Define(name, name == "python"
                     ? "Run Python code for calculations needed to solve or check this paper; prefer this tool for numerical work. Returns stdout on success. Execution may wait for user approval and has a 60-second timeout. Do not access unrelated files, credentials, services, or system settings."
@@ -73,18 +73,18 @@ public static class GradingTools
     private static JsonObject Reference() => Object(new()
     {
         ["key"] = String("Stable unique reference-answer key; reuse an existing key for the same answer."),
-        ["number"] = String("Question or part number as printed in the reference."),
+        ["number"] = String("Question or subquestion number as printed in the reference."),
         ["answer"] = String("Nonempty answer transcribed from the reference, preserving its language and LaTeX notation."),
         ["explanation"] = String("Explanation supported by the reference; omit when unavailable."),
         ["sources"] = Describe(Array(Region()), "Nonempty evidence regions on reference pages, including continuations."),
-        ["matched_draft_key"] = Describe(Nullable(String()), "Verified question or part draft_key; null or omitted if unmatched. In reference-only tasks, match only existing saved keys."),
+        ["matched_item_key"] = Describe(Nullable(String()), "Verified item key; null or omitted if unmatched. In reference-only tasks, match only existing saved item keys."),
         ["uncertain_reason"] = Describe(Nullable(String()), "Required nonempty reason when unmatched; null or omitted for a verified match.")
     }, ["key", "number", "answer", "sources"]);
     private static JsonObject Coverage() => Object(new()
     {
         ["page_id"] = String("Exact ID of a required page already read in full during this run."),
         ["status"] = Describe(Enum("covered", "unreadable", "no_questions"), "covered when all relevant content is accounted for; unreadable when relevant content cannot be read; no_questions only when there are no questions to extract."),
-        ["question_keys"] = Describe(Array(String()), "For covered material pages, all saved question/part draft keys whose sources include this page, including continuations. Use an empty list when no question keys apply."),
+        ["question_keys"] = Describe(Array(String()), "For covered material pages, all saved question draft_key values whose sources include this page, including continuations. Use an empty list when no question keys apply."),
         ["reason"] = String("Nonempty explanation required for unreadable or no_questions; optional for covered.")
     }, ["page_id", "status"]);
     public static JsonObject QuestionSchema()
@@ -99,42 +99,45 @@ public static class GradingTools
             ["contains_handwriting"] = Describe(Bool(), "True if this image region contains handwriting."),
             ["caption"] = String("Brief description in Simplified Chinese; omit if unnecessary.")
         }, ["kind", "region"]);
+        JsonObject Content(string description) => Describe(Array(new JsonObject { ["anyOf"] = new JsonArray(text.DeepClone(), formula.DeepClone(), table.DeepClone(), image.DeepClone()) }), description);
         var attempt = Object(new()
         {
-            ["student_answer"] = String("Student response only, preserving its language. Do not include teacher marks, reference answers, or AI solutions."),
-            ["student_regions"] = Describe(Array(Region()), "Material-page regions showing the student's response."),
+            ["student_answer"] = String("Student response to this item only, preserving its language. Do not include teacher marks, reference answers, or AI solutions."),
+            ["student_regions"] = Describe(Array(Region()), "Material-page regions showing the student's response to this item."),
             ["teacher"] = Describe(Nullable(Object(new()
             {
-                ["raw"] = String("Verbatim teacher comments or deduction marks; do not invent missing text."),
+                ["raw"] = String("Verbatim teacher comments or deduction marks for this item; do not invent missing text."),
                 ["regions"] = Describe(Array(Region()), "Material-page regions showing teacher marks; omit when unavailable."),
                 ["grade"] = Describe(Nullable(Grade()), "Explicit teacher result, with source=teacher. In teacher mode its verdict/scores/source must agree with attempt.grade. Omit or use null if unknown.")
             }, [])), "Teacher annotations, separate from the student response. Omit when unavailable; explicit null clears this field unless protected."),
-            ["reference_key"] = Describe(Nullable(String()), "Key of a saved reference matched to this exact draft_key. Required when grading by a matched reference; null when none applies."),
-            ["ai_solution"] = String("Your own solution in Simplified Chinese, kept separate from the student and reference answers."),
+            ["reference_key"] = Describe(Nullable(String()), "Key of a saved reference matched to this exact item key. Required when grading by a matched reference; null when none applies."),
+            ["ai_solution"] = String("Your own solution for this item in Simplified Chinese, kept separate from the student and reference answers."),
             ["conflict"] = Describe(Nullable(String()), "Explain disagreement with the matched reference while still grading by that reference; null when there is no conflict."),
-            ["grade"] = Describe(Grade(), "Verdict and scores based on teacher priority, a matched reference, or your solution. Omission preserves the saved grade or defaults to uncertain.")
+            ["grade"] = Describe(Grade(), "Verdict and scores for this item based on teacher priority, a matched reference, or your solution. Omission preserves the saved grade or defaults to uncertain.")
         }, []);
-        var question = Object(new()
+        var item = Object(new()
         {
-            ["draft_key"] = String("Nonempty stable key, unique across all questions and parts, at most 128 UTF-8 bytes. Reuse existing keys on regrading."),
-            ["number"] = String("Nonempty question or part number, preserving the printed label."),
+            ["key"] = String("Nonempty stable item key, unique across all items of the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. References match this key."),
+            ["label"] = String("Printed subquestion label such as (1) or (2)(a). Required when the question has several items; use an empty string for a question without subquestions."),
+            ["prompt"] = Content("Content specific to this subquestion in reading order. Leave empty for a question without subquestions, whose whole text belongs in stem."),
+            ["options"] = Describe(Array(String()), "Answer options for this item in printed order, including their labels; omit if unavailable."),
+            ["points"] = Describe(Nullable(Number()), "Maximum points for this item; null if unknown. Question totals are derived from item points."),
+            ["answer"] = String("Verified standard answer for this item, kept separate from student work. Omit when unknown."),
+            ["explanation"] = String("Solution explanation for this item in Simplified Chinese, without student work; omit when unavailable."),
+            ["attempt"] = Describe(Nullable(attempt), "Must be null on a blank paper. On answered papers, keep a nonnull attempt; distinguish visibly unanswered from unreadable/uncertain. Omitted fields preserve existing information.")
+        }, ["key"]);
+        return Object(new()
+        {
+            ["draft_key"] = String("Nonempty stable question key, unique across the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. Coverage lists this key."),
+            ["number"] = String("Nonempty top-level question number, preserving the printed label."),
             ["subject"] = String("Subject label in Simplified Chinese; omit if unknown."),
             ["question_type"] = String("Question type in Simplified Chinese; omit if unknown."),
-            ["content"] = Describe(Array(new JsonObject { ["anyOf"] = new JsonArray(text, formula, table, image) }), "Nonempty content blocks in reading order, retaining tables, formulas, and diagrams."),
-            ["options"] = Describe(Array(String()), "Answer options in printed order, including their labels; omit if unavailable."),
-            ["points"] = Describe(Nullable(Number()), "Maximum points for this question or part; null if unknown. Parent points must equal the sum of known part points when all are known."),
-            ["standard_answer"] = String("Verified answer, kept separate from student work. Omit when unknown."),
-            ["explanation"] = String("Solution explanation in Simplified Chinese, without student work; omit when unavailable."),
+            ["stem"] = Content("Nonempty shared question text in reading order: the material, context, diagrams, and instructions that precede or apply to all items. A question without subquestions puts its whole text here."),
+            ["sources"] = Describe(Array(Region()), "Nonempty material-page regions covering the whole question, including every continuation page."),
             ["knowledge_points"] = Describe(Array(String()), "Relevant knowledge-point labels in Simplified Chinese; omit if unsupported."),
-            ["sources"] = Describe(Array(Region()), "Nonempty material-page regions covering the question, including every continuation page."),
             ["uncertainties"] = Describe(Array(String()), "Specific unresolved transcription or interpretation issues in Simplified Chinese; retain image evidence instead of guessing."),
-            ["attempt"] = Describe(Nullable(attempt), "Must be null for every question/part on a blank paper. For answered papers, keep a nonnull attempt; distinguish visibly unanswered from unreadable/uncertain. Omitted fields preserve existing information."),
-            ["parts"] = Describe(Array(new JsonObject { ["$ref"] = "#/$defs/question" }), "Complete ordered part tree; use unique stable keys at every level. Preserve protected parts on regrading. Limit: 8 nested levels and 1000 nodes per top-level tree; serialized question at most 1 MiB.")
-        }, ["draft_key", "number", "content", "sources"]);
-        // Root content is the question shape; only the recursive definition points back into $defs.
-        var root = (JsonObject)question.DeepClone();
-        root["$defs"] = new JsonObject { ["question"] = question };
-        return root;
+            ["items"] = Describe(Array(item), "Ordered gradable items, 1 to 100. Use exactly one item when the question has no subquestions. Otherwise use one item per answerable subquestion; flatten nested subquestions into separate items with combined labels such as (2)(a). Preserve protected items on regrading.")
+        }, ["draft_key", "number", "stem", "sources", "items"]);
     }
 
     internal static void Fields(JsonElement args, params string[] allowed)

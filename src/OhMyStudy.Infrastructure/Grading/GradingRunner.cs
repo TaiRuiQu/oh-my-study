@@ -49,7 +49,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         var payload = new JsonObject
         {
             ["document"] = JsonNode.Parse(DomainJson.Serialize(input.Document)),
-            ["existing_questions"] = JsonNode.Parse(DomainJson.Serialize(existing)),
+            ["existing_questions"] = JsonNode.Parse(DomainJson.Serialize(existing.Select(saved => saved with { Question = saved.Question with { Notes = "" } }).ToList())),
             ["references"] = JsonNode.Parse(DomainJson.Serialize(references))
         };
         var history = ProviderProtocol.Initial(input.Provider.Protocol, GradingPrompts.Input(payload.ToJsonString()), []);
@@ -296,7 +296,22 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
     private static Question FillOmittedFields(Question q, JsonElement args, Question? old, ImportMode mode)
     {
         bool Has(string name) => args.TryGetProperty(name, out _);
-        Attempt? attempt = q.Attempt;
+        var rawItems = args.GetProperty("items").EnumerateArray().ToList();
+        var items = q.Items.Select((item, index) => FillOmittedFields(item, rawItems[index], old?.Items.FirstOrDefault(o => o.Key == item.Key), mode)).ToList();
+        return q with
+        {
+            Subject = Has("subject") ? q.Subject : old?.Subject ?? "",
+            QuestionType = Has("question_type") ? q.QuestionType : old?.QuestionType ?? "",
+            KnowledgePoints = Has("knowledge_points") ? q.KnowledgePoints : old?.KnowledgePoints ?? [],
+            Uncertainties = Has("uncertainties") ? q.Uncertainties : old?.Uncertainties ?? [],
+            Items = items
+        };
+    }
+
+    private static QuestionItem FillOmittedFields(QuestionItem item, JsonElement args, QuestionItem? old, ImportMode mode)
+    {
+        bool Has(string name) => args.TryGetProperty(name, out _);
+        Attempt? attempt = item.Attempt;
         if (!Has("attempt")) attempt = old?.Attempt ?? (mode == ImportMode.Blank ? null : new Attempt());
         else if (attempt is not null && args.GetProperty("attempt") is { ValueKind: JsonValueKind.Object } raw)
         {
@@ -312,24 +327,15 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 Conflict = raw.TryGetProperty("conflict", out _) ? attempt.Conflict : previous?.Conflict
             };
         }
-        var parts = Has("parts") ? q.Parts : old?.Parts ?? q.Parts;
-        if (Has("parts"))
+        return item with
         {
-            var rawParts = args.GetProperty("parts").EnumerateArray().ToList();
-            parts = parts.Select((part, index) => FillOmittedFields(part, rawParts[index], old?.Parts.FirstOrDefault(p => p.DraftKey == part.DraftKey), mode)).ToList();
-        }
-        return q with
-        {
-            Subject = Has("subject") ? q.Subject : old?.Subject ?? "",
-            QuestionType = Has("question_type") ? q.QuestionType : old?.QuestionType ?? "",
-            Options = Has("options") ? q.Options : old?.Options ?? [],
-            Points = Has("points") ? q.Points : old?.Points,
-            StandardAnswer = Has("standard_answer") ? q.StandardAnswer : old?.StandardAnswer ?? "",
-            Explanation = Has("explanation") ? q.Explanation : old?.Explanation ?? "",
-            KnowledgePoints = Has("knowledge_points") ? q.KnowledgePoints : old?.KnowledgePoints ?? [],
-            Uncertainties = Has("uncertainties") ? q.Uncertainties : old?.Uncertainties ?? [],
-            Attempt = attempt,
-            Parts = parts
+            Label = Has("label") ? item.Label : old?.Label ?? "",
+            Prompt = Has("prompt") ? item.Prompt : old?.Prompt ?? [],
+            Options = Has("options") ? item.Options : old?.Options ?? [],
+            Points = Has("points") ? item.Points : old?.Points,
+            Answer = Has("answer") ? item.Answer : old?.Answer ?? "",
+            Explanation = Has("explanation") ? item.Explanation : old?.Explanation ?? "",
+            Attempt = attempt
         };
     }
 

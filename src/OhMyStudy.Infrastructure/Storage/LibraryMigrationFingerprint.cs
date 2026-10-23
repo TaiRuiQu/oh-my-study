@@ -6,8 +6,9 @@ namespace OhMyStudy.Infrastructure.Storage;
 public sealed partial class LibraryRepository
 {
     // Read the complete stored values, including unknown JSON fields and extension tables.
-    // The v1->v2 migration adds empty tables and two nullable page columns; normalize only
-    // those specified additions. This is a content proof, not a SQLite file-byte identity.
+    // The v1->v2 migration adds empty tables and two nullable page columns; v4 restructures
+    // question JSON and adds derived summary columns. Normalize only those specified changes.
+    // This is a content proof, not a SQLite file-byte identity.
     internal Task<string> MigrationContentFingerprintAsync(CancellationToken ct) => Run(() =>
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -22,17 +23,18 @@ public sealed partial class LibraryRepository
             if (table == "source_pages")
                 foreach (string added in new[] { "original_asset_id", "pdf_page_index" })
                     if (columns.Contains(added) && Convert.ToInt64(Scalar("SELECT COUNT(*) FROM " + Quote(table) + " WHERE " + Quote(added) + " IS NOT NULL")) == 0) columns.Remove(added);
+            if (table == "questions") columns.RemoveAll(QuestionSummaryColumns.Contains);
             columns.Sort(StringComparer.Ordinal);
             Add(table); foreach (string column in columns) Add(column);
             using var command = connection.CreateCommand();
             string names = string.Join(',', columns.Select(Quote));
-            command.CommandText = "SELECT " + names + " FROM " + Quote(table) + " ORDER BY " + names;
+            command.CommandText = "SELECT " + names + " FROM " + Quote(table) + " ORDER BY " + (table == "questions" ? "id" : names);
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
                 ct.ThrowIfCancellationRequested(); Add("row");
                 for (int index = 0; index < reader.FieldCount; index++)
-                    switch (reader.GetValue(index))
+                    switch (Normalize(table, columns[index], reader.GetValue(index)))
                     {
                         case DBNull: Add("null"); break;
                         case long value: Add("integer"); AddBytes(BitConverter.GetBytes(value)); break;
@@ -46,4 +48,11 @@ public sealed partial class LibraryRepository
         }
         return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
     }, ct);
+
+    private static object Normalize(string table, string column, object value) => (table, column, value) switch
+    {
+        ("questions", "content_json", string json) => LegacyQuestionFormat.UpgradeQuestion(json),
+        ("grading_runs", "references_json", string json) => LegacyQuestionFormat.UpgradeReferences(json),
+        _ => value
+    };
 }

@@ -27,7 +27,7 @@ public sealed partial class MainWindow
             Require(Thread.CurrentThread.GetApartmentState() == ApartmentState.STA && DispatcherQueue.HasThreadAccess, "ui-thread-sta");
             await InitializeLibraryAsync(Path.Combine(root, "library"));
             await ShowQuestionLibraryAsync();
-            Require(_library is not null && ViewModel.Questions.Count == 0 && SourcePane.Visibility == Visibility.Collapsed, "empty-library");
+            Require(_library is not null && _bankTotal == 0 && BankEmpty.Visibility == Visibility.Visible && SourcePane.Visibility == Visibility.Collapsed, "empty-library");
             await Capture("empty");
             var setupChoice = ChooseProcessingAsync(false, importing: true);
             await CaptureDialog("setup-dialog");
@@ -44,28 +44,27 @@ public sealed partial class MainWindow
             await File.WriteAllBytesAsync(pdf, CreateSmokePdf());
             await ImportFilesAsync(new[] { await StorageFile.GetFileFromPathAsync(pdf) }, confirmedProcessing: processing);
             await WaitForQuestions(3);
-            Require(ViewModel.CurrentDocument is null && ViewModel.Questions.Count == 3 && SourcePane.Visibility == Visibility.Collapsed, "pdf-import-auto-library");
+            Require(ViewModel.CurrentDocument is null && _bankTotal == 3 && QuestionsPanel.Visibility == Visibility.Visible && SourcePane.Visibility == Visibility.Collapsed, "pdf-import-auto-library");
             Require((await _library!.ListDocumentsAsync()).Single().Pages.Count == 2, "pdf-two-pages-prepared");
             await Capture("questions");
-            var savedQuestions = await _library.ListQuestionsAsync();
-            ViewModel.LoadLibrary(savedQuestions.Take(1), false); await Capture("single");
-            ViewModel.LoadLibrary(savedQuestions, false);
+            await OpenBankQuestionAsync(0); await Capture("single");
+            Require(QuestionReaderPage.Visibility == Visibility.Visible && ViewModel.OpenQuestion.Saved is not null, "bank-row-opens-question-page");
+            string notes = ViewModel.OpenQuestion.Notes;
+            ViewModel.OpenQuestion.Notes = string.Join("\n", Enumerable.Repeat("比较端点与驻点的函数值，并逐项检查最大值与最小值。", 12));
+            await Capture("long-notes"); ViewModel.OpenQuestion.Notes = notes;
+            await ReturnToBankAsync(reload: false);
             Navigation.SelectedItem = Navigation.MenuItems[2]; await Capture("empty-mistakes");
             await ShowQuestionLibraryAsync();
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("dark");
             RootGrid.RequestedTheme = ElementTheme.Light;
             AppWindow.Resize(new Windows.Graphics.SizeInt32(720, 960)); await Capture("narrow");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("compact");
-            var selected = ViewModel.SelectedQuestion;
-            string answer = selected.Answer;
-            selected.Answer = string.Join("\n", Enumerable.Repeat("比较端点与驻点的函数值，并逐项检查最大值与最小值。", 12));
-            await Capture("long-answer"); selected.Answer = answer;
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
             string png = Path.Combine(root, "示例图片.png");
             await File.WriteAllBytesAsync(png, await MakeSyntheticPngAsync());
             await ImportFilesAsync(new[] { await StorageFile.GetFileFromPathAsync(png) }, confirmedProcessing: processing);
             await WaitForQuestions(6);
-            Require(ViewModel.Questions.Count == 6 && (await _library.ListQuestionsAsync()).Count == 6, "image-import-appends-questions");
+            Require(_bankTotal == 6 && (await _library.ListQuestionsAsync()).Count == 6, "image-import-appends-questions");
             await Capture("multiple");
             var first = (await _library.ListDocumentsAsync()).First();
             await LoadDocumentAsync(first);
@@ -131,9 +130,9 @@ public sealed partial class MainWindow
                 for (int attempt = 0; attempt < 60; attempt++)
                 {
                     await Task.Delay(100);
-                    if ((_jobs is null || (await _jobs.ListAsync()).All(j => j.State.IsTerminal())) && ViewModel.Questions.Count == count) return;
+                    if ((_jobs is null || (await _jobs.ListAsync()).All(j => j.State.IsTerminal())) && _bankTotal == count) return;
                 }
-                throw new InvalidOperationException($"Expected {count} questions, found {ViewModel.Questions.Count}.");
+                throw new InvalidOperationException($"Expected {count} questions, found {_bankTotal}.");
             }
         }
         catch (Exception error) { AppLog.Error("ImportSmoke", error); checks.Add("FAIL: " + error); }
@@ -155,23 +154,8 @@ public sealed partial class MainWindow
             await context.CommitAsync(token => library.BeginGradingAsync(job, token));
             for (int index = 1; index <= 3; index++)
             {
-                var question = new Question
-                {
-                    DraftKey = "import-q" + index,
-                    Number = index.ToString(),
-                    Subject = "数学",
-                    QuestionType = "计算",
-                    Content = [new TextContent { Text = index == 1 ? "已知函数 f(x) = x³ − 3x，求函数在区间 [−2, 2] 上的最大值与最小值。" : "解答第 " + index + " 题，并说明计算过程。" }],
-                    Options = [],
-                    Points = null,
-                    StandardAnswer = "最大值为 2，最小值为 −2。",
-                    Explanation = "比较端点与驻点的函数值。",
-                    KnowledgePoints = ["导数"],
-                    Sources = [new Region { PageId = job.Input!.Document.Pages[0].Id, X = .1, Y = .1, Width = .8, Height = .3 }],
-                    Uncertainties = [],
-                    Attempt = null,
-                    Parts = []
-                };
+                var question = SmokeQuestion("import-q" + index, index.ToString(), [new TextContent { Text = index == 1 ? "已知函数 f(x) = x³ − 3x，求函数在区间 [−2, 2] 上的最大值与最小值。" : "解答第 " + index + " 题，并说明计算过程。" }],
+                    [new Region { PageId = job.Input!.Document.Pages[0].Id, X = .1, Y = .1, Width = .8, Height = .3 }], answer: "最大值为 2，最小值为 −2。", explanation: "比较端点与驻点的函数值。", subject: "数学", questionType: "计算", topics: ["导数"]);
                 await context.CommitAsync(token => library.SaveGradingQuestionAsync(job.Id, question, token));
                 await context.ProgressAsync(index * 30, $"已保存 {index} 题。");
             }

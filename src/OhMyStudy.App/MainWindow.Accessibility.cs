@@ -41,7 +41,8 @@ public sealed partial class MainWindow
         AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, async () =>
         {
             if (SettingsPanel.Visibility == Visibility.Visible) await SaveSettingsFormsAsync();
-            else ViewModel.FinishEditCommand.Execute(null);
+            else if (QuestionReaderPage.Visibility == Visibility.Visible) await ViewModel.SaveAsync(ViewModel.OpenQuestion);
+            else if (WorkspaceGrid.Visibility == Visibility.Visible) ViewModel.FinishEditCommand.Execute(null);
         });
         AddAccelerator(VirtualKey.E, VirtualKeyModifiers.Control, () => EditQuestion_Click(this, new RoutedEventArgs()));
         AddAccelerator(VirtualKey.Number0, VirtualKeyModifiers.Control, FitPage);
@@ -125,6 +126,7 @@ public sealed partial class MainWindow
         PaperFilters.ColumnDefinitions[2].Width = narrowPapers ? new GridLength(0) : new GridLength(160);
         GradeButton.Visibility = DocumentToolbar.Visibility == Visibility.Visible && ViewModel.CurrentDocument is not null ? Visibility.Visible : Visibility.Collapsed;
         TaskActivity.Visibility = ViewModel.IsTaskRunning ? Visibility.Visible : Visibility.Collapsed;
+        ApplyQuestionBankLayout();
         ApplyTaskLayout();
         var paneMode = compact ? NavigationViewPaneDisplayMode.LeftMinimal : NavigationViewPaneDisplayMode.Left;
         if (Navigation.PaneDisplayMode != paneMode)

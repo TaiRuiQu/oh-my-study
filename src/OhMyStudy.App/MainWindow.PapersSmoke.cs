@@ -130,17 +130,10 @@ public sealed partial class MainWindow
             Require(Math.Abs(initial - popup.ActualWidth) < 1 && Math.Abs(choice.ActualWidth - 460) < 1, "dropdown-fixed-width-after-scroll");
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model-dropdown-end.png")); choice.IsDropDownOpen = false; choiceDialog.Hide(); await choiceShown;
             await LoadDocumentAsync(document);
-            var question = new Question
-            {
-                DraftKey = "visual-q",
-                Number = "17",
-                Subject = "数学",
-                Content = [new TextContent { Text = "已知函数 f(x) = x³ − 3x，在区间 [−2, 2] 上讨论函数的最值，并说明解题思路。" }],
-                Points = 14,
-                Sources = [new Region { PageId = document.Pages[0].Id, X = .1, Y = .1, Width = .8, Height = .4 }],
-                Attempt = new Attempt { StudentAnswer = "先求导，再比较端点和驻点的函数值，得到最大值为 2，最小值为 −2。", Grade = new Grade { Verdict = Verdict.Partial, Earned = 10, Possible = 14, Source = GradeSource.Teacher, Reason = "方法正确，部分计算步骤需要补充。" }, Teacher = new TeacherMark { Raw = "第（1）和（3）步各扣 2 分，其余步骤正确。" }, AiSolution = "求导得到 f′(x) = 3x² − 3。令导数为零，得到驻点 x = ±1，分别计算端点和驻点的函数值。" },
-                Uncertainties = ["原卷的部分批注较淡，请核对第（3）步的扣分位置。"]
-            };
+            var question = SmokeQuestion("visual-q", "17", [new TextContent { Text = "已知函数 f(x) = x³ − 3x，在区间 [−2, 2] 上讨论函数的最值，并说明解题思路。" }],
+                [new Region { PageId = document.Pages[0].Id, X = .1, Y = .1, Width = .8, Height = .4 }], points: 14, answer: "最大值为 2，最小值为 −2。",
+                attempt: new Attempt { StudentAnswer = "先求导，再比较端点和驻点的函数值，得到最大值为 2，最小值为 −2。", Grade = new Grade { Verdict = Verdict.Partial, Earned = 10, Possible = 14, Source = GradeSource.Teacher, Reason = "方法正确，部分计算步骤需要补充。" }, Teacher = new TeacherMark { Raw = "第（1）和（3）步各扣 2 分，其余步骤正确。" }, AiSolution = "求导得到 f′(x) = 3x² − 3。令导数为零，得到驻点 x = ±1，分别计算端点和驻点的函数值。" });
+            question = question with { Subject = "数学", Uncertainties = ["原卷的部分批注较淡，请核对第（3）步的扣分位置。"] };
             ViewModel.LoadDocument(document, new[] { new SavedQuestion { Id = Guid.NewGuid().ToString(), DocumentId = document.Id, UpdatedAt = DateTimeOffset.Now.ToString("O"), Question = question } });
             await Task.Delay(350); await _questionPresentationTask; await Capture("question-sections");
             QuestionDetail.ChangeView(null, 350, null, true); await Capture("question-feedback");

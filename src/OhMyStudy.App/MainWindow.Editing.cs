@@ -10,15 +10,15 @@ public sealed partial class MainWindow
 {
     private bool _questionEditorOpen;
 
-    private async Task EditSelectedQuestionAsync()
+    private async Task EditQuestionAsync(QuestionViewModel selected)
     {
-        if (_questionEditorOpen || _library is not { } library || ViewModel.SelectedQuestion.Saved is not { } saved) return;
+        if (_questionEditorOpen || _library is not { } library || selected.Saved is not { } saved) return;
         _questionEditorOpen = true;
         try
         {
-            var selected = ViewModel.SelectedQuestion;
             var document = await library.GetDocumentAsync(saved.DocumentId, _lifetime.Token);
-            var editor = new QuestionFields(selected.EditedQuestion, document);
+            string notes = selected.Notes;
+            var editor = new QuestionFields(saved.Question with { Notes = notes }, document);
             var error = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
             var fields = new StackPanel { Spacing = 12, MinWidth = 380 };
             fields.Children.Add(error); fields.Children.Add(editor.Panel);
@@ -31,28 +31,34 @@ public sealed partial class MainWindow
                 CloseButtonText = UiText.Get("Cancel"),
                 DefaultButton = ContentDialogButton.Primary
             };
+            SavedQuestion? result = null;
             dialog.PrimaryButtonClick += async (_, args) =>
             {
                 var deferral = args.GetDeferral();
                 dialog.IsPrimaryButtonEnabled = false;
                 try
                 {
-                    var update = editor.Read();
-                    var result = await library.EditQuestionAsync(saved.Id, update, _lifetime.Token);
-                    selected.AcceptSaved(result);
-                    try { await ReloadQuestionsAsync(); ViewModel.StatusMessage = UiText.Get("Saved."); }
-                    catch { ViewModel.StatusMessage = UiText.Get("Saved. Reopen the material to see the latest content."); }
+                    result = await library.EditQuestionAsync(saved.Id, editor.Read(), _lifetime.Token);
+                    selected.AcceptSaved(result, notes);
                 }
                 catch (Exception exception)
                 {
                     args.Cancel = true;
                     error.Text = exception is DomainValidationException or FormatException or OverflowException
-                        ? UiText.Get("Not saved. Check question numbers, scores, subquestion totals, and source regions.") : UiText.Get("Not saved. Wait for the task to finish and retry.");
+                        ? UiText.Get("Not saved. Check question numbers, scores, subquestion labels, and source regions.") : UiText.Get("Not saved. Wait for the task to finish and retry.");
                     error.Visibility = Visibility.Visible;
                 }
                 finally { dialog.IsPrimaryButtonEnabled = true; deferral.Complete(); }
             };
             await dialog.ShowAsync();
+            if (result is null) return;
+            try
+            {
+                if (QuestionReaderPage.Visibility == Visibility.Visible) await RefreshOpenQuestionAsync(result);
+                else await ReloadQuestionsAsync();
+                ViewModel.StatusMessage = UiText.Get("Saved.");
+            }
+            catch { ViewModel.StatusMessage = UiText.Get("Saved. Reopen the material to see the latest content."); }
         }
         catch { ViewModel.StatusMessage = UiText.Get("Could not open this question. Select it again."); }
         finally { _questionEditorOpen = false; }
@@ -62,93 +68,116 @@ public sealed partial class MainWindow
     private sealed class QuestionFields
     {
         private readonly Question _original;
-        private readonly TextBox _number, _subject, _type, _answer, _explanation, _knowledge, _points, _uncertainties;
-        private readonly TextBox? _student, _earned, _reason, _solution;
-        private readonly ComboBox? _verdict;
-        private readonly EditorList<Content> _content;
-        private readonly EditorList<string> _options;
+        private readonly TextBox _number, _subject, _type, _knowledge, _uncertainties;
+        private readonly EditorList<Content> _stem;
         private readonly EditorList<Region> _sources;
-        private readonly EditorList<Question> _parts;
-        private readonly EditorList<Region>? _studentRegions;
+        private readonly EditorList<QuestionItem> _items;
         public StackPanel Panel { get; } = new() { Spacing = 12 };
 
-        public QuestionFields(Question question, Document document, int depth = 0)
+        public QuestionFields(Question question, Document document)
         {
             _original = question;
             _number = AddText(Panel, UiText.Get("Question number"), question.Number);
             _subject = AddText(Panel, UiText.Get("Subject"), question.Subject);
             _type = AddText(Panel, UiText.Get("Question type"), question.QuestionType);
-            _content = new(question.Content, value => ContentField(value, document));
-            AddSection(Panel, UiText.Get("Question text"), _content.Panel);
-            AddButton(_content.Actions, UiText.Get("Add text"), () => _content.Add(new TextContent { Text = "" }));
-            AddButton(_content.Actions, UiText.Get("Add formula"), () => _content.Add(new FormulaContent { Latex = "" }));
-            AddButton(_content.Actions, UiText.Get("Add table"), () => _content.Add(new TableContent { Rows = [[""]] }));
-            var material = document.Pages.FirstOrDefault(p => p.Role == "material");
-            if (material is not null)
-                AddButton(_content.Actions, UiText.Get("Add image"), () => _content.Add(new ImageContent { Caption = "", ContainsHandwriting = false, Region = FullPage(material.Id) }));
-            _options = new(question.Options, value =>
+            _stem = ContentList(question.Stem, document);
+            AddSection(Panel, UiText.Get("Question text"), _stem.Panel);
+            _sources = RegionList(question.Sources, document, "material");
+            AddSection(Panel, UiText.Get("Question source"), _sources.Panel);
+            _knowledge = AddText(Panel, UiText.Get("Topics (one per line)"), string.Join("\n", question.KnowledgePoints), true);
+            _uncertainties = AddText(Panel, UiText.Get("Items to review (one per line)"), string.Join("\n", question.Uncertainties), true);
+            bool single = question.Items.Count == 1;
+            _items = new(question.Items, item =>
+            {
+                ItemFields? fields = null;
+                var expander = new Expander { Header = ItemHeader(item), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
+                if (single) { fields = new ItemFields(item, document); expander.Content = fields.Panel; expander.IsExpanded = true; }
+                expander.Expanding += (_, _) =>
+                {
+                    fields ??= new ItemFields(item, document);
+                    expander.Content = fields.Panel;
+                };
+                return new(expander, () => fields?.Read() ?? item);
+            });
+            AddSection(Panel, UiText.Get("Subquestions"), _items.Panel, expanded: true);
+            AddButton(_items.Actions, UiText.Get("Add subquestion"), () => _items.Add(NewItem(document, _items.Count + 1)));
+        }
+
+        public Question Read()
+        {
+            var items = _items.Read();
+            if (items.Count > 1)
+                items = items.Select((item, index) => string.IsNullOrWhiteSpace(item.Label) ? item with { Label = "(" + (index + 1).ToString(CultureInfo.InvariantCulture) + ")" } : item).ToList();
+            return _original with
+            {
+                Number = _number.Text.Trim(),
+                Subject = _subject.Text.Trim(),
+                QuestionType = _type.Text.Trim(),
+                Stem = _stem.Read(),
+                Sources = _sources.Read(),
+                KnowledgePoints = Lines(_knowledge.Text),
+                Uncertainties = Lines(_uncertainties.Text),
+                Items = items
+            };
+        }
+
+        private static string ItemHeader(QuestionItem item) => string.IsNullOrWhiteSpace(item.Label) ? UiText.Get("Answer and grading") : UiText.Format("Subquestion {0}", item.Label);
+    }
+
+    private sealed class ItemFields
+    {
+        private readonly QuestionItem _original;
+        private readonly TextBox _label, _answer, _explanation, _points;
+        private readonly TextBox? _student, _earned, _reason, _solution;
+        private readonly ComboBox? _verdict;
+        private readonly EditorList<Content> _prompt;
+        private readonly EditorList<string> _options;
+        private readonly EditorList<Region>? _studentRegions;
+        public StackPanel Panel { get; } = new() { Spacing = 12 };
+
+        public ItemFields(QuestionItem item, Document document)
+        {
+            _original = item;
+            _label = AddText(Panel, UiText.Get("Subquestion label"), item.Label);
+            _prompt = ContentList(item.Prompt, document);
+            AddSection(Panel, UiText.Get("Subquestion text"), _prompt.Panel);
+            _options = new(item.Options, value =>
             {
                 var field = new TextBox { Text = value, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
                 return new(field, () => field.Text);
             });
             AddSection(Panel, UiText.Get("Options"), _options.Panel);
             AddButton(_options.Actions, UiText.Get("Add option"), () => _options.Add(""));
-            _answer = AddText(Panel, UiText.Get("Standard answer"), question.StandardAnswer, true);
-            _explanation = AddText(Panel, UiText.Get("Explanation"), question.Explanation, true);
-            _knowledge = AddText(Panel, UiText.Get("Topics (one per line)"), string.Join("\n", question.KnowledgePoints), true);
-            _points = AddText(Panel, UiText.Get("Maximum score (leave blank if unknown)"), ScoreText(question.Points));
-            _sources = RegionList(question.Sources, document, "material");
-            AddSection(Panel, UiText.Get("Question source"), _sources.Panel);
-            _uncertainties = AddText(Panel, UiText.Get("Items to review (one per line)"), string.Join("\n", question.Uncertainties), true);
-            if (question.Attempt is { } attempt)
-            {
-                _student = AddText(Panel, UiText.Get("Student answer"), attempt.StudentAnswer, true);
-                _studentRegions = RegionList(attempt.StudentRegions, document, "material");
-                AddSection(Panel, UiText.Get("Answer source"), _studentRegions.Panel);
-                _verdict = new ComboBox { Header = UiText.Get("Verdict"), HorizontalAlignment = HorizontalAlignment.Stretch };
-                foreach (var label in new[] { UiText.Get("Correct"), UiText.Get("Partially correct"), UiText.Get("Incorrect"), UiText.Get("Unanswered"), UiText.Get("Needs review") }) _verdict.Items.Add(label);
-                _verdict.SelectedIndex = (int)attempt.Grade.Verdict; Panel.Children.Add(_verdict);
-                _earned = AddText(Panel, UiText.Get("Score (leave blank if undetermined)"), ScoreText(attempt.Grade.Earned));
-                _reason = AddText(Panel, UiText.Get("Grading notes"), attempt.Grade.Reason, true);
-                _solution = AddText(Panel, UiText.Get("Solution steps"), attempt.AiSolution, true);
-                if (attempt.Teacher is { } teacher)
-                    Panel.Children.Add(new TextBlock { Text = UiText.Get("Teacher annotations: ") + teacher.Raw, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
-                if (!string.IsNullOrWhiteSpace(attempt.Conflict))
-                    Panel.Children.Add(new TextBlock { Text = UiText.Get("Grading differences: ") + attempt.Conflict, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
-            }
-            _parts = new(question.Parts, part =>
-            {
-                QuestionFields? nested = null;
-                var expander = new Expander { Header = UiText.Format("Subquestion {0}", part.Number), HorizontalAlignment = HorizontalAlignment.Stretch };
-                expander.Expanding += (_, _) =>
-                {
-                    nested ??= new QuestionFields(part, document, depth + 1);
-                    expander.Content = nested.Panel;
-                };
-                return new(expander, () => nested?.Read() ?? part);
-            });
-            AddSection(Panel, UiText.Get("Subquestion"), _parts.Panel);
-            if (depth < 8)
-                AddButton(_parts.Actions, UiText.Get("Add subquestion"), () => _parts.Add(NewPart(question, document, (_parts.Count + 1).ToString(CultureInfo.InvariantCulture))));
+            _answer = AddText(Panel, UiText.Get("Standard answer"), item.Answer, true);
+            _explanation = AddText(Panel, UiText.Get("Explanation"), item.Explanation, true);
+            _points = AddText(Panel, UiText.Get("Maximum score (leave blank if unknown)"), ScoreText(item.Points));
+            if (item.Attempt is not { } attempt) return;
+            _student = AddText(Panel, UiText.Get("Student answer"), attempt.StudentAnswer, true);
+            _studentRegions = RegionList(attempt.StudentRegions, document, "material");
+            AddSection(Panel, UiText.Get("Answer source"), _studentRegions.Panel);
+            _verdict = new ComboBox { Header = UiText.Get("Verdict"), HorizontalAlignment = HorizontalAlignment.Stretch };
+            foreach (var label in new[] { UiText.Get("Correct"), UiText.Get("Partially correct"), UiText.Get("Incorrect"), UiText.Get("Unanswered"), UiText.Get("Needs review") }) _verdict.Items.Add(label);
+            _verdict.SelectedIndex = (int)attempt.Grade.Verdict; Panel.Children.Add(_verdict);
+            _earned = AddText(Panel, UiText.Get("Score (leave blank if undetermined)"), ScoreText(attempt.Grade.Earned));
+            _reason = AddText(Panel, UiText.Get("Grading notes"), attempt.Grade.Reason, true);
+            _solution = AddText(Panel, UiText.Get("Solution steps"), attempt.AiSolution, true);
+            if (attempt.Teacher is { } teacher)
+                Panel.Children.Add(new TextBlock { Text = UiText.Get("Teacher annotations: ") + teacher.Raw, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+            if (!string.IsNullOrWhiteSpace(attempt.Conflict))
+                Panel.Children.Add(new TextBlock { Text = UiText.Get("Grading differences: ") + attempt.Conflict, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
         }
 
-        public Question Read()
+        public QuestionItem Read()
         {
             var points = ParseScore(_points.Text);
             return _original with
             {
-                Number = _number.Text.Trim(),
-                Subject = _subject.Text.Trim(),
-                QuestionType = _type.Text.Trim(),
-                Content = _content.Read(),
+                Label = _label.Text.Trim(),
+                Prompt = _prompt.Read(),
                 Options = _options.Read(),
-                StandardAnswer = _answer.Text,
+                Answer = _answer.Text,
                 Explanation = _explanation.Text,
-                KnowledgePoints = Lines(_knowledge.Text),
                 Points = points,
-                Sources = _sources.Read(),
-                Uncertainties = Lines(_uncertainties.Text),
-                Parts = _parts.Read(),
                 Attempt = _original.Attempt is { } attempt ? attempt with
                 {
                     StudentAnswer = _student!.Text,
@@ -164,6 +193,17 @@ public sealed partial class MainWindow
                 } : null
             };
         }
+    }
+
+    private static EditorList<Content> ContentList(IEnumerable<Content> content, Document document)
+    {
+        var list = new EditorList<Content>(content, value => ContentField(value, document));
+        AddButton(list.Actions, UiText.Get("Add text"), () => list.Add(new TextContent { Text = "" }));
+        AddButton(list.Actions, UiText.Get("Add formula"), () => list.Add(new FormulaContent { Latex = "" }));
+        AddButton(list.Actions, UiText.Get("Add table"), () => list.Add(new TableContent { Rows = [[""]] }));
+        if (document.Pages.FirstOrDefault(p => p.Role == "material") is { } material)
+            AddButton(list.Actions, UiText.Get("Add image"), () => list.Add(new ImageContent { Caption = "", ContainsHandwriting = false, Region = FullPage(material.Id) }));
+        return list;
     }
 
     private sealed record EditorField<T>(FrameworkElement Element, Func<T> Read);
@@ -265,8 +305,8 @@ public sealed partial class MainWindow
         var field = new TextBox { Header = label, Text = value, AcceptsReturn = multiline, TextWrapping = TextWrapping.Wrap, MaxHeight = multiline ? 180 : 80 };
         panel.Children.Add(field); return field;
     }
-    private static void AddSection(StackPanel panel, string label, FrameworkElement content)
-    { panel.Children.Add(new Expander { Header = label, Content = content, HorizontalAlignment = HorizontalAlignment.Stretch }); }
+    private static void AddSection(StackPanel panel, string label, FrameworkElement content, bool expanded = false)
+    { panel.Children.Add(new Expander { Header = label, Content = content, IsExpanded = expanded, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch }); }
     private static void AddButton(StackPanel panel, string label, Action action)
     { var button = new Button { Content = label }; button.Click += (_, _) => action(); panel.Children.Add(button); }
     private static string ScoreText(double? value) => value?.ToString("G", CultureInfo.InvariantCulture) ?? "";
@@ -274,24 +314,12 @@ public sealed partial class MainWindow
     private static double ParseRequired(string value) => double.Parse(value, CultureInfo.InvariantCulture);
     private static List<string> Lines(string value) => value.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     private static Region FullPage(string page) => new() { PageId = page, X = 0, Y = 0, Width = 1, Height = 1 };
-    private static Question NewPart(Question parent, Document document, string number) => parent with
+    private static QuestionItem NewItem(Document document, int number) => new()
     {
-        DraftKey = "manual-" + Guid.NewGuid().ToString("N"),
-        Number = number,
-        Content = [new TextContent { Text = "" }],
-        Options = [],
-        Points = null,
-        StandardAnswer = "",
-        Explanation = "",
-        KnowledgePoints = [],
-        Uncertainties = [],
-        Parts = [],
-        Sources = parent.Sources.Take(1).ToList(),
+        Key = "manual-" + Guid.NewGuid().ToString("N"),
+        Label = "(" + number.ToString(CultureInfo.InvariantCulture) + ")",
         Attempt = document.Mode == ImportMode.Blank ? null : new Attempt
         {
-            StudentAnswer = "",
-            StudentRegions = [],
-            AiSolution = "",
             Grade = new Grade { Verdict = Verdict.Uncertain, Source = GradeSource.Manual, Reason = UiText.Get("Needs review") }
         }
     };

@@ -2,18 +2,20 @@ using OhMyStudy.Domain;
 
 namespace OhMyStudy.App.ViewModels;
 
-public sealed partial class QuestionViewModel : ObservableObject
+public interface IQuestionPreview
 {
-    private string _answer;
+    string PreviewText { get; }
+}
+
+public sealed partial class QuestionViewModel : ObservableObject, IQuestionPreview
+{
     private string _notes = "";
     private readonly string? _presentationJson;
 
-    public QuestionViewModel(int number, string statement, string answer, bool incorrect, int page)
+    public QuestionViewModel(int number, string statement, bool incorrect, int page)
     {
         Number = number;
-        Statement = statement;
         PreviewText = statement;
-        _answer = answer;
         IsIncorrect = incorrect;
         Page = page;
     }
@@ -23,11 +25,9 @@ public sealed partial class QuestionViewModel : ObservableObject
         Saved = saved;
         _presentationJson = DomainJson.Serialize(saved.Question);
         Number = int.TryParse(saved.Question.Number, out int n) ? n : 0;
-        Statement = PlainText(saved.Question);
         PreviewText = Preview(saved.Question);
-        _answer = saved.Question.StandardAnswer;
-        _notes = saved.Question.Explanation;
-        IsIncorrect = IsMistake(saved.Question);
+        _notes = saved.Question.Notes;
+        IsIncorrect = saved.Question.IsMistake;
         var source = saved.Question.Sources.FirstOrDefault();
         Page = (int)(document?.Pages.FirstOrDefault(p => p.Id == source?.PageId)?.PageIndex ?? 0) + 1;
     }
@@ -35,47 +35,33 @@ public sealed partial class QuestionViewModel : ObservableObject
     public SavedQuestion? Saved { get; private set; }
     public int Number { get; }
     public string Label => Saved is { } saved ? UiText.Format("Question {0}", saved.Question.Number) : Number == 0 ? UiText.Get("Questions") : UiText.Format("Question {0}", Number);
-    public string Statement { get; }
     public string PreviewText { get; }
     public bool IsIncorrect { get; }
     public int Page { get; }
-    public string SourceLabel => UiText.Format("Page {0}", Page);
-    public string OutcomeLabel => Saved is { } saved ? saved.Question.Attempt?.Grade.Verdict switch
-    { Verdict.Correct => UiText.Get("✓ Correct"), Verdict.Partial => UiText.Get("△ Partially correct"), Verdict.Incorrect => UiText.Get("× Incorrect"), Verdict.Unanswered => UiText.Get("○ Unanswered"), Verdict.Uncertain => UiText.Get("? Needs review"), _ => "" }
-        : Number == 0 ? "" : IsIncorrect ? UiText.Get("△ Partially correct") : UiText.Get("✓ Correct");
-    public string Answer { get => _answer; set => Set(ref _answer, value); }
-    public string Notes { get => _notes; set => Set(ref _notes, value); }
-    public bool IsDirty => Saved is { } saved && (Answer != saved.Question.StandardAnswer || Notes != saved.Question.Explanation);
+    public string OutcomeLabel => Saved is { } saved ? OutcomeVisuals.Label(saved.Question.Outcome)
+        : Number == 0 ? "" : IsIncorrect ? OutcomeVisuals.Label(Verdict.Partial) : OutcomeVisuals.Label(Verdict.Correct);
+    public string Notes
+    {
+        get => _notes;
+        set { if (Set(ref _notes, value)) Raise(nameof(IsDirty)); }
+    }
+    public bool IsDirty => Saved is { } saved && Notes != saved.Question.Notes;
     public bool Matches(SavedQuestion saved) => Saved is { } current && current.Id == saved.Id
         && current.UpdatedAt == saved.UpdatedAt && _presentationJson == DomainJson.Serialize(saved.Question);
-    public void AcceptSaved(SavedQuestion saved, Question? submitted = null)
+    public void AcceptSaved(SavedQuestion saved, string? submittedNotes = null)
     {
-        // A save can finish while the user is already typing the next change.
-        bool retainAnswer = submitted is not null && _answer != submitted.StandardAnswer;
-        bool retainNotes = submitted is not null && _notes != submitted.Explanation;
+        bool retainNotes = submittedNotes is not null && _notes != submittedNotes;
         Saved = saved;
-        if (!retainAnswer) _answer = saved.Question.StandardAnswer;
-        if (!retainNotes) _notes = saved.Question.Explanation;
-        Raise(nameof(Answer)); Raise(nameof(Notes)); Raise(nameof(IsDirty));
+        if (!retainNotes) _notes = saved.Question.Notes;
+        Raise(nameof(Notes)); Raise(nameof(IsDirty));
     }
     public double SourceY => 228 + ((Number - 1) % 3) * 206;
-    public Question EditedQuestion => (Saved ?? throw new InvalidOperationException(UiText.Get("Samples cannot be saved."))).Question with { StandardAnswer = Answer, Explanation = Notes };
-    public static QuestionViewModel Empty() => new(0, "", "", false, 1);
-    public static bool IsMistake(Question question) => question.Attempt?.Grade.Verdict is Verdict.Partial or Verdict.Incorrect or Verdict.Unanswered || question.Parts.Any(IsMistake);
-    public static string PlainText(Question question) => string.Join("\n", question.Content.Select(content => content switch
-    { TextContent text => text.Text, FormulaContent formula => formula.Latex, TableContent table => string.Join("\n", table.Rows.Select(row => string.Join("  ", row))), ImageContent image => image.Caption, _ => "" }));
+    public static QuestionViewModel Empty() => new(0, "", false, 1);
 
-    private static string Preview(Question question)
+    internal static string Preview(Question question)
     {
-        string text = string.Concat(question.Content.Take(8).Select(content => content switch
-        {
-            TextContent prose => prose.Text,
-            FormulaContent formula => formula.Latex.Trim() is var latex && (latex.StartsWith('$') || latex.StartsWith(@"\(", StringComparison.Ordinal) || latex.StartsWith(@"\[", StringComparison.Ordinal))
-                ? latex : @"\(" + formula.Latex + @"\)",
-            TableContent table => " " + string.Join("　", table.Rows.Take(2).SelectMany(row => row)),
-            ImageContent image => string.IsNullOrWhiteSpace(image.Caption) ? UiText.Get("Image question") : image.Caption,
-            _ => ""
-        }));
+        string text = QuestionText.Preview(question);
+        if (string.IsNullOrWhiteSpace(text) && question.Stem.Concat(question.Items.SelectMany(item => item.Prompt)).Any(content => content is ImageContent)) return UiText.Get("Image question");
         return string.IsNullOrWhiteSpace(text) ? UiText.Get("No question content yet") : text;
     }
 }

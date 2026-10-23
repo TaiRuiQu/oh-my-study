@@ -113,10 +113,10 @@ public sealed partial class MainWindow
                 new PolicyToolExecutor(new HostToolExecutor(privateRuntime), new SandboxToolExecutor(privateRuntime)), Path.Combine(_libraryDirectory, "task-results"), _lifetime.Token);
             ViewModel.SaveQuestionAsync = async question =>
             {
-                var submitted = question.EditedQuestion;
-                question.AcceptSaved(await activeLibrary.EditQuestionAsync(question.Saved!.Id, submitted, _lifetime.Token), submitted);
+                string submitted = question.Notes;
+                question.AcceptSaved(await activeLibrary.SaveQuestionNotesAsync(question.Saved!.Id, submitted, _lifetime.Token), submitted);
                 // A later read failure cannot turn a committed save into an unsaved draft.
-                try { await ReloadQuestionsAsync(); } catch { }
+                if (WorkspaceGrid.Visibility == Visibility.Visible) try { await ReloadQuestionsAsync(); } catch { }
             };
             ViewModel.CancelCurrentJob = async () =>
             {
@@ -213,22 +213,12 @@ public sealed partial class MainWindow
     private async Task ShowQuestionLibraryAsync()
     {
         RememberViewport();
-        long generation = ++_documentGeneration;
+        ++_documentGeneration;
         CancelPreviewLoad(); SourcePane.Visibility = Visibility.Collapsed;
         _suppressNavigation = true;
         try { Navigation.SelectedItem = Navigation.MenuItems[1]; }
         finally { _suppressNavigation = false; }
-        SettingsPanel.Visibility = TasksPanel.Visibility = DocumentToolbar.Visibility = SectionCaption.Visibility = Visibility.Collapsed;
-        WorkspaceGrid.Visibility = Visibility.Visible; WorkspaceActions.Visibility = PapersPanel.Visibility = Visibility.Collapsed;
-        WorkspaceNotice.Visibility = Visibility.Collapsed;
-        ViewModel.ShowSection("library");
-        if (_library is not null)
-        {
-            var questions = await _library.ListQuestionsAsync(_lifetime.Token);
-            if (_closed || generation != _documentGeneration) return;
-            ViewModel.LoadLibrary(questions, false);
-            await RestoreWorkspaceContextAsync("library", generation);
-        }
+        await ShowQuestionBankAsync("library");
         UpdateQuestionState();
         ApplyWorkspaceLayout();
     }
@@ -654,7 +644,11 @@ public sealed partial class MainWindow
                     {
                         AppLog.Info("Job.Changed", $"Job={change.JobId}; State={change.Kind}");
                         await RefreshTasksAsync();
-                        if (change.Kind is "progress" or "completed" or "failed" or "cancelled") await ReloadQuestionsAsync();
+                        if (change.Kind is "progress" or "completed" or "failed" or "cancelled")
+                        {
+                            if (WorkspaceGrid.Visibility == Visibility.Visible) await ReloadQuestionsAsync();
+                            if (QuestionsPanel.Visibility == Visibility.Visible) await ReloadBankAsync(loaded: _bankQuestions.Count, keepPosition: true);
+                        }
                         if (PapersPanel.Visibility == Visibility.Visible && change.Kind is "completed" or "failed" or "cancelled") await RefreshDocumentsAsync();
                         if (change.Kind == "completed") ViewModel.StatusMessage = UiText.Get("Recognition complete. Questions added to the question bank.");
                         else if (change.Kind == "failed") ViewModel.StatusMessage = UiText.Get("Recognition incomplete. Saved questions are preserved. Try recognition again in Exams.");
@@ -766,5 +760,9 @@ public sealed partial class MainWindow
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
-    private async void EditQuestion_Click(object sender, RoutedEventArgs e) => await EditSelectedQuestionAsync();
+    private async void EditQuestion_Click(object sender, RoutedEventArgs e)
+    {
+        if (QuestionReaderPage.Visibility == Visibility.Visible) await EditQuestionAsync(ViewModel.OpenQuestion);
+        else if (WorkspaceGrid.Visibility == Visibility.Visible) await EditQuestionAsync(ViewModel.SelectedQuestion);
+    }
 }

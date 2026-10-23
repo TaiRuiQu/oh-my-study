@@ -62,11 +62,20 @@ public sealed partial class MainWindow
                 var questions = new List<ExamQuestion>();
                 for (int index = 0; index < saved.Count; index++)
                 {
-                    var item = saved[index].Question;
-                    var body = await ExportSegmentsAsync(item, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false);
-                    body.Insert(0, new ExamSegment(UiText.Format("Original question number: {0}", item.Number) + (item.Points is { } points ? UiText.Format(" ({0:g} points)", points) : "")));
-                    questions.Add(new ExamQuestion(index + 1, body, item.StandardAnswer, item.Explanation, Options: item.Options,
-                        Parts: await ExportPartsAsync(item.Parts, library, pages, reader, imageBudget, 0, _lifetime.Token).ConfigureAwait(false)));
+                    var question = saved[index].Question;
+                    var body = await ExportSegmentsAsync(question.Stem, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false);
+                    body.Insert(0, new ExamSegment(UiText.Format("Original question number: {0}", question.Number) + (question.Points is { } points ? UiText.Format(" ({0:g} points)", points) : "")));
+                    if (question.Items is [var only])
+                    {
+                        body.AddRange(await ExportSegmentsAsync(only.Prompt, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false));
+                        questions.Add(new ExamQuestion(index + 1, body, only.Answer, only.Explanation, Options: only.Options));
+                        continue;
+                    }
+                    var parts = new List<ExamPart>();
+                    foreach (var item in question.Items)
+                        parts.Add(new ExamPart(item.Label, await ExportSegmentsAsync(item.Prompt, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false), item.Answer,
+                            Explanation: item.Explanation, Options: item.Options));
+                    questions.Add(new ExamQuestion(index + 1, body, Parts: parts));
                 }
                 var document = new ExamDocument(title, questions);
                 var service = new TypstDocumentService(new(Path.Combine(AppContext.BaseDirectory, "native", "typst", "typst.exe")));
@@ -93,14 +102,14 @@ public sealed partial class MainWindow
         finally { _exportingQuestions = false; }
     }
 
-    private static bool ContainsHandwrittenImage(Question question) => question.Content.OfType<ImageContent>().Any(image => image.ContainsHandwriting)
-        || question.Parts.Any(ContainsHandwrittenImage);
+    private static bool ContainsHandwrittenImage(Question question) => question.Stem.Concat(question.Items.SelectMany(item => item.Prompt))
+        .OfType<ImageContent>().Any(image => image.ContainsHandwriting);
 
-    private static async Task<List<ExamSegment>> ExportSegmentsAsync(Question question, OhMyStudy.Infrastructure.Storage.LibraryRepository library,
+    private static async Task<List<ExamSegment>> ExportSegmentsAsync(IEnumerable<Content> contents, OhMyStudy.Infrastructure.Storage.LibraryRepository library,
         IReadOnlyDictionary<string, SourcePage> pages, NativePageImages reader, ExportImageBudget imageBudget, CancellationToken cancellationToken)
     {
         var segments = new List<ExamSegment>();
-        foreach (var content in question.Content)
+        foreach (var content in contents)
         {
             cancellationToken.ThrowIfCancellationRequested();
             switch (content)
@@ -120,18 +129,6 @@ public sealed partial class MainWindow
         return segments;
     }
 
-    private static async Task<List<ExamPart>> ExportPartsAsync(IReadOnlyList<Question> parts, OhMyStudy.Infrastructure.Storage.LibraryRepository library,
-        IReadOnlyDictionary<string, SourcePage> pages, NativePageImages reader, ExportImageBudget imageBudget, int depth, CancellationToken cancellationToken)
-    {
-        if (parts.Count == 0) return [];
-        if (depth >= 32) throw new InvalidDataException(UiText.Get("Too many nested subquestions."));
-        var result = new List<ExamPart>();
-        foreach (var part in parts)
-            result.Add(new ExamPart(part.Number, await ExportSegmentsAsync(part, library, pages, reader, imageBudget, cancellationToken).ConfigureAwait(false), part.StandardAnswer,
-                Explanation: part.Explanation, Options: part.Options,
-                Parts: await ExportPartsAsync(part.Parts, library, pages, reader, imageBudget, depth + 1, cancellationToken).ConfigureAwait(false)));
-        return result;
-    }
     private sealed class ExportImageBudget
     {
         private readonly Dictionary<string, byte[]> _images = new(StringComparer.Ordinal);
@@ -217,13 +214,12 @@ public sealed partial class MainWindow
     private static IEnumerable<string> QuestionPageIds(Question question)
     {
         foreach (var source in question.Sources) yield return source.PageId;
-        foreach (var image in question.Content.OfType<ImageContent>()) yield return image.Region.PageId;
-        if (question.Attempt is { } attempt)
+        foreach (var image in question.Stem.Concat(question.Items.SelectMany(item => item.Prompt)).OfType<ImageContent>()) yield return image.Region.PageId;
+        foreach (var attempt in question.Items.Select(item => item.Attempt).OfType<Attempt>())
         {
             foreach (var source in attempt.StudentRegions) yield return source.PageId;
             if (attempt.Teacher is { } teacher) foreach (var source in teacher.Regions) yield return source.PageId;
         }
-        foreach (var part in question.Parts) foreach (var id in QuestionPageIds(part)) yield return id;
     }
 
     private async void PrintOriginal_Click(object sender, RoutedEventArgs e)

@@ -37,64 +37,67 @@ public static class GradingValidation
     {
         try { Require(QuestionByteSize(question) <= 1_048_576, "A question exceeds 1 MiB"); }
         catch (System.Text.Json.JsonException) { throw new DomainValidationException("Question encoding failed"); }
-        Visit(question, document, references, manual, new(StringComparer.Ordinal), 0);
+        Require(ValidKey(question.DraftKey), "Questions must have a stable draft_key of at most 128 UTF-8 bytes");
+        Require(!string.IsNullOrWhiteSpace(question.Number) && question.Stem.Count != 0 && question.Sources.Count != 0, "Question number, stem, and original image sources must not be empty");
+        Require(question.Items.Count is > 0 and <= MaximumItems, "A question needs between 1 and 100 items");
+        foreach (var region in question.Sources) ValidateRegion(region, document, "material");
+        foreach (var image in question.Stem.OfType<ImageContent>()) ValidateRegion(image.Region, document, "material");
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in question.Items)
+        {
+            Require(ValidKey(item.Key) && keys.Add(item.Key), "Items must have unique stable keys of at most 128 UTF-8 bytes");
+            Require(question.Items.Count == 1 || !string.IsNullOrWhiteSpace(item.Label), "Every item of a multi-part question needs its printed label");
+            ValidateItem(item, document, references, manual);
+        }
     }
+
+    public const int MaximumItems = 100;
 
     public static int QuestionByteSize(Question question) => SerdeJson.ByteSize(DomainJson.ToElement(question), DomainJson.Context.Question);
 
-    private static void Visit(Question q, Document doc, IReadOnlyList<ReferenceAnswer> refs, bool manual, HashSet<string> keys, int depth)
+    private static bool ValidKey(string key) => !string.IsNullOrWhiteSpace(key) && Encoding.UTF8.GetByteCount(key) <= 128;
+
+    private static void ValidateItem(QuestionItem item, Document doc, IReadOnlyList<ReferenceAnswer> refs, bool manual)
     {
-        Require(depth <= 8 && keys.Count < 1000, "The question structure exceeds the limit");
-        Require(!string.IsNullOrWhiteSpace(q.DraftKey) && Encoding.UTF8.GetByteCount(q.DraftKey) <= 128 && keys.Add(q.DraftKey), "Questions and parts must have unique stable draft_key values");
-        Require(!string.IsNullOrWhiteSpace(q.Number) && q.Content.Count != 0 && q.Sources.Count != 0, "Question number, content, and original image sources must not be empty");
-        Require(q.Points is not { } points || (double.IsFinite(points) && points >= 0), "Invalid question points");
-        foreach (var region in q.Sources) ValidateRegion(region, doc, "material");
-        foreach (var image in q.Content.OfType<ImageContent>()) ValidateRegion(image.Region, doc, "material");
-        Require(doc.Mode == ImportMode.Blank ? q.Attempt is null : q.Attempt is not null,
+        Require(item.Points is not { } points || (double.IsFinite(points) && points >= 0), "Invalid item points");
+        foreach (var image in item.Prompt.OfType<ImageContent>()) ValidateRegion(image.Region, doc, "material");
+        Require(doc.Mode == ImportMode.Blank ? item.Attempt is null : item.Attempt is not null,
             doc.Mode == ImportMode.Blank ? "Blank exams must not create student attempts or unanswered records" : "Preserve attempts from answered materials; mark illegible answers uncertain");
-        if (q.Attempt is { } a)
+        if (item.Attempt is not { } a) return;
+        foreach (var region in a.StudentRegions) ValidateRegion(region, doc, "material");
+        ValidateGrade(a.Grade);
+        Require(manual || a.Grade.Source != GradeSource.Manual, "AI cannot mark results as manually edited by the user");
+        Require(a.Grade.Possible is null || item.Points is null || a.Grade.Possible == item.Points, "Possible grade points do not match item points");
+        if (a.Teacher is { } t)
         {
-            foreach (var region in a.StudentRegions) ValidateRegion(region, doc, "material");
-            ValidateGrade(a.Grade);
-            Require(manual || a.Grade.Source != GradeSource.Manual, "AI cannot mark results as manually edited by the user");
-            Require(a.Grade.Possible is null || q.Points is null || a.Grade.Possible == q.Points, "Possible grade points do not match question points");
-            if (a.Teacher is { } t)
+            foreach (var region in t.Regions) ValidateRegion(region, doc, "material");
+            if (t.Grade is { } g)
             {
-                foreach (var region in t.Regions) ValidateRegion(region, doc, "material");
-                if (t.Grade is { } g)
-                {
-                    ValidateGrade(g);
-                    Require(g.Source == GradeSource.Teacher, "Teacher grades must use the teacher source");
-                    if (doc.Mode == ImportMode.TeacherGraded && !manual) Require(g.Verdict == a.Grade.Verdict && g.Earned == a.Grade.Earned && g.Possible == a.Grade.Possible && g.Source == a.Grade.Source, "Teacher mode must preserve explicit teacher results");
-                }
+                ValidateGrade(g);
+                Require(g.Source == GradeSource.Teacher, "Teacher grades must use the teacher source");
+                if (doc.Mode == ImportMode.TeacherGraded && !manual) Require(g.Verdict == a.Grade.Verdict && g.Earned == a.Grade.Earned && g.Possible == a.Grade.Possible && g.Source == a.Grade.Source, "Teacher mode must preserve explicit teacher results");
             }
-            bool teacherPriority = doc.Mode == ImportMode.TeacherGraded && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null);
-            if (!manual && !teacherPriority && refs.FirstOrDefault(r => r.MatchedDraftKey == q.DraftKey) is { } reference)
-                Require(a.ReferenceKey == reference.Key, "This question has a matched reference answer that must be used for grading");
-            if (a.ReferenceKey is { } key)
-            {
-                Require(refs.Any(r => r.Key == key && r.MatchedDraftKey == q.DraftKey), "The reference answer does not match this question");
-                if (!teacherPriority && !manual) Require(a.Grade.Source == GradeSource.AiReference, "Grade by the reference answer when one is matched");
-            }
-            else Require(a.Grade.Source != GradeSource.AiReference, "Reference grading requires a matched reference");
         }
-        foreach (var part in q.Parts) Visit(part, doc, refs, manual, keys, depth + 1);
-        if (q.Parts.Count == 0) return;
-        if (q.Parts.All(p => p.Points.HasValue) && q.Points is { } totalPoints)
-            Require(Math.Abs(q.Parts.Sum(p => p.Points!.Value) - totalPoints) < 0.0001, "Possible points for parts do not add up to the question's possible points");
-        if (q.Attempt?.Grade.Earned is { } parent)
-            Require(q.Parts.All(p => p.Attempt?.Grade.Earned is not null) && Math.Abs(q.Parts.Sum(p => p.Attempt!.Grade.Earned!.Value) - parent) < 0.0001, "Part scores are missing or inconsistent; a definite total cannot be assigned");
+        bool teacherPriority = doc.Mode == ImportMode.TeacherGraded && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null);
+        if (!manual && !teacherPriority && refs.FirstOrDefault(r => r.MatchedItemKey == item.Key) is { } reference)
+            Require(a.ReferenceKey == reference.Key, "This item has a matched reference answer that must be used for grading");
+        if (a.ReferenceKey is { } key)
+        {
+            Require(refs.Any(r => r.Key == key && r.MatchedItemKey == item.Key), "The reference answer does not match this item");
+            if (!teacherPriority && !manual) Require(a.Grade.Source == GradeSource.AiReference, "Grade by the reference answer when one is matched");
+        }
+        else Require(a.Grade.Source != GradeSource.AiReference, "Reference grading requires a matched reference");
     }
 
-    public static List<string> QuestionKeys(Question question) => [question.DraftKey, .. question.Parts.SelectMany(QuestionKeys)];
-    public static bool IsWrongQuestion(Question question) => question.Attempt?.Grade.Verdict is Verdict.Partial or Verdict.Incorrect or Verdict.Unanswered;
+    public static List<string> ItemKeys(Question question) => question.Items.Select(item => item.Key).ToList();
+    public static bool IsWrongQuestion(Question question) => question.IsMistake;
 
     public static void ValidateCoverage(Document document, IReadOnlyList<Coverage> coverage, IReadOnlyList<SavedQuestion> questions, bool referenceOnly, IReadOnlySet<string> viewed)
     {
         var expected = document.Pages.Where(p => !referenceOnly || p.Role == "reference").Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
         var actual = coverage.Select(c => c.PageId).ToHashSet(StringComparer.Ordinal);
         Require(expected.SetEquals(actual) && actual.Count == coverage.Count, "Coverage must include every input page exactly once");
-        var keys = questions.SelectMany(q => QuestionKeys(q.Question)).ToHashSet(StringComparer.Ordinal);
+        var keys = questions.Select(q => q.Question.DraftKey).ToHashSet(StringComparer.Ordinal);
         foreach (var c in coverage)
         {
             Require(viewed.Contains(c.PageId), "Unread pages cannot be declared covered");
@@ -103,10 +106,7 @@ public static class GradingValidation
             foreach (var key in c.QuestionKeys) Require(keys.Contains(key), "Coverage references an unsaved question");
             if (referenceOnly || !document.Pages.Any(p => p.Id == c.PageId && p.Role == "material") || c.Status != "covered") continue;
             Require(c.QuestionKeys.Count != 0, "Covered material pages must list their questions, including continued questions");
-            foreach (var key in c.QuestionKeys) Require(questions.Any(q => HasSource(q.Question, key, c.PageId)), "Covered questions must reference the original image on this page");
+            foreach (var key in c.QuestionKeys) Require(questions.Any(q => q.Question.DraftKey == key && q.Question.Sources.Any(r => r.PageId == c.PageId)), "Covered questions must reference the original image on this page");
         }
     }
-
-    private static bool HasSource(Question q, string key, string page) =>
-        (q.DraftKey == key && q.Sources.Any(r => r.PageId == page)) || q.Parts.Any(p => HasSource(p, key, page));
 }

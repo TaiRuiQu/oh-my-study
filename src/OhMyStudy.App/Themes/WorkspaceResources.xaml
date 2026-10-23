@@ -90,4 +90,43 @@
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="LineHeight" Value="31" />
     </Style>
+    <Style x:Key="NeutralChipStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3,10,4" />
+        <Setter Property="Background" Value="{ThemeResource SystemFillColorNeutralBackgroundBrush}" />
+    </Style>
+    <Style x:Key="CorrectChipStyle" TargetType="Border" BasedOn="{StaticResource NeutralChipStyle}">
+        <Setter Property="Background" Value="{ThemeResource SystemFillColorSuccessBackgroundBrush}" />
+    </Style>
+    <Style x:Key="PartialChipStyle" TargetType="Border" BasedOn="{StaticResource NeutralChipStyle}">
+        <Setter Property="Background" Value="{ThemeResource SystemFillColorCautionBackgroundBrush}" />
+    </Style>
+    <Style x:Key="IncorrectChipStyle" TargetType="Border" BasedOn="{StaticResource NeutralChipStyle}">
+        <Setter Property="Background" Value="{ThemeResource SystemFillColorCriticalBackgroundBrush}" />
+    </Style>
+    <Style x:Key="ReviewChipStyle" TargetType="Border" BasedOn="{StaticResource NeutralChipStyle}">
+        <Setter Property="Background" Value="{ThemeResource SystemFillColorAttentionBackgroundBrush}" />
+    </Style>
+    <Style x:Key="NeutralIconStyle" TargetType="FontIcon">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+    </Style>
+    <Style x:Key="CorrectIconStyle" TargetType="FontIcon">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+    </Style>
+    <Style x:Key="PartialIconStyle" TargetType="FontIcon">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+    </Style>
+    <Style x:Key="IncorrectIconStyle" TargetType="FontIcon">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+    </Style>
+    <Style x:Key="ReviewIconStyle" TargetType="FontIcon">
+        <Setter Property="Foreground" Value="{ThemeResource SystemFillColorAttentionBrush}" />
+    </Style>
+    <Style x:Key="ResponseCardStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{ThemeResource WorkspaceBorderBrush}" />
+        <Setter Property="Background" Value="{ThemeResource WorkspaceSurfaceBrush}" />
+    </Style>
 </ResourceDictionary>

@@ -8,20 +8,21 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly List<QuestionViewModel> _allQuestions = [];
     private readonly Dictionary<string, QuestionViewModel> _editing = new(StringComparer.Ordinal);
     private QuestionViewModel _selectedQuestion = QuestionViewModel.Empty();
+    private QuestionViewModel _openQuestion = QuestionViewModel.Empty();
     private CancellationTokenSource? _taskCancellation;
     private string _taskStatus = UiText.Get("Ready");
     private string _statusMessage = "";
     private double _taskProgress;
     private bool _isTaskRunning;
     private string _sectionTitle = UiText.Get("Question bank");
-    private string _documentTitle = UiText.Get("All questions");
+    private string _documentTitle = UiText.Get("Question bank");
     private string _section = "library";
     private bool _saving;
     public WorkspaceViewModel(bool sample = false)
     {
         CancelTaskCommand = new ActionCommand(CancelTask, () => IsTaskRunning);
-        FinishEditCommand = new ActionCommand(async () => await SaveAsync(), () => !_saving);
-        ResetAnswerCommand = new ActionCommand(() => SelectedQuestion.Answer = UiText.Get("The maximum is 2 and the minimum is −2."));
+        FinishEditCommand = new ActionCommand(async () => await SaveAsync(SelectedQuestion), () => !_saving);
+        SaveOpenQuestionCommand = new ActionCommand(async () => await SaveAsync(OpenQuestion), () => !_saving);
         if (sample) { _section = "materials"; _sectionTitle = UiText.Get("Exams"); LoadSample(); }
     }
 
@@ -29,9 +30,10 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     public bool HasUnsavedChanges => _editing.Values.Any(question => question.IsDirty);
     public Document? CurrentDocument { get; private set; }
     public ObservableCollection<QuestionViewModel> Questions { get; } = [];
+    public IReadOnlyList<QuestionViewModel> SampleQuestions => IsSample ? _allQuestions : [];
     public ActionCommand CancelTaskCommand { get; }
     public ActionCommand FinishEditCommand { get; }
-    public ActionCommand ResetAnswerCommand { get; }
+    public ActionCommand SaveOpenQuestionCommand { get; }
     public Func<QuestionViewModel, Task>? SaveQuestionAsync { get; set; }
     public Action? CancelCurrentJob { get; set; }
     public QuestionViewModel SelectedQuestion
@@ -46,8 +48,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
             if (value.IsDirty) StatusMessage = UiText.Get("You have unsaved changes.");
         }
     }
+    public QuestionViewModel OpenQuestion { get => _openQuestion; private set => Set(ref _openQuestion, value); }
     private void SelectedQuestionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    { if (SelectedQuestion.IsDirty) StatusMessage = UiText.Get("You have unsaved changes."); }
+    { if (e.PropertyName == nameof(QuestionViewModel.Notes) && SelectedQuestion.IsDirty) StatusMessage = UiText.Get("You have unsaved changes."); }
     public string SectionTitle { get => _sectionTitle; set { if (Set(ref _sectionTitle, value)) Raise(nameof(PageTitle)); } }
     public string DocumentTitle { get => _documentTitle; set { if (Set(ref _documentTitle, value)) Raise(nameof(PageTitle)); } }
     public string PageTitle => _section is "settings" or "tasks" or "papers" ? SectionTitle : DocumentTitle;
@@ -61,9 +64,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     {
         IsSample = true; CurrentDocument = null; DocumentTitle = UiText.Get("Functions and derivatives · Practice");
         string[] statements = [UiText.Get("Given f(x) = x³ − 3x, find its maximum and minimum on [−2, 2]."), UiText.Get("In Cartesian coordinates, the line y = kx + 1 meets the parabola y = x² at A and B. Find the length of AB."), UiText.Get("Given a₁ = 1 and aₙ₊₁ = 2aₙ + 1, find the general term of {aₙ} and justify your answer.")];
-        string[] answers = [UiText.Get("The maximum is 2 and the minimum is −2."), "AB = √((k² + 4)(k² + 1))。", "aₙ = 2ⁿ − 1。"];
         _allQuestions.Clear();
-        _allQuestions.AddRange(Enumerable.Range(1, 500).Select(n => new QuestionViewModel(n, statements[(n - 1) % 3], answers[(n - 1) % 3], n % 3 == 1, ((n - 1) % 12) + 1)));
+        _allQuestions.AddRange(Enumerable.Range(1, 500).Select(n => new QuestionViewModel(n, statements[(n - 1) % 3], n % 3 == 1, ((n - 1) % 12) + 1)));
         RefreshQuestions();
     }
 
@@ -74,11 +76,20 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     }
     public void LoadLibrary(IEnumerable<SavedQuestion> questions, bool mistakes)
     {
-        IsSample = false; CurrentDocument = null; DocumentTitle = mistakes ? UiText.Get("Mistakes") : UiText.Get("All questions");
+        IsSample = false; CurrentDocument = null; DocumentTitle = mistakes ? UiText.Get("Mistakes") : UiText.Get("Question bank");
         SetQuestions(questions.Select(q => new QuestionViewModel(q)));
     }
     public void ClearLibrary()
-    { IsSample = false; CurrentDocument = null; DocumentTitle = UiText.Get("My materials"); _editing.Clear(); SetQuestions([]); }
+    { IsSample = false; CurrentDocument = null; DocumentTitle = UiText.Get("My materials"); _editing.Clear(); OpenQuestion = QuestionViewModel.Empty(); SetQuestions([]); }
+    public QuestionViewModel Open(SavedQuestion saved)
+    {
+        var question = new QuestionViewModel(saved);
+        if (_editing.TryGetValue(saved.Id, out var old) && (old.IsDirty || old.Matches(saved))) question = old;
+        _editing[saved.Id] = question;
+        OpenQuestion = question;
+        return question;
+    }
+    public void CloseOpenQuestion() => OpenQuestion = QuestionViewModel.Empty();
     private void SetQuestions(IEnumerable<QuestionViewModel> questions)
     {
         _allQuestions.Clear();
@@ -98,7 +109,6 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     {
         string? selected = SelectedQuestion.Saved?.Id;
         var source = (_section == "mistakes" ? _allQuestions.Where(q => q.IsIncorrect) : _allQuestions).ToList();
-        // Retain realized rows, selection and input focus when a task updates another question.
         for (int i = 0; i < source.Count; i++)
         {
             if (i < Questions.Count && ReferenceEquals(Questions[i], source[i])) continue;
@@ -115,17 +125,22 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         _section = tag;
         Raise(nameof(PageTitle));
         SectionTitle = tag switch { "library" => UiText.Get("Question bank"), "mistakes" => UiText.Get("Mistakes"), "settings" => UiText.Get("Settings"), "tasks" => UiText.Get("Tasks"), _ => UiText.Get("Exams") };
-        if (tag != "settings" && tag != "tasks") RefreshQuestions();
+        if (tag is "library" or "mistakes")
+        {
+            if (!IsSample) CurrentDocument = null;
+            DocumentTitle = SectionTitle;
+        }
+        if (tag is "materials") RefreshQuestions();
     }
-    private async Task SaveAsync()
+    public async Task SaveAsync(QuestionViewModel question)
     {
         if (IsSample) { StatusMessage = UiText.Get("Modified, not saved yet."); return; }
-        if (SelectedQuestion.Saved is null || SaveQuestionAsync is null) return;
+        if (question.Saved is null || SaveQuestionAsync is null) return;
         if (_saving) return;
-        _saving = true; FinishEditCommand.NotifyCanExecuteChanged();
-        try { await SaveQuestionAsync(SelectedQuestion); StatusMessage = HasUnsavedChanges ? UiText.Get("You have unsaved changes.") : UiText.Get("Saved."); }
-        catch { StatusMessage = UiText.Get("Could not save. Wait for the task to finish and retry."); }
-        finally { _saving = false; FinishEditCommand.NotifyCanExecuteChanged(); }
+        _saving = true; FinishEditCommand.NotifyCanExecuteChanged(); SaveOpenQuestionCommand.NotifyCanExecuteChanged();
+        try { await SaveQuestionAsync(question); StatusMessage = HasUnsavedChanges ? UiText.Get("You have unsaved changes.") : UiText.Get("Saved."); }
+        catch { StatusMessage = UiText.Get("Could not save. Try again."); }
+        finally { _saving = false; FinishEditCommand.NotifyCanExecuteChanged(); SaveOpenQuestionCommand.NotifyCanExecuteChanged(); }
     }
     public void UpdateJob(Job? job)
     {

@@ -28,7 +28,7 @@ public sealed partial class MainWindow
             Check(TaskEmpty.Visibility == Visibility.Visible, "empty-state");
             var taskTop = TasksPanel.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point()).Y;
             Navigation.SelectedItem = Navigation.MenuItems[2]; await Task.Delay(150);
-            var mistakesTop = WorkspaceGrid.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point()).Y;
+            var mistakesTop = QuestionsPanel.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point()).Y;
             Check(Math.Abs(taskTop - mistakesTop) < 1, "task-content-top-matches-mistakes");
             Navigation.SelectedItem = Navigation.MenuItems[3]; await Task.Delay(150); await RefreshTasksAsync();
             await _jobs!.DisposeAsync();

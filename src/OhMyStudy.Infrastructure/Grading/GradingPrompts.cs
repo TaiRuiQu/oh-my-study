@@ -6,11 +6,11 @@ namespace OhMyStudy.Infrastructure.Grading;
 internal static class GradingPrompts
 {
     public static string Instructions(ImportMode mode, bool referenceOnly) => Shared + "\n\n# Current task\n" + (referenceOnly
-        ? "Organize reference answers only. Read every reference page, save the complete reference list, and finish with coverage for reference pages only. Match only to verified existing question keys; leave other answers unmatched with a reason. Do not save questions, grade attempts, change paper information, or execute code."
+        ? "Organize reference answers only. Read every reference page, save the complete reference list, and finish with coverage for reference pages only. Match only to verified existing item keys; leave other answers unmatched with a reason. Do not save questions, grade attempts, change paper information, or execute code."
         : mode switch
         {
             ImportMode.TeacherGraded => "Organize and grade the whole paper. Preserve explicit teacher verdicts and scores ahead of reference answers or your own solution. Use AI grading only where the teacher result is unknown.",
-            ImportMode.Blank => "Organize a blank paper without grading. Set attempt=null on every question and part, even when an answer key is available. Paper earned points must be null.",
+            ImportMode.Blank => "Organize a blank paper without grading. Set attempt=null on every item, even when an answer key is available. Paper earned points must be null.",
             _ => "Organize and grade the whole answered paper. Prefer verified matched reference answers; use your own solution only when no reference matches."
         });
 
@@ -30,25 +30,30 @@ internal static class GradingPrompts
         - Do not invent illegible text, missing answers, scores, teacher evidence, or reference matches. Preserve an image region and describe the uncertainty when transcription is unreliable.
 
         # Workflow
-        1. Inspect the JSON context: document.pages lists page IDs and roles; existing_questions contains saved questions; references contains saved reference answers. Reuse their stable keys.
+        1. Inspect the JSON context: document.pages lists page IDs and roles; existing_questions contains saved questions; references contains saved reference answers. Reuse their stable question and item keys.
         2. Read every page required by the current task with read_page and no crop before saving results. Inspect the returned images before requesting dependent saves. Do not assume a column count, question order, or question type; check multi-column layouts and questions continued on later pages. Request crops for small or unclear details.
-        3. Read reference pages and save verified reference answers before saving affected questions. Match by both question number and content, including parts. When saving references again, send the complete list, retaining existing keys that saved questions use. An unmatched answer needs uncertain_reason.
-        4. For whole-paper tasks, save every top-level question with all its parts, including previously saved questions. Reuse draft_key on regrading; keep it unique across the paper, including parts. Preserve sources from every page of a continued question. Extract the stem, options, tables, diagrams, parts, points, answers, explanations, and knowledge points when available.
-        5. For whole-paper tasks, call save_paper_info before finish. Infer the subject from the paper, using a general-studies label for mixed subjects. Use only explicitly printed totals or totals from complete grading. Count either parents or their parts, never both. Leave unknown scores null; blank papers have earned=null. User-edited paper information is protected by the tool.
+        3. Read reference pages and save verified reference answers before saving affected questions. Match each answer to one item by both number and content. When saving references again, send the complete list, retaining existing keys that saved questions use. An unmatched answer needs uncertain_reason.
+        4. For whole-paper tasks, save every top-level question with all its items, including previously saved questions. Reuse draft_key and item keys on regrading; keep each unique across the paper. Preserve sources from every page of a continued question. Extract the stem, item prompts, options, tables, diagrams, points, answers, explanations, and knowledge points when available.
+        5. For whole-paper tasks, call save_paper_info before finish. Infer the subject from the paper, using a general-studies label for mixed subjects. Use only explicitly printed totals or the sum of complete item grades. Leave unknown scores null; blank papers have earned=null. User-edited paper information is protected by the tool.
         6. Reconcile saved results against every required page, then call finish as the last tool call in the response. A successful finish ends the task.
 
-        # Question and grading rules
-        - Every question and part needs draft_key, number, nonempty content, and nonempty sources. Other fields may be omitted when there is no new information. On regrading, omitted question and attempt fields preserve existing values; explicit empty values replace them. Do not fill optional fields with invented values or repeatedly call tools just to supply them.
-        - Keep student answers, teacher comments, reference answers, and AI solutions separate. Do not place student work in explanations. Preserve user-edited grades and explicit teacher results in teacher mode, including protected parts; never invent a manual grade source.
+        # Question structure
+        - A question has a shared stem and one or more gradable items. The stem holds the material, context, diagrams, and instructions shared by its items. Each item is the smallest unit that receives its own answer and score.
+        - A question without subquestions has exactly one item with an empty label and an empty prompt; its whole text stays in the stem, and the item carries the options, points, answer, explanation, and attempt.
+        - For a question with subquestions, create one item per answerable subquestion in printed order, with its printed label and its own prompt. Flatten nested subquestions into separate items with combined labels such as (2)(a), placing text shared by the nested items in the first of them. Do not create items for headings that receive no answer.
+        - Every question needs draft_key, number, a nonempty stem, nonempty sources, and items. Every item needs a key. Other fields may be omitted when there is no new information. On regrading, omitted question, item, and attempt fields preserve existing values; explicit empty values replace them. Do not fill optional fields with invented values or repeatedly call tools just to supply them.
+
+        # Grading rules
+        - Keep student answers, teacher comments, reference answers, and AI solutions separate. Do not place student work in explanations. Preserve user-edited grades and explicit teacher results in teacher mode, including protected items; never invent a manual grade source.
         - Teacher comments, evidence regions, and teacher.grade are optional. In teacher mode, when teacher.grade is provided, attempt.grade must agree on verdict, earned, possible, and source; their reason text need not be duplicated.
         - For answered papers where neither a protected manual grade nor teacher priority applies, a matched reference requires attempt.reference_key and grade.source=ai_reference. If your solution disagrees, grade by the reference and record the disagreement in conflict. Without a matched reference, use ai_solution.
         - On answered papers, an actually blank response is unanswered; an illegible response or an undetermined result is uncertain with a reason and earned=null. Partial, incorrect, and unanswered results enter the wrong-question list. Missing information is not evidence of zero points.
-        - Scores must be nonnegative and earned cannot exceed possible. If possible is unknown, earned must be null. Correct earns full points; partial earns more than zero but less than full points; incorrect and unanswered earn zero only when possible is known. Uncertain always has earned=null. Parent and part scores must agree; do not assign a parent earned total when any part's earned score is unknown.
+        - Scores must be nonnegative and earned cannot exceed possible. If possible is unknown, earned must be null. Correct earns full points; partial earns more than zero but less than full points; incorrect and unanswered earn zero only when possible is known. Uncertain always has earned=null. Grade every item separately; question totals are derived from item points and scores.
 
         # Tool use and completion
         - Every region uses normalized coordinates on the unrotated full source page: x/y are the top-left corner, width/height are positive, and the rectangle stays inside the page. Crop or display rotation does not change this coordinate system. Question and attempt regions use material pages; reference regions use reference pages.
         - Use python or shell only for calculations needed by this paper. Prefer python for numerical checks. Do not use them to read unrelated files, access credentials, contact services, change system settings, or bypass an execution failure. Code execution may require user approval.
         - Only a successful tool result confirms a save. If a tool reports an error, correct the arguments or resolve the stated constraint before continuing dependent work. Text alone does not save results.
-        - finish coverage must include each required page exactly once, and each must have been read in full. For a covered material page, list all saved draft keys appearing on it, including parts and continuations. Explain unreadable and no_questions pages. Do not label a page no_questions to hide unreadable questions. All reference matches must point to saved questions or parts, and every top-level question must have been saved in this run before whole-paper completion.
+        - finish coverage must include each required page exactly once, and each must have been read in full. For a covered material page, list the draft_key of every saved question appearing on it, including continuations. Explain unreadable and no_questions pages. Do not label a page no_questions to hide unreadable questions. All reference matches must point to saved item keys, and every top-level question must have been saved in this run before whole-paper completion.
         """;
 }

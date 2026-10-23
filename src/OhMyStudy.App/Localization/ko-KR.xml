@@ -657,4 +657,34 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0648" xml:space="preserve">인식 시간이 초과되었습니다. 나중에 다시 시도하거나 나누어 인식하세요.</text>
     <text key="S0649" xml:space="preserve">모델 호출이 완료되지 않았습니다. 모델 설정을 확인하고 다시 시도하세요.</text>
     <text key="S0650" xml:space="preserve">예제 보기</text>
+    <text key="S0651" xml:space="preserve">문제 내용, 정답, 메모 또는 시험 검색</text>
+    <text key="S0652" xml:space="preserve">문제 검색</text>
+    <text key="S0653" xml:space="preserve">과목별 문제 필터</text>
+    <text key="S0654" xml:space="preserve">채점 결과별 문제 필터</text>
+    <text key="S0655" xml:space="preserve">문제 정렬</text>
+    <text key="S0656" xml:space="preserve">모든 결과</text>
+    <text key="S0657" xml:space="preserve">시험별</text>
+    <text key="S0658" xml:space="preserve">득점률 낮은 순</text>
+    <text key="S0659" xml:space="preserve">최근 업데이트순</text>
+    <text key="S0660" xml:space="preserve">이전 문제</text>
+    <text key="S0661" xml:space="preserve">다음 문제</text>
+    <text key="S0662" xml:space="preserve">시험에서 보기</text>
+    <text key="S0663" xml:space="preserve">내 메모</text>
+    <text key="S0664" xml:space="preserve">메모 저장</text>
+    <text key="S0665" xml:space="preserve">목록으로 돌아가기</text>
+    <text key="S0666" xml:space="preserve">저장되지 않았습니다. 문제 번호, 점수, 하위 문제 표시와 원본 영역을 확인하세요.</text>
+    <text key="S0667" xml:space="preserve">하위 문제 목록</text>
+    <text key="S0668" xml:space="preserve">정답 및 채점</text>
+    <text key="S0669" xml:space="preserve">하위 문제 표시</text>
+    <text key="S0670" xml:space="preserve">하위 문제 내용</text>
+    <text key="S0671" xml:space="preserve">문제를 불러올 수 없습니다. 잠시 후 다시 시도하세요.</text>
+    <text key="S0672" xml:space="preserve">문제: {0} / {1}개</text>
+    <text key="S0673" xml:space="preserve">문제를 찾을 수 없습니다</text>
+    <text key="S0674" xml:space="preserve">다른 키워드, 과목 또는 채점 결과로 시도해 보세요.</text>
+    <text key="S0675" xml:space="preserve">이 문제는 더 이상 존재하지 않습니다.</text>
+    <text key="S0676" xml:space="preserve">학습 항목</text>
+    <text key="S0677" xml:space="preserve">하위 문제 {0}개</text>
+    <text key="S0678" xml:space="preserve">내 답안</text>
+    <text key="S0679" xml:space="preserve">정답 및 해설 보기</text>
+    <text key="S0680" xml:space="preserve">저장할 수 없습니다. 다시 시도하세요.</text>
 </resources>

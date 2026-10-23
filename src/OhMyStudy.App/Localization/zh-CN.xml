@@ -657,4 +657,34 @@
     <text key="S0648" xml:space="preserve">识别已超时，请稍后重试或分批识别。</text>
     <text key="S0649" xml:space="preserve">模型调用未完成，请检查模型设置后重试。</text>
     <text key="S0650" xml:space="preserve">查看示例</text>
+    <text key="S0651" xml:space="preserve">搜索题目内容、答案、笔记或试卷</text>
+    <text key="S0652" xml:space="preserve">搜索题目</text>
+    <text key="S0653" xml:space="preserve">按科目筛选题目</text>
+    <text key="S0654" xml:space="preserve">按批改结果筛选题目</text>
+    <text key="S0655" xml:space="preserve">题目排序</text>
+    <text key="S0656" xml:space="preserve">全部结果</text>
+    <text key="S0657" xml:space="preserve">按试卷</text>
+    <text key="S0658" xml:space="preserve">得分率从低到高</text>
+    <text key="S0659" xml:space="preserve">最近更新</text>
+    <text key="S0660" xml:space="preserve">上一题</text>
+    <text key="S0661" xml:space="preserve">下一题</text>
+    <text key="S0662" xml:space="preserve">在试卷中查看</text>
+    <text key="S0663" xml:space="preserve">我的笔记</text>
+    <text key="S0664" xml:space="preserve">保存笔记</text>
+    <text key="S0665" xml:space="preserve">返回列表</text>
+    <text key="S0666" xml:space="preserve">未保存。请检查题号、分数、小问标签和原图区域。</text>
+    <text key="S0667" xml:space="preserve">小问列表</text>
+    <text key="S0668" xml:space="preserve">答案与批改</text>
+    <text key="S0669" xml:space="preserve">小问标签</text>
+    <text key="S0670" xml:space="preserve">小问内容</text>
+    <text key="S0671" xml:space="preserve">无法加载题目，请稍后重试。</text>
+    <text key="S0672" xml:space="preserve">{0} / {1} 道题</text>
+    <text key="S0673" xml:space="preserve">没有找到题目</text>
+    <text key="S0674" xml:space="preserve">换个关键词、科目或批改结果试试。</text>
+    <text key="S0675" xml:space="preserve">这道题已不存在。</text>
+    <text key="S0676" xml:space="preserve">知识点</text>
+    <text key="S0677" xml:space="preserve">{0} 个小问</text>
+    <text key="S0678" xml:space="preserve">你的作答</text>
+    <text key="S0679" xml:space="preserve">查看答案与解析</text>
+    <text key="S0680" xml:space="preserve">无法保存，请重试。</text>
 </resources>

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Runtime.Versioning;
 using Microsoft.Data.Sqlite;
 using OhMyStudy.Domain;
@@ -42,6 +43,7 @@ internal static class Program
             await CredentialAtomicity();
             await CopyUpgradeRecovery();
             await ComplexCopyUpgradeRecovery();
+            await QuestionBankScale();
             Console.WriteLine($"Storage regression: {passed} checks passed. Synthetic temporary libraries only. {Root}");
             return 0;
         }
@@ -150,7 +152,7 @@ internal static class Program
             }
             await using (var repository = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)))
             {
-                Check((await repository.InspectAsync()).SchemaVersion == 3, $"v{version} upgraded/opened v3");
+                Check((await repository.InspectAsync()).SchemaVersion == 4, $"v{version} upgraded/opened v4");
                 Check((await repository.ListProvidersAsync()).Single().Id == Fixture<Provider>("provider").Id, "provider stable reference");
                 var document = await repository.GetDocumentAsync(Fixture<Document>("document").Id);
                 var reordered = await repository.UpdatePagesAsync(document.Id, document.Pages.AsEnumerable().Reverse().Select(p => new PageEdit { Id = p.Id, Rotation = 90 }).ToList());
@@ -158,7 +160,7 @@ internal static class Program
                 await Fails(() => LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)), "cooperating writer lease");
                 await repository.VerifyIntegrityAsync();
             }
-            if (version == 1) Check(Directory.GetFiles(path, "study.sqlite3.pre-v3-*").Length == 1, "v1 consistent preupgrade database backup");
+            if (version == 1) Check(Directory.GetFiles(path, "study.sqlite3.pre-v4-*").Length == 1, "v1 consistent preupgrade database backup");
         }
         var failed = CreateLegacy(1, true);
         await Fails(() => LibraryRepository.OpenAsync(new(failed, LibraryOpenMode.ReadWrite)), "migration conflict rejects open");
@@ -175,7 +177,7 @@ internal static class Program
             string source = CreateLegacy(version), backup = Unique("cutover-backup"), destination = Unique("cutover-copy");
             byte[] originalDatabase = File.ReadAllBytes(Path.Combine(source, "study.sqlite3"));
             var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source, backup, destination);
-            Check(migration.OriginalSchemaVersion == version && migration.CurrentSchemaVersion == 3 && migration.Documents == 1, $"v{version} copy-only migration upgrades verified destination");
+            Check(migration.OriginalSchemaVersion == version && migration.CurrentSchemaVersion == 4 && migration.Documents == 1, $"v{version} copy-only migration upgrades verified destination");
             Check(File.ReadAllBytes(Path.Combine(source, "study.sqlite3")).SequenceEqual(originalDatabase), $"v{version} source database bytes untouched");
             Check(migration.CredentialReferences == 1 && migration.ContentSha256.Length == 64, "cutover validates credential references without reading secrets");
             using var receipt = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(destination, "migration-receipt.json")));
@@ -198,20 +200,11 @@ internal static class Program
         string source = CreateLegacy(2), backup = Unique("complex-backup"), destination = Unique("complex-copy");
         var document = Fixture<Document>("document");
         var original = Fixture<Question>("question");
-        var teacherGrade = original.Attempt!.Grade with { Source = GradeSource.Teacher, Reason = "合成教师批注：保留步骤分" };
-        var nested = original with
-        {
-            DraftKey = "legacy-nested",
-            Number = "1(1)",
-            Attempt = original.Attempt with { Grade = teacherGrade, Teacher = new() { Raw = "√ +1", Regions = original.Sources, Grade = teacherGrade } },
-            Parts = []
-        };
-        var complex = original with
-        {
-            DraftKey = "legacy-root",
-            Attempt = null,
-            Parts = [nested with { Parts = [nested with { DraftKey = "legacy-deep", Number = "1(1)a" }] }]
-        };
+        var item = original.Items[0];
+        var teacherGrade = item.Attempt!.Grade with { Source = GradeSource.Teacher, Reason = "合成教师批注：保留步骤分" };
+        var teacherAttempt = item.Attempt with { Grade = teacherGrade, Teacher = new() { Raw = "√ +1", Regions = original.Sources, Grade = teacherGrade } };
+        var deep = LegacyQuestion(original, "legacy-deep", "1(1)a", teacherAttempt, []);
+        var complex = LegacyQuestion(original, "legacy-root", "1", null, [LegacyQuestion(original, "legacy-nested", "1(1)", teacherAttempt, [deep])]);
         static string Extend(string json, string value) => json[..^1] + ",\"legacy_unknown\":" + value + "}";
         using (var database = Db(source))
         {
@@ -232,14 +225,15 @@ internal static class Program
                     Sql(database, "INSERT INTO job_events(id,job_id,sequence,created_at,kind,payload_json) VALUES($p0,$p1,$p2,$p3,'snapshot',$p4)",
                         jobEvent.Id, job.Id, (long)sequence, jobEvent.CreatedAt.ToString(), Extend(DomainJson.Serialize(jobEvent), "{\"old_event\":true}"));
                 }
-                var references = Fixture<List<ReferenceAnswer>>("references").Select(item => item with { Answer = "历史答案 " + history, MatchedDraftKey = complex.DraftKey }).ToList();
+                var references = JsonNode.Parse(DomainJson.Serialize(Fixture<List<ReferenceAnswer>>("references").Select(reference => reference with { Answer = "历史答案 " + history, MatchedItemKey = "legacy-root" }).ToList()))!;
+                foreach (var reference in references.AsArray().OfType<JsonObject>()) { reference["matched_draft_key"] = reference["matched_item_key"]!.DeepClone(); reference.Remove("matched_item_key"); }
                 var coverage = Fixture<List<Coverage>>("coverage").Select(item => item with { Reason = "历史覆盖 " + history }).ToList();
                 Sql(database, "INSERT INTO grading_runs(job_id,document_id,input_json,coverage_json,references_json) VALUES($p0,$p1,$p2,$p3,$p4)",
-                    job.Id, document.Id, Extend(DomainJson.Serialize(job.Input!), "{\"input_history\":" + history + "}"), DomainJson.Serialize(coverage), DomainJson.Serialize(references));
+                    job.Id, document.Id, Extend(DomainJson.Serialize(job.Input!), "{\"input_history\":" + history + "}"), DomainJson.Serialize(coverage), references.ToJsonString());
                 Sql(database, "INSERT INTO model_calls(job_id,ordinal,details_json) VALUES($p0,0,$p1)", job.Id,
                     Extend(contracts.RootElement.GetProperty("model_call").GetRawText(), "{\"response_history\":" + history + ",\"raw_provider_field\":null}"));
             }
-            Sql(database, "INSERT INTO questions(id,document_id,draft_key,content_json,updated_at) VALUES('72000000-0000-4000-8000-000000000001',$p0,$p1,$p2,'2026-10-18T00:00:00Z')", document.Id, complex.DraftKey, DomainJson.Serialize(complex));
+            Sql(database, "INSERT INTO questions(id,document_id,draft_key,content_json,updated_at) VALUES('72000000-0000-4000-8000-000000000001',$p0,'legacy-root',$p1,'2026-10-18T00:00:00Z')", document.Id, complex.ToJsonString());
             // A supported-version database can retain an extension table with types the UI never interprets.
             Sql(database, "CREATE TABLE legacy_annotations(id TEXT PRIMARY KEY,raw_json TEXT,sample BLOB,real_value REAL,null_value TEXT)");
             Sql(database, "INSERT INTO legacy_annotations VALUES('one',$p0,X'FF0010',1.25,NULL)", " { \"opaque\" : [ true, null, \"中文\" ] } ");
@@ -249,13 +243,15 @@ internal static class Program
         var rawBefore = RawRows(source);
         var assetsBefore = Directory.GetFiles(Path.Combine(source, "assets")).ToDictionary(path => Path.GetFileName(path)!, File.ReadAllBytes, StringComparer.Ordinal);
         var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, backup, destination);
-        Check(migration.OriginalSchemaVersion == 2 && migration.CurrentSchemaVersion == 3 && migration.Questions == 1, "complex v2 migration includes nested question and historical runs");
+        Check(migration.OriginalSchemaVersion == 2 && migration.CurrentSchemaVersion == 4 && migration.Questions == 1, "complex v2 migration includes nested question and historical runs");
         Check(databaseBefore.SequenceEqual(File.ReadAllBytes(Path.Combine(source, "study.sqlite3"))), "complex migration leaves original database bytes unchanged");
         foreach (string path in new[] { backup, destination })
         {
             var rows = RawRows(path);
+            var expectedRows = new Dictionary<string, List<string>>(rawBefore, StringComparer.Ordinal);
             if (rows.TryGetValue("paper_info", out var added) && added.Count == 0 && !rawBefore.ContainsKey("paper_info")) rows.Remove("paper_info");
-            Check(rows.Count == rawBefore.Count && rows.All(pair => rawBefore.TryGetValue(pair.Key, out var expected) && expected.SequenceEqual(pair.Value)),
+            if (path == destination) foreach (string restructured in new[] { "questions", "grading_runs" }) { rows.Remove(restructured); expectedRows.Remove(restructured); }
+            Check(rows.Count == expectedRows.Count && rows.All(pair => expectedRows.TryGetValue(pair.Key, out var expected) && expected.SequenceEqual(pair.Value)),
                 "complex raw rows preserve all columns, JSON bytes, historical runs, jobs/events and extension data: " + Path.GetFileName(path));
             Check(assetsBefore.All(pair => pair.Value.SequenceEqual(File.ReadAllBytes(Path.Combine(path, "assets", pair.Key!))))
                 && Directory.GetFiles(Path.Combine(path, "assets")).Length == assetsBefore.Count, "complex original and thumbnail bytes preserved: " + Path.GetFileName(path));
@@ -263,8 +259,16 @@ internal static class Program
         await using (var copy = await LibraryRepository.OpenAsync(new(destination)))
         {
             var saved = (await copy.ListQuestionsAsync()).Single();
-            Check(DomainJson.Serialize(saved.Question) == DomainJson.Serialize(complex) && saved.Question.Parts[0].Parts[0].Attempt!.Teacher!.Raw == "√ +1",
-                "complex nested teacher evidence remains readable after copy");
+            var upgraded = saved.Question.Items.Single();
+            Check(saved.Question.DraftKey == "legacy-root" && DomainJson.Serialize(saved.Question.Stem) == DomainJson.Serialize(original.Stem)
+                && upgraded.Key == "legacy-deep" && upgraded.Label == "1(1)a" && upgraded.Prompt.Count == original.Stem.Count * 2
+                && upgraded.Attempt!.Teacher!.Raw == "√ +1" && upgraded.Answer == item.Answer && saved.Question.Points == item.Points,
+                "complex nested part tree flattens into an item that keeps branch text and teacher evidence");
+            var result = await copy.GradingResultAsync(document.Id);
+            Check(result.References.All(reference => reference.MatchedItemKey == "legacy-root"), "legacy reference matches are renamed without data loss");
+            var summaries = await copy.QueryQuestionsAsync(new());
+            Check(summaries.Total == 1 && summaries.Items.Single().Mistake && summaries.Items.Single().Verdict == Verdict.Partial && summaries.Items.Single().ItemCount == 1,
+                "upgrade derives question bank summaries");
             Check((await copy.LoadJobSnapshotsAsync()).Count == 2 && (await copy.ListJobEventsAsync("71000000-0000-4000-8000-000000000001")).Count == 2,
                 "complex legacy jobs and events remain readable after copy");
         }
@@ -273,6 +277,72 @@ internal static class Program
         await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, trailingBackup, Unique("outside-copy")), "trailing source separator still rejects contained backup");
         await Fails(() => LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, Unique("outside-backup"), trailingCopy), "trailing source separator still rejects contained migration copy");
         Check(!Directory.Exists(trailingBackup) && !Directory.Exists(trailingCopy), "contained paths rejected before creating backup or copy");
+    }
+
+    private static async Task QuestionBankScale()
+    {
+        const int count = 12_000;
+        string path = CreateLegacy(2);
+        var original = Fixture<Question>("question");
+        var item = original.Items[0];
+        Attempt Graded(Verdict verdict, double? earned) => item.Attempt! with { ReferenceKey = null, Grade = item.Attempt.Grade with { Verdict = verdict, Earned = earned, Source = GradeSource.AiSolution } };
+        using (var database = Db(path))
+        {
+            Sql(database, "BEGIN");
+            for (int index = 0; index < count; index++)
+            {
+                string key = "scale-" + index;
+                var question = index % 3 == 0
+                    ? LegacyQuestion(original, key, (index + 1).ToString(), null, [LegacyQuestion(original, key + "-1", "(1)", Graded(Verdict.Correct, 2), []), LegacyQuestion(original, key + "-2", "(2)", Graded(Verdict.Incorrect, 0), [])])
+                    : LegacyQuestion(original, key, (index + 1).ToString(), index % 3 == 1 ? Graded(Verdict.Correct, 2) : Graded(Verdict.Uncertain, null), []);
+                if (index % 500 == 0) question["content"] = new JsonArray(new JsonObject { ["kind"] = "text", ["text"] = "罕见关键词 光抑制 " + index });
+                Sql(database, "INSERT INTO questions(id,document_id,draft_key,content_json,updated_at) VALUES($p0,$p1,$p2,$p3,'2026-10-18T00:00:00Z')",
+                    Guid.NewGuid().ToString(), Fixture<Document>("document").Id, key, question.ToJsonString());
+            }
+            Sql(database, "COMMIT");
+        }
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        await using var repository = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite));
+        long upgrade = clock.ElapsedMilliseconds;
+        async Task<(QuestionPage Page, long Ms)> Timed(QuestionQuery query)
+        {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            var page = await repository.QueryQuestionsAsync(query);
+            return (page, timer.ElapsedMilliseconds);
+        }
+        var first = await Timed(new());
+        var deep = await Timed(new(Offset: count - 100));
+        var search = await Timed(new(Search: "光抑制"));
+        var mistakes = await Timed(new(QuestionFilter.Mistakes, QuestionSort.LowestScore));
+        var subjectTimer = System.Diagnostics.Stopwatch.StartNew();
+        var subjects = await repository.ListQuestionSubjectsAsync();
+        long subjectMs = subjectTimer.ElapsedMilliseconds;
+        Console.WriteLine($"Question bank scale: questions={count}; upgrade-ms={upgrade}; first-page-ms={first.Ms}; deep-page-ms={deep.Ms}; search-ms={search.Ms}; mistakes-ms={mistakes.Ms}; subjects-ms={subjectMs}");
+        Check(first.Page.Total == count && first.Page.Items.Count == 100 && deep.Page.Items.Count == 100 && deep.Page.Items[^1].Number == count.ToString(), "twelve thousand upgraded questions page in stable order");
+        Check(search.Page.Matching == count / 500 && mistakes.Page.Matching == count / 3 && mistakes.Page.Items.All(summary => summary.Mistake && summary.ItemCount == 2) && subjects.SequenceEqual([original.Subject]), "large bank search, mistake filter and subjects stay correct");
+        Check(new[] { first.Ms, deep.Ms, search.Ms, mistakes.Ms, subjectMs }.All(ms => ms < 2000), "large bank queries stay interactive");
+    }
+
+    private static JsonObject LegacyQuestion(Question template, string key, string number, Attempt? attempt, JsonObject[] parts)
+    {
+        var item = template.Items[0];
+        return new JsonObject
+        {
+            ["draft_key"] = key,
+            ["number"] = number,
+            ["subject"] = template.Subject,
+            ["question_type"] = template.QuestionType,
+            ["content"] = JsonNode.Parse(DomainJson.Serialize(template.Stem)),
+            ["options"] = new JsonArray(item.Options.Select(option => (JsonNode?)JsonValue.Create(option)).ToArray()),
+            ["points"] = item.Points,
+            ["standard_answer"] = item.Answer,
+            ["explanation"] = item.Explanation,
+            ["knowledge_points"] = new JsonArray(template.KnowledgePoints.Select(point => (JsonNode?)JsonValue.Create(point)).ToArray()),
+            ["sources"] = JsonNode.Parse(DomainJson.Serialize(template.Sources)),
+            ["uncertainties"] = new JsonArray(),
+            ["attempt"] = attempt is null ? null : JsonNode.Parse(DomainJson.Serialize(attempt)),
+            ["parts"] = new JsonArray(parts.Select(part => (JsonNode?)part).ToArray())
+        };
     }
 
     private static Dictionary<string, List<string>> RawRows(string path)
@@ -464,13 +534,23 @@ internal static class Program
         Check((await repository.GradingQuestionsAsync(job.Input.Document.Id)).Single().Id == saved.Id, "cancel retains successful previous save");
         await Fails(() => repository.SaveJobEventAsync(canceled, Event(canceled)), "event sequence reuse refused atomically");
         Check((await repository.ListJobEventsAsync(job.Id)).Count == 2 && (await repository.LoadJobSnapshotsAsync()).Single().State == JobState.Cancelled, "snapshot/events transaction and order");
-        var edited = await repository.EditQuestionAsync(saved.Id, question);
-        Check(edited.Question.Attempt!.Grade.Source == GradeSource.Manual, "manual edit marks provenance");
+        var unchanged = await repository.EditQuestionAsync(saved.Id, question with { Stem = [.. question.Stem, new TextContent { Text = "补充" }] });
+        Check(unchanged.Question.Items[0].Attempt!.Grade.Source == GradeSource.AiReference, "editing question text keeps unchanged AI grades");
+        var noted = await repository.SaveQuestionNotesAsync(saved.Id, "复习：注意定义域");
+        Check(noted.Question.Notes == "复习：注意定义域" && noted.Question.Items[0].Attempt!.Grade.Source == GradeSource.AiReference, "notes save without changing grades");
+        var correctedAttempt = question.Items[0].Attempt! with { StudentAnswer = "更正后的作答" };
+        var edited = await repository.EditQuestionAsync(saved.Id, noted.Question with { Items = [question.Items[0] with { Attempt = correctedAttempt }] });
+        Check(edited.Question.Items[0].Attempt!.Grade.Source == GradeSource.Manual && edited.Question.Notes == "复习：注意定义域", "editing a grade marks manual provenance");
+        var page = await repository.QueryQuestionsAsync(new(QuestionFilter.Mistakes, Search: "注意定义域"));
+        Check(page.Matching == 1 && page.Items.Single().Id == saved.Id && page.Items.Single().Possible == 2, "question bank searches notes and filters mistakes");
+        Check((await repository.ListQuestionSubjectsAsync()).SequenceEqual([question.Subject]) && (await repository.QueryQuestionsAsync(new(Subject: question.Subject))).Matching == 1, "question bank lists and filters subjects");
+        Check((await repository.QueryQuestionsAsync(new(QuestionFilter.Correct))).Matching == 0 && (await repository.QueryQuestionsAsync(new(Search: "100%_"))).Matching == 0, "question bank filters escape wildcards");
         var rerun = job with { Id = Guid.NewGuid().ToString("D"), Sequence = 1, CreatedAt = job.CreatedAt + 1 };
         await repository.SaveJobEventAsync(rerun, Event(rerun)); await repository.BeginGradingAsync(rerun);
         var updated = await repository.SaveGradingQuestionAsync(rerun.Id, question);
-        Check(updated.Id == saved.Id && updated.Question.Attempt!.Grade.Source == GradeSource.Manual, "regrade preserves manual grade");
-        await Fails(() => repository.SaveGradingQuestionAsync(rerun.Id, question with { Attempt = null }), "regrade cannot remove protected attempt");
+        Check(updated.Id == saved.Id && updated.Question.Items[0].Attempt!.Grade.Source == GradeSource.Manual && updated.Question.Notes == "复习：注意定义域", "regrade preserves manual grade and notes");
+        await Fails(() => repository.SaveGradingQuestionAsync(rerun.Id, question with { Items = [question.Items[0] with { Attempt = null }] }), "regrade cannot remove protected attempt");
+        await Fails(() => repository.SaveGradingQuestionAsync(rerun.Id, question with { Items = [question.Items[0] with { Key = "replacement" }] }), "regrade cannot drop protected item");
         await Fails(() => repository.UpdatePagesAsync(job.Input.Document.Id, []), "active run blocks page edit");
         await Fails(() => repository.DeletePaperAsync(job.Input.Document.Id), "active run blocks paper deletion");
         var completed = rerun with { State = JobState.Completed, Sequence = 2, Progress = 100 };
