@@ -578,6 +578,7 @@ internal static class Program
             Check(edited.Question.Stem.OfType<OhMyStudy.Domain.ImageContent>().Single().AssetId == assetId, "editing retains the processed image");
             var events = await fixture.Library.ListJobEventsAsync(job.Id);
             Check(events.Any(value => value.Payload.GetRawText().Contains("synthetic actionable traceback", StringComparison.Ordinal)), "execution failure details remain visible in task activities");
+            Check(!events.Any(value => value.Payload.GetRawText().Contains("Code execution did not complete", StringComparison.Ordinal)), "execution failures do not retain generic retry guidance");
             await fixture.Library.DeletePaperAsync(fixture.Document.Id);
             try { await fixture.Library.ReadAssetAsync(assetId!); throw new InvalidOperationException("Processed asset survived paper deletion"); }
             catch (KeyNotFoundException) { }

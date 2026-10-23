@@ -690,4 +690,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0681" xml:space="preserve">Python を実行</text>
     <text key="S0682" xml:space="preserve">PowerShell を実行</text>
     <text key="S0683" xml:space="preserve">コードの実行が完了しました</text>
+    <text key="S0684" xml:space="preserve">エラーの詳細を表示</text>
+    <text key="S0685" xml:space="preserve">エラーの詳細を非表示</text>
 </resources>

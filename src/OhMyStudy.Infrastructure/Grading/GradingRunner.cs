@@ -249,7 +249,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                                 ["stderr"] = executionResult.Stderr,
                                 ["outputs"] = await workspace.ReadOutputsAsync(outputPaths, attachments, operation => context.CommitAsync(operation), cancellation).ConfigureAwait(false)
                             };
-                            if (!executionResult.Succeeded) result["error"] = "Code execution did not complete. Inspect status and stderr, then correct the code or timeout.";
+                            if (!executionResult.Succeeded) result["error"] = $"Code execution status: {executionResult.Status}; exit code: {executionResult.ExitCode?.ToString() ?? "unavailable"}.";
                             else if (result["outputs"]!.AsArray().Any(output => output?["error"] is not null)) result["error"] = "Some output images could not be read. Inspect outputs and correct their paths or formats.";
                             break;
                         default: throw new InvalidOperationException("This tool is not allowed for the current task.");
@@ -279,7 +279,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     "python" or "shell" => "Code execution completed",
                     _ => "Action completed"
                 };
-                string stepText = call.Name is "python" or "shell" ? string.Join('\n', new[] { result["stdout"]?.GetValue<string>(), result["stderr"]?.GetValue<string>() }.Where(value => !string.IsNullOrEmpty(value))) : "";
+                string? stderr = result["stderr"]?.GetValue<string>();
+                string stepText = call.Name is "python" or "shell" ? string.Join('\n', new[] { result["stdout"]?.GetValue<string>(), !string.IsNullOrWhiteSpace(stderr) ? stderr : error ? detail : null }.Where(value => !string.IsNullOrEmpty(value))) : "";
                 await context.ActivityAsync(activity with
                 {
                     State = error ? "failed" : "completed",

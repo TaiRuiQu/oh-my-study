@@ -690,4 +690,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0681" xml:space="preserve">Python 실행</text>
     <text key="S0682" xml:space="preserve">PowerShell 실행</text>
     <text key="S0683" xml:space="preserve">코드 실행 완료</text>
+    <text key="S0684" xml:space="preserve">오류 세부 정보 표시</text>
+    <text key="S0685" xml:space="preserve">오류 세부 정보 숨기기</text>
 </resources>

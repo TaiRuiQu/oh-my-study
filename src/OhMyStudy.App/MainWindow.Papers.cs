@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using OhMyStudy.App.ViewModels;
 
 namespace OhMyStudy.App;
@@ -75,11 +74,7 @@ public sealed partial class MainWindow
     private MenuFlyout CreatePaperContextMenu(PaperViewModel paper)
     {
         var delete = new MenuFlyoutItem { Text = UiText.Get("Delete exam"), Icon = new FontIcon { Glyph = "\uE74D" } };
-        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("TaskErrorBrush", out var value) && value is Brush brush)
-        {
-            delete.Foreground = brush;
-            if (delete.Icon is FontIcon icon) icon.Foreground = brush;
-        }
+        delete.Resources.Source = new Uri("ms-appx:///Themes/DestructiveMenuFlyoutItemResources.xaml");
         delete.Click += async (_, _) => await DeletePaperAsync(paper);
         var flyout = new MenuFlyout();
         flyout.Items.Add(delete);

@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using OhMyStudy.App.Diagnostics;
@@ -175,8 +176,8 @@ public sealed partial class MainWindow
         TaskProgress.Visibility = selected.State == JobState.Running ? Visibility.Visible : Visibility.Collapsed;
         TaskCancelButton.Visibility = selected.State.IsTerminal() ? Visibility.Collapsed : Visibility.Visible;
         TaskPermissionButton.Visibility = selected.PendingPermission is null ? Visibility.Collapsed : Visibility.Visible;
-        ulong inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, uncachedTokens = 0, cacheWriteTokens = 0;
-        bool inputKnown = true, outputKnown = true, cacheKnown = true, uncachedKnown = true, cacheWriteKnown = true;
+        ulong inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0;
+        bool inputKnown = true, outputKnown = true, cacheKnown = true, cacheWriteKnown = true;
         double cost = 0; bool priced = calls.Count > 0;
         foreach (var call in calls)
         {
@@ -185,14 +186,13 @@ public sealed partial class MainWindow
                 if (usage.TryGetProperty("input", out var a) && a.ValueKind == System.Text.Json.JsonValueKind.Number && a.TryGetUInt64(out var ai)) inputTokens += ai; else inputKnown = false;
                 if (usage.TryGetProperty("output", out var b) && b.ValueKind == System.Text.Json.JsonValueKind.Number && b.TryGetUInt64(out var bi)) outputTokens += bi; else outputKnown = false;
                 if (usage.TryGetProperty("cache_read", out var r) && r.ValueKind == System.Text.Json.JsonValueKind.Number && r.TryGetUInt64(out var ri)) cacheReadTokens += ri; else cacheKnown = false;
-                if (usage.TryGetProperty("input_uncached", out var u) && u.ValueKind == System.Text.Json.JsonValueKind.Number && u.TryGetUInt64(out var ui)) uncachedTokens += ui; else uncachedKnown = false;
                 if (usage.TryGetProperty("cache_write", out var w) && w.ValueKind == System.Text.Json.JsonValueKind.Number && w.TryGetUInt64(out var wi)) cacheWriteTokens += wi; else cacheWriteKnown = false;
             }
-            if (!call.TryGetProperty("usage", out _)) { inputKnown = false; outputKnown = false; cacheKnown = false; uncachedKnown = false; cacheWriteKnown = false; }
+            if (!call.TryGetProperty("usage", out _)) { inputKnown = false; outputKnown = false; cacheKnown = false; cacheWriteKnown = false; }
             if (call.TryGetProperty("estimated_cost", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Number && c.TryGetDouble(out var amount)) cost += amount; else priced = false;
         }
         TaskInputUsage.Text = inputKnown ? UiText.Format("Input {0:N0}", inputTokens) : UiText.Get("Input usage not provided"); TaskOutputUsage.Text = outputKnown ? UiText.Format("Output {0:N0}", outputTokens) : UiText.Get("Output usage not provided");
-        TaskInputUncached.Text = uncachedKnown ? UiText.Format("Uncached {0:N0}", uncachedTokens) : UiText.Get("Uncached usage not provided");
+        TaskInputUncached.Text = inputKnown && cacheKnown && cacheReadTokens <= inputTokens ? UiText.Format("Uncached {0:N0}", inputTokens - cacheReadTokens) : UiText.Get("Uncached usage not provided");
         TaskInputCached.Text = cacheKnown ? UiText.Format("Cache read {0:N0}", cacheReadTokens) : UiText.Get("Cache read usage not provided");
         TaskInputCacheWrite.Text = cacheWriteKnown ? UiText.Format("Cache write {0:N0}", cacheWriteTokens) : UiText.Get("Cache write usage not provided");
         TaskNoUsage.Visibility = calls.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -343,6 +343,9 @@ public sealed partial class MainWindow
         private readonly Run _state = new();
         private readonly TextBlock _detail = new() { FontFamily = new FontFamily(UiText.InterfaceFontFamily), FontWeight = Microsoft.UI.Text.FontWeights.Normal, TextWrapping = TextWrapping.Wrap, FontSize = 16, LineHeight = 26, Margin = new Thickness(0, 6, 0, 0) };
         private readonly TextBlock _output = new() { FontFamily = new FontFamily(UiText.InterfaceFontFamily), FontWeight = Microsoft.UI.Text.FontWeights.Normal, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, FontSize = 16, LineHeight = 26, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 6, 0, 0) };
+        private readonly FontIcon _errorChevron = new() { Glyph = "\uE76C", FontSize = 12 };
+        private readonly ToggleButton _errorToggle = new() { Width = 28, Height = 28, Padding = new Thickness(4), BorderThickness = new Thickness(0), Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), VerticalAlignment = VerticalAlignment.Top, Visibility = Visibility.Collapsed };
+        private readonly TextBlock _errorDetails = new() { FontFamily = new FontFamily(UiText.InterfaceFontFamily), TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, FontSize = 14, LineHeight = 22, Visibility = Visibility.Collapsed, Margin = new Thickness(24, 6, 0, 0) };
         public bool OutputFitsContent => _output.ActualHeight > 0 && Math.Abs(_output.ActualHeight + _output.Margin.Top + _output.Margin.Bottom - _output.DesiredSize.Height) < 1;
         public bool OutputHasTrailingBlankLines => _output.Text.EndsWith("\n", StringComparison.Ordinal);
         public bool OutputVisible => _output.Visibility == Visibility.Visible;
@@ -350,21 +353,38 @@ public sealed partial class MainWindow
         public string Title => _title.Text;
         public string Heading => _heading.Text;
         public bool DetailVisible => _detail.Visibility == Visibility.Visible;
+        public bool ErrorDetailsAvailable => _errorToggle.Visibility == Visibility.Visible;
+        public bool ErrorDetailsVisible => _errorDetails.Visibility == Visibility.Visible;
+        public string ErrorDetails => _errorDetails.Text;
         public TaskLogEntryView()
         {
             Root.ColumnDefinitions.Add(new() { Width = new GridLength(16) });
             Root.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
-            for (int i = 0; i < 3; i++) Root.RowDefinitions.Add(new() { Height = GridLength.Auto });
+            Root.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+            for (int i = 0; i < 4; i++) Root.RowDefinitions.Add(new() { Height = GridLength.Auto });
             Root.Children.Add(_icon);
             _heading.Inlines.Add(_title); _heading.Inlines.Add(_state);
             Grid.SetColumn(_heading, 1); Root.Children.Add(_heading);
-            Grid.SetRow(_detail, 1); Grid.SetColumnSpan(_detail, 2); Root.Children.Add(_detail);
-            Grid.SetRow(_output, 2); Grid.SetColumnSpan(_output, 2); Root.Children.Add(_output);
+            Grid.SetRow(_detail, 1); Grid.SetColumnSpan(_detail, 3); Root.Children.Add(_detail);
+            Grid.SetRow(_output, 2); Grid.SetColumnSpan(_output, 3); Root.Children.Add(_output);
+            _errorToggle.Content = _errorChevron;
+            _errorToggle.Checked += (_, _) => ApplyErrorExpansion();
+            _errorToggle.Unchecked += (_, _) => ApplyErrorExpansion();
+            Grid.SetColumn(_errorToggle, 2); Root.Children.Add(_errorToggle);
+            Grid.SetRow(_errorDetails, 3); Grid.SetColumnSpan(_errorDetails, 3); Root.Children.Add(_errorDetails);
+        }
+        private void ApplyErrorExpansion()
+        {
+            bool expanded = _errorToggle.IsChecked == true;
+            _errorChevron.Glyph = expanded ? "\uE70D" : "\uE76C";
+            _errorDetails.Visibility = expanded && ErrorDetailsAvailable ? Visibility.Visible : Visibility.Collapsed;
+            AutomationProperties.SetName(_errorToggle, UiText.Get(expanded ? "Hide error details" : "Show error details"));
         }
         public void Update(JobActivity step, string state, ulong time, Func<string, Brush> brush, string? tooltip = null)
         {
             bool model = step.Kind == "model";
             bool error = state is "failed" or "cancelled";
+            bool executionError = error && step.Kind is "python" or "shell";
             var secondary = brush("TaskSecondaryBrush");
             _icon.Foreground = error ? brush("TaskErrorBrush") : secondary;
             _icon.Glyph = error ? "\uE7BA" : step.Kind switch
@@ -377,7 +397,13 @@ public sealed partial class MainWindow
             _state.Foreground = error ? brush("TaskErrorBrush") : secondary;
             _detail.Text = UiText.ActivityText(step.Detail);
             _detail.Foreground = error ? brush("TaskErrorBrush") : secondary;
-            _detail.Visibility = (error || model && output.Length == 0) && !string.IsNullOrWhiteSpace(step.Detail) ? Visibility.Visible : Visibility.Collapsed;
+            _detail.Visibility = !executionError && (error || model && output.Length == 0) && !string.IsNullOrWhiteSpace(step.Detail) ? Visibility.Visible : Visibility.Collapsed;
+            _errorDetails.Text = executionError ? (string.IsNullOrWhiteSpace(step.Text) ? UiText.ActivityText(step.Detail) : step.Text.TrimEnd()) : "";
+            _errorDetails.Foreground = brush("TaskErrorBrush");
+            _errorToggle.Foreground = secondary;
+            _errorToggle.Visibility = executionError && _errorDetails.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (!executionError) _errorToggle.IsChecked = false;
+            ApplyErrorExpansion();
             if (_output.Text != output) _output.Text = output;
             _output.Visibility = output.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             // Short actions read as log lines; model replies read as continuous prose.

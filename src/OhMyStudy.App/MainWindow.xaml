@@ -75,6 +75,9 @@
                                     </MenuFlyoutItem>
                                     <MenuFlyoutSeparator x:Name="PaperDetailSeparator" />
                                     <MenuFlyoutItem x:Name="PaperDeleteAction" Text="{l:Text Key=S0293}" Click="DeletePaper_Click" Foreground="{ThemeResource TaskErrorBrush}">
+                                        <MenuFlyoutItem.Resources>
+                                            <ResourceDictionary Source="Themes/DestructiveMenuFlyoutItemResources.xaml" />
+                                        </MenuFlyoutItem.Resources>
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" Foreground="{ThemeResource TaskErrorBrush}" /></MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
                                 </MenuFlyout>

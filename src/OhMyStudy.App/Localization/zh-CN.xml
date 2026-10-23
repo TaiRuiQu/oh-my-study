@@ -690,4 +690,6 @@
     <text key="S0681" xml:space="preserve">运行 Python</text>
     <text key="S0682" xml:space="preserve">运行 PowerShell</text>
     <text key="S0683" xml:space="preserve">代码执行完成</text>
+    <text key="S0684" xml:space="preserve">展开错误详情</text>
+    <text key="S0685" xml:space="preserve">收起错误详情</text>
 </resources>

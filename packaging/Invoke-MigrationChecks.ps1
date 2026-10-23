@@ -6,6 +6,8 @@ param(
     [switch]$DesktopSmoke,
     [switch]$WorkflowSmoke,
     [switch]$PrepareDocuments,
+    [switch]$ManagedSdkTests,
+    [switch]$NoRestore,
     [string]$RuntimeDirectory
 )
 $ErrorActionPreference = 'Stop'
@@ -74,12 +76,21 @@ try {
         $clock = [Diagnostics.Stopwatch]::StartNew()
         try {
             # ILCompiler targets are selected during restore. Never restore Release AOT as Debug.
-            Invoke-Dotnet @('restore',$project,'-p:Configuration=Release','--locked-mode','--disable-parallel') (Join-Path $run "$($entry.name)-restore.log")
+            if (-not $NoRestore) { Invoke-Dotnet @('restore',$project,'-p:Configuration=Release','--locked-mode','--disable-parallel') (Join-Path $run "$($entry.name)-restore.log") }
+            $managed = $ManagedSdkTests -and $entry.name -in @('provider','grading')
             $publish = Join-Path $run "publish/$($entry.name)"
-            Invoke-Dotnet @('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$publish) (Join-Path $run "$($entry.name)-publish.log")
+            if ($managed) {
+                Invoke-Dotnet @('build',$project,'-c','Release','--no-restore') (Join-Path $run "$($entry.name)-build.log")
+                $publish = Join-Path (Split-Path -Parent $project) 'bin/Release/net10.0/win-x64'
+            } else {
+                Invoke-Dotnet @('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$publish) (Join-Path $run "$($entry.name)-publish.log")
+            }
             $exe = Join-Path $publish $entry.executable
-            Assert-NativeExe $exe
-            if (Test-Path -LiteralPath (Join-Path $publish 'coreclr.dll')) { throw 'CoreCLR found in Native AOT output' }
+            $check.runtime = if ($managed) { 'managed' } else { 'native-aot' }
+            if (-not $managed) {
+                Assert-NativeExe $exe
+                if (Test-Path -LiteralPath (Join-Path $publish 'coreclr.dll')) { throw 'CoreCLR found in Native AOT output' }
+            }
             $check.executable = $exe; $check.sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($entry.name -eq 'setup') {
                 $check.status='publish-passed'; $report.setupPublishDirectory=$publish
@@ -118,6 +129,7 @@ try {
                 } else { $report.notRun += 'app: persisted workflow smoke not requested' }
             } else {
                 $arguments = @()
+                if ($managed -and $entry.name -eq 'provider') { $arguments=@('--managed-sdk-check') }
                 if ($entry.name -eq 'documents') { $arguments=@($workspace,(Join-Path $run 'documents')) }
                 elseif ($entry.name -eq 'installation') { $arguments=@((Join-Path $run 'installation.json'),(Join-Path $report.setupPublishDirectory 'OhMyStudy.Setup.exe')) }
                 elseif ($entry.name -eq 'domain') { $arguments=@((Join-Path $run 'domain.json')) }

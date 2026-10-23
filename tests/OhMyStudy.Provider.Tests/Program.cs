@@ -357,14 +357,18 @@ async Task OpenRouterCaching()
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(token))!;
                 var input = body["input"]!.AsArray();
                 Check(body["instructions"]!.GetValue<string>() == "SYNTHETIC stable instructions", "cache keeps instructions stable");
-                Check(input[0]!["content"]![1]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "cache marker scoped to OpenRouter Claude and Gemini");
+                Check(input[0]!["content"]![0]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "cache marker scoped to OpenRouter Claude and Gemini");
                 Check(!body.ToJsonString().Contains("cache_control", StringComparison.Ordinal), "Responses uses its supported breakpoint field");
-                if (calls++ > 0)
+                if (calls > 0)
                 {
-                    Check(input[3]!["output"]![1]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "latest image tool result receives a breakpoint");
+                    var results = input.OfType<JsonObject>().Where(item => item["type"]?.ToString() == "function_call_output").ToArray();
+                    for (int i = 0; i < results.Length; i++)
+                        Check(results[i]["output"]![0]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled && (model.StartsWith("google/", StringComparison.Ordinal) || i >= results.Length - 3) ? "explicit" : null), "tool results retain cache boundaries within the model's marker limit");
                     Check(JsonNode.DeepEquals(input[1], fixtures["responses"]!["tool"]!["output"]![0]), "cache preserves opaque reasoning");
                     Check(input[3]!["output"]![1]!["image_url"]!.GetValue<string>().Contains("SYNTHETIC_IMAGE", StringComparison.Ordinal), "cache preserves page images");
+                    Check(input[3]!["output"]![1]!["prompt_cache_breakpoint"] is null, "cache markers use supported text blocks while preserving images");
                 }
+                calls++;
                 return stream ? Prepare(Response(FinalStream(Protocol.Responses, final)), "text/event-stream") : Response(final.ToJsonString());
             }));
             using var client = new ProviderClient(http, Protocol.Responses, endpoint);
@@ -377,6 +381,13 @@ async Task OpenRouterCaching()
             snapshot = history.ToJsonString();
             await client.CallAsync(new("synthetic-key"), options, history, [Tool()]);
             Check(snapshot == history.ToJsonString() && calls == 2, "growing cache history remains append-only");
+            for (int round = 0; round < 6; round++)
+            {
+                ProviderProtocol.ContinueWith(Protocol.Responses, history, toolTurn, [new ToolResult { Call = toolTurn.Calls[0], Text = "SYNTHETIC text-only tool result " + round, Images = [], IsError = round % 2 == 0 }]);
+                snapshot = history.ToJsonString();
+                await client.CallAsync(new("synthetic-key"), options, history, [Tool()]);
+                Check(snapshot == history.ToJsonString(), "text-only tool successes and failures advance caching without rewriting history");
+            }
         }
 }
 

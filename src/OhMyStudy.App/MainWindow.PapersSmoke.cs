@@ -37,6 +37,7 @@ public sealed partial class MainWindow
                 .SequenceEqual(expectedMenu), "more-menu-actions");
             paperMenu.ShowAt(PaperMoreButton); await Task.Delay(300); Require(paperMenu.IsOpen, "more-menu-open");
             await CaptureMenu("more-menu"); paperMenu.Hide(); await Task.Delay(220);
+            await CheckDeleteMenuStates(paperMenu, PaperMoreButton, "more-menu");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(400);
             paperMenu.ShowAt(PaperMoreButton); await Task.Delay(400);
             if (!paperMenu.IsOpen) paperMenu.ShowAt(PaperMoreButton);
@@ -45,6 +46,7 @@ public sealed partial class MainWindow
             Require(darkPopup is not null, "more-menu-dark-presenter");
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".more-menu-dark-presenter.png"), darkPopup);
             await CaptureMenu("more-menu-dark"); paperMenu.Hide(); await Task.Delay(220);
+            await CheckDeleteMenuStates(paperMenu, PaperMoreButton, "more-menu-dark");
             RootGrid.RequestedTheme = ElementTheme.Light; await Task.Delay(220);
             AppWindow.Resize(new Windows.Graphics.SizeInt32(900, 750)); await Capture("detail-medium");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 850)); await Capture("detail-compact");
@@ -76,6 +78,10 @@ public sealed partial class MainWindow
             Require(firstRow is not null, "paper-row-realized");
             contextMenu.ShowAt(firstRow!, new FlyoutShowOptions { Position = new Windows.Foundation.Point(40, 24) });
             await CaptureMenu("paper-context-menu"); contextMenu.Hide(); await Task.Delay(220);
+            await CheckDeleteMenuStates(contextMenu, firstRow!, "paper-context-menu");
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(220);
+            await CheckDeleteMenuStates(contextMenu, firstRow!, "paper-context-menu-dark");
+            RootGrid.RequestedTheme = ElementTheme.Light; await Task.Delay(220);
             var paperRow = NativeDescendants(firstRow!).OfType<FrameworkElement>().FirstOrDefault(element => element.DataContext is PaperViewModel) ?? firstRow!;
             var rowSurface = NativeDescendants(firstRow!).OfType<Grid>().Single(grid => grid.Padding == new Thickness(12, 14, 12, 14));
             var blankPosition = rowSurface.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point(rowSurface.ActualWidth / 2, 2));
@@ -174,6 +180,26 @@ public sealed partial class MainWindow
         void Require(bool value, string label) { if (!value) throw new InvalidOperationException(label); checks.Add(label); }
         async Task Capture(string name) { await Task.Delay(500); RootGrid.UpdateLayout(); await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, "." + name + ".png")); }
         async Task CaptureMenu(string name) { await Task.Delay(400); RootGrid.UpdateLayout(); await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, "." + name + ".png")); }
+        async Task CheckDeleteMenuStates(MenuFlyout menu, FrameworkElement target, string name)
+        {
+            menu.ShowAt(target); await Task.Delay(300);
+            var item = menu.Items.OfType<MenuFlyoutItem>().Single(action => action.Text == UiText.Get("Delete exam"));
+            var expected = RootGrid.ActualTheme == ElementTheme.Dark ? Windows.UI.Color.FromArgb(255, 255, 180, 171) : Windows.UI.Color.FromArgb(255, 180, 35, 24);
+            foreach (string state in new[] { "Normal", "PointerOver", "Pressed" })
+            {
+                Require(VisualStateManager.GoToState(item, state, false), name + "-" + state + "-state");
+                await Task.Delay(80);
+                var label = NativeDescendants(item).OfType<TextBlock>().Single(text => text.Name == "TextBlock");
+                Require(label.Foreground is SolidColorBrush textBrush && textBrush.Color == expected, name + "-" + state + "-red-text");
+                Require(item.Icon.Foreground is SolidColorBrush iconBrush && iconBrush.Color == expected, name + "-" + state + "-red-icon");
+                if (state == "PointerOver")
+                {
+                    var presenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(popup => popup.Child).OfType<MenuFlyoutPresenter>().Single();
+                    await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, "." + name + "-hover.png"), presenter);
+                }
+            }
+            menu.Hide(); await Task.Delay(220);
+        }
         ContentDialog OpenDialog() => VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(p => p.Child).OfType<ContentDialog>().Single();
     }
 }

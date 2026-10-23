@@ -53,7 +53,7 @@ public sealed partial class MainWindow
             Check(TaskQuestions.Text == "3" && _taskSteps.Count == 3 && _taskSteps["read-1"].Title == "阅读页面（4 次）" && TaskProgress.Visibility == Visibility.Collapsed, "completed-metrics-and-grouped-log");
             Check(!_taskSteps.Keys.Any(key => key.StartsWith("model-read-", StringComparison.Ordinal)) && _taskSteps.Values.All(view => !view.Title.Contains("轮", StringComparison.Ordinal)), "cross-turn-tools-merge-without-turn-headings");
             Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputCached.Text == "缓存命中 1,102,400"
-                && TaskInputUncached.Text == "缓存未命中 29,454" && TaskInputCacheWrite.Text == "缓存写入 4,096", "cache-buckets-visible");
+                && TaskInputUncached.Text == "缓存未命中 33,550" && TaskInputCacheWrite.Text == "缓存写入 4,096", "cache-misses-equal-input-minus-hits");
             await Capture("completed");
             foreach (int width in new[] { 820, 460 })
             {
@@ -121,6 +121,18 @@ public sealed partial class MainWindow
             var failed = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "这是一份文件名称很长的数学试卷，包含跨页题目、图表与详细解答，需要保留完整名称以便查找.pdf" } });
             await Wait(failed.Id, j => j.State.IsTerminal()); _selectedTaskId = failed.Id;
             await RefreshTasksAsync(); await Capture("failed");
+            await RefreshTasksAsync(); await Capture("execution-failed-collapsed");
+            var executionFailure = _taskSteps["python-failed"];
+            Check(executionFailure.ErrorDetailsAvailable && !executionFailure.ErrorDetailsVisible && !executionFailure.DetailVisible, "failed-execution-collapses-error-details");
+            var errorToggle = NativeDescendants(executionFailure.Root).OfType<Microsoft.UI.Xaml.Controls.Primitives.ToggleButton>().Single();
+            var errorPeer = new Microsoft.UI.Xaml.Automation.Peers.ToggleButtonAutomationPeer(errorToggle);
+            var toggleProvider = (Microsoft.UI.Xaml.Automation.Provider.IToggleProvider)errorPeer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Toggle);
+            toggleProvider.Toggle(); await RefreshTasksAsync(); await Task.Delay(100);
+            Check(executionFailure.ErrorDetailsVisible && executionFailure.ErrorDetails.Contains("ValueError: synthetic invalid input", StringComparison.Ordinal), "failed-execution-expands-traceback-and-keeps-expansion-on-refresh");
+            await Capture("execution-failed-expanded");
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("execution-failed-expanded-dark"); RootGrid.RequestedTheme = ElementTheme.Light;
+            toggleProvider.Toggle(); await RefreshTasksAsync();
+            Check(!executionFailure.ErrorDetailsVisible, "failed-execution-details-collapse-again");
             runner.Mode = "permission";
             var permission = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "数学辅助计算" } });
             await Wait(permission.Id, j => j.State == JobState.WaitingPermission); _selectedTaskId = permission.Id;
@@ -149,6 +161,7 @@ public sealed partial class MainWindow
             var unpriced = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input);
             await Wait(unpriced.Id, j => j.State.IsTerminal()); _selectedTaskId = unpriced.Id; await RefreshTasksAsync();
             Check(TaskUsage.Text == "—" && TaskRateNote.Text == "价格或用量不完整，暂无法估算费用。", "incomplete-prices-do-not-show-partial-total");
+            Check(TaskInputUncached.Text == "缓存未命中 33,550", "cache-misses-derived-without-provider-uncached-field");
             TaskUsage_Click(TaskUsageButton, new RoutedEventArgs()); await Capture("usage-unknown");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("usage-unknown-dark"); RootGrid.RequestedTheme = ElementTheme.Light; TaskUsageFlyout.Hide();
             exit = 0;
@@ -213,6 +226,7 @@ public sealed partial class MainWindow
             await context.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在接收模型响应", Text = "正在核对第 4 页的跨页题目。", PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 3200 });
             if (mode == "error")
             {
+                await context.ActivityAsync(new JobActivity { Key = "python-failed", Kind = "python", Title = "Run Python", State = "failed", Detail = "Synthetic execution failure", Text = "Traceback (most recent call last):\nValueError: synthetic invalid input" });
                 await context.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "识别", State = "failed", Detail = "模型连接中断或超时，请检查网络后重试。", Text = "正在核对第 4 页的跨页题目。", PagesRead = 4, QuestionsSaved = 3 });
                 throw new IOException("Synthetic disconnected stream");
             }
@@ -227,7 +241,7 @@ public sealed partial class MainWindow
             JsonDocument.Parse(new JsonObject
             {
                 ["model"] = "example-model",
-                ["usage"] = new JsonObject { ["input"] = input, ["input_uncached"] = input - cacheRead - 2048, ["output"] = output, ["cache_read"] = cacheRead, ["cache_write"] = 2048 },
+                ["usage"] = new JsonObject { ["input"] = input, ["input_uncached"] = cost.HasValue ? input - cacheRead - 2048 : null, ["output"] = output, ["cache_read"] = cacheRead, ["cache_write"] = 2048 },
                 ["estimated_cost"] = cost,
                 ["currency"] = "USD"
             }.ToJsonString()).RootElement.Clone();

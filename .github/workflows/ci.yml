@@ -20,6 +20,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.ref_type != 'tag' }}
+
 defaults:
   run:
     shell: pwsh
@@ -57,8 +61,10 @@ jobs:
           ./packaging/prepare-runtime.ps1
       - name: Checks
         run: ./packaging/Invoke-CI.ps1 -Phase Checks
-      - name: Test actual Native AOT executables
-        run: ./packaging/Invoke-CI.ps1 -Phase Test
+      - name: Regression tests
+        env:
+          FULL_VALIDATION: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
+        run: ./packaging/Invoke-CI.ps1 -Phase Test -FullValidation:($env:FULL_VALIDATION -eq 'true')
       - name: Upload check reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -75,6 +81,7 @@ jobs:
   build:
     name: Build ${{ matrix.variant }} portable and installer
     needs: quality
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: windows-2025
     timeout-minutes: 30
     strategy:

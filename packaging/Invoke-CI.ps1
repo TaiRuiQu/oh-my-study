@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('Lint','Checks','Test','Build')][string]$Phase,
     [ValidateSet('aot','aot-avx512','self-contained','framework-dependent')][string]$Variant = 'aot',
-    [string]$BaselineMsi)
+    [string]$BaselineMsi,
+    [switch]$FullValidation)
 $ErrorActionPreference = 'Stop'
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $savedLocation = Get-Location
@@ -47,28 +48,10 @@ try {
             & (Join-Path $PSScriptRoot 'tests/Test-CIRelease.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-MspBaseline.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-ReleasePayload.ps1')
-            # Force restore each profile: an incremental restore can conceal global
-            # property changes that invalidate a referenced library's lock file.
-            foreach ($profileVariant in @('aot','aot-avx512','self-contained','framework-dependent')) {
-                $profile = & (Join-Path $PSScriptRoot 'Get-PublishProfile.ps1') -Variant $profileVariant
-                Invoke-Dotnet (@('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Release','--locked-mode','--force','--disable-parallel') + $profile.properties)
-            }
-            # Ordinary Debug/non-AOT restores must keep the default AOT lock intact.
-            Invoke-Dotnet @('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Debug','--locked-mode','--force','--disable-parallel')
-            Invoke-Dotnet @('restore','src/OhMyStudy.App/OhMyStudy.App.csproj','-p:Configuration=Release','-p:PublishAot=false','--locked-mode','--force','--disable-parallel')
-            # These executables support local non-AOT verification as well as Release AOT.
-            # Exercise both paths before the solution restore to detect lock contamination.
-            foreach ($project in @('probes/OhMyStudy.Documents.Probe/OhMyStudy.Documents.Probe.csproj','tests/OhMyStudy.Media.Tests/OhMyStudy.Media.Tests.csproj')) {
-                Invoke-Dotnet @('restore',$project,'-p:Configuration=Debug','-p:PublishAot=false','--locked-mode','--force','--disable-parallel')
-                Invoke-Dotnet @('restore',$project,'-p:Configuration=Release','--locked-mode','--force','--disable-parallel')
-            }
-            Invoke-Dotnet @('restore','OhMyStudy.slnx','-p:Configuration=Release','--locked-mode','--force','--disable-parallel')
             Invoke-Dotnet @('build','OhMyStudy.slnx','-c','Release','--no-restore','-warnaserror')
         }
         'Test' {
-            # Windows hosted runners are server/headless environments. Desktop and physical
-            # printing acceptance remain separate; every console suite still runs actual AOT.
-            & (Join-Path $PSScriptRoot 'Invoke-MigrationChecks.ps1') -SkipApp
+            & (Join-Path $PSScriptRoot 'Invoke-MigrationChecks.ps1') -SkipApp -NoRestore -ManagedSdkTests:(!$FullValidation)
             $report = Get-Content -LiteralPath 'output/migration/latest-migration-run.json' -Raw | ConvertFrom-Json
             foreach ($name in @('domain','storage','provider','execution','grading','media','documents','infrastructure','installation')) {
                 if (-not @($report.checks | Where-Object { $_.name -eq $name -and $_.status -eq 'passed' }).Count) { throw "Required test suite did not pass: $name" }

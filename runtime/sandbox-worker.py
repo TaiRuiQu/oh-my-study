@@ -31,6 +31,7 @@ def run_computation(request, runtime, inputs, results):
         "SystemRoot": str(system), "WINDIR": str(system),
         "TEMP": str(temporary), "TMP": str(temporary),
         "PATH": str(runtime) + ";" + str(system / "System32"),
+        "PSModulePath": str(system / "System32/WindowsPowerShell/v1.0/Modules"),
         "MPLBACKEND": "Agg", "MPLCONFIGDIR": str(temporary / "matplotlib"),
         "OMP_NUM_THREADS": "2", "OPENBLAS_NUM_THREADS": "2",
         "PYTHONIOENCODING": "utf-8",
@@ -58,6 +59,7 @@ def run_computation(request, runtime, inputs, results):
             stream.write(script)
         literal = "'" + str(script_path).replace("'", "''") + "'"
         wrapper = ("$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false);"
+                   "Import-Module -Name ($PSHOME+'\\Modules\\Microsoft.PowerShell.Management\\Microsoft.PowerShell.Management.psd1');"
                    "New-PSDrive -Name Task -PSProvider FileSystem -Root (" + expression(str(work)) + ") -Scope Global|Out-Null;"
                    "Set-Location -LiteralPath 'Task:\\';"
                    "& ([scriptblock]::Create([IO.File]::ReadAllText(" + literal + ")));if(-not $?){exit 1}")

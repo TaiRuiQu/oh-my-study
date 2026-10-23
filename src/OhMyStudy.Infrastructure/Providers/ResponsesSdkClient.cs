@@ -41,7 +41,7 @@ internal sealed class ResponsesSdkClient
             if (_base.Host.Equals("openrouter.ai", StringComparison.OrdinalIgnoreCase)
                 && (options.Model.Id.StartsWith("anthropic/", StringComparison.OrdinalIgnoreCase)
                     || options.Model.Id.StartsWith("google/", StringComparison.OrdinalIgnoreCase)))
-                ApplyCacheBreakpoints(request);
+                ApplyCacheBreakpoints(request, options.Model.Id.StartsWith("anthropic/", StringComparison.OrdinalIgnoreCase) ? 4 : int.MaxValue);
             var client = Client(credentials, options.Stream);
             if (!options.Stream)
             {
@@ -112,16 +112,16 @@ internal sealed class ResponsesSdkClient
         return request;
     }
 
-    private static void ApplyCacheBreakpoints(CreateResponseOptions request)
+    private static void ApplyCacheBreakpoints(CreateResponseOptions request, int limit)
     {
         var body = JsonNode.Parse(ModelReaderWriter.Write(request, ModelReaderWriterOptions.Json, OpenAI.OpenAIContext.Default).ToString())!;
         var input = body["input"]!.AsArray();
         var blocks = input.OfType<JsonObject>().Select(item => item["content"] as JsonArray ?? item["output"] as JsonArray)
             .Where(parts => parts is not null)
-            .Select(parts => parts!.OfType<JsonObject>().LastOrDefault(part => Text(part, "type") is "input_text" or "input_image"))
+            .Select(parts => parts!.OfType<JsonObject>().LastOrDefault(part => Text(part, "type") == "input_text"))
             .OfType<JsonObject>().ToList();
         if (blocks.Count == 0) return;
-        foreach (var block in new[] { blocks[0], blocks[^1] })
+        foreach (var block in blocks.Take(1).Concat(blocks.Skip(1).TakeLast(limit - 1)))
             block["prompt_cache_breakpoint"] = new JsonObject { ["mode"] = "explicit" };
         request.Patch.Set("$.input"u8, Encoding.UTF8.GetBytes(input.ToJsonString()));
     }

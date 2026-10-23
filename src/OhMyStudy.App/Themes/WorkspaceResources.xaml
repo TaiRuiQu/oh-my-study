@@ -9,7 +9,8 @@
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FF414852" />
             <SolidColorBrush x:Key="TaskAccentBrush" Color="#FF70D6CC" />
             <SolidColorBrush x:Key="TaskAccentBackgroundBrush" Color="#FF173F42" />
-            <SolidColorBrush x:Key="TaskErrorBrush" Color="#FFFFB4AB" />
+            <Color x:Key="TaskErrorColor">#FFFFB4AB</Color>
+            <SolidColorBrush x:Key="TaskErrorBrush" Color="{ThemeResource TaskErrorColor}" />
             <SolidColorBrush x:Key="TaskSecondaryBrush" Color="#FFB7C0CC" />
             <SolidColorBrush x:Key="WorkspaceCanvasBrush" Color="#FF17191D" />
             <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="#FF24262B" />
@@ -26,7 +27,8 @@
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FFCBD2DC" />
             <SolidColorBrush x:Key="TaskAccentBrush" Color="#FF087F79" />
             <SolidColorBrush x:Key="TaskAccentBackgroundBrush" Color="#FFE0F3EF" />
-            <SolidColorBrush x:Key="TaskErrorBrush" Color="#FFB42318" />
+            <Color x:Key="TaskErrorColor">#FFB42318</Color>
+            <SolidColorBrush x:Key="TaskErrorBrush" Color="{ThemeResource TaskErrorColor}" />
             <SolidColorBrush x:Key="TaskSecondaryBrush" Color="#FF53637B" />
             <SolidColorBrush x:Key="WorkspaceCanvasBrush" Color="#FFEAEDF1" />
             <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="#FFF8F9FC" />
@@ -43,7 +45,8 @@
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="TaskAccentBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="TaskAccentBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
-            <SolidColorBrush x:Key="TaskErrorBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <Color x:Key="TaskErrorColor">{ThemeResource SystemColorWindowTextColor}</Color>
+            <SolidColorBrush x:Key="TaskErrorBrush" Color="{ThemeResource TaskErrorColor}" />
             <SolidColorBrush x:Key="TaskSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="WorkspaceCanvasBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="WorkspaceSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
