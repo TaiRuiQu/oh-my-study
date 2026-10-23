@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OhMyStudy.Application.Jobs;
+using OhMyStudy.Application.Diagnostics;
 using OhMyStudy.Domain;
 using OhMyStudy.Infrastructure.Credentials;
 using OhMyStudy.Infrastructure.Providers;
@@ -13,10 +14,12 @@ namespace OhMyStudy.Infrastructure.Grading;
 
 /// <summary>One paper, one model context, bounded tool rounds. Only validated tools write durable results.</summary>
 public sealed class GradingRunner(LibraryRepository library, IGradingImageReader images,
-    Func<Provider, IModelClient>? clientFactory = null, Func<Provider, ProviderCredentials>? credentialReader = null) : IJobRunner
+    Func<Provider, IModelClient>? clientFactory = null, Func<Provider, ProviderCredentials>? credentialReader = null,
+    Action<SavedQuestion>? questionSaved = null) : IJobRunner
 {
     public async Task RunAsync(Job job, JobContext context)
     {
+        using var trace = OperationDiagnostics.Begin(job.Id);
         if (job.Kind is not (DiagnosticKind.Grading or DiagnosticKind.References))
         {
             await library.VerifyIntegrityAsync(context.Cancellation).ConfigureAwait(false);
@@ -54,8 +57,9 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             ["references"] = JsonNode.Parse(DomainJson.Serialize(references))
         };
         GradingTools.UsePageSources(payload);
-        var history = ProviderProtocol.Initial(input.Provider.Protocol, GradingPrompts.Input(payload.ToJsonString()), []);
-        var instructions = GradingPrompts.Instructions(input.Document.Mode, referenceOnly);
+        var profile = GradingModelProfile.Select(input.Model.Id);
+        var history = ProviderProtocol.Initial(input.Provider.Protocol, GradingPrompts.Input(payload.ToJsonString(), profile), []);
+        var instructions = GradingPrompts.Instructions(input.Document.Mode, referenceOnly, profile);
         var extra = new Dictionary<string, JsonElement>();
         var nullJson = JsonDocument.Parse("null").RootElement.Clone();
         switch (input.Provider.Protocol)
@@ -66,7 +70,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         var options = new RequestOptions
         {
             Model = new() { Id = input.Model.Id, Capabilities = input.Model.Capabilities, Raw = nullJson },
-            MaxOutputTokens = Math.Min(input.Model.MaxOutputTokens ?? ulong.MaxValue,
+            MaxOutputTokens = input.Model.MaxTokens ?? Math.Min(input.Model.MaxOutputTokens ?? ulong.MaxValue,
                 input.Thinking is BudgetThinking budget ? Math.Max(32768UL, checked(budget.Tokens + 16384))
                 : input.Thinking is not null || input.Model.Reasoning == true ? 32768UL : 16384UL),
             Stream = true,
@@ -88,7 +92,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             }).ConfigureAwait(false);
             throw;
         }
-        var definitions = GradingTools.Create(referenceOnly);
+        var definitions = GradingTools.Create(referenceOnly, profile);
         var viewed = new HashSet<string>(StringComparer.Ordinal);
         var saved = new HashSet<string>(StringComparer.Ordinal);
         int textOnlyTurns = 0;
@@ -96,9 +100,10 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         {
             cancellation.ThrowIfCancellationRequested();
             await context.ProgressAsync(Math.Min(90, ordinal), $"Pages read: {viewed.Count}. Questions saved: {saved.Count}.").ConfigureAwait(false);
-            var turn = await ModelActivity.CallAsync(context, ordinal,
-                progress => client.CallAsync(credentials, options, history, definitions, progress, cancellation)).ConfigureAwait(false);
-            decimal? estimated = ProviderProtocol.EstimateCost(turn.Usage, input.Model);
+            var response = await ModelActivity.CallAsync(context, ordinal,
+                progress => client.CallAsync(credentials, options, history, definitions, progress, cancellation), cancellation).ConfigureAwait(false);
+            var turn = response.Turn;
+            decimal? estimated = response.Retries > 0 ? null : ProviderProtocol.EstimateCost(turn.Usage, input.Model);
             var usage = new JsonObject
             {
                 ["model"] = options.Model.Id,
@@ -110,7 +115,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 ["price_output"] = input.Model.PriceOutput,
                 ["currency"] = input.Model.Currency,
                 ["estimated_cost"] = estimated,
-                ["retries"] = 0
+                ["retries"] = response.Retries,
+                ["retry_usage_unknown"] = response.Retries > 0
             };
             await context.CommitAsync(token => library.RecordModelCallAsync(job.Id, ordinal, Parse(usage), token)).ConfigureAwait(false);
             if (turn.Calls.Count == 0)
@@ -171,6 +177,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 var attachments = new List<Image>();
                 JsonObject result;
                 bool error = false;
+                string? exception = null;
                 try
                 {
                     if (finished) throw new InvalidOperationException("Tools cannot be called after finish.");
@@ -201,6 +208,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                                 var question = DomainJson.Deserialize<Question>(GradingTools.WithSourceRegions(args, previous?.Sources).ToJsonString());
                                 question = FillOmittedFields(question, args, previous, input.Document.Mode);
                                 var stored = await context.CommitAsync(token => library.SaveGradingQuestionAsync(job.Id, question, token)).ConfigureAwait(false);
+                                questionSaved?.Invoke(stored);
                                 saved.Add(stored.Question.DraftKey);
                                 existing.RemoveAll(q => q.Question.DraftKey == stored.Question.DraftKey); existing.Add(stored);
                                 return new JsonObject { ["saved_id"] = stored.Id, ["draft_key"] = stored.Question.DraftKey };
@@ -261,6 +269,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 catch (Exception caught) when (caught is DomainValidationException or JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException
                     || (call.Name is "python" or "shell") && (caught is IOException or System.ComponentModel.Win32Exception))
                 {
+                    exception = caught.ToString();
                     bool executionFailure = (call.Name is "python" or "shell") && (caught is IOException or System.ComponentModel.Win32Exception);
                     result = new() { ["error"] = caught is DomainValidationException || executionFailure ? caught.Message : "Tool arguments or business constraints are invalid. Correct them according to the definitions." };
                     if (executionFailure)
@@ -292,6 +301,15 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     ElapsedMs = stepClock.ElapsedMilliseconds
                 }).ConfigureAwait(false);
                 await context.ProgressAsync(Math.Min(90, ordinal), $"Pages read: {viewed.Count}. Questions saved: {saved.Count}.").ConfigureAwait(false);
+                var diagnostic = new JsonObject { ["job_id"] = job.Id, ["round"] = ordinal, ["index"] = index, ["call_id"] = call.Id, ["tool"] = call.Name, ["elapsed_ms"] = stepClock.ElapsedMilliseconds, ["attachments"] = attachments.Count };
+                if (error)
+                {
+                    diagnostic["arguments"] = JsonNode.Parse(call.Arguments.GetRawText());
+                    diagnostic["result"] = result.DeepClone();
+                    diagnostic["exception"] = exception;
+                }
+                else if (stepText.Length > 0) diagnostic["output"] = stepText;
+                OperationDiagnostics.Record(error ? "Tool.Failed" : "Tool.Completed", diagnostic, error);
                 feedback.Add(new() { Call = call, Text = result.ToJsonString(), Images = attachments, IsError = error });
             }
             if (finished) return;
@@ -314,6 +332,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             try { result = await execute(entry).ConfigureAwait(false); }
             catch (Exception error) when (error is DomainValidationException or JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException)
             {
+                OperationDiagnostics.Record("Tool.EntryFailed", new() { ["exception"] = error.ToString(), ["entry"] = JsonNode.Parse(entry.GetRawText()) }, true);
                 result = new() { ["error"] = error is DomainValidationException ? error.Message : "Invalid entry. Correct it according to the tool definition." };
                 failures++;
             }

@@ -23,6 +23,7 @@ internal static class MessagesSdkRegression
             var history = ProviderProtocol.Initial(Protocol.Messages, "整卷😀", [new Image { Mime = "image/png", Base64 = "SYNTHETIC_IMAGE" }]);
             var calls = 0;
             JsonNode? firstAssistant = null;
+            JsonNode? firstBody = null;
             using var http = new HttpClient(new FakeHandler(async (request, ct) =>
             {
                 Require(request.RequestUri!.AbsolutePath == "/gateway/custom/messages", "custom endpoint prefix preserved");
@@ -31,15 +32,20 @@ internal static class MessagesSdkRegression
                 Require(request.Headers.GetValues("x-api-key").Single() == "synthetic-key" && request.Headers.Authorization is null, "private SDK credentials only");
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(ct))!;
                 Require(body["cache_control"]?["type"]?.ToString() == "ephemeral" && body["cache_control"]?["ttl"] is null, "automatic cache uses default TTL");
-                Require(body["stream"]!.GetValue<bool>() == (calls == 0 && streaming) && body["system"]?.ToString() == "规则", "native extras and stream field");
+                Require(body["stream"]!.GetValue<bool>() == (calls == 0 && streaming) && body["system"]?[0]?["text"]?.ToString() == "规则", "native extras and stream field");
+                Require(body["system"]?[0]?["cache_control"]?["type"]?.ToString() == "ephemeral", "explicit shared system cache breakpoint");
                 Require(body["tools"]?[0]?["input_schema"]?["required"]?[0]?.ToString() == "page", "SDK tool schema");
                 Require(body["thinking"]?["type"]?.ToString() == "adaptive" && body["output_config"]?["effort"]?.ToString() == "high", "SDK thinking fields");
                 if (++calls == 1)
                 {
+                    firstBody = body.DeepClone();
                     Require(body["messages"]!.AsArray().Count == 1, "first turn history");
                     var sse = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "messages.synthetic.sse"), ct);
                     return Reply(streaming ? sse : toolReply.ToJsonString(), streaming);
                 }
+                Require(body["system"]!.ToJsonString() == firstBody!["system"]!.ToJsonString()
+                    && body["tools"]!.ToJsonString() == firstBody["tools"]!.ToJsonString()
+                    && body["messages"]![0]!.ToJsonString() == firstBody["messages"]![0]!.ToJsonString(), "every continuation shares the exact system, tools and initial message prefix");
                 Require(JsonNode.DeepEquals(body["messages"]![1], firstAssistant), "signed and redacted context preserved");
                 Require(body["messages"]![2]?["content"]?[0]?["content"]?[1]?["type"]?.ToString() == "image", "image tool result preserved");
                 Require(!body["messages"]!.ToJsonString().Contains("cache_control", StringComparison.Ordinal), "automatic cache does not add block markers");

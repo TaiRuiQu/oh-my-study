@@ -21,6 +21,7 @@ public sealed partial class LibraryRepository
                     if (prepared.ThumbnailFile is { } thumbnail) WriteNew(thumbnail, prepared.Thumbnail!, created);
                     InsertAsset(prepared);
                     Execute("INSERT INTO question_assets(asset_id,document_id) VALUES($p0,$p1)", prepared.Id, input.Document.Id);
+                    TrackGradingChange(jobId, "asset", prepared.Id, null, null);
                     return Asset(prepared.Id);
                 });
             }

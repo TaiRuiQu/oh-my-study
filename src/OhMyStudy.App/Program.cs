@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.Win32.SafeHandles;
 using OhMyStudy.App.Diagnostics;
+using OhMyStudy.Application.Diagnostics;
 
 namespace OhMyStudy.App;
 
@@ -11,6 +12,10 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        OperationDiagnostics.Written += (phase, detail, failed) =>
+        {
+            if (failed) AppLog.Failure(phase, detail); else AppLog.Info(phase, detail);
+        };
 #if DEBUG
         // The app is a WinExe in every configuration, so a double-click never creates a
         // console window. When it is launched from a terminal instead, attach to that
@@ -33,7 +38,6 @@ internal static class Program
             Microsoft.UI.Xaml.Application.Start(parameters =>
             {
                 SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
-                AppLog.Info("Application.Create", "Creating the application.");
                 try { _ = new App(); }
                 catch (Exception error) { AppLog.Error("Application.Create", error); throw; }
             });

@@ -77,7 +77,10 @@ public sealed partial class LibraryRepository
         {
             var input = CheckRun(jobId);
             if (input.Document.Mode == ImportMode.Blank && earned is not null) throw new DomainValidationException("Blank exams cannot have earned points.");
-            return WritePaperInfo(input.Document.Id, subject, earned, possible, false) > 0;
+            string? before = PaperInfoJson(input.Document.Id);
+            bool saved = WritePaperInfo(input.Document.Id, subject, earned, possible, false) > 0;
+            if (saved) TrackGradingChange(jobId, "paper", input.Document.Id, before, PaperInfoJson(input.Document.Id));
+            return saved;
         }), ct, true);
     }
 

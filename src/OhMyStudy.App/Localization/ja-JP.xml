@@ -692,4 +692,72 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0683" xml:space="preserve">コードの実行が完了しました</text>
     <text key="S0684" xml:space="preserve">エラーの詳細を表示</text>
     <text key="S0685" xml:space="preserve">エラーの詳細を非表示</text>
+    <text key="S0686" xml:space="preserve">Search mode</text>
+    <text key="S0687" xml:space="preserve">Keyword</text>
+    <text key="S0688" xml:space="preserve">Meaning</text>
+    <text key="S0689" xml:space="preserve">Search</text>
+    <text key="S0690" xml:space="preserve">キャンセル</text>
+    <text key="S0691" xml:space="preserve">Resize question list</text>
+    <text key="S0692" xml:space="preserve">Drag left or right, or use the arrow keys to resize</text>
+    <text key="S0693" xml:space="preserve">Meaning search models</text>
+    <text key="S0694" xml:space="preserve">Embedding and reranker connections are independent of recognition providers. Each Base URL is used as entered, with /embeddings or /rerank appended. Include /v1 if your service requires it.</text>
+    <text key="S0695" xml:space="preserve">Embedding model</text>
+    <text key="S0696" xml:space="preserve">Base URL</text>
+    <text key="S0697" xml:space="preserve">Model name</text>
+    <text key="S0698" xml:space="preserve">API キー</text>
+    <text key="S0699" xml:space="preserve">Remove saved key</text>
+    <text key="S0700" xml:space="preserve">Reranker model (optional)</text>
+    <text key="S0701" xml:space="preserve">Leave both fields empty to disable a model. Keys are stored in Windows Credential Manager. Meaning search sends the query and question text to these services after confirmation; originals, personal notes and student answers stay local. Calls may incur charges; costs are not estimated.</text>
+    <text key="S0702" xml:space="preserve">Save search models</text>
+    <text key="S0703" xml:space="preserve">Clear local index</text>
+    <text key="S0704" xml:space="preserve">Optional for local services</text>
+    <text key="S0705" xml:space="preserve">Saved key; leave blank to keep</text>
+    <text key="S0706" xml:space="preserve">Could not save search settings. Enter both Base URL and model name, and check the address and key.</text>
+    <text key="S0707" xml:space="preserve">Local index cleared. The next meaning search will rebuild it after confirmation.</text>
+    <text key="S0708" xml:space="preserve">Could not clear the search index. Try again.</text>
+    <text key="S0709" xml:space="preserve">Describe the question or concept</text>
+    <text key="S0710" xml:space="preserve">Describe what you want to find, then press Search or Enter. Model calls require confirmation.</text>
+    <text key="S0711" xml:space="preserve">Search canceled. Completed embeddings are kept locally.</text>
+    <text key="S0712" xml:space="preserve">Showing up to 50 questions ranked by meaning. Change the query or filters and search again to refresh.</text>
+    <text key="S0713" xml:space="preserve">Configure an embedding Base URL and model name in Settings first.</text>
+    <text key="S0714" xml:space="preserve">Describe the question or concept first.</text>
+    <text key="S0715" xml:space="preserve">Preparing local search index…</text>
+    <text key="S0716" xml:space="preserve">No questions match the current filters.</text>
+    <text key="S0717" xml:space="preserve">Search by meaning</text>
+    <text key="S0718" xml:space="preserve">Send this query and {0} new or changed question texts ({1} characters) to {2} using {3}?</text>
+    <text key="S0719" xml:space="preserve">Results will be ranked locally by vector similarity.</text>
+    <text key="S0720" xml:space="preserve">Up to 50 candidate question texts will also be sent to {0} using {1} for reranking.</text>
+    <text key="S0721" xml:space="preserve">Original files, notes and student answers are excluded. Model calls may incur charges; the cost cannot be estimated here. Vectors are cached in this library.</text>
+    <text key="S0722" xml:space="preserve">Reranking matching questions…</text>
+    <text key="S0723" xml:space="preserve">Preparing embeddings: {0} / {1}</text>
+    <text key="S0724" xml:space="preserve">The search vectors or model response are inconsistent. Clear the local search index in Settings and try again.</text>
+    <text key="S0725" xml:space="preserve">Meaning search failed. Check the search models in Settings and try again.</text>
+    <text key="S0726" xml:space="preserve">Filters changed. Press Search to refresh meaning results.</text>
+    <text key="S0727" xml:space="preserve">The embedding response is invalid. Check the endpoint and model.</text>
+    <text key="S0728" xml:space="preserve">The reranker response is invalid. Check the endpoint and model, or clear the reranker configuration.</text>
+    <text key="S0729" xml:space="preserve">The search model key is unavailable. Enter it again in Settings.</text>
+    <text key="S0730" xml:space="preserve">The search model key is invalid. Enter it again in Settings.</text>
+    <text key="S0731" xml:space="preserve">Search model authentication failed. Check its key in Settings.</text>
+    <text key="S0732" xml:space="preserve">The search model is rate limited. Wait and try again.</text>
+    <text key="S0733" xml:space="preserve">The search model rejected the request. Check its Base URL and model name.</text>
+    <text key="S0734" xml:space="preserve">The search model request failed. Check the service and try again.</text>
+    <text key="S0735" xml:space="preserve">The search model timed out. Try again.</text>
+    <text key="S0736" xml:space="preserve">Could not connect to the search model or read its response. Check the service and try again.</text>
+    <text key="S0737" xml:space="preserve">接続が中断されました。再試行中…</text>
+    <text key="S0738" xml:space="preserve">API の種類</text>
+    <text key="S0739" xml:space="preserve">OpenAI 互換</text>
+    <text key="S0740" xml:space="preserve">領域のサイズを調整</text>
+    <text key="S0741" xml:space="preserve">ドラッグまたは矢印キーで調整。Home/End で最小/最大にします。</text>
+    <text key="S0742" xml:space="preserve">新しい問題文は自動インデックス作成のため {0} に送信され、{1} を使用します。追加料金が発生する場合があります。</text>
+    <text key="S0743" xml:space="preserve">最大出力トークン数（max_tokens）</text>
+    <text key="S0744" xml:space="preserve">空欄で自動設定</text>
+    <text key="S0745" xml:space="preserve">max_tokens が無効です。この API が対応する正の整数を入力してください。</text>
+    <text key="S0746" xml:space="preserve">思考予算は max_tokens より小さくしてください。</text>
+    <text key="S0747" xml:space="preserve">タスクを再試行</text>
+    <text key="S0748" xml:space="preserve">再試行すると、失敗した実行の保存結果と一時ファイルを削除し、新しいタスクを最初から開始します。元の文書と手動編集は保持されます。発生済みのプロバイダー料金と、コードによるタスクフォルダー外の変更は取り消せません。</text>
+    <text key="S0749" xml:space="preserve">タスクを再試行できません</text>
+    <text key="S0750" xml:space="preserve">モデル設定を確認し、この試験を処理中の別のタスクがないことを確認して再試行してください。</text>
+    <text key="S0751" xml:space="preserve">この試験は新しいタスクで処理されています。最新の失敗したタスクを再試行してください。</text>
+    <text key="S0752" xml:space="preserve">このタスクには再試行用の復元記録がありません。試験の「再認識」を使用して保存済みの結果を保持してください。</text>
+    <text key="S0753" xml:space="preserve">このタスクが保存した問題は手動編集されています。試験の「再認識」を使用して編集内容を保持してください。</text>
 </resources>

@@ -65,7 +65,7 @@ public sealed class SseDecoder
     }
     public void Finish()
     {
-        if (_line.Count > 0 || _data.Count > 0) throw Incomplete("truncated SSE frame");
+        if (_line.Count > 0 || _data.Count > 0) throw Interrupted("truncated SSE frame");
     }
 }
 
@@ -189,7 +189,7 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
     public Turn Finish()
     {
         _decoder.Finish();
-        if (!_terminal) throw Incomplete("stream ended before terminal event");
+        if (!_terminal) throw Interrupted("stream ended before terminal event");
         _raw["_stream_events"] = _events.DeepClone();
         return Parse(protocol, Element(_raw));
     }

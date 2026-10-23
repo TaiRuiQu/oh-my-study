@@ -5,6 +5,13 @@ namespace OhMyStudy.Infrastructure.Storage;
 public sealed partial class LibraryRepository
 {
     private const string EffectiveSubject = "COALESCE(NULLIF(q.subject,''),i.subject,'')";
+    private const string QuestionSummaryFrom = " FROM questions q JOIN documents d ON d.id=q.document_id LEFT JOIN paper_info i ON i.document_id=q.document_id";
+
+    private List<QuestionSummary> ReadQuestionSummaries(string suffix, params object?[] values) => Query(
+        "SELECT q.id,q.document_id,d.name,q.number," + EffectiveSubject + ",q.question_type,q.preview,q.item_count,q.earned,q.possible,q.verdict,q.mistake,q.review" + QuestionSummaryFrom + suffix,
+        r => new QuestionSummary(r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), r.GetString(5), r.GetString(6), r.GetInt32(7),
+            r.IsDBNull(8) ? null : r.GetDouble(8), r.IsDBNull(9) ? null : r.GetDouble(9),
+            r.IsDBNull(10) ? null : DomainJson.Deserialize<Verdict>("\"" + r.GetString(10) + "\""), r.GetBoolean(11), r.GetBoolean(12)), values);
 
     public Task<QuestionPage> QueryQuestionsAsync(QuestionQuery query, CancellationToken cancellationToken = default)
     {
@@ -31,7 +38,7 @@ public sealed partial class LibraryRepository
                 values.Add(subject);
                 conditions.Add($"{EffectiveSubject}=$p{values.Count - 1}");
             }
-            const string from = " FROM questions q JOIN documents d ON d.id=q.document_id LEFT JOIN paper_info i ON i.document_id=q.document_id";
+            const string from = QuestionSummaryFrom;
             string order = query.Sort switch
             {
                 QuestionSort.Oldest => "d.created_at,d.id,q.rowid",
@@ -41,11 +48,7 @@ public sealed partial class LibraryRepository
                 _ => "d.created_at DESC,d.id,q.rowid"
             };
             string where = " WHERE " + string.Join(" AND ", conditions);
-            var page = Query("SELECT q.id,q.document_id,d.name,q.number," + EffectiveSubject + ",q.question_type,q.preview,q.item_count,q.earned,q.possible,q.verdict,q.mistake,q.review"
-                + from + where + $" ORDER BY {order} LIMIT {query.Limit} OFFSET {query.Offset}", r => new QuestionSummary(
-                    r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), r.GetString(5), r.GetString(6), r.GetInt32(7),
-                    r.IsDBNull(8) ? null : r.GetDouble(8), r.IsDBNull(9) ? null : r.GetDouble(9),
-                    r.IsDBNull(10) ? null : DomainJson.Deserialize<Verdict>("\"" + r.GetString(10) + "\""), r.GetBoolean(11), r.GetBoolean(12)), [.. values]);
+            var page = ReadQuestionSummaries(where + $" ORDER BY {order} LIMIT {query.Limit} OFFSET {query.Offset}", [.. values]);
             int matching = Convert.ToInt32(Scalar("SELECT COUNT(*)" + from + where, [.. values]));
             int total = values.Count == 0 ? matching : Convert.ToInt32(Scalar("SELECT COUNT(*)" + from + " WHERE " + scope));
             return new QuestionPage(page, matching, total);

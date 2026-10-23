@@ -401,6 +401,25 @@ internal sealed class CompatibilitySuite
             var restored = DomainJson.Deserialize<Provider>(DomainJson.Serialize(priced));
             Assert(restored.Models[0].PriceCacheRead == 0 && restored.Models[0].PriceCacheWrite == 1.25);
         });
+        Check("configuration", "custom_output_token_limits", () =>
+        {
+            var provider = Contract<Provider>("provider");
+            Assert(provider.Models[0].MaxTokens is null && !DomainJson.Serialize(provider).Contains("\"max_tokens\"", StringComparison.Ordinal));
+            foreach (var protocol in Enum.GetValues<Protocol>())
+            {
+                var model = provider.Models[0] with { MaxTokens = 65536, MaxOutputTokens = 8192 };
+                ConfigurationValidation.ValidateProvider(provider with { Protocol = protocol, Models = [model] });
+                var restored = DomainJson.Deserialize<Provider>(DomainJson.Serialize(provider with { Protocol = protocol, Models = [model] }));
+                Assert(restored.Models[0].MaxTokens == 65536 && restored.Models[0].MaxOutputTokens == 8192);
+                ulong maximum = protocol == Protocol.Responses ? int.MaxValue : (ulong)long.MaxValue;
+                ConfigurationValidation.ValidateModelTokenLimit(model with { MaxTokens = maximum }, protocol);
+                foreach (ulong invalid in new ulong[] { 0, maximum + 1, ulong.MaxValue })
+                    Assert(!Accepted(() => ConfigurationValidation.ValidateModelTokenLimit(model with { MaxTokens = invalid }, protocol)));
+                model = model with { Capabilities = model.Capabilities with { Thinking = [new BudgetThinking { Tokens = 8192 }] } };
+                Assert(!Accepted(() => ConfigurationValidation.ValidateModelTokenLimit(model with { MaxTokens = 8192 }, protocol)));
+                ConfigurationValidation.ValidateModelTokenLimit(model with { MaxTokens = 8193 }, protocol);
+            }
+        });
         Check("configuration", "settings_utf8_limit", () =>
         {
             ConfigurationValidation.ValidateSettings(AppSettings.Default);

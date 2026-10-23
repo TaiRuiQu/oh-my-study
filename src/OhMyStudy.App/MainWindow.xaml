@@ -164,7 +164,15 @@
                     <Grid x:Name="QuestionFilters" ColumnSpacing="12" RowSpacing="8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="160" /><ColumnDefinition Width="160" /><ColumnDefinition Width="170" /></Grid.ColumnDefinitions>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <TextBox x:Name="QuestionSearch" PlaceholderText="{l:Text Key=S0651}" TextChanged="QuestionSearch_TextChanged" AutomationProperties.Name="{l:Text Key=S0652}" />
+                        <Grid x:Name="QuestionSearchField" ColumnSpacing="8" RowSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <TextBox x:Name="QuestionSearch" MaxLength="6000" PlaceholderText="{l:Text Key=S0651}" TextChanged="QuestionSearch_TextChanged" KeyDown="QuestionSearch_KeyDown" AutomationProperties.Name="{l:Text Key=S0652}" />
+                            <ComboBox x:Name="QuestionSearchMode" Grid.Column="1" SelectedIndex="0" SelectionChanged="QuestionSearchMode_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0686}">
+                                <ComboBoxItem Content="{l:Text Key=S0687}" /><ComboBoxItem Content="{l:Text Key=S0688}" />
+                            </ComboBox>
+                            <Button x:Name="SemanticSearchButton" Grid.Column="2" Content="{l:Text Key=S0689}" Click="SemanticSearch_Click" Visibility="Collapsed" />
+                        </Grid>
                         <ComboBox x:Name="QuestionSubjectFilter" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="QuestionFilter_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0653}" />
                         <ComboBox x:Name="QuestionResultFilter" Grid.Column="2" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="QuestionFilter_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0654}">
                             <ComboBoxItem Content="{l:Text Key=S0656}" /><ComboBoxItem Content="{l:Text Key=S0011}" /><ComboBoxItem Content="{l:Text Key=S0106}" /><ComboBoxItem Content="{l:Text Key=S0102}" />
@@ -173,7 +181,15 @@
                             <ComboBoxItem Content="{l:Text Key=S0594}" /><ComboBoxItem Content="{l:Text Key=S0595}" /><ComboBoxItem Content="{l:Text Key=S0657}" /><ComboBoxItem Content="{l:Text Key=S0658}" /><ComboBoxItem Content="{l:Text Key=S0659}" />
                         </ComboBox>
                     </Grid>
-                    <TextBlock x:Name="BankCount" Grid.Row="1" Style="{StaticResource QuietTextStyle}" />
+                    <StackPanel Grid.Row="1" Spacing="8">
+                        <StackPanel x:Name="SemanticSearchActivity" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+                            <ProgressRing Width="18" Height="18" IsActive="True" />
+                            <TextBlock x:Name="SemanticSearchStatus" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                            <Button Content="{l:Text Key=S0690}" Click="CancelSemanticSearch_Click" />
+                        </StackPanel>
+                        <TextBlock x:Name="SemanticSearchFeedback" TextWrapping="Wrap" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite" />
+                        <TextBlock x:Name="BankCount" Style="{StaticResource QuietTextStyle}" />
+                    </StackPanel>
                     <Border Grid.Row="2" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Background="{ThemeResource WorkspaceSurfaceBrush}">
                         <Grid>
                             <ListView x:Name="BankList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="BankList_ItemClick" HorizontalContentAlignment="Stretch" Padding="8"
@@ -240,22 +256,27 @@
                         </StackPanel>
                     </Grid>
                     <Border Grid.Row="1" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Background="{ThemeResource WorkspaceCardBrush}">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="12" /><RowDefinition Height="220" /></Grid.RowDefinitions>
                         <ScrollViewer x:Name="QuestionPageScroll" Padding="32,24" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" SizeChanged="QuestionPageScroll_SizeChanged">
                             <StackPanel x:Name="QuestionPageBody" HorizontalAlignment="Stretch" Spacing="28">
                                 <ContentControl x:Name="QuestionPageHost" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" IsTabStop="False" SizeChanged="QuestionPageHost_SizeChanged" AutomationProperties.Name="{l:Text Key=S0512}" />
-                                <Border x:Name="QuestionPageNotes" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0" Padding="0,24,0,0">
-                                    <StackPanel Spacing="10">
-                                        <TextBox x:Name="PageNotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" MaxHeight="280" ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                            Text="{x:Bind ViewModel.OpenQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                        <Button Content="{l:Text Key=S0664}" Click="SaveOpenQuestion_Click" IsEnabled="{x:Bind ViewModel.OpenQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
-                                    </StackPanel>
-                                </Border>
+
                             </StackPanel>
                         </ScrollViewer>
+                            <controls:ColumnSplitter Grid.Row="1" Orientation="Horizontal" MinimumBefore="120" MinimumAfter="180" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                                <Border x:Name="QuestionPageNotes" Grid.Row="2" Padding="32,8,32,16">
+                                    <Grid RowSpacing="10"><Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <TextBox x:Name="PageNotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                            Text="{x:Bind ViewModel.OpenQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        <Button Grid.Row="1" HorizontalAlignment="Left" Content="{l:Text Key=S0664}" Click="SaveOpenQuestion_Click" IsEnabled="{x:Bind ViewModel.OpenQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
+                                    </Grid>
+                                </Border>
+                        </Grid>
                     </Border>
                 </Grid>
-                <Grid x:Name="WorkspaceGrid" Grid.Row="2" ColumnSpacing="16">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="WorkspaceColumnsRight" Width="424" /></Grid.ColumnDefinitions>
+                <Grid x:Name="WorkspaceGrid" Grid.Row="2">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition x:Name="WorkspaceColumnsRight" Width="424" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition x:Name="WorkspaceQuestionsRow" Height="0" /></Grid.RowDefinitions>
                     <Border x:Name="SourcePane" Visibility="Collapsed" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12"
                         Background="{ThemeResource WorkspaceSurfaceBrush}" AllowDrop="True" DragOver="Source_DragOver" Drop="Source_Drop">
@@ -321,10 +342,11 @@
                             </Grid>
                         </Grid>
                     </Border>
-                    <Border x:Name="QuestionPane" Grid.Column="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}">
-                        <Grid x:Name="QuestionLayout">
-                            <Grid.ColumnDefinitions><ColumnDefinition x:Name="QuestionListColumn" Width="320" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="QuestionListRow" Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <controls:ColumnSplitter x:Name="WorkspaceSplitter" Grid.Column="1" MinimumBefore="280" MinimumAfter="320" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                    <Border x:Name="QuestionPane" Grid.Column="2" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}">
+                        <Grid x:Name="QuestionLayout" SizeChanged="QuestionLayout_SizeChanged">
+                            <Grid.ColumnDefinitions><ColumnDefinition x:Name="QuestionListColumn" Width="320" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="QuestionListRow" Height="*" /><RowDefinition Height="0" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                             <Grid x:Name="QuestionListHeading" Padding="20,14" ColumnSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0029}" Style="{StaticResource PanelHeadingStyle}" />
@@ -348,7 +370,10 @@
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
-                            <ScrollViewer x:Name="QuestionDetail" Grid.Column="1" Grid.RowSpan="3" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1,0,0,0" Padding="24,20" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                            <controls:ColumnSplitter x:Name="QuestionColumnSplitter" Grid.Column="1" Grid.RowSpan="4" AutomationProperties.Name="{l:Text Key=S0691}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                            <Grid x:Name="QuestionDetailLayout" Grid.Column="2" Grid.RowSpan="4" Visibility="Collapsed">
+                                <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="100" /><RowDefinition Height="12" /><RowDefinition Height="140" MinHeight="140" /></Grid.RowDefinitions>
+                            <ScrollViewer x:Name="QuestionDetail" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Padding="24,20" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                                 <StackPanel Spacing="20">
                                     <Grid ColumnSpacing="10">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -358,16 +383,19 @@
                                         </Button>
                                     </Grid>
                                     <ScrollViewer x:Name="QuestionContentHost" VerticalScrollBarVisibility="Disabled" AutomationProperties.Name="{l:Text Key=S0512}" IsTabStop="True" />
-                                    <Border BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0" Padding="0,20,0,0">
-                                        <StackPanel Spacing="10">
-                                            <TextBox x:Name="NotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="88" MaxHeight="240" ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                                Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                            <Button x:Name="SaveNotesButton" Content="{l:Text Key=S0664}" Click="SaveSelectedNotes_Click" IsEnabled="{x:Bind ViewModel.SelectedQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
-                                        </StackPanel>
-                                    </Border>
+
                                 </StackPanel>
                             </ScrollViewer>
-                            <StackPanel x:Name="EmptyQuestionState" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="24">
+                                <controls:ColumnSplitter Grid.Row="1" Orientation="Horizontal" MinimumBefore="100" MinimumAfter="140" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                                    <Border Grid.Row="2" Padding="24,8,24,16">
+                                        <Grid RowSpacing="10"><Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                            <TextBox x:Name="NotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <Button Grid.Row="1" HorizontalAlignment="Left" x:Name="SaveNotesButton" Content="{l:Text Key=S0664}" Click="SaveSelectedNotes_Click" IsEnabled="{x:Bind ViewModel.SelectedQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
+                                        </Grid>
+                                    </Border>
+                            </Grid>
+                            <StackPanel x:Name="EmptyQuestionState" Grid.ColumnSpan="3" Grid.RowSpan="4" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="24">
                                 <FontIcon Glyph="&#xE8F1;" FontSize="36" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock TextWrapping="Wrap" x:Name="EmptyQuestionTitle" Text="{l:Text Key=S0014}" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
                                 <TextBlock x:Name="EmptyQuestionMessage" Text="{l:Text Key=S0018}" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
@@ -375,7 +403,7 @@
                         </Grid>
                     </Border>
                 </Grid>
-                <Grid x:Name="TasksPanel" Grid.Row="2" Visibility="Collapsed" ColumnSpacing="16" RowSpacing="12" SizeChanged="TasksPanel_SizeChanged">
+                <Grid x:Name="TasksPanel" Grid.Row="2" Visibility="Collapsed" RowSpacing="12" SizeChanged="TasksPanel_SizeChanged">
                     <Grid.Resources>
                         <Style x:Key="QuietTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
                             <Setter Property="FontSize" Value="14" />
@@ -392,7 +420,7 @@
                             <Setter Property="FontWeight" Value="Normal" />
                         </Style>
                     </Grid.Resources>
-                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="TaskListColumn" Width="300" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="TaskListColumn" Width="300" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition x:Name="TaskListRow" Height="*" /><RowDefinition Height="0" /></Grid.RowDefinitions>
                     <Border x:Name="TaskSidebar" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="8,12,8,8">
                         <Grid RowSpacing="10">
@@ -402,9 +430,10 @@
                         </Grid>
                     </Border>
                     <ComboBox x:Name="TaskCompactPicker" Visibility="Collapsed" HorizontalAlignment="Stretch" SelectionChanged="TaskCompactPicker_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0518}" />
-                    <Border x:Name="TaskDetail" Grid.Column="1" SizeChanged="TasksPanel_SizeChanged" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
+                    <controls:ColumnSplitter x:Name="TaskColumnSplitter" Grid.Column="1" MinimumBefore="220" MinimumAfter="360" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                    <Border x:Name="TaskDetail" Grid.Column="2" SizeChanged="TasksPanel_SizeChanged" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="2*" MinHeight="120" /><RowDefinition Height="12" /><RowDefinition Height="3*" MinHeight="140" /></Grid.RowDefinitions>
                             <ScrollViewer x:Name="TaskSummaryScroll" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel x:Name="TaskSummary" Spacing="24" Padding="24">
                                     <Grid ColumnSpacing="24">
@@ -421,6 +450,7 @@
                                         <StackPanel x:Name="TaskButtons" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
                                             <Button FontSize="16" x:Name="TaskPermissionButton" Content="{l:Text Key=S0520}" Click="TaskPermission_Click" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" />
                                             <Button FontSize="16" x:Name="TaskCancelButton" Content="{l:Text Key=S0521}" Click="TaskCancel_Click" Visibility="Collapsed" />
+                                            <Button FontSize="16" x:Name="TaskRetryButton" Content="{l:Text Key=S0747}" Click="TaskRetry_Click" Visibility="Collapsed" />
                                             <Button FontSize="16" x:Name="TaskLibraryButton" Content="{l:Text Key=S0522}" Click="TaskLibrary_Click" />
                                         </StackPanel>
                                     </Grid>
@@ -456,7 +486,8 @@
                                     </Grid>
                                 </StackPanel>
                             </ScrollViewer>
-                            <Border Grid.Row="1" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="0,1,0,0">
+                            <controls:ColumnSplitter x:Name="TaskSummarySplitter" Grid.Row="1" Orientation="Horizontal" MinimumBefore="120" MinimumAfter="140" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                            <Border Grid.Row="2">
                                 <Grid RowSpacing="12" Padding="24,16,24,0">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                                     <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0529}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><ProgressRing x:Name="TaskProgress" IsActive="True" Width="14" Height="14" MinWidth="14" MinHeight="14" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0530}" /><TextBlock x:Name="TaskStateLabel" Style="{StaticResource QuietTextStyle}" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Center" /></StackPanel><Button FontSize="16" Grid.Column="3" Click="TaskLatest_Click" ToolTipService.ToolTip="{l:Text Key=S0531}" AutomationProperties.Name="{l:Text Key=S0531}"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE74B;" FontSize="12" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0532}" /></StackPanel></Button></Grid>
@@ -477,19 +508,20 @@
                 <ScrollViewer x:Name="SettingsPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="20" Padding="0,0,4,16">
                         <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0535}" Style="{StaticResource SubtitleTextBlockStyle}" />
-                        <Grid x:Name="ProviderLayout" ColumnSpacing="20" RowSpacing="16" SizeChanged="ProviderLayout_SizeChanged">
-                            <Grid.ColumnDefinitions><ColumnDefinition x:Name="ProviderListColumn" Width="212" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Grid x:Name="ProviderLayout" RowSpacing="16" SizeChanged="ProviderLayout_SizeChanged">
+                            <Grid.ColumnDefinitions><ColumnDefinition x:Name="ProviderListColumn" Width="212" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Border x:Name="ProviderSidebar" Padding="12" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" VerticalAlignment="Top">
-                                <StackPanel Spacing="12">
+                                <Grid RowSpacing="12"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                     <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0536}" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="8,4" />
-                                    <ListView x:Name="ProviderPicker" MinHeight="0" MaxHeight="420" Padding="0" Visibility="Collapsed" SelectionChanged="ProviderPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="{l:Text Key=S0537}">
+                                    <ListView x:Name="ProviderPicker" Grid.Row="1" MinHeight="0" MaxHeight="420" Padding="0" Visibility="Collapsed" SelectionChanged="ProviderPicker_SelectionChanged" HorizontalContentAlignment="Stretch" AutomationProperties.Name="{l:Text Key=S0537}">
                                         <ListView.ItemTemplate><DataTemplate x:DataType="domain:Provider"><TextBlock Text="{x:Bind Name}" ToolTipService.ToolTip="{x:Bind Name}" TextTrimming="CharacterEllipsis" Margin="4,8" /></DataTemplate></ListView.ItemTemplate>
                                     </ListView>
-                                    <Button Content="{l:Text Key=S0538}" Click="NewProvider_Click" HorizontalAlignment="Stretch" />
-                                </StackPanel>
+                                    <Button Grid.Row="2" Content="{l:Text Key=S0538}" Click="NewProvider_Click" HorizontalAlignment="Stretch" />
+                                </Grid>
                             </Border>
-                            <StackPanel x:Name="ProviderDetails" Grid.Column="1" Spacing="16">
+                            <controls:ColumnSplitter x:Name="ProviderSplitter" Grid.Column="1" MinimumBefore="180" MinimumAfter="420" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                            <StackPanel x:Name="ProviderDetails" Grid.Column="2" Spacing="16">
                                 <Border x:Name="ProviderSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                                     <StackPanel Spacing="14">
                                         <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0539}" Style="{StaticResource PanelHeadingStyle}" />
@@ -535,7 +567,12 @@
                                                 <TextBox x:Name="ModelDisplayName" Header="{l:Text Key=S0552}" PlaceholderText="{l:Text Key=S0553}" />
                                                 <TextBox x:Name="ModelId" Grid.Column="1" Header="{l:Text Key=S0554}" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
                                             </Grid>
-                                            <TextBox x:Name="ModelContextWindow" Header="{l:Text Key=S0555}" PlaceholderText="{l:Text Key=S0556}" />
+                                            <Grid ColumnSpacing="16">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                <TextBox x:Name="ModelContextWindow" Header="{l:Text Key=S0555}" PlaceholderText="{l:Text Key=S0556}" />
+                                                <TextBox x:Name="ModelMaxTokens" Grid.Column="1" Header="{l:Text Key=S0743}" PlaceholderText="{l:Text Key=S0744}" InputScope="Number" />
+                                            </Grid>
                                             <StackPanel Orientation="Horizontal" Spacing="16">
                                                 <CheckBox x:Name="ModelVision" Content="{l:Text Key=S0557}" IsThreeState="True" MinWidth="0" />
                                                 <CheckBox x:Name="ModelTools" Content="{l:Text Key=S0558}" IsThreeState="True" MinWidth="0" />
@@ -568,6 +605,40 @@
                                 </Border>
                             </StackPanel>
                         </Grid>
+                        <TextBlock Text="{l:Text Key=S0693}" TextWrapping="Wrap" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Border x:Name="SearchSettingsCard" Padding="16" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="{l:Text Key=S0695}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <Grid x:Name="EmbeddingFields" ColumnSpacing="12" RowSpacing="10" SizeChanged="SearchModelFields_SizeChanged">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <ComboBox x:Name="EmbeddingApiType" Header="{l:Text Key=S0738}" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="SearchApiType_SelectionChanged">
+                                        <ComboBoxItem Content="{l:Text Key=S0739}" /><ComboBoxItem Content="DashScope" />
+                                    </ComboBox>
+                                    <TextBox x:Name="EmbeddingBaseUrl" Grid.Column="1" Header="{l:Text Key=S0696}" PlaceholderText="https://api.openai.com/v1" />
+                                    <TextBox x:Name="EmbeddingModelName" Grid.Column="2" Header="{l:Text Key=S0697}" />
+                                    <PasswordBox x:Name="EmbeddingKey" Grid.Row="1" Grid.ColumnSpan="2" Header="{l:Text Key=S0698}" />
+                                    <CheckBox x:Name="RemoveEmbeddingKey" Grid.Row="1" Grid.Column="2" Content="{l:Text Key=S0699}" VerticalAlignment="Bottom" />
+                                </Grid>
+                                <TextBlock Text="{l:Text Key=S0700}" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,4,0,0" />
+                                <Grid x:Name="RerankerFields" ColumnSpacing="12" RowSpacing="10" SizeChanged="SearchModelFields_SizeChanged">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <ComboBox x:Name="RerankerApiType" Header="{l:Text Key=S0738}" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="SearchApiType_SelectionChanged">
+                                        <ComboBoxItem Content="{l:Text Key=S0739}" /><ComboBoxItem Content="DashScope" />
+                                    </ComboBox>
+                                    <TextBox x:Name="RerankerBaseUrl" Grid.Column="1" Header="{l:Text Key=S0696}" PlaceholderText="https://api.example.com/v1" />
+                                    <TextBox x:Name="RerankerModelName" Grid.Column="2" Header="{l:Text Key=S0697}" />
+                                    <PasswordBox x:Name="RerankerKey" Grid.Row="1" Grid.ColumnSpan="2" Header="{l:Text Key=S0698}" />
+                                    <CheckBox x:Name="RemoveRerankerKey" Grid.Row="1" Grid.Column="2" Content="{l:Text Key=S0699}" VerticalAlignment="Bottom" />
+                                </Grid>
+                                <StackPanel x:Name="SearchModelActions" Orientation="Horizontal" Spacing="8">
+                                    <Button Content="{l:Text Key=S0702}" Click="SaveSearchSettings_Click" Style="{StaticResource AccentButtonStyle}" />
+                                    <Button Content="{l:Text Key=S0703}" Click="ClearSearchIndex_Click" />
+                                </StackPanel>
+                                <TextBlock x:Name="SearchSettingsFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                            </StackPanel>
+                        </Border>
                         <TextBlock TextWrapping="Wrap" x:Name="LibrarySectionTitle" Text="{l:Text Key=S0573}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
@@ -623,5 +694,6 @@
                 </Grid>
             </Grid>
         </NavigationView>
+        <controls:ColumnSplitter x:Name="NavigationSplitter" Grid.Row="1" Width="12" HorizontalAlignment="Left" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
     </Grid>
 </Window>

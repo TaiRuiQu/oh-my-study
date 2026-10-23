@@ -55,6 +55,12 @@ public sealed partial class MainWindow
             Check(TaskInputCached.Visibility == Visibility.Visible && TaskInputCached.Text == "缓存命中 1,102,400"
                 && TaskInputUncached.Text == "缓存未命中 33,550" && TaskInputCacheWrite.Text == "缓存写入 4,096", "cache-misses-equal-input-minus-hits");
             await Capture("completed");
+            double sidebarWidth = TaskListColumn.ActualWidth;
+            TaskColumnSplitter.Resize(32); await Task.Delay(100);
+            Check(TaskListColumn.ActualWidth > sidebarWidth + 20, "task-columns-resize");
+            double summaryHeight = TaskSummaryScroll.ActualHeight;
+            TaskSummarySplitter.Resize(-32); await Task.Delay(100);
+            Check(TaskSummaryScroll.ActualHeight < summaryHeight - 20 && TaskLogScroll.ActualHeight > 140, "task-summary-and-log-resize");
             foreach (int width in new[] { 820, 460 })
             {
                 AppWindow.Resize(new Windows.Graphics.SizeInt32(width, 960));
@@ -116,11 +122,13 @@ public sealed partial class MainWindow
             TaskLatest_Click(TaskLogScroll, new RoutedEventArgs()); await Capture("latest");
             Check(LatestHeadingVisible(), "latest-action-resumes-follow");
             await _jobs.CancelAsync(active.Id); await RefreshTasksAsync(); await Capture("cancelled");
-            Check(TaskCancelButton.Visibility == Visibility.Collapsed && TaskStateLabel.Text == "已取消", "cancelled-state");
+            Check(TaskCancelButton.Visibility == Visibility.Collapsed && TaskRetryButton.Visibility == Visibility.Collapsed && TaskStateLabel.Text == "已取消", "cancelled-state");
             runner.Mode = "error";
-            var failed = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "这是一份文件名称很长的数学试卷，包含跨页题目、图表与详细解答，需要保留完整名称以便查找.pdf" } });
+            var failedDocument = await _library.ImportDocumentAsync("这是一份文件名称很长的数学试卷，包含跨页题目、图表与详细解答，需要保留完整名称以便查找.pdf", ImportMode.Blank, Enumerable.Range(0, 4).Select(_ => new ImportSource("original.png", image)).ToArray());
+            var failed = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = failedDocument });
             await Wait(failed.Id, j => j.State.IsTerminal()); _selectedTaskId = failed.Id;
             await RefreshTasksAsync(); await Capture("failed");
+            Check(ActionVisible(TaskRetryButton) && TaskRetryButton.IsEnabled, "failed-task-offers-retry");
             await RefreshTasksAsync(); await Capture("execution-failed-collapsed");
             var executionFailure = _taskSteps["python-failed"];
             Check(executionFailure.ErrorDetailsAvailable && !executionFailure.ErrorDetailsVisible && !executionFailure.DetailVisible, "failed-execution-collapses-error-details");
@@ -133,6 +141,11 @@ public sealed partial class MainWindow
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("execution-failed-expanded-dark"); RootGrid.RequestedTheme = ElementTheme.Light;
             toggleProvider.Toggle(); await RefreshTasksAsync();
             Check(!executionFailure.ErrorDetailsVisible, "failed-execution-details-collapse-again");
+            runner.Mode = "complete";
+            var retried = await _jobs.RetryAsync(failed.Id);
+            await Wait(retried.Id, j => j.State.IsTerminal()); _selectedTaskId = retried.Id;
+            await RefreshTasksAsync(); await Capture("retried");
+            Check(TaskRetryButton.Visibility == Visibility.Collapsed && !_taskSteps.ContainsKey("python-failed") && !_taskItems.ContainsKey(failed.Id), "retry-replaces-failed-task-and-clears-old-errors");
             runner.Mode = "permission";
             var permission = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input with { Document = input.Document with { Id = Guid.NewGuid().ToString(), Name = "数学辅助计算" } });
             await Wait(permission.Id, j => j.State == JobState.WaitingPermission); _selectedTaskId = permission.Id;

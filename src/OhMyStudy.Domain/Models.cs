@@ -31,6 +31,8 @@ public sealed record ModelConfig
     public string? DisplayName { get; init; }
     public ulong? ContextWindow { get; init; }
     public ulong? MaxOutputTokens { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ulong? MaxTokens { get; init; }
     public List<string>? InputModalities { get; init; }
     public List<string>? OutputModalities { get; init; }
     public bool? Reasoning { get; init; }
@@ -89,6 +91,10 @@ public sealed record AppSettings
     public string? DefaultModel { get; init; }
     public required string ExecutionMode { get; init; }
     public required bool SandboxNetworking { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SearchModel? EmbeddingModel { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SearchModel? RerankerModel { get; init; }
     public static AppSettings Default => new() { DefaultModel = null, ExecutionMode = "bypass_permission", SandboxNetworking = false };
 }
 

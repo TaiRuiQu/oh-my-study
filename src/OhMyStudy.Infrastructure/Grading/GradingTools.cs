@@ -7,7 +7,9 @@ namespace OhMyStudy.Infrastructure.Grading;
 /// <summary>Closed JSON schemas without references or model-provided executable templates.</summary>
 public static class GradingTools
 {
-    public static IReadOnlyList<Tool> Create(bool referenceOnly)
+    public static IReadOnlyList<Tool> Create(bool referenceOnly) => Create(referenceOnly, GradingModelProfile.Select(""));
+
+    internal static IReadOnlyList<Tool> Create(bool referenceOnly, GradingModelProfile profile)
     {
         var result = new List<Tool>
         {
@@ -37,22 +39,22 @@ public static class GradingTools
                 ["earned"] = Describe(Nullable(Number()), "Total earned points. Use null when unknown, when possible is unknown, or for blank papers. Cannot exceed possible."),
                 ["possible"] = Describe(Nullable(Number()), "Total possible points, or null when unknown. Omitted score fields are treated as null.")
             }, ["subject"])));
-            result.Add(Define("save_questions", "Save questions with their shared stems and gradable items. Returns an ordered result for each question; successful entries remain saved if another fails. Omitted auxiliary fields preserve saved values; explicit empty values replace them. Manual and teacher grades are protected.", Object(new()
+            result.Add(Define("save_questions", "Save questions with their shared stems and gradable items, usually 4 to 8 questions per call. Use larger batches for short questions and smaller batches for long or complex questions. Returns an ordered result for each question; successful entries remain saved if another fails. Omitted auxiliary fields preserve saved values; explicit empty values replace them. Manual and teacher grades are protected.", Object(new()
             {
                 ["questions"] = Describe(Array(QuestionSchema()), "Top-level questions to save in order.")
             })));
         }
         foreach (var name in new[] { "python", "shell" })
             result.Add(Define(name, name == "python"
-                ? "Execute arbitrary Python code for this task, including Pillow image processing and plotting. Files persist between calls. Returns status, stdout, stderr, and requested output images with reusable asset IDs. May require user approval."
-                : "Execute arbitrary Windows PowerShell code for this task, including file and image processing. Files persist between calls. Returns status, stdout, stderr, and requested output images with reusable asset IDs. May require user approval.",
+                ? "Execute Python code in a shared notebook-style namespace for this task, including Pillow image processing and plotting. Imports, variables, functions, and images persist across Python calls and ordinary exceptions. A timeout, cancellation, output limit, or worker exit resets the namespace. Define variables before use; no crop helper is predefined. Files persist between calls. Returns status, stdout, stderr, and requested output images with reusable asset IDs. May require user approval."
+                : "Execute self-contained Windows PowerShell code in a fresh process, including file and image processing. Files persist between calls; variables and functions do not. Returns status, stdout, stderr, and requested output images with reusable asset IDs. May require user approval.",
                 Object(new()
                 {
                     ["code"] = String("Complete executable code. Use relative paths in the supplied task working directory. Read page files from read_pages.local_file. Print textual results; save images to new files and list them in outputs."),
                     ["outputs"] = Describe(Array(String()), "Optional relative paths to generated PNG, JPEG, or WebP images to inspect and reuse. At most 8 images per call. Omit when no image output is needed."),
                     ["timeout_ms"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 300000 }, "Optional timeout in milliseconds; defaults to 60000.")
                 }, ["code"])));
-        return result;
+        return result.Select(tool => tool with { Description = profile.DescribeTool(tool.Name, tool.Description) }).ToArray();
     }
 
     private static Tool Define(string name, string description, JsonObject schema) => new() { Name = name, Description = description, Schema = JsonSerializer.SerializeToElement(schema, ProviderSchemaJson.Default.JsonObject) };

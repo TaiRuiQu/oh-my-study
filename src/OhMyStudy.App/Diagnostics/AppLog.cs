@@ -2,7 +2,6 @@ using System.Diagnostics;
 
 namespace OhMyStudy.App.Diagnostics;
 
-/// <summary>Local developer diagnostics. Never log credentials, request bodies or document contents.</summary>
 internal static class AppLog
 {
     private static readonly object Gate = new();
@@ -14,9 +13,7 @@ internal static class AppLog
         try
         {
             FilePath = Environment.GetEnvironmentVariable("OHMYSTUDY_LOG_FILE");
-#if DEBUG
-            FilePath ??= Path.Combine(AppContext.BaseDirectory, "logs", $"debug-{DateTime.Now:yyyyMMdd-HHmmss}-{Environment.ProcessId}.log");
-#endif
+            FilePath ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "logs", $"session-{DateTime.Now:yyyyMMdd-HHmmss}-{Environment.ProcessId}.log");
             if (FilePath is not null) Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(FilePath))!);
         }
         catch { FilePath = null; }
@@ -31,7 +28,7 @@ internal static class AppLog
         // A disconnected console must never replace the operation's original outcome.
         try
         {
-            string line = $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff zzz} [{level}] {phase}: {message}";
+            string line = $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff zzz} [{level}] [PID {Environment.ProcessId}] {phase}: {message}";
             lock (Gate)
             {
                 try { Console.Error.WriteLine(line); Console.Error.Flush(); }

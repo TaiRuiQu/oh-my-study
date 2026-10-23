@@ -52,6 +52,21 @@ public static class QuestionText
         return text.Length > 20_000 ? text.ToString(0, 20_000) : text.ToString();
     }
 
+    public static string Meaning(Question question)
+    {
+        var parts = new List<string> { question.Subject, question.QuestionType, Plain(question.Stem) };
+        parts.AddRange(question.KnowledgePoints);
+        foreach (var item in question.Items)
+        {
+            parts.Add(Plain(item.Prompt));
+            parts.AddRange(item.Options);
+        }
+        string text = string.Join('\n', parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+        int length = Math.Min(text.Length, 6000);
+        if (length > 0 && char.IsHighSurrogate(text[length - 1])) length--;
+        return text[..length];
+    }
+
     public static string Plain(IEnumerable<Content> content) => string.Join("\n", content.Select(item => item switch
     {
         TextContent text => text.Text,

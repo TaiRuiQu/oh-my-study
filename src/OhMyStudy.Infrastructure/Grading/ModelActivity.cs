@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using OhMyStudy.Application.Jobs;
+using OhMyStudy.Application.Diagnostics;
 using OhMyStudy.Domain;
 using OhMyStudy.Infrastructure.Providers;
 
@@ -9,7 +10,9 @@ namespace OhMyStudy.Infrastructure.Grading;
 /// <summary>Coalesces public output deltas into bounded durable snapshots, rather than one write per token.</summary>
 internal static class ModelActivity
 {
-    public static async Task<Turn> CallAsync(JobContext context, uint ordinal, Func<Action<ProviderProgress>, Task<Turn>> call)
+    private static readonly ProviderRetryPolicy RetryPolicy = new() { MaximumAttempts = 4 };
+
+    public static async Task<(Turn Turn, int Retries)> CallAsync(JobContext context, uint ordinal, Func<Action<ProviderProgress>, Task<Turn>> call, CancellationToken cancellationToken)
     {
         var clock = Stopwatch.StartNew();
         var activity = new JobActivity { Key = $"model-{ordinal}", Kind = "model", Title = $"Recognition round {ordinal}", Detail = "Waiting for the model response" };
@@ -50,9 +53,50 @@ internal static class ModelActivity
         }
         var pump = Pump();
         Turn turn;
-        try { turn = await call(Progress).ConfigureAwait(false); }
+        int retries = 0;
+        try
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try { turn = await call(Progress).ConfigureAwait(false); break; }
+                catch (Exception error) when (attempt < RetryPolicy.MaximumAttempts && !cancellationToken.IsCancellationRequested && CanRetry(error))
+                {
+                    retries++;
+                    var delay = ProviderClient.RetryDelay((error as ProviderException)?.Error.RetryAfter, attempt, RetryPolicy);
+                    string partial;
+                    lock (gate)
+                    {
+                        partial = text.ToString();
+                        text.Clear();
+                        detail = "Connection interrupted. Retrying…";
+                        dirty = true;
+                    }
+                    OperationDiagnostics.Record("Model.Retry", new()
+                    {
+                        ["job_id"] = context.JobId,
+                        ["round"] = ordinal,
+                        ["attempt"] = attempt,
+                        ["next_attempt"] = attempt + 1,
+                        ["maximum_attempts"] = RetryPolicy.MaximumAttempts,
+                        ["delay_ms"] = delay.TotalMilliseconds,
+                        ["partial_text"] = partial,
+                        ["usage_unknown"] = true,
+                        ["exception"] = error.ToString()
+                    }, true);
+                    await context.ActivityAsync(activity with { Detail = detail, ElapsedMs = clock.ElapsedMilliseconds }).ConfigureAwait(false);
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception error) when (cancellationToken.IsCancellationRequested)
+        {
+            OperationDiagnostics.Record("Model.Cancelled", new() { ["job_id"] = context.JobId, ["round"] = ordinal, ["retries"] = retries, ["cancelled_by_user"] = context.Cancellation.IsCancellationRequested, ["exception"] = error.ToString() });
+            throw;
+        }
         catch (Exception error) when (!context.Cancellation.IsCancellationRequested)
         {
+            OperationDiagnostics.Record("Model.Failed", new() { ["job_id"] = context.JobId, ["round"] = ordinal, ["retries"] = retries, ["exception"] = error.ToString() }, true);
             lock (gate)
             {
                 activity = activity with { State = "failed" };
@@ -80,8 +124,26 @@ internal static class ModelActivity
             ElapsedMs = clock.ElapsedMilliseconds,
             Detail = turn.Calls.Count > 0 ? $"Actions prepared: {turn.Calls.Count}" : "Model response received"
         }).ConfigureAwait(false);
-        return turn;
+        OperationDiagnostics.Record("Model.Completed", new()
+        {
+            ["job_id"] = context.JobId,
+            ["round"] = ordinal,
+            ["retries"] = retries,
+            ["elapsed_ms"] = clock.ElapsedMilliseconds,
+            ["tool_calls"] = turn.Calls.Count,
+            ["text"] = turn.Text
+        });
+        return (turn, retries);
     }
+
+    private static bool CanRetry(Exception error) => error switch
+    {
+        ProviderException { Kind: ErrorKind.Network or ErrorKind.Server or ErrorKind.RateLimit } => true,
+        ProviderException { Kind: ErrorKind.Incomplete, Diagnostic: "stream_interrupted" } => true,
+        HttpRequestException or TaskCanceledException => true,
+        IOException => true,
+        _ => false
+    };
 
     private static string FailureDetail(Exception error) => error switch
     {

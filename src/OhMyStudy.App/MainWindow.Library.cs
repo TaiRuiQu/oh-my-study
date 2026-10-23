@@ -16,6 +16,7 @@ using OhMyStudy.Infrastructure.Execution;
 using OhMyStudy.Infrastructure.Grading;
 using OhMyStudy.Infrastructure.Jobs;
 using OhMyStudy.Infrastructure.Providers;
+using OhMyStudy.Infrastructure.Search;
 using OhMyStudy.Infrastructure.Storage;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -26,6 +27,7 @@ public sealed partial class MainWindow
 {
     private LibraryRepository? _library;
     private JobQueue? _jobs;
+    private BackgroundSearchIndexer? _searchIndexer;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly ObservableCollection<Document> _documents = [];
     private readonly ObservableCollection<Provider> _providers = [];
@@ -64,6 +66,7 @@ public sealed partial class MainWindow
         try { if (_jobs is not null) await _jobs.DisposeAsync(); }
         finally
         {
+            if (_searchIndexer is not null) await _searchIndexer.DisposeAsync();
             if (_library is not null) await _library.DisposeAsync();
             _shutdownFinished = true;
             Close();
@@ -109,7 +112,8 @@ public sealed partial class MainWindow
             LibraryPath.Text = _libraryDirectory;
             string privateRuntime = Path.Combine(AppContext.BaseDirectory, "runtime", "python");
             var activeLibrary = _library;
-            _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new LoggedJobRunner(new GradingRunner(_library, new NativePageImages())),
+            _searchIndexer = new BackgroundSearchIndexer(_library);
+            _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new LoggedJobRunner(new GradingRunner(_library, new NativePageImages(), questionSaved: _searchIndexer.Enqueue)),
                 new PolicyToolExecutor(new HostToolExecutor(privateRuntime), new SandboxToolExecutor(privateRuntime)), Path.Combine(_libraryDirectory, "task-results"), _lifetime.Token);
             ViewModel.SaveQuestionAsync = async question =>
             {
@@ -126,6 +130,7 @@ public sealed partial class MainWindow
             PaperList.ItemsSource = _filteredPapers;
             ProviderPicker.ItemsSource = _providers;
             _settings = await _library.GetSettingsAsync(_lifetime.Token);
+            PopulateSearchSettings();
             ExecutionModePicker.SelectedIndex = _settings.ExecutionMode switch { "sandbox" => 1, "bypass_permission" => 2, _ => 0 };
             SandboxNetworkToggle.IsChecked = _settings.SandboxNetworking;
             await RefreshProvidersAsync();
@@ -164,10 +169,16 @@ public sealed partial class MainWindow
 
     private async Task DisposeLibrarySessionAsync()
     {
-        var jobs = _jobs; var library = _library;
-        _jobs = null; _library = null;
+        CancelSemanticSearch();
+        _semanticBankResults.Clear();
+        var jobs = _jobs; var library = _library; var indexer = _searchIndexer;
+        _jobs = null; _library = null; _searchIndexer = null;
         try { if (jobs is not null) await jobs.DisposeAsync(); }
-        finally { if (library is not null) await library.DisposeAsync(); }
+        finally
+        {
+            if (indexer is not null) await indexer.DisposeAsync();
+            if (library is not null) await library.DisposeAsync();
+        }
     }
 
     private async Task RefreshDocumentsAsync(string? selectId = null)
@@ -321,7 +332,6 @@ public sealed partial class MainWindow
                 var properties = await file.GetBasicPropertiesAsync();
                 if (properties.Size > LibraryLimits.MaximumAssetBytes || total + (long)properties.Size > LibraryLimits.MaximumBatchBytes)
                     throw new InvalidDataException(UiText.Get("Files must be at most 64 MB each and 256 MB per import. Split them and retry."));
-                AppLog.Info("Import.ReadFile", $"Type={file.FileType}; Bytes={properties.Size}");
                 byte[] bytes = await File.ReadAllBytesAsync(file.Path, _lifetime.Token);
                 total += bytes.Length; sources.Add(new(file.Name, bytes, reference ? "reference" : "material"));
             }
@@ -562,7 +572,7 @@ public sealed partial class MainWindow
 
     private sealed record ProcessingChoice(Provider Provider, ModelConfig Model, Thinking? Thinking, bool AllowUnknown, ExecutionPolicy Policy, ImportMode Mode);
 
-    private async Task<ProcessingChoice?> ChooseProcessingAsync(bool references, bool importing)
+    private async Task<ProcessingChoice?> ChooseProcessingAsync(bool references, bool importing, bool retry = false)
     {
         if (_library is null || _jobs is null) return null;
         var providers = await _library.ListProvidersAsync(_lifetime.Token);
@@ -588,18 +598,21 @@ public sealed partial class MainWindow
         var capability = await SandboxCapability.ProbeAsync(Path.Combine(AppContext.BaseDirectory, "runtime", "python"), _lifetime.Token);
         var policy = ExecutionPolicy.Freeze(preferred, capability, _settings.SandboxNetworking);
         var content = new StackPanel { Spacing = 14 }; content.Children.Add(choice); content.Children.Add(thinkingChoice); content.Children.Add(unknown);
+        if (retry) content.Children.Add(new TextBlock { Text = UiText.Get("Retry clears the failed run's saved results and temporary files, then starts a new task. Original documents and manual edits are kept. Previous provider charges and changes made by code outside task folders cannot be undone."), TextWrapping = TextWrapping.Wrap });
         var modeChoice = new ComboBox { Header = UiText.Get("Exam type"), SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
         modeChoice.Items.Add(UiText.Get("Blank exam")); modeChoice.Items.Add(UiText.Get("Answered, needs grading")); modeChoice.Items.Add(UiText.Get("Already graded by a teacher"));
         if (importing) content.Children.Insert(0, modeChoice);
         if (policy.Warning is not null) content.Children.Add(new TextBlock { Text = UiText.Get("Sandbox unavailable. Code and commands will run locally with access to this account's files and network."), TextWrapping = TextWrapping.Wrap });
         content.Children.Add(new TextBlock { Text = UiText.Get("Materials will be sent to the selected model and may incur charges."), TextWrapping = TextWrapping.Wrap });
+        if (!references && _settings.EmbeddingModel is { } embedding)
+            content.Children.Add(new TextBlock { Text = UiText.Format("New question text will also be sent to {0} using {1} for automatic indexing. Additional charges may apply.", embedding.BaseUrl, embedding.Model), TextWrapping = TextWrapping.Wrap });
         var dialog = new ContentDialog
         {
             XamlRoot = RootGrid.XamlRoot,
-            Title = importing ? UiText.Get("Import exam") : references ? UiText.Get("Organize reference answers") : UiText.Get("Recognize again"),
+            Title = retry ? UiText.Get("Retry task") : importing ? UiText.Get("Import exam") : references ? UiText.Get("Organize reference answers") : UiText.Get("Recognize again"),
             RequestedTheme = RootGrid.ActualTheme,
             Content = content,
-            PrimaryButtonText = importing ? UiText.Get("Import and recognize") : UiText.Get("Start"),
+            PrimaryButtonText = retry ? UiText.Get("Retry task") : importing ? UiText.Get("Import and recognize") : UiText.Get("Start"),
             CloseButtonText = UiText.Get("Cancel"),
             DefaultButton = ContentDialogButton.Primary
         };
@@ -642,7 +655,6 @@ public sealed partial class MainWindow
                     if (_closed || _lifetime.IsCancellationRequested || !ReferenceEquals(_jobs, observedJobs)) return;
                     try
                     {
-                        AppLog.Info("Job.Changed", $"Job={change.JobId}; State={change.Kind}");
                         await RefreshTasksAsync();
                         if (change.Kind is "progress" or "completed" or "failed" or "cancelled")
                         {

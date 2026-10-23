@@ -10,7 +10,7 @@ using OhMyStudy.Infrastructure.Storage;
 
 [assembly: SupportedOSPlatform("windows10.0.19041")]
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly string Root = Path.Combine(Path.GetTempPath(), "OhMyStudy-Storage-" + Guid.NewGuid().ToString("N"));
     private static readonly string Fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures");
@@ -39,12 +39,15 @@ internal static class Program
             await DirectoryPromotionLocks();
             await PdfRelationships();
             await GradingAndJobs();
+            await JobRetryChecks();
             await PaperMetadata();
             await RetiredProviders();
             await CredentialAtomicity();
             await CopyUpgradeRecovery();
             await ComplexCopyUpgradeRecovery();
             await QuestionBankScale();
+            await SemanticSearchChecks();
+            await DiagnosticChecks();
             Console.WriteLine($"Storage regression: {passed} checks passed. Synthetic temporary libraries only. {Root}");
             return 0;
         }

@@ -2,6 +2,8 @@ using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using OhMyStudy.Infrastructure.Providers;
+using OhMyStudy.Infrastructure.Diagnostics;
+using OhMyStudy.App.Diagnostics;
 
 namespace OhMyStudy.App;
 
@@ -22,8 +24,8 @@ public sealed partial class MainWindow
         return _exchangeRateTask;
         async Task<CnyRate?> Read()
         {
-            try { using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) }; return await CnyExchangeRates.GetAsync(http, _lifetime.Token); }
-            catch { return null; }
+            try { using var http = new System.Net.Http.HttpClient(new DiagnosticHttpHandler(new System.Net.Http.SocketsHttpHandler { AllowAutoRedirect = false })) { Timeout = TimeSpan.FromSeconds(10) }; return await CnyExchangeRates.GetAsync(http, _lifetime.Token); }
+            catch (Exception error) { AppLog.Error("Currency.Fetch", error); return null; }
         }
     }
     private static string RateNote(CnyRate rate) => UiText.Format("Exchange rate {0}: USD 1 = CNY {1:0.####}", rate.Date, rate.Rate) + (rate.IsStale ? UiText.Get(" (cached)") : "");

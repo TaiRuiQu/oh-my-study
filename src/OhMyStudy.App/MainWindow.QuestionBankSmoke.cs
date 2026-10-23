@@ -173,7 +173,41 @@ public sealed partial class MainWindow
             Require(WorkspaceGrid.Visibility == Visibility.Visible && SourcePane.Visibility == Visibility.Visible && ViewModel.CurrentDocument?.Id == opened.DocumentId
                 && ViewModel.SelectedQuestion.Saved?.Id == opened.Id && QuestionReaderPage.Visibility == Visibility.Collapsed, "view-in-exam");
             await Capture("view-in-exam");
+            double sourceWidth = WorkspaceGrid.ColumnDefinitions[0].ActualWidth;
+            WorkspaceSplitter.Resize(40); await Settle();
+            Require(WorkspaceGrid.ColumnDefinitions[0].ActualWidth > sourceWidth + 30, "source-and-questions-resize");
             CloseOriginal_Click(this, new RoutedEventArgs()); await Settle(); await Capture("exam-detail");
+            ResizeQuestionColumn(500); await Settle();
+            Require(Math.Abs(QuestionListColumn.ActualWidth - 500) < 2 && QuestionColumnSplitter.Visibility == Visibility.Visible && QuestionDetail.ActualWidth >= 280, "exam-columns-resize");
+            await Capture("exam-resized");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Settle();
+            Require(QuestionColumnSplitter.Visibility == Visibility.Visible && QuestionColumnSplitter.Orientation == Orientation.Horizontal && Grid.GetColumn(QuestionDetailLayout) == 0, "exam-columns-stack-compact");
+            double listHeight = QuestionListRow.ActualHeight;
+            QuestionColumnSplitter.Resize(32); await Settle();
+            Require(QuestionListRow.ActualHeight > listHeight + 20, "exam-rows-resize-compact");
+            QuestionColumnSplitter.Resize(double.MaxValue); await Settle();
+            Require(QuestionDetailLayout.ActualHeight >= 252 && SaveNotesButton.TransformToVisual(QuestionPane).TransformPoint(new Windows.Foundation.Point(0, SaveNotesButton.ActualHeight)).Y <= QuestionPane.ActualHeight + 1, "compact-divider-keeps-notes-save-button-reachable");
+            ResizeQuestionSplit(180 - QuestionListRow.ActualHeight); await Settle();
+            await Capture("exam-resized-compact");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Settle();
+            Require(Math.Abs(QuestionListColumn.ActualWidth - 500) < 2, "exam-column-width-restored");
+            await ShowQuestionBankAsync("library");
+            QuestionSearchMode.SelectedIndex = 1; await Settle();
+            Require(SemanticSearchButton.Visibility == Visibility.Visible && !QuestionSort.IsEnabled, "meaning-search-controls");
+            await Capture("meaning-search");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Settle(); await Capture("meaning-search-compact");
+            Navigation.SelectedItem = Navigation.SettingsItem; await Settle();
+            SearchSettingsCard.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 }); await Settle(); await Capture("search-settings-compact");
+            SearchModelActions.StartBringIntoView(); await Settle(); await Capture("search-settings-actions-compact");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Settle();
+            EmbeddingApiType.SelectedIndex = 1; RerankerApiType.SelectedIndex = 1; await Settle();
+            Require(HasSearchSettingsDraft && EmbeddingBaseUrl.PlaceholderText.EndsWith("/api/v1", StringComparison.Ordinal), "search-api-type-is-draft-and-updates-placeholders");
+            Require(Grid.GetColumn(EmbeddingModelName) == 2 && Grid.GetRow(EmbeddingKey) == 1, "search-settings-use-compact-rows");
+            SearchSettingsCard.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 }); await Settle(); await Capture("search-settings");
+            SearchModelActions.StartBringIntoView(); await Settle(); await Capture("search-settings-actions");
+            double providerWidth = ProviderListColumn.ActualWidth;
+            ProviderSplitter.Resize(32); await Settle();
+            Require(ProviderListColumn.ActualWidth > providerWidth + 20, "provider-columns-resize");
             exit = 0;
         }
         catch (Exception error) { AppLog.Error("QuestionBankSmoke", error); checks.Add("FAIL " + error); }

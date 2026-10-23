@@ -31,6 +31,7 @@ public sealed class JobQueue : IAsyncDisposable
         private bool _disposed;
         public CancellationTokenSource Cancellation { get; } = new();
         public TaskCompletionSource<AuthorizedCall?>? Permission { get; set; }
+        public TaskCompletionSource Finished { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public void Cancel() { lock (_sync) { if (!_disposed) Cancellation.Cancel(); } }
         public void Dispose() { lock (_sync) { if (_disposed) return; _disposed = true; Cancellation.Dispose(); } }
     }
@@ -108,6 +109,57 @@ public sealed class JobQueue : IAsyncDisposable
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try { ThrowFatal(); return _jobs.Values.OrderByDescending(j => j.CreatedAt).ThenByDescending(j => j.Id, StringComparer.Ordinal).Select(Snapshot).ToArray(); }
+        finally { _gate.Release(); }
+    }
+
+    public async Task<Job> RetryAsync(string id, ExecutionPolicy? policy = null, GradingInput? input = null,
+        CancellationToken cancellationToken = default)
+    {
+        var previous = await GetAsync(id, cancellationToken).ConfigureAwait(false);
+        if (previous.State is not (JobState.Failed or JobState.Interrupted))
+            throw new InvalidOperationException("Only failed or interrupted tasks can be retried.");
+        if (_controls.TryGetValue(id, out var running))
+            await running.Finished.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            Healthy();
+            previous = Get(id);
+            if (input is not null && input.Document.Id != previous.Input?.Document.Id)
+                throw new ArgumentException("A retry must use the same document.", nameof(input));
+            if (_jobs.Values.Count(j => !j.State.IsTerminal()) >= 128)
+                throw new InvalidOperationException("Too many tasks are waiting. Retry later.");
+            if (previous.Input is { } original && _jobs.Values.Any(j => !j.State.IsTerminal() && j.Input?.Document.Id == original.Document.Id))
+                throw new InvalidOperationException("This document already has an unfinished task.");
+            ulong now = Now();
+            var replacement = Snapshot(previous with
+            {
+                Id = Guid.NewGuid().ToString(),
+                State = JobState.Queued,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Sequence = 1,
+                Progress = 0,
+                Message = "Added to queue.",
+                Error = null,
+                PendingPermission = null,
+                ExecutionPolicy = policy ?? previous.ExecutionPolicy,
+                Input = input ?? previous.Input
+            });
+            string directory = Path.GetFullPath(Path.Combine(_resultsRoot, previous.Id));
+            if (!directory.StartsWith(Path.TrimEndingDirectorySeparator(_resultsRoot) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("The task directory is outside the results directory.");
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            var item = Event(replacement, "queued");
+            await _store.RetryAsync(Snapshot(previous), replacement, item, cancellationToken).ConfigureAwait(false);
+            _jobs.Remove(id);
+            _jobs.Add(replacement.Id, replacement);
+            _broker.RegisterJob(replacement.Id, replacement.ExecutionPolicy);
+            _controls[replacement.Id] = new();
+            if (!_pending.Writer.TryWrite(replacement.Id)) throw new InvalidOperationException("The task queue has stopped.");
+            foreach (var subscriber in _subscribers.Values) subscriber.Writer.TryWrite(item);
+            return Snapshot(replacement);
+        }
         finally { _gate.Release(); }
     }
 
@@ -249,7 +301,8 @@ public sealed class JobQueue : IAsyncDisposable
             finally { _gate.Release(); }
             try
             {
-                await _runner.RunAsync(Snapshot(job), new(this, id, control.Cancellation.Token)).ConfigureAwait(false);
+                try { await _runner.RunAsync(Snapshot(job), new(this, id, control.Cancellation.Token)).ConfigureAwait(false); }
+                finally { await _executor.CloseJobAsync(id).ConfigureAwait(false); }
                 control.Cancellation.Token.ThrowIfCancellationRequested();
                 await CompleteAsync(id, null).ConfigureAwait(false);
             }
@@ -259,6 +312,7 @@ public sealed class JobQueue : IAsyncDisposable
             {
                 _broker.Close(id);
                 if (_controls.TryRemove(id, out var removed)) removed.Dispose();
+                control.Finished.TrySetResult();
             }
         }
     }

@@ -177,14 +177,16 @@ internal static partial class AppContainerChecks
                 WorkingDirectory = input,
                 TimeoutMs = timeout
             };
-            return await new SandboxToolExecutor(runtime).ExecuteAsync(broker.Request(call)!, Path.Combine(root, "container-worker-" + id), cancellationToken);
+            var executor = new SandboxToolExecutor(runtime);
+            try { return await executor.ExecuteAsync(broker.Request(call)!, Path.Combine(root, "container-worker-" + id), cancellationToken); }
+            finally { await executor.CloseJobAsync(id); }
         }
         await check("appcontainer-private-python", async () =>
         {
             var result = await ExecuteAsync("python", ToolKind.Python,
                 "from pathlib import Path;import os,sys,numpy,sympy,matplotlib;assert sys.stdin.read() == '';assert all(os.environ.get(k) for k in ('USERPROFILE','LOCALAPPDATA','APPDATA'));assert 'OMS_SYNTHETIC_SECRET' not in os.environ;matplotlib.use('Agg');import matplotlib.pyplot as p;print(Path('资料.txt').read_text(encoding='utf-8'));print('|'.join(sys.argv[1:]));Path('资料.txt').write_text('临时修改',encoding='utf-8');p.plot([0,1],[0,1]);p.savefig('plot.png')");
             require(result.Succeeded && result.Stdout.Contains("合成输入") && result.Stdout.Contains(@"中文|a b|尾\")
-                && File.Exists(Path.Combine(root, "container-worker-python", "results", "work", "plot.png")), $"container Python: {result.Status}; {result.Stdout}{result.Stderr}");
+                && File.Exists(Path.Combine(input, "plot.png")), $"container Python: {result.Status}; {result.Stdout}{result.Stderr}");
             require(File.ReadAllText(Path.Combine(input, "资料.txt")) == "临时修改" && File.Exists(Path.Combine(input, "plot.png")), "worker output did not return to the task workspace");
         });
         await check("appcontainer-private-powershell", async () =>

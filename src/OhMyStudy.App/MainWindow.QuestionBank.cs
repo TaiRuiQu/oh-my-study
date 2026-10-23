@@ -12,7 +12,7 @@ namespace OhMyStudy.App;
 public sealed partial class MainWindow
 {
     private const int BankPageSize = 100;
-    private sealed record BankState(string Search, string? Subject, int Filter, int Sort, double Offset, int Loaded, string? QuestionId);
+    private sealed record BankState(string Search, string? Subject, int Filter, int Sort, double Offset, int Loaded, string? QuestionId, bool Meaning);
     private readonly ObservableCollection<QuestionSummaryViewModel> _bankQuestions = [];
     private readonly Dictionary<string, BankState> _bankStates = new(StringComparer.Ordinal);
     private string _bankSection = "library";
@@ -36,6 +36,7 @@ public sealed partial class MainWindow
 
     private void HideQuestionPanels()
     {
+        CancelSemanticSearch();
         if (QuestionsPanel.Visibility == Visibility.Visible) RememberBankState();
         QuestionsPanel.Visibility = QuestionReaderPage.Visibility = Visibility.Collapsed;
         CancelOpenQuestion();
@@ -53,11 +54,14 @@ public sealed partial class MainWindow
         try
         {
             QuestionSearch.Text = state?.Search ?? "";
+            QuestionSearchMode.SelectedIndex = state?.Meaning == true ? 1 : 0;
             QuestionResultFilter.SelectedIndex = state?.Filter ?? 0;
             QuestionSort.SelectedIndex = state?.Sort ?? 0;
             QuestionSubjectFilter.Tag = state?.Subject;
         }
         finally { _updatingBankFilters = false; }
+        SetSemanticFeedback("");
+        UpdateSearchMode();
         ApplyWorkspaceLayout();
         await ReloadBankAsync(state?.Offset ?? 0, state?.Loaded ?? 0, state?.QuestionId);
     }
@@ -66,7 +70,7 @@ public sealed partial class MainWindow
     {
         string? focused = _openIndex >= 0 && _openIndex < _bankQuestions.Count ? _bankQuestions[_openIndex].Id : null;
         _bankStates[_bankSection] = new(QuestionSearch.Text, SelectedBankSubject(), QuestionResultFilter.SelectedIndex, QuestionSort.SelectedIndex,
-            _bankScroll?.VerticalOffset ?? 0, _bankQuestions.Count, focused);
+            _bankScroll?.VerticalOffset ?? 0, _bankQuestions.Count, focused, IsMeaningSearch);
     }
 
     private string? SelectedBankSubject() => QuestionSubjectFilter.SelectedIndex > 0 ? QuestionSubjectFilter.SelectedItem as string : QuestionSubjectFilter.Tag as string;
@@ -89,7 +93,7 @@ public sealed partial class MainWindow
             List<string> subjects;
             if (_library is { } library)
             {
-                page = await library.QueryQuestionsAsync(query, _lifetime.Token);
+                page = IsMeaningSearch ? await SemanticBankPageAsync(library, query) : await library.QueryQuestionsAsync(query, _lifetime.Token);
                 subjects = await library.ListQuestionSubjectsAsync(_lifetime.Token);
             }
             else (page, subjects) = (SampleBankPage(query), []);
@@ -127,7 +131,7 @@ public sealed partial class MainWindow
 
     private async Task LoadMoreBankAsync()
     {
-        if (_bankLoading || _bankQuestions.Count >= _bankMatching || _library is not { } library) return;
+        if (IsMeaningSearch || _bankLoading || _bankQuestions.Count >= _bankMatching || _library is not { } library) return;
         long generation = _bankGeneration;
         _bankLoading = true;
         try
@@ -178,6 +182,13 @@ public sealed partial class MainWindow
         if (!empty && _bankScroll is null) { BankList.UpdateLayout(); AttachBankScroll(); }
         bool mistakes = _bankSection == "mistakes";
         var query = BankQuery(0, 1);
+        if (IsMeaningSearch && (!_semanticBankResults.TryGetValue(_bankSection, out var result) || result.Request != SemanticRequest))
+        {
+            BankEmptyIcon.Glyph = "\uE721";
+            BankEmptyTitle.Text = UiText.Get("Search by meaning");
+            BankEmptyMessage.Text = UiText.Get("Describe what you want to find, then press Search or Enter. Model calls require confirmation.");
+            return;
+        }
         if (_bankTotal > 0 || query.Search is not null || query.Subject is not null || query.Filter != QuestionFilter.All && !mistakes)
         {
             BankEmptyIcon.Glyph = "\uE721";
@@ -207,6 +218,13 @@ public sealed partial class MainWindow
     private async void QuestionSearch_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (!_initialized || _updatingBankFilters) return;
+        if (IsMeaningSearch)
+        {
+            CancelSemanticSearch();
+            SetSemanticFeedback("");
+            await ReloadBankAsync();
+            return;
+        }
         int revision = ++_bankSearchRevision;
         try { await Task.Delay(250, _lifetime.Token); }
         catch (OperationCanceledException) { return; }
@@ -216,6 +234,11 @@ public sealed partial class MainWindow
     private async void QuestionFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized || _updatingBankFilters || QuestionsPanel.Visibility != Visibility.Visible) return;
+        if (IsMeaningSearch)
+        {
+            CancelSemanticSearch();
+            SetSemanticFeedback(UiText.Get("Filters changed. Press Search to refresh meaning results."));
+        }
         await ReloadBankAsync();
     }
 
@@ -226,6 +249,7 @@ public sealed partial class MainWindow
 
     private void ApplyQuestionBankLayout()
     {
+        UpdateSearchMode();
         bool narrowToolbar = RootGrid.ActualWidth < 760;
         Grid.SetRow(QuestionPager, narrowToolbar ? 1 : 0); Grid.SetColumn(QuestionPager, narrowToolbar ? 0 : 1); Grid.SetColumnSpan(QuestionPager, narrowToolbar ? 3 : 1);
         bool narrow = RootGrid.ActualWidth < 860, mistakes = _bankSection == "mistakes";
@@ -237,7 +261,7 @@ public sealed partial class MainWindow
         columns.Clear();
         if (!narrow) columns.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         foreach (var choice in choices) columns.Add(new ColumnDefinition { Width = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(ReferenceEquals(choice, QuestionSort) ? 170 : 160) });
-        Grid.SetRow(QuestionSearch, 0); Grid.SetColumn(QuestionSearch, 0); Grid.SetColumnSpan(QuestionSearch, narrow ? choices.Length : 1);
+        Grid.SetRow(QuestionSearchField, 0); Grid.SetColumn(QuestionSearchField, 0); Grid.SetColumnSpan(QuestionSearchField, narrow ? choices.Length : 1);
         for (int index = 0; index < choices.Length; index++)
         {
             Grid.SetRow(choices[index], narrow ? 1 : 0); Grid.SetColumn(choices[index], narrow ? index : index + 1); Grid.SetColumnSpan(choices[index], 1);

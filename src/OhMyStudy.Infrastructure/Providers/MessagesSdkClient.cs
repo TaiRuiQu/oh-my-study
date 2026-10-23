@@ -107,6 +107,14 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
         if (request.CacheControl is null) body.Remove("cache_control");
         body["stream"] = JsonElement.Parse(options.Stream ? "true" : "false");
         foreach (var (key, value) in options.Extra) body.Add(key, value.Clone());
+        if (request.CacheControl is not null && body.TryGetValue("system", out var system)
+            && system.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(system.GetString()))
+            body["system"] = JsonElement.Parse(new JsonArray(new JsonObject
+            {
+                ["type"] = "text",
+                ["text"] = system.GetString(),
+                ["cache_control"] = new JsonObject { ["type"] = "ephemeral" }
+            }).ToJsonString());
         if (openRouter && options.SessionId is { } session) body["session_id"] = JsonElement.Parse(JsonValue.Create(session)!.ToJsonString());
         return MessageCreateParams.FromRawUnchecked(request.RawHeaderData, request.RawQueryData, body);
     }

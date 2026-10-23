@@ -66,6 +66,28 @@ public sealed partial class MainWindow
         PopulateModelEditor(model with { PriceInput = null, PriceCacheWrite = null, PriceOutput = null });
         await UpdateModelCnyPreviewAsync(); await Capture("model-prices-partial");
         PopulateModelEditor(savedModel);
+        Require(ModelMaxTokens.Text.Length == 0, "catalog-limit-does-not-become-user-output-setting");
+        ModelMaxTokens.Text = "65536"; Require(HasModelDraft, "max-tokens-draft-detected");
+        await SaveModelAsync();
+        var customTokens = (await _library.ListProvidersAsync()).Single().Models.Single();
+        Require(customTokens.MaxTokens == 65536 && customTokens.MaxOutputTokens == 32000 && ModelMaxTokens.Text == "65536", "max-tokens-save-reload-preserves-catalog-metadata");
+        ApplyCatalogModel(model with { MaxOutputTokens = 8192 });
+        Require(ModelMaxTokens.Text == "65536", "catalog-fill-preserves-user-output-limit");
+        PopulateModelEditor(customTokens);
+        foreach (string invalid in new[] { "0", "-1", "1.5", "2147483648", "invalid" })
+        {
+            ModelMaxTokens.Text = invalid; await SaveModelAsync();
+            Require((await _library.ListProvidersAsync()).Single().Models.Single().MaxTokens == 65536 && ModelFeedback.Text.Contains("max_tokens", StringComparison.Ordinal), "invalid-max-tokens-keeps-saved-value-" + invalid);
+        }
+        PopulateModelEditor(customTokens);
+        ModelMaxTokens.StartBringIntoView(); await Capture("max-tokens-wide");
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Task.Delay(250);
+        ModelMaxTokens.StartBringIntoView(); await Capture("max-tokens-compact");
+        RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("max-tokens-compact-dark"); RootGrid.RequestedTheme = ElementTheme.Light;
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Task.Delay(250);
+        ModelMaxTokens.Text = ""; await SaveModelAsync();
+        Require((await _library.ListProvidersAsync()).Single().Models.Single().MaxTokens is null, "blank-max-tokens-restores-automatic-limit");
+        PopulateModelEditor(savedModel);
         _modelFormBaseline = ModelFormState();
         return model;
     }

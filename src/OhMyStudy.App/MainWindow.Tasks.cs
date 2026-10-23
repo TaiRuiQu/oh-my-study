@@ -23,6 +23,7 @@ public sealed partial class MainWindow
     private double _taskScrollWidth;
     private double _taskViewportHeight;
     private bool _taskScrollScheduled;
+    private bool _retryingTask;
 
     private void TasksPanel_SizeChanged(object sender, SizeChangedEventArgs e) => ApplyTaskLayout();
     private void ApplyTaskLayout()
@@ -30,11 +31,13 @@ public sealed partial class MainWindow
         if (TaskListColumn is null) return;
         bool stacked = TasksPanel.ActualWidth < 850;
         TaskButtons.Orientation = TasksPanel.ActualWidth < (UiText.Language == "zh-CN" ? 650 : 1100) ? Orientation.Vertical : Orientation.Horizontal;
-        TaskListColumn.Width = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(300);
-        TasksPanel.ColumnDefinitions[1].Width = stacked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        TaskListColumn.Width = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(Math.Clamp(TaskColumnSplitter.ColumnSize ?? 300, 220, Math.Max(220, TasksPanel.ActualWidth - 372)));
+        TasksPanel.ColumnDefinitions[1].Width = new GridLength(stacked ? 0 : 12);
+        TasksPanel.ColumnDefinitions[2].Width = stacked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        TaskColumnSplitter.Visibility = !stacked && TaskDetail.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
         TaskListRow.Height = stacked ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
         TasksPanel.RowDefinitions[1].Height = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        Grid.SetColumn(TaskDetail, stacked ? 0 : 1); Grid.SetRow(TaskDetail, stacked ? 1 : 0);
+        Grid.SetColumn(TaskDetail, stacked ? 0 : 2); Grid.SetRow(TaskDetail, stacked ? 1 : 0);
         bool compactHeading = TaskDetail.ActualWidth < 600;
         Grid.SetColumnSpan(TaskHeading, compactHeading ? 2 : 1);
         Grid.SetColumn(TaskButtons, compactHeading ? 0 : 1);
@@ -44,7 +47,6 @@ public sealed partial class MainWindow
         TaskButtons.Margin = new Thickness(0, compactHeading ? 12 : 0, 0, 0);
         TaskSidebar.Visibility = !stacked && TaskDetail.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
         TaskCompactPicker.Visibility = stacked && TaskDetail.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
-        TaskSummaryScroll.MaxHeight = Math.Max(120, (TasksPanel.ActualHeight - (stacked ? 46 : 0)) * .54);
         WorkspaceStatus.Visibility = TasksPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
     }
 
@@ -175,6 +177,8 @@ public sealed partial class MainWindow
         TaskHeroIcon.Foreground = TaskStateLabel.Foreground;
         TaskProgress.Visibility = selected.State == JobState.Running ? Visibility.Visible : Visibility.Collapsed;
         TaskCancelButton.Visibility = selected.State.IsTerminal() ? Visibility.Collapsed : Visibility.Visible;
+        TaskRetryButton.Visibility = selected.State is JobState.Failed or JobState.Interrupted ? Visibility.Visible : Visibility.Collapsed;
+        TaskRetryButton.IsEnabled = !_retryingTask && !jobs.Any(j => !j.State.IsTerminal() && j.Input?.Document.Id == selected.Input?.Document.Id);
         TaskPermissionButton.Visibility = selected.PendingPermission is null ? Visibility.Collapsed : Visibility.Visible;
         ulong inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0;
         bool inputKnown = true, outputKnown = true, cacheKnown = true, cacheWriteKnown = true;
@@ -288,6 +292,47 @@ public sealed partial class MainWindow
     }
     private async void TaskPermission_Click(object sender, RoutedEventArgs e)
     { if (_selectedTask?.PendingPermission is { } review) await ReviewPermissionAsync(_selectedTask.Id, review); }
+    private async void TaskRetry_Click(object sender, RoutedEventArgs e)
+    {
+        if (_retryingTask || _selectedTask is not { } job || _jobs is null || _library is null) return;
+        _retryingTask = true; TaskRetryButton.IsEnabled = false;
+        try
+        {
+            if (_questionEditorOpen || ViewModel.HasUnsavedChanges || HasUnsavedSettingsChanges)
+            { ViewModel.StatusMessage = UiText.Get("Save or close the editor first."); return; }
+            GradingInput? input = null;
+            ExecutionPolicy? policy = null;
+            if (job.Input is { } original)
+            {
+                var processing = await ChooseProcessingAsync(job.Kind == DiagnosticKind.References, false, retry: true);
+                if (processing is null) return;
+                var document = await _library.GetDocumentAsync(original.Document.Id, _lifetime.Token);
+                input = new GradingInput { Document = document, Provider = processing.Provider, Model = processing.Model, Thinking = processing.Thinking, AllowUnknown = processing.AllowUnknown };
+                policy = processing.Policy;
+            }
+            var replacement = await _jobs.RetryAsync(job.Id, policy, input, _lifetime.Token);
+            _selectedTaskId = replacement.Id;
+            AppLog.Info("Task.Retry", $"PreviousJob={job.Id}; NewJob={replacement.Id}; Document={input?.Document.Id}");
+            await RefreshTasksAsync();
+            await RefreshDocumentsAsync();
+            ViewModel.StatusMessage = UiText.Get("Added to queue.");
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception error)
+        {
+            AppLog.Failure("Task.Retry", $"Job={job.Id}; Document={job.Input?.Document.Id}; {error}");
+            var dialog = new ContentDialog
+            {
+                XamlRoot = RootGrid.XamlRoot,
+                RequestedTheme = RootGrid.ActualTheme,
+                Title = UiText.Get("Could not retry the task"),
+                Content = UiText.Get(error.Message) == error.Message ? UiText.Get("Check model settings and make sure no other task is processing this exam, then try again.") : UiText.Get(error.Message),
+                CloseButtonText = UiText.Get("Close")
+            };
+            await dialog.ShowAsync();
+        }
+        finally { _retryingTask = false; TaskRetryButton.IsEnabled = true; }
+    }
     private async void TaskLibrary_Click(object sender, RoutedEventArgs e) => await ShowQuestionLibraryAsync();
     private void TaskUsage_Click(object sender, RoutedEventArgs e)
     {

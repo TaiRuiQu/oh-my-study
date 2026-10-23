@@ -10,11 +10,16 @@ namespace OhMyStudy.Infrastructure.Execution;
 
 public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? control = null) : IToolExecutor
 {
+    private readonly PythonSessionExecutor _python = new(privateRuntime, new());
+    public Task CloseJobAsync(string jobId) => _python.CloseJobAsync(jobId);
+
     private static readonly SemaphoreSlim SessionGate = new(1, 1);
     private static bool _cleanupFailed;
     public async Task<ToolExecutionResult> ExecuteAsync(AuthorizedCall authorization, string resultsDirectory, CancellationToken cancellationToken)
     {
         if (authorization.Mode != ExecutionMode.Sandbox) throw new InvalidOperationException("This permission does not allow sandbox execution.");
+        if (authorization.Call.Tool == ToolKind.Python)
+            return await _python.ExecuteAsync(authorization, resultsDirectory, cancellationToken).ConfigureAwait(false);
         var call = authorization.Consume(); call.Validate();
         using var live = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, authorization.Revocation);
         await SessionGate.WaitAsync(live.Token).ConfigureAwait(false);
@@ -136,7 +141,7 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
         await stream.WriteAsync(Encoding.UTF8.GetBytes(value), token).ConfigureAwait(false);
         await stream.FlushAsync(token).ConfigureAwait(false);
     }
-    private static async Task SnapshotInputsAsync(string source, string destination, CancellationToken token, bool overwrite = false)
+    internal static async Task SnapshotInputsAsync(string source, string destination, CancellationToken token, bool overwrite = false)
     {
         var input = RuntimePaths.CheckedDirectory(source); long bytes = 0; int files = 0, entries = 0;
         async Task CopyAsync(string from, string to, int depth)
@@ -158,7 +163,18 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
                     await using var read = new FileStream(entry, FileMode.Open, FileAccess.Read, FileShare.Read);
                     bytes += read.Length;
                     if (++files > 256 || bytes > 268_435_456) throw new IOException("The working directory is too large. Keep only files needed for this task.");
-                    if (overwrite && File.Exists(target)) RuntimePaths.CheckedFile(target);
+                    if (overwrite && File.Exists(target))
+                    {
+                        RuntimePaths.CheckedFile(target);
+                        await using var current = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                        if (read.Length == current.Length)
+                        {
+                            var sourceHash = await SHA256.HashDataAsync(read, token).ConfigureAwait(false);
+                            var targetHash = await SHA256.HashDataAsync(current, token).ConfigureAwait(false);
+                            if (sourceHash.AsSpan().SequenceEqual(targetHash)) continue;
+                            read.Position = 0;
+                        }
+                    }
                     await using var write = new FileStream(target, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     await read.CopyToAsync(write, token).ConfigureAwait(false);
                 }
@@ -170,6 +186,12 @@ public sealed class SandboxToolExecutor(string privateRuntime, ISandboxControl? 
 
 public sealed class PolicyToolExecutor(IToolExecutor host, IToolExecutor sandbox) : IToolExecutor
 {
+    public async Task CloseJobAsync(string jobId)
+    {
+        try { await host.CloseJobAsync(jobId).ConfigureAwait(false); }
+        finally { await sandbox.CloseJobAsync(jobId).ConfigureAwait(false); }
+    }
+
     public Task<ToolExecutionResult> ExecuteAsync(AuthorizedCall call, string resultsDirectory, CancellationToken cancellationToken) =>
         (call.Mode == ExecutionMode.Sandbox ? sandbox : host).ExecuteAsync(call, resultsDirectory, cancellationToken);
 }

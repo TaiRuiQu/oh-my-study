@@ -17,8 +17,8 @@ internal static class SandboxChecks
             ProtocolVersion = 1,
             JobId = id,
             CallId = "call-1",
-            Tool = ToolKind.Python,
-            Content = "print('你好')",
+            Tool = ToolKind.Shell,
+            Content = "Write-Output '你好'",
             Arguments = ["中文", "a b"],
             WorkingDirectory = input,
             TimeoutMs = 5000

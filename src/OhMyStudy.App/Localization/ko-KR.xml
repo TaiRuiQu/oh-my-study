@@ -692,4 +692,72 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0683" xml:space="preserve">코드 실행 완료</text>
     <text key="S0684" xml:space="preserve">오류 세부 정보 표시</text>
     <text key="S0685" xml:space="preserve">오류 세부 정보 숨기기</text>
+    <text key="S0686" xml:space="preserve">Search mode</text>
+    <text key="S0687" xml:space="preserve">Keyword</text>
+    <text key="S0688" xml:space="preserve">Meaning</text>
+    <text key="S0689" xml:space="preserve">Search</text>
+    <text key="S0690" xml:space="preserve">취소</text>
+    <text key="S0691" xml:space="preserve">Resize question list</text>
+    <text key="S0692" xml:space="preserve">Drag left or right, or use the arrow keys to resize</text>
+    <text key="S0693" xml:space="preserve">Meaning search models</text>
+    <text key="S0694" xml:space="preserve">Embedding and reranker connections are independent of recognition providers. Each Base URL is used as entered, with /embeddings or /rerank appended. Include /v1 if your service requires it.</text>
+    <text key="S0695" xml:space="preserve">Embedding model</text>
+    <text key="S0696" xml:space="preserve">Base URL</text>
+    <text key="S0697" xml:space="preserve">Model name</text>
+    <text key="S0698" xml:space="preserve">API 키</text>
+    <text key="S0699" xml:space="preserve">Remove saved key</text>
+    <text key="S0700" xml:space="preserve">Reranker model (optional)</text>
+    <text key="S0701" xml:space="preserve">Leave both fields empty to disable a model. Keys are stored in Windows Credential Manager. Meaning search sends the query and question text to these services after confirmation; originals, personal notes and student answers stay local. Calls may incur charges; costs are not estimated.</text>
+    <text key="S0702" xml:space="preserve">Save search models</text>
+    <text key="S0703" xml:space="preserve">Clear local index</text>
+    <text key="S0704" xml:space="preserve">Optional for local services</text>
+    <text key="S0705" xml:space="preserve">Saved key; leave blank to keep</text>
+    <text key="S0706" xml:space="preserve">Could not save search settings. Enter both Base URL and model name, and check the address and key.</text>
+    <text key="S0707" xml:space="preserve">Local index cleared. The next meaning search will rebuild it after confirmation.</text>
+    <text key="S0708" xml:space="preserve">Could not clear the search index. Try again.</text>
+    <text key="S0709" xml:space="preserve">Describe the question or concept</text>
+    <text key="S0710" xml:space="preserve">Describe what you want to find, then press Search or Enter. Model calls require confirmation.</text>
+    <text key="S0711" xml:space="preserve">Search canceled. Completed embeddings are kept locally.</text>
+    <text key="S0712" xml:space="preserve">Showing up to 50 questions ranked by meaning. Change the query or filters and search again to refresh.</text>
+    <text key="S0713" xml:space="preserve">Configure an embedding Base URL and model name in Settings first.</text>
+    <text key="S0714" xml:space="preserve">Describe the question or concept first.</text>
+    <text key="S0715" xml:space="preserve">Preparing local search index…</text>
+    <text key="S0716" xml:space="preserve">No questions match the current filters.</text>
+    <text key="S0717" xml:space="preserve">Search by meaning</text>
+    <text key="S0718" xml:space="preserve">Send this query and {0} new or changed question texts ({1} characters) to {2} using {3}?</text>
+    <text key="S0719" xml:space="preserve">Results will be ranked locally by vector similarity.</text>
+    <text key="S0720" xml:space="preserve">Up to 50 candidate question texts will also be sent to {0} using {1} for reranking.</text>
+    <text key="S0721" xml:space="preserve">Original files, notes and student answers are excluded. Model calls may incur charges; the cost cannot be estimated here. Vectors are cached in this library.</text>
+    <text key="S0722" xml:space="preserve">Reranking matching questions…</text>
+    <text key="S0723" xml:space="preserve">Preparing embeddings: {0} / {1}</text>
+    <text key="S0724" xml:space="preserve">The search vectors or model response are inconsistent. Clear the local search index in Settings and try again.</text>
+    <text key="S0725" xml:space="preserve">Meaning search failed. Check the search models in Settings and try again.</text>
+    <text key="S0726" xml:space="preserve">Filters changed. Press Search to refresh meaning results.</text>
+    <text key="S0727" xml:space="preserve">The embedding response is invalid. Check the endpoint and model.</text>
+    <text key="S0728" xml:space="preserve">The reranker response is invalid. Check the endpoint and model, or clear the reranker configuration.</text>
+    <text key="S0729" xml:space="preserve">The search model key is unavailable. Enter it again in Settings.</text>
+    <text key="S0730" xml:space="preserve">The search model key is invalid. Enter it again in Settings.</text>
+    <text key="S0731" xml:space="preserve">Search model authentication failed. Check its key in Settings.</text>
+    <text key="S0732" xml:space="preserve">The search model is rate limited. Wait and try again.</text>
+    <text key="S0733" xml:space="preserve">The search model rejected the request. Check its Base URL and model name.</text>
+    <text key="S0734" xml:space="preserve">The search model request failed. Check the service and try again.</text>
+    <text key="S0735" xml:space="preserve">The search model timed out. Try again.</text>
+    <text key="S0736" xml:space="preserve">Could not connect to the search model or read its response. Check the service and try again.</text>
+    <text key="S0737" xml:space="preserve">연결이 끊어졌습니다. 다시 시도 중…</text>
+    <text key="S0738" xml:space="preserve">API 유형</text>
+    <text key="S0739" xml:space="preserve">OpenAI 호환</text>
+    <text key="S0740" xml:space="preserve">영역 크기 조절</text>
+    <text key="S0741" xml:space="preserve">드래그하거나 화살표 키로 조절합니다. Home/End는 최소/최대 크기로 조절합니다.</text>
+    <text key="S0742" xml:space="preserve">새 문제 텍스트는 자동 인덱싱을 위해 {0}에 전송되며 {1}을 사용합니다. 추가 요금이 발생할 수 있습니다.</text>
+    <text key="S0743" xml:space="preserve">최대 출력 토큰 수 (max_tokens)</text>
+    <text key="S0744" xml:space="preserve">비워 두면 자동 설정</text>
+    <text key="S0745" xml:space="preserve">max_tokens가 잘못되었습니다. 이 API가 지원하는 양의 정수를 입력하세요.</text>
+    <text key="S0746" xml:space="preserve">추론 예산은 max_tokens보다 작아야 합니다.</text>
+    <text key="S0747" xml:space="preserve">작업 다시 시도</text>
+    <text key="S0748" xml:space="preserve">다시 시도하면 실패한 실행의 저장 결과와 임시 파일을 삭제하고 새 작업을 처음부터 시작합니다. 원본 문서와 수동 편집은 유지됩니다. 이미 발생한 제공업체 요금과 코드가 작업 폴더 밖에서 수행한 변경은 되돌릴 수 없습니다.</text>
+    <text key="S0749" xml:space="preserve">작업을 다시 시도할 수 없음</text>
+    <text key="S0750" xml:space="preserve">모델 설정을 확인하고 이 시험을 처리 중인 다른 작업이 없는지 확인한 후 다시 시도하세요.</text>
+    <text key="S0751" xml:space="preserve">더 최근의 작업이 이 시험을 처리했습니다. 가장 최근에 실패한 작업을 다시 시도하세요.</text>
+    <text key="S0752" xml:space="preserve">이 작업에는 다시 시도를 위한 복구 기록이 없습니다. 시험에서 다시 인식을 사용하여 저장된 결과를 유지하세요.</text>
+    <text key="S0753" xml:space="preserve">이 작업이 저장한 문제가 수동 편집되었습니다. 시험에서 다시 인식을 사용하여 편집 내용을 유지하세요.</text>
 </resources>

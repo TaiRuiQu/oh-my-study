@@ -13,14 +13,14 @@ public sealed partial class MainWindow
     private string _providerFormBaseline = "";
     private string _modelFormBaseline = "";
     private string ProviderFormState() => string.Join('\u001f', ProviderName.Text, ProviderUrl.Text, ProtocolPicker.SelectedIndex.ToString(CultureInfo.InvariantCulture));
-    private string ModelFormState() => string.Join('\u001f', ModelId.Text, ModelDisplayName.Text, ModelContextWindow.Text,
+    private string ModelFormState() => string.Join('\u001f', ModelId.Text, ModelDisplayName.Text, ModelContextWindow.Text, ModelMaxTokens.Text,
         ModelVision.IsChecked?.ToString() ?? "", ModelTools.IsChecked?.ToString() ?? "", ModelPriceInput.Text, ModelPriceOutput.Text,
         ModelPriceCacheRead.Text, ModelPriceCacheWrite.Text,
         SelectedCurrency, ModelThinkingBudget.Text,
         string.Join(',', ModelThinkingOptions.Children.OfType<CheckBox>().Where(c => c.IsChecked == true).Select(c => c.Content)));
     private bool HasModelDraft => _settingsFormsReady && ModelEditor.Visibility == Visibility.Visible && ModelFormState() != _modelFormBaseline;
     private bool HasProviderDraft => _settingsFormsReady && (ProviderFormState() != _providerFormBaseline || ProviderKey.Password.Length > 0);
-    private bool HasUnsavedSettingsChanges => HasModelDraft || HasProviderDraft;
+    private bool HasUnsavedSettingsChanges => HasModelDraft || HasProviderDraft || HasSearchSettingsDraft;
 
     private async Task SaveSettingsFormsAsync()
     {
@@ -30,6 +30,7 @@ public sealed partial class MainWindow
             if (HasModelDraft) return;
         }
         if (HasProviderDraft) await SaveProviderAsync();
+        if (HasSearchSettingsDraft) await SaveSearchSettingsAsync();
     }
 
     private async Task<bool> ConfirmDiscardSettingsAsync(bool modelOnly = false)
@@ -55,6 +56,7 @@ public sealed partial class MainWindow
 
     private void DiscardSettingsForm()
     {
+        PopulateSearchSettings();
         if (_providers.FirstOrDefault(p => p.Id == _selectedProviderId) is { } provider) PopulateProviderEditor(provider);
         else ClearProviderEditor();
     }

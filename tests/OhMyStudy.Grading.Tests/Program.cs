@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OhMyStudy.Application.Execution;
+using OhMyStudy.Application.Diagnostics;
 using OhMyStudy.Application.Jobs;
 using OhMyStudy.Domain;
 using OhMyStudy.Infrastructure.Grading;
@@ -12,7 +13,7 @@ using OhMyStudy.Infrastructure.Storage;
 
 [assembly: SupportedOSPlatform("windows10.0.19041")]
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly string Root = Path.Combine(Path.GetTempPath(), "OhMyStudy-Grading-" + Guid.NewGuid().ToString("N"));
     private static byte[] png = [];
@@ -26,10 +27,14 @@ internal static class Program
         {
             using var assets = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "assets.synthetic.json")));
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
+            ModelProfileChecks.Run(Check);
+            await ModelProfilesAtTaskStart();
+            await OutputTokenChecks();
             await ThreeProtocolsAndModes();
             await OptionalFields();
             await BatchedTools();
             await StreamingActivity();
+            await StreamRetryRecovery();
             await MessagesThinkingContinuation();
             await CropAndCoverageRecovery();
             await DiscreteCoordinates();
@@ -284,6 +289,57 @@ internal static class Program
             }
     }
 
+    private static async Task ModelProfilesAtTaskStart()
+    {
+        foreach (var protocol in Enum.GetValues<Protocol>())
+            foreach (var model in new[] { "openai/gpt-4.1", "gpt-5.4-mini", "gpt-6-astra", "claude-haiku-5-5", "anthropic/claude-opus-5.5", "claude-sonnet-5-5", "google/gemini-2.5-pro", "gemini-3-pro", "unknown-model" })
+            {
+                await using var fixture = await Fixture.Create(ImportMode.Blank, protocol);
+                var input = fixture.Input with { Model = fixture.Input.Model with { Id = model } };
+                var profile = GradingModelProfile.Select(model);
+                var question = Question(fixture.Document, reference: false);
+                JsonArray? priorMessages = null;
+                string? priorTools = null, priorInstructions = null;
+                var api = new ScriptApi(protocol, (round, body, _) =>
+                {
+                    Check(body["model"]!.GetValue<string>() == model, "prompt selection preserves the exact chosen model ID and API protocol");
+                    AssertPromptContract(protocol, body, ImportMode.Blank, referenceOnly: false);
+                    string instructions = protocol == Protocol.Responses ? body["instructions"]!.GetValue<string>() : body["system"]![0]!["text"]!.GetValue<string>();
+                    Check(instructions == GradingPrompts.Instructions(ImportMode.Blank, false, profile), $"{protocol}/{model}: task launch selects model instructions");
+                    var messages = body[protocol == Protocol.Responses ? "input" : "messages"]!.AsArray();
+                    string tools = body["tools"]!.ToJsonString();
+                    if (priorMessages is not null)
+                        Check(instructions == priorInstructions && tools == priorTools
+                            && priorMessages.Select((item, index) => item!.ToJsonString() == messages[index]!.ToJsonString()).All(equal => equal),
+                            $"{protocol}/{model}: every round preserves its full previous prompt prefix");
+                    if (round == 1)
+                    {
+                        var expected = GradingTools.Create(false, profile).ToDictionary(tool => tool.Name, tool => tool.Description);
+                        Check(body["tools"]!.AsArray().All(tool => expected[tool!["name"]!.ToString()] == tool["description"]!.ToString()),
+                            $"{protocol}/{model}: task launch selects the matching tool descriptions");
+                        string text = messages[0]!["content"]![0]!["text"]!.GetValue<string>();
+                        Check(profile.Family == GradingModelFamily.Gemini
+                            ? text.IndexOf("<task>", StringComparison.Ordinal) > text.IndexOf("</document_context>", StringComparison.Ordinal)
+                            : text.StartsWith("Read the document", StringComparison.Ordinal), "context framing follows the model family");
+                    }
+                    priorMessages = messages.DeepClone().AsArray(); priorTools = tools; priorInstructions = instructions;
+                    return Task.FromResult<List<ToolCall>>(round switch
+                    {
+                        1 => fixture.Document.Pages.Select(page => Read(page)).ToList(),
+                        2 => [Save(question)],
+                        3 => [Finish(Coverage(fixture.Document, question.DraftKey))],
+                        _ => throw new InvalidOperationException("Unexpected profile continuation")
+                    });
+                });
+                using var http = new HttpClient(api);
+                using var client = new ProviderClient(http, protocol, input.Provider.BaseUrl);
+                await using var queue = await fixture.Queue(client);
+                var submitted = await queue.SubmitAsync(DiagnosticKind.Grading, Policy, input);
+                Check((await Wait(queue, submitted.Id)).State == JobState.Completed && api.Attempts == 3,
+                    $"{protocol}/{model}: selected profile completes the real tool loop");
+            }
+    }
+
     private static async Task StreamingActivity()
     {
         await using var fixture = await Fixture.Create(ImportMode.Blank, Protocol.Responses);
@@ -337,11 +393,14 @@ internal static class Program
         {
             Check(body["thinking"]?["type"]?.ToString() == "adaptive" && body["output_config"]?["effort"]?.ToString() == "medium", "Haiku medium uses adaptive thinking on every turn");
             Check(body["max_tokens"]!.GetValue<int>() == 24576, "thinking has output headroom within configured model limit");
+            Check(body["system"]?[0]?["cache_control"]?["type"]?.ToString() == "ephemeral"
+                && body["cache_control"]?["type"]?.ToString() == "ephemeral", "Haiku caches the fixed developer prompt and advancing conversation separately");
+            Check(body["system"]![0]!["text"]!.ToString().Contains("notebook-style namespace", StringComparison.Ordinal), "developer prompt describes persistent Python state");
             if (priorMessages is not null)
             {
                 var messages = body["messages"]!.AsArray();
-                Check(priorMessages.AsArray().Select((item, index) => JsonNode.DeepEquals(item, messages[index])).All(equal => equal)
-                    && JsonNode.DeepEquals(priorTools, body["tools"]) && JsonNode.DeepEquals(priorSystem, body["system"]), "thinking continuation preserves the signed conversation prefix, tools and system");
+                Check(priorMessages.AsArray().Select((item, index) => item!.ToJsonString() == messages[index]!.ToJsonString()).All(equal => equal)
+                    && priorTools!.ToJsonString() == body["tools"]!.ToJsonString() && priorSystem!.ToJsonString() == body["system"]!.ToJsonString(), "thinking continuation preserves the exact signed conversation prefix, tools and system");
                 Check(messages[^1]!["role"]!.ToString() == "user" && messages[^1]!["content"]!.AsArray().Count > 0, "continuation has a nonempty user turn");
                 Check(messages[^2]!["content"]![0]!["signature"]!.ToString() == "SYNTHETIC_NEVER_SEND_EXTERNALLY", "thinking signature is preserved across continuation");
             }
@@ -378,7 +437,7 @@ internal static class Program
 
     private static void AssertPromptContract(Protocol protocol, JsonObject request, ImportMode mode, bool referenceOnly)
     {
-        var instructions = request[protocol == Protocol.Responses ? "instructions" : "system"]!.GetValue<string>();
+        var instructions = protocol == Protocol.Responses ? request["instructions"]!.GetValue<string>() : request["system"]![0]!["text"]!.GetValue<string>();
         Check(instructions.All(char.IsAscii) && instructions.StartsWith("Organize the exam", StringComparison.Ordinal), "native high-priority instructions are structured English");
         Check(instructions.Contains("Simplified Chinese", StringComparison.Ordinal)
             && instructions.Contains("Preserve the source language", StringComparison.Ordinal), "English instructions preserve the content-language contract");
@@ -394,7 +453,7 @@ internal static class Program
         var input = first["content"]!.AsArray()[0]!["text"]!.GetValue<string>();
         int contextStart = input.IndexOf('{');
         Check(first["role"]!.GetValue<string>() == "user" && contextStart > 0 && input[..contextStart].All(char.IsAscii), "dynamic context is framed separately in a user message");
-        using var context = JsonDocument.Parse(input[contextStart..]);
+        using var context = JsonDocument.Parse(input[contextStart..(input.LastIndexOf('}') + 1)]);
         var expectedMode = mode switch
         {
             ImportMode.TeacherGraded => "teacher_graded",
@@ -567,9 +626,25 @@ internal static class Program
                 return Task.FromResult(NativeTurn(protocol, calls));
             });
             await using var queue = await fixture.Queue(client);
-            var submitted = await queue.SubmitAsync(DiagnosticKind.Grading, Policy with { PreferredMode = ExecutionMode.BypassPermission, EffectiveMode = ExecutionMode.BypassPermission }, fixture.Input);
-            var job = await Wait(queue, submitted.Id);
+            var diagnostics = new List<(string Phase, string Detail, bool Failed)>();
+            void Log(string phase, string detail, bool failed) => diagnostics.Add((phase, detail, failed));
+            OperationDiagnostics.Written += Log;
+            Job job;
+            try
+            {
+                var submitted = await queue.SubmitAsync(DiagnosticKind.Grading, Policy with { PreferredMode = ExecutionMode.BypassPermission, EffectiveMode = ExecutionMode.BypassPermission }, fixture.Input);
+                job = await Wait(queue, submitted.Id);
+            }
+            finally { OperationDiagnostics.Written -= Log; }
             Check(job.State == JobState.Completed && executor.Calls == 3, "code processing recovers and rejects invalid output paths and timeouts before execution");
+            var executionFailure = diagnostics.Single(entry => entry.Phase == "Tool.Failed" && entry.Detail.Contains("synthetic actionable traceback", StringComparison.Ordinal));
+            using var executionDiagnostic = JsonDocument.Parse(executionFailure.Detail);
+            Check(executionFailure.Failed && executionDiagnostic.RootElement.GetProperty("arguments").GetProperty("code").GetString() == "synthetic failure"
+                && executionDiagnostic.RootElement.GetProperty("result").GetProperty("stdout").GetString() == "partial output", "failed code logs retain arguments and complete execution output in one event");
+            var startupFailure = diagnostics.Single(entry => entry.Phase == "Tool.Failed" && entry.Detail.Contains("startup failure", StringComparison.Ordinal));
+            using var startupDiagnostic = JsonDocument.Parse(startupFailure.Detail);
+            Check(startupFailure.Failed && startupDiagnostic.RootElement.GetProperty("exception").GetString()!.Contains("System.IO.IOException", StringComparison.Ordinal)
+                && startupDiagnostic.RootElement.GetProperty("arguments").GetProperty("code").GetString() == "startup failure", "tool startup failures retain arguments and exception details");
             var saved = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single();
             var stored = saved.Question.Stem.OfType<OhMyStudy.Domain.ImageContent>().Single();
             Check(stored.AssetId == assetId && stored.Region == Region(fixture.Document.Pages[0]), "processed asset and original evidence region persist together");
@@ -748,8 +823,8 @@ internal static class Program
             var job = await fixture.Run(client);
             var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
             Check(job.State == JobState.Failed && result.Questions.Count == 1 && result.Coverage.Count == 0, noTools ? "plain model text cannot complete and previous save remains" : "network failure preserves durable previous result");
-            Check(client.Attempts == (noTools ? 4 : 2) && result.ModelCalls.Count == (noTools ? 4 : 1),
-                noTools ? "bounded text continuations account for every model call" : "no hidden retry or fabricated usage on network failure");
+            Check(client.Attempts == (noTools ? 4 : 5) && result.ModelCalls.Count == (noTools ? 4 : 1),
+                noTools ? "bounded text continuations account for every model call" : "bounded network retries preserve successful results without fabricating usage");
             await fixture.AssertDurableEvents(job);
         }
     }
@@ -833,6 +908,7 @@ internal static class Program
         public PixelReader Reader { get; } = new();
         public RejectExecutor Executor { get; } = new();
         public IToolExecutor? CodeExecutor { get; set; }
+        public Action<SavedQuestion>? QuestionSaved { get; set; }
         public static async Task<Fixture> Create(ImportMode mode, Protocol protocol, int materialPages = 1)
         {
             var repository = await LibraryRepository.OpenAsync(new(Path.Combine(Root, Guid.NewGuid().ToString("N")), LibraryOpenMode.CreateNew) { MediaProcessor = new PixelProcessor() });
@@ -848,7 +924,7 @@ internal static class Program
         }
         public async Task<JobQueue> Queue(IModelClient client)
         {
-            var runner = new GradingRunner(Library, Reader, _ => client, _ => new ProviderCredentials("synthetic-key"));
+            var runner = new GradingRunner(Library, Reader, _ => client, _ => new ProviderCredentials("synthetic-key"), QuestionSaved);
             return await JobQueue.CreateAsync(new RepositoryJobStore(Library), runner, CodeExecutor ?? Executor, Path.Combine(Root, "results", Guid.NewGuid().ToString("N")));
         }
         public async Task<Job> Run(IModelClient client, DiagnosticKind kind = DiagnosticKind.Grading)

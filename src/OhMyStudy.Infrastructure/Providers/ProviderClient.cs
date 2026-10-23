@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using OhMyStudy.Domain;
+using OhMyStudy.Infrastructure.Diagnostics;
 
 namespace OhMyStudy.Infrastructure.Providers;
 
@@ -48,7 +49,7 @@ public sealed class ProviderClient : IModelClient, IDisposable
 
     public ProviderClient(Protocol protocol, string baseUri, IReadOnlyDictionary<string, string>? headers = null)
         // SDK streams run until the caller cancels; each SDK bounds non-streaming calls itself.
-        : this(new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan }, protocol, baseUri, headers)
+        : this(new HttpClient(new DiagnosticHttpHandler(new SocketsHttpHandler { AllowAutoRedirect = false })) { Timeout = Timeout.InfiniteTimeSpan }, protocol, baseUri, headers)
         => _ownsHttp = true;
 
     public ProviderClient(HttpClient httpClient, Protocol protocol, string baseUri, IReadOnlyDictionary<string, string>? headers = null)
@@ -119,12 +120,17 @@ public sealed class ProviderClient : IModelClient, IDisposable
     private static bool IsLoopback(Uri uri) => uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || uri.Host is "127.0.0.1" or "[::1]" or "::1";
     private static async Task DelayAsync(string? retryAfter, int attempt, ProviderRetryPolicy policy, CancellationToken cancellationToken)
     {
+        try { await Task.Delay(RetryDelay(retryAfter, attempt, policy), cancellationToken).ConfigureAwait(false); }
+        catch (OperationCanceledException) { throw new ProviderException(ErrorKind.Cancelled, "provider retry cancelled"); }
+    }
+
+    internal static TimeSpan RetryDelay(string? retryAfter, int attempt, ProviderRetryPolicy policy)
+    {
         var delay = TimeSpan.FromMilliseconds(Math.Min(policy.MaximumDelay.TotalMilliseconds, policy.InitialDelay.TotalMilliseconds * Math.Pow(2, attempt - 1)));
         if (int.TryParse(retryAfter, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seconds) && seconds >= 0) delay = TimeSpan.FromSeconds(seconds);
         else if (DateTimeOffset.TryParse(retryAfter, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var date)) delay = date - DateTimeOffset.UtcNow;
         delay = TimeSpan.FromMilliseconds(Math.Clamp(delay.TotalMilliseconds, 0, policy.MaximumDelay.TotalMilliseconds));
-        try { await Task.Delay(delay, cancellationToken).ConfigureAwait(false); }
-        catch (OperationCanceledException) { throw new ProviderException(ErrorKind.Cancelled, "provider retry cancelled"); }
+        return delay;
     }
     public void Dispose() { if (_ownsHttp) _http.Dispose(); }
 }

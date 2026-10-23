@@ -7,6 +7,7 @@ using OhMyStudy.App.Diagnostics;
 using OhMyStudy.Domain;
 using OhMyStudy.Infrastructure.Credentials;
 using OhMyStudy.Infrastructure.Providers;
+using OhMyStudy.Infrastructure.Diagnostics;
 
 namespace OhMyStudy.App;
 
@@ -40,6 +41,7 @@ public sealed partial class MainWindow
         _selectedModelId = model.Id.Length == 0 ? null : model.Id;
         ModelDisplayName.Text = model.DisplayName ?? ""; ModelId.Text = model.Id;
         ModelContextWindow.Text = model.ContextWindow?.ToString(CultureInfo.InvariantCulture) ?? "";
+        ModelMaxTokens.Text = model.MaxTokens?.ToString(CultureInfo.InvariantCulture) ?? "";
         ModelVision.IsChecked = model.Capabilities.Vision; ModelTools.IsChecked = model.Capabilities.Tools;
         ModelPriceInput.Text = model.PriceInput?.ToString(CultureInfo.InvariantCulture) ?? "";
         ModelPriceCacheRead.Text = model.PriceCacheRead?.ToString(CultureInfo.InvariantCulture) ?? "";
@@ -88,6 +90,13 @@ public sealed partial class MainWindow
         try
         {
             static double? Price(string text) => string.IsNullOrWhiteSpace(text) ? null : double.Parse(text, CultureInfo.InvariantCulture);
+            ulong? maxTokens = null;
+            if (!string.IsNullOrWhiteSpace(ModelMaxTokens.Text))
+            {
+                if (!ulong.TryParse(ModelMaxTokens.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out ulong limit))
+                    throw new DomainValidationException("Invalid max_tokens. Enter a positive integer supported by this API.");
+                maxTokens = limit;
+            }
             var thinking = new List<Thinking>();
             foreach (var option in ModelThinkingOptions.Children.OfType<CheckBox>().Where(c => c.IsChecked == true))
             {
@@ -107,6 +116,7 @@ public sealed partial class MainWindow
                 Id = ModelId.Text.Trim(),
                 DisplayName = ModelDisplayName.Text.Trim(),
                 ContextWindow = string.IsNullOrWhiteSpace(ModelContextWindow.Text) ? null : ulong.Parse(ModelContextWindow.Text, CultureInfo.InvariantCulture),
+                MaxTokens = maxTokens,
                 PriceInput = Price(ModelPriceInput.Text),
                 PriceCacheRead = Price(ModelPriceCacheRead.Text),
                 PriceCacheWrite = Price(ModelPriceCacheWrite.Text),
@@ -115,6 +125,7 @@ public sealed partial class MainWindow
                 Capabilities = (_modelMetadataDraft?.Capabilities ?? old?.Capabilities ?? Capabilities.Unknown) with
                 { Vision = ModelVision.IsChecked, Tools = ModelTools.IsChecked, Thinking = thinking, MessagesBudget = thinking.Any(t => t is BudgetThinking) || _modelMetadataDraft?.Capabilities.MessagesBudget == true, Source = "manual" }
             };
+            ConfigurationValidation.ValidateModelTokenLimit(model, provider.Protocol);
             var models = provider.Models.ToList();
             int index = models.FindIndex(m => m.Id == _selectedModelId);
             if (models.Any(m => m.Id == model.Id && m.Id != _selectedModelId)) throw new ArgumentException();
@@ -124,6 +135,11 @@ public sealed partial class MainWindow
                 await ChangeSettingsAsync(current => current with { DefaultModel = provider.Id + ":" + model.Id });
             _selectedModelId = model.Id;
             UpdateProviderEntry(provider with { Models = models }); UpdateModelList(provider with { Models = models }); ModelFeedback.Text = UiText.Get("Model saved.");
+        }
+        catch (DomainValidationException error) when (error.Message.Contains("max_tokens", StringComparison.Ordinal))
+        {
+            AppLog.Error("Models.Save", error);
+            ModelFeedback.Text = UiText.Get(error.Message);
         }
         catch { ModelFeedback.Text = UiText.Get("Not saved. Check the model ID and currency. Window and budget must be integers; prices must be nonnegative."); }
         finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; }
@@ -182,7 +198,7 @@ public sealed partial class MainWindow
         {
             ModelCatalogFeedback.Text = UiText.Get("Fetching…");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token); timeout.CancelAfter(TimeSpan.FromSeconds(30));
-            using var http = new System.Net.Http.HttpClient();
+            using var http = new System.Net.Http.HttpClient(new DiagnosticHttpHandler(new System.Net.Http.SocketsHttpHandler { AllowAutoRedirect = false }));
             var catalog = await ModelCatalog.GetAsync(http, timeout.Token);
             var matches = ModelCatalog.Find(catalog.Value, requestedId);
             if (requestedId != ModelId.Text.Trim() || provider?.Id != _selectedProviderId) return;
@@ -200,7 +216,7 @@ public sealed partial class MainWindow
             ModelCatalogFeedback.Text = UiText.Format("From models.dev / {0} ({1:yyyy/MM/dd})", selected.ProviderName, catalog.FetchedAt.ToLocalTime()) + (catalog.IsStale ? UiText.Get(", using cached data") : "") + UiText.Get(", not saved yet");
 
         }
-        catch { ModelCatalogFeedback.Text = UiText.Get("Unavailable for now. Enter manually; try updating again tomorrow."); }
+        catch (Exception error) { AppLog.Error("Models.Catalog", error); ModelCatalogFeedback.Text = UiText.Get("Unavailable for now. Enter manually; try updating again tomorrow."); }
         finally { _modelRequestRunning = false; SettingsPanel.IsEnabled = true; }
     }
     private void ApplyCatalogModel(ModelConfig model)

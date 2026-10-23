@@ -213,4 +213,5 @@ public static class ProviderProtocol
     internal static ProviderException Invalid(string message) => new(ErrorKind.InvalidRequest, message);
     internal static ProviderException ProtocolError(string message) => new(ErrorKind.Protocol, message);
     internal static ProviderException Incomplete(string message) => new(ErrorKind.Incomplete, message);
+    internal static ProviderException Interrupted(string message) => new(ErrorKind.Incomplete, message) { Diagnostic = "stream_interrupted" };
 }

@@ -76,34 +76,36 @@ public sealed partial class MainWindow
     {
         bool compact = RootGrid.ActualWidth < 1050;
         bool source = SourcePane.Visibility == Visibility.Visible;
-        WorkspaceGrid.ColumnDefinitions[0].Width = source && !compact ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        WorkspaceGrid.ColumnDefinitions[0].Width = source && !compact ? WorkspaceSplitter.ColumnSize is { } width ? new GridLength(Math.Clamp(width, 280, Math.Max(280, WorkspaceGrid.ActualWidth - 332))) : new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        WorkspaceGrid.ColumnDefinitions[1].Width = new GridLength(source && !compact ? 12 : 0);
+        WorkspaceSplitter.Visibility = source && !compact ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceColumnsRight.Width = new GridLength(1, GridUnitType.Star);
         WorkspaceQuestionsRow.Height = new GridLength(0);
         QuestionPane.Visibility = source && compact ? Visibility.Collapsed : Visibility.Visible;
-        Grid.SetColumn(SourcePane, 0); Grid.SetColumnSpan(SourcePane, compact ? 2 : 1);
-        Grid.SetColumn(QuestionPane, source && !compact ? 1 : 0);
-        Grid.SetColumnSpan(QuestionPane, source && !compact ? 1 : 2);
+        Grid.SetColumn(SourcePane, 0); Grid.SetColumnSpan(SourcePane, compact ? 3 : 1);
+        Grid.SetColumn(QuestionPane, source && !compact ? 2 : 0);
+        Grid.SetColumnSpan(QuestionPane, source && !compact ? 1 : 3);
         Grid.SetRow(QuestionPane, 0);
-        WorkspaceGrid.ColumnSpacing = source && !compact ? 16 : 0;
+        WorkspaceGrid.ColumnSpacing = 0;
         WorkspaceGrid.RowSpacing = 0;
         bool stacked = source || RootGrid.ActualWidth < 800;
         bool listLayoutChanged = _questionListStacked != stacked;
         _questionListStacked = stacked;
-        QuestionListColumn.Width = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(320);
-        QuestionLayout.ColumnDefinitions[1].Width = stacked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        QuestionListRow.Height = stacked ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
-        QuestionList.MaxHeight = stacked ? 200 : double.PositiveInfinity;
+        ApplyQuestionColumns();
+        QuestionListRow.Height = stacked ? new GridLength(Math.Min(_questionListHeight, Math.Max(60, QuestionLayout.ActualHeight - QuestionListHeading.ActualHeight - 264))) : new GridLength(1, GridUnitType.Star);
+        QuestionList.MaxHeight = double.PositiveInfinity;
         if (listLayoutChanged)
             DispatcherQueue.TryEnqueue(() =>
             {
                 if (!_closed && QuestionList.SelectedItem is { } selected && QuestionList.Items.Contains(selected))
                     QuestionList.ScrollIntoView(selected);
             });
-        QuestionLayout.RowDefinitions[2].Height = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        Grid.SetColumn(QuestionDetail, stacked ? 0 : 1);
-        Grid.SetRow(QuestionDetail, stacked ? 2 : 0);
-        Grid.SetRowSpan(QuestionDetail, stacked ? 1 : 3);
-        QuestionDetail.BorderThickness = stacked ? new Thickness(0, 1, 0, 0) : new Thickness(1, 0, 0, 0);
+        QuestionLayout.RowDefinitions[2].Height = new GridLength(stacked ? 12 : 0);
+        QuestionLayout.RowDefinitions[3].Height = stacked ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        Grid.SetColumn(QuestionDetailLayout, stacked ? 0 : 2);
+        Grid.SetRow(QuestionDetailLayout, stacked ? 3 : 0);
+        Grid.SetRowSpan(QuestionDetailLayout, stacked ? 1 : 4);
+        QuestionDetail.BorderThickness = new Thickness(0);
         bool narrowHeader = RootGrid.ActualWidth < 850;
         Grid.SetColumn(WorkspaceActions, narrowHeader ? 0 : 1);
         Grid.SetRow(WorkspaceActions, narrowHeader ? 1 : 0);
@@ -144,6 +146,7 @@ public sealed partial class MainWindow
         QuestionListHeading.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         QuestionList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         QuestionDetail.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+        QuestionDetailLayout.Visibility = QuestionDetail.Visibility;
         EmptyQuestionTitle.Text = ViewModel.SectionTitle == UiText.Get("Mistakes") ? UiText.Get("No mistakes yet") : ViewModel.IsTaskRunning ? UiText.Get("Recognizing questions") : UiText.Get("No questions yet");
         EmptyQuestionMessage.Text = ViewModel.SectionTitle == UiText.Get("Mistakes") ? UiText.Get("Questions to review after grading will appear here.")
             : ViewModel.IsTaskRunning ? UiText.Get("Recognized questions appear here automatically. Check progress in Tasks.")

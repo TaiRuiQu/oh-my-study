@@ -7,6 +7,8 @@ public interface IJobStore
 {
     Task<IReadOnlyList<Job>> LoadJobsAsync(CancellationToken cancellationToken = default);
     Task CommitAsync(Job job, JobEvent jobEvent, CancellationToken cancellationToken = default);
+    Task RetryAsync(Job previous, Job replacement, JobEvent jobEvent, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("This task store does not support retrying tasks.");
 }
 
 public interface IJobRunner
@@ -17,6 +19,7 @@ public interface IJobRunner
 public interface IToolExecutor
 {
     Task<ToolExecutionResult> ExecuteAsync(AuthorizedCall call, string resultsDirectory, CancellationToken cancellationToken);
+    Task CloseJobAsync(string jobId) => Task.CompletedTask;
 }
 
 public sealed record ToolExecutionResult(string Status, uint? ExitCode, string Stdout, string Stderr)

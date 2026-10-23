@@ -216,6 +216,7 @@ internal sealed class ResponsesSdkClient
         return error switch
         {
             ClientResultException { Status: 0 } => new(ErrorKind.Network, "provider connection failed"),
+            HttpRequestException => new(ErrorKind.Network, "provider connection failed"),
             ClientResultException rejection => Reject(rejection),
             OperationCanceledException => new(ErrorKind.Network, "provider connection timed out"),
             IOException => new(ErrorKind.Network, "provider response interrupted"),
@@ -363,7 +364,7 @@ internal sealed class ResponsesSdkClient
         }
         public Turn Finish()
         {
-            if (_terminal is null) throw ProviderProtocol.Incomplete("stream ended before terminal event");
+            if (_terminal is null) throw ProviderProtocol.Interrupted("stream ended before terminal event");
             return ProviderProtocol.Parse(Protocol.Responses, Element(JsonNode.Parse(ModelReaderWriter.Write(_terminal, ModelReaderWriterOptions.Json, OpenAI.OpenAIContext.Default).ToString())!));
         }
         private static JsonObject Failure(ResponseResult? response) => new()

@@ -72,7 +72,12 @@ public sealed partial class LibraryRepository
     {
         var input = job.Input ?? throw new ArgumentException("Task input is missing");
         var json = DomainJson.Serialize(input);
-        return Run(() => Transaction(cancellationToken, () => Execute("INSERT INTO grading_runs(job_id,document_id,input_json) VALUES($p0,$p1,$p2)", job.Id, input.Document.Id, json)), cancellationToken, true);
+        return Run(() => Transaction(cancellationToken, () =>
+        {
+            Execute("CREATE TABLE IF NOT EXISTS grading_rollback (job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,kind TEXT NOT NULL,item_key TEXT NOT NULL,before_json TEXT,after_json TEXT,PRIMARY KEY(job_id,kind,item_key))");
+            Execute("INSERT INTO grading_rollback(job_id,kind,item_key) VALUES($p0,'run','')", job.Id);
+            return Execute("INSERT INTO grading_runs(job_id,document_id,input_json) VALUES($p0,$p1,$p2)", job.Id, input.Document.Id, json);
+        }), cancellationToken, true);
     }
 
     public Task<List<SavedQuestion>> GradingQuestionsAsync(string documentId, CancellationToken cancellationToken = default)
@@ -97,7 +102,9 @@ public sealed partial class LibraryRepository
             if (next.Items.Any(item => item.Attempt?.Grade.Source != GradeSource.Manual))
                 GradingValidation.ValidateQuestion(next with { Items = next.Items.Where(item => item.Attempt?.Grade.Source != GradeSource.Manual).ToList() }, input.Document, references, false);
             RequireUniqueItemKeys(existing.Where(q => q.Question.DraftKey != next.DraftKey), next);
-            return WriteQuestion(input.Document.Id, next, previous?.Id);
+            var stored = WriteQuestion(input.Document.Id, next, previous?.Id);
+            TrackGradingChange(jobId, "question", stored.Id, previous is null ? null : DomainJson.Serialize(previous), DomainJson.Serialize(stored));
+            return stored;
         }), cancellationToken, true);
     }
 

@@ -692,4 +692,72 @@
     <text key="S0683" xml:space="preserve">代码执行完成</text>
     <text key="S0684" xml:space="preserve">展开错误详情</text>
     <text key="S0685" xml:space="preserve">收起错误详情</text>
+    <text key="S0686" xml:space="preserve">搜索方式</text>
+    <text key="S0687" xml:space="preserve">关键词</text>
+    <text key="S0688" xml:space="preserve">按题意</text>
+    <text key="S0689" xml:space="preserve">搜索</text>
+    <text key="S0690" xml:space="preserve">取消</text>
+    <text key="S0691" xml:space="preserve">调整题目列表宽度</text>
+    <text key="S0692" xml:space="preserve">左右拖动，或使用左右方向键调整宽度</text>
+    <text key="S0693" xml:space="preserve">题意搜索模型</text>
+    <text key="S0694" xml:space="preserve">Embedding 和 reranker 的连接配置独立于识别供应商。程序会在填写的 Base URL 后追加 /embeddings 或 /rerank；服务需要 /v1 时请包含该路径。</text>
+    <text key="S0695" xml:space="preserve">Embedding 模型</text>
+    <text key="S0696" xml:space="preserve">Base URL</text>
+    <text key="S0697" xml:space="preserve">模型名称</text>
+    <text key="S0698" xml:space="preserve">密钥</text>
+    <text key="S0699" xml:space="preserve">删除已保存的密钥</text>
+    <text key="S0700" xml:space="preserve">Reranker 模型（可选）</text>
+    <text key="S0701" xml:space="preserve">Base URL 和模型名称均留空可停用该模型。密钥保存在 Windows 凭据管理器中。题意搜索经确认后会向上述服务发送查询和题目文本；原件、个人笔记和学生作答保留在本地。调用可能产生费用，此处不估算费用。</text>
+    <text key="S0702" xml:space="preserve">保存搜索模型</text>
+    <text key="S0703" xml:space="preserve">清除本地索引</text>
+    <text key="S0704" xml:space="preserve">本地服务可不填写</text>
+    <text key="S0705" xml:space="preserve">已保存密钥；留空保留</text>
+    <text key="S0706" xml:space="preserve">无法保存搜索设置。请同时填写 Base URL 和模型名称，并检查地址和密钥。</text>
+    <text key="S0707" xml:space="preserve">本地索引已清除，下次按题意搜索将在确认后重新建立索引。</text>
+    <text key="S0708" xml:space="preserve">无法清除搜索索引，请重试。</text>
+    <text key="S0709" xml:space="preserve">描述要查找的题目或知识点</text>
+    <text key="S0710" xml:space="preserve">描述要查找的内容，然后点击搜索或按回车。调用模型前需要确认。</text>
+    <text key="S0711" xml:space="preserve">搜索已取消，已完成的向量保留在本地。</text>
+    <text key="S0712" xml:space="preserve">最多展示按题意相关度排序的 50 道题。修改查询或筛选后重新搜索即可更新。</text>
+    <text key="S0713" xml:space="preserve">请先在设置中配置 embedding 的 Base URL 和模型名称。</text>
+    <text key="S0714" xml:space="preserve">请先描述要查找的题目或知识点。</text>
+    <text key="S0715" xml:space="preserve">正在准备本地搜索索引…</text>
+    <text key="S0716" xml:space="preserve">当前筛选条件下没有题目。</text>
+    <text key="S0717" xml:space="preserve">按题意搜索</text>
+    <text key="S0718" xml:space="preserve">是否将本次查询以及 {0} 道新增或变更的题目文本（{1} 个字符）发送到 {2}，使用模型 {3}？</text>
+    <text key="S0719" xml:space="preserve">结果将在本地按向量相似度排序。</text>
+    <text key="S0720" xml:space="preserve">还将向 {0} 发送最多 50 道候选题目文本，使用模型 {1} 重新排序。</text>
+    <text key="S0721" xml:space="preserve">不会发送原件、笔记或学生作答。模型调用可能产生费用，此处无法估算费用。向量将缓存在当前资料库中。</text>
+    <text key="S0722" xml:space="preserve">正在重新排序候选题目…</text>
+    <text key="S0723" xml:space="preserve">正在准备题目向量：{0} / {1}</text>
+    <text key="S0724" xml:space="preserve">搜索向量或模型响应不一致。请在设置中清除本地搜索索引后重试。</text>
+    <text key="S0725" xml:space="preserve">按题意搜索失败，请检查设置中的搜索模型后重试。</text>
+    <text key="S0726" xml:space="preserve">筛选条件已更改，请点击搜索更新题意检索结果。</text>
+    <text key="S0727" xml:space="preserve">Embedding 响应无效，请检查接口地址和模型。</text>
+    <text key="S0728" xml:space="preserve">Reranker 响应无效，请检查接口地址和模型，或清空 reranker 配置。</text>
+    <text key="S0729" xml:space="preserve">搜索模型的密钥不可用，请在设置中重新填写。</text>
+    <text key="S0730" xml:space="preserve">搜索模型的密钥无效，请在设置中重新填写。</text>
+    <text key="S0731" xml:space="preserve">搜索模型认证失败，请检查设置中的密钥。</text>
+    <text key="S0732" xml:space="preserve">搜索模型触发限流，请稍后重试。</text>
+    <text key="S0733" xml:space="preserve">搜索模型拒绝了请求，请检查 Base URL 和模型名称。</text>
+    <text key="S0734" xml:space="preserve">搜索模型请求失败，请检查服务后重试。</text>
+    <text key="S0735" xml:space="preserve">搜索模型请求超时，请重试。</text>
+    <text key="S0736" xml:space="preserve">无法连接搜索模型或读取响应，请检查服务后重试。</text>
+    <text key="S0737" xml:space="preserve">连接中断，正在重试…</text>
+    <text key="S0738" xml:space="preserve">API 类型</text>
+    <text key="S0739" xml:space="preserve">OpenAI 兼容</text>
+    <text key="S0740" xml:space="preserve">调整区域大小</text>
+    <text key="S0741" xml:space="preserve">拖动调整大小，或使用方向键；Home/End 调整到最小/最大。</text>
+    <text key="S0742" xml:space="preserve">新题目文本还将发送至 {0}，使用 {1} 自动建立索引，可能产生额外费用。</text>
+    <text key="S0743" xml:space="preserve">输出上限（max_tokens）</text>
+    <text key="S0744" xml:space="preserve">留空自动设置</text>
+    <text key="S0745" xml:space="preserve">max_tokens 无效，请填写此接口支持的正整数。</text>
+    <text key="S0746" xml:space="preserve">思考预算必须小于 max_tokens。</text>
+    <text key="S0747" xml:space="preserve">重试任务</text>
+    <text key="S0748" xml:space="preserve">重试会清除本次失败任务保存的结果和临时文件，并从头启动新任务。原始文档和手工编辑会保留。已产生的服务商费用，以及代码在任务目录外所做的更改无法撤销。</text>
+    <text key="S0749" xml:space="preserve">无法重试任务</text>
+    <text key="S0750" xml:space="preserve">请检查模型设置，确认没有其他任务正在处理这份试卷后重试。</text>
+    <text key="S0751" xml:space="preserve">已有更新的任务处理过这份试卷，请重试最新的失败任务。</text>
+    <text key="S0752" xml:space="preserve">此任务创建于重试恢复记录功能推出之前。请在试卷中使用“重新识别”，以保留已保存的结果。</text>
+    <text key="S0753" xml:space="preserve">此任务保存的题目已有手工编辑。请在试卷中使用“重新识别”，以保留这些编辑。</text>
 </resources>

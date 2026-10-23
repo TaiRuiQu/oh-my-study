@@ -8,6 +8,7 @@ Oh My Study is a Windows study app built with C# 14, .NET 10, and WinUI. It impo
 - Preserve original documents and user edits. Treat AI output as reviewable suggestions and validate it before persistence.
 - Favor a focused, accessible interface with consistent controls, readable mathematics, and responsive long-running operations.
 - Preserve library compatibility and user data when changing storage, migrations, import, export, or installation behavior.
+- Keep the interface concise and the logs detailed. When an operation failed, print all information needed to debug it. For example, when model returned a tool call that failed, print its params and detailed error log.
 
 ## Code philosophy
 

@@ -60,6 +60,8 @@ public sealed partial class MainWindow : Window
         _performanceReportPath = performanceReport;
         ViewModel = new WorkspaceViewModel(sample: smokeReportPath is not null);
         InitializeComponent();
+        QuestionColumnSplitter.ResizeRequested += (_, change) => ResizeQuestionSplit(change);
+        InitializePaneSplitters();
         InitializeLanguagePicker();
         InitializePaperMenu();
         BankList.ItemsSource = _bankQuestions;

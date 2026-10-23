@@ -15,6 +15,12 @@ public sealed partial class LibraryRepository
 
     public Task SaveJobEventAsync(JsonElement snapshot, JsonElement jobEvent, CancellationToken cancellationToken = default)
     {
+        var frozenSnapshot = snapshot.Clone(); var frozenEvent = jobEvent.Clone();
+        return Run(() => Transaction(cancellationToken, () => SaveJobEvent(frozenSnapshot, frozenEvent)), cancellationToken, true);
+    }
+
+    private int SaveJobEvent(JsonElement snapshot, JsonElement jobEvent)
+    {
         var snapshotJson = snapshot.GetRawText(); var eventJson = jobEvent.GetRawText();
         var id = snapshot.GetProperty("id").GetString()!; ValidId(id);
         var sequence = jobEvent.GetProperty("sequence").GetUInt64();
@@ -27,14 +33,11 @@ public sealed partial class LibraryRepository
         var created = snapshot.GetProperty("created_at").GetRawText(); var updated = snapshot.GetProperty("updated_at").GetRawText();
         var message = snapshot.GetProperty("message").GetString()!;
         var eventCreated = jobEvent.GetProperty("created_at").GetRawText(); var eventKind = jobEvent.GetProperty("kind").GetString()!;
-        return Run(() => Transaction(cancellationToken, () =>
-        {
-            var previous = Scalar("SELECT MAX(sequence) FROM job_events WHERE job_id=$p0", id);
-            if (previous is not null && (long)sequence <= Convert.ToInt64(previous)) throw new InvalidOperationException("Task event sequence numbers must increase");
-            Execute("INSERT INTO jobs(id,kind,state,created_at,updated_at,progress,message,snapshot_json) VALUES($p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7) ON CONFLICT(id) DO UPDATE SET state=excluded.state,updated_at=excluded.updated_at,progress=excluded.progress,message=excluded.message,snapshot_json=excluded.snapshot_json", id, kind, state, created, updated, progress / 100, message, snapshotJson);
-            Execute("INSERT INTO job_events(id,job_id,sequence,created_at,kind,payload_json) VALUES($p0,$p1,$p2,$p3,$p4,$p5)", eventId, id, (long)sequence, eventCreated, eventKind, eventJson);
-            return 0;
-        }), cancellationToken, true);
+        var previous = Scalar("SELECT MAX(sequence) FROM job_events WHERE job_id=$p0", id);
+        if (previous is not null && (long)sequence <= Convert.ToInt64(previous)) throw new InvalidOperationException("Task event sequence numbers must increase");
+        Execute("INSERT INTO jobs(id,kind,state,created_at,updated_at,progress,message,snapshot_json) VALUES($p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7) ON CONFLICT(id) DO UPDATE SET state=excluded.state,updated_at=excluded.updated_at,progress=excluded.progress,message=excluded.message,snapshot_json=excluded.snapshot_json", id, kind, state, created, updated, progress / 100, message, snapshotJson);
+        Execute("INSERT INTO job_events(id,job_id,sequence,created_at,kind,payload_json) VALUES($p0,$p1,$p2,$p3,$p4,$p5)", eventId, id, (long)sequence, eventCreated, eventKind, eventJson);
+        return 0;
     }
 
     public Task<List<Job>> LoadJobSnapshotsAsync(CancellationToken cancellationToken = default) => Run(() =>

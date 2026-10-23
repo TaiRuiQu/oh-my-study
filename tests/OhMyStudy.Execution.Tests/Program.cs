@@ -124,7 +124,39 @@ await Check("permission-pause-and-denial", async () =>
     pending = (await queue.GetAsync(second.Id)).PendingPermission!;
     await queue.DecideAsync(second.Id, pending.Digest, PermissionChoice.AllowOnce);
     await WaitFor(async () => (await queue.GetAsync(second.Id)).State == JobState.Completed);
-    Require(executor.Calls == 1, "approved call count");
+    Require(executor.Calls == 1 && executor.Closed.Contains(first.Id) && executor.Closed.Contains(second.Id), "approved call count and cleanup on denial and completion");
+});
+await Check("retry-starts-a-fresh-task-after-cleanup", async () =>
+{
+    var store = new MemoryJobStore();
+    var executor = new CountingExecutor();
+    int runs = 0;
+    var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var runner = new DelegateRunner(async (job, context) =>
+    {
+        if (Interlocked.Increment(ref runs) == 1)
+        {
+            await context.ProgressAsync(40, "Partial progress");
+            await context.ExecuteAsync(Call(job.Id));
+            throw new IOException("Synthetic failure");
+        }
+        await release.Task.WaitAsync(context.Cancellation);
+    });
+    string directory = Path.Combine(root, "retry");
+    await using var queue = await JobQueue.CreateAsync(store, runner, executor, directory);
+    var failed = await queue.SubmitAsync(DiagnosticKind.Storage, Policy(), null);
+    await WaitFor(async () => (await queue.GetAsync(failed.Id)).State == JobState.Failed);
+    Directory.CreateDirectory(Path.Combine(directory, failed.Id));
+    await File.WriteAllTextAsync(Path.Combine(directory, failed.Id, "partial.txt"), "partial");
+    var retried = await queue.RetryAsync(failed.Id);
+    Require(executor.Closed.Contains(failed.Id) && !Directory.Exists(Path.Combine(directory, failed.Id)), "previous resources or outputs survived retry");
+    Require(retried.Id != failed.Id && retried.State == JobState.Queued && retried.Progress == 0 && retried.Sequence == 1 && retried.Error is null && retried.PendingPermission is null, "retry did not start cleanly");
+    Require((await queue.ListAsync()).Count == 1 && store.Events.All(e => e.JobId == retried.Id), "old task history survived");
+    try { await queue.RetryAsync(retried.Id); throw new Exception("running retry accepted"); } catch (InvalidOperationException) { }
+    release.SetResult();
+    await WaitFor(async () => (await queue.GetAsync(retried.Id)).State == JobState.Completed);
+    try { await queue.RetryAsync(retried.Id); throw new Exception("completed retry accepted"); } catch (InvalidOperationException) { }
+    Require(runs == 2, "retry did not execute exactly once");
 });
 await Check("restart-interrupts-and-storage-failure-stops", async () =>
 {
@@ -202,8 +234,71 @@ if (runtimeArgument >= 0 && runtimeArgument + 1 < args.Length)
         using var broker = new PermissionBroker(); broker.RegisterJob("computation", Policy());
         var call = Call("computation", "python", "import numpy,sympy,matplotlib;matplotlib.use('Agg');import matplotlib.pyplot as p; print(sympy.expand((sympy.Symbol('x')+1)**2));p.plot([0,1],[0,1]);p.savefig('plot.png');print('你好')") with { TimeoutMs = 30000 };
         var result = await executor.ExecuteAsync(broker.Request(call)!, Path.Combine(root, "python-call"), CancellationToken.None);
+        await executor.CloseJobAsync("computation");
         Require(result.Succeeded && result.Stdout.Contains("x**2 + 2*x + 1") && result.Stdout.Contains("你好") && File.Exists(Path.Combine(root, "plot.png")), "private runtime computation");
     });
+    foreach (var mode in new[] { ExecutionMode.BypassPermission, ExecutionMode.RequestPermission, ExecutionMode.Sandbox })
+    {
+        await Check("python-notebook-session-" + mode, async () =>
+        {
+            var runtime = Path.GetFullPath(args[runtimeArgument + 1]);
+            var jobId = "notebook-" + mode;
+            var work = Path.Combine(root, jobId + "-work"); Directory.CreateDirectory(work);
+            IToolExecutor executor = new PolicyToolExecutor(new HostToolExecutor(runtime), new SandboxToolExecutor(runtime));
+            using var broker = new PermissionBroker();
+            var capability = new Capability { State = CapabilityState.Ready, Reason = "synthetic" };
+            broker.RegisterJob(jobId, ExecutionPolicy.Freeze(mode, capability, false));
+            int ordinal = 0;
+            async Task<ToolExecutionResult> Run(string code, ulong timeout = 30000)
+            {
+                var call = Call(jobId, "cell-" + ++ordinal, code) with { WorkingDirectory = work, TimeoutMs = timeout };
+                var authorization = broker.Request(call);
+                if (mode == ExecutionMode.RequestPermission)
+                {
+                    Require(authorization is null, "each notebook cell still requires approval");
+                    authorization = broker.Decide(jobId, call.Digest(), PermissionChoice.AllowOnce);
+                }
+                return await executor.ExecuteAsync(authorization!, Path.Combine(root, jobId, call.CallId), CancellationToken.None);
+            }
+            try
+            {
+                var result = await Run("from PIL import Image;import numpy as np;crop=Image.new('RGB',(8,6),'red');values=np.array([2,3]);def_source='def twice(x): return x*2';exec(def_source);print('created')");
+                Require(result.Succeeded, result.Stderr);
+                result = await Run("assert crop.size==(8,6);assert twice(values).tolist()==[4,6];crop.save('crop.png');held=open('crop.png','rb');print('shared')");
+                Require(result.Succeeded && result.Stdout.Contains("shared") && !result.Stdout.Contains("created") && File.Exists(Path.Combine(work, "crop.png")), "Pillow image, imports, functions and arrays shared with separate output");
+                result = await Run("before_error=42;raise ValueError('synthetic notebook error')");
+                Require(result.Status == "failed" && result.Stderr.Contains("synthetic notebook error"), "ordinary exception reported");
+                result = await Run("assert before_error==42;assert crop.size==(8,6);assert held.read(8)==b'\\x89PNG\\r\\n\\x1a\\n';print('preserved')");
+                Require(result.Succeeded && result.Stdout.Contains("preserved"), "exception preserves completed assignments");
+                result = await Run("import time;time.sleep(10)", 150);
+                Require(result.Status == "timed_out" && result.Stderr.Contains("session reset"), "timeout resets kernel");
+                result = await Run("assert 'crop' not in globals();print('reset')");
+                Require(result.Succeeded && result.Stdout.Contains("reset"), "new namespace after timeout");
+                result = await Run("import os;os._exit(7)");
+                Require(result.Status == "failed" && result.Stderr.Contains("session reset"), "worker exit resets kernel without replaying code");
+                result = await Run("import os;os.write(1,b'\\xff'*1048577)");
+                Require(result.Status == "output_limit" && System.Text.Encoding.UTF8.GetByteCount(result.Stdout + result.Stderr) <= 1_048_576, "native output and malformed UTF-8 stay bounded and reset kernel");
+                result = await Run("assert 'os' not in globals();values=9;print('recovered')");
+                Require(result.Succeeded && result.Stdout.Contains("recovered"), "fresh namespace after output limit");
+                var otherId = jobId + "-other";
+                broker.RegisterJob(otherId, ExecutionPolicy.Freeze(mode, capability, false));
+                var other = Call(otherId, "isolation", "assert 'values' not in globals();values=100;print('isolated')") with { WorkingDirectory = work, TimeoutMs = 30000 };
+                var otherAuthorization = broker.Request(other) ?? broker.Decide(otherId, other.Digest(), PermissionChoice.AllowOnce);
+                try
+                {
+                    result = await executor.ExecuteAsync(otherAuthorization!, Path.Combine(root, otherId, other.CallId), CancellationToken.None);
+                    Require(result.Succeeded && result.Stdout.Contains("isolated"), "separate tasks have separate namespaces");
+                }
+                finally { await executor.CloseJobAsync(otherId); }
+                result = await Run("assert values==9");
+                Require(result.Succeeded, "another task does not mutate the first namespace");
+                await executor.CloseJobAsync(jobId);
+                result = await Run("assert 'values' not in globals();print('closed')");
+                Require(result.Succeeded && result.Stdout.Contains("closed"), "task cleanup discards namespace");
+            }
+            finally { await executor.CloseJobAsync(jobId); }
+        });
+    }
     foreach (var item in new (string Id, string Code, List<string> Arguments, string Output, uint Exit)[]
     {
         ("arguments", "param($a,$b,$c);[Console]::WriteLine(($a,$b,$c -join '|'))", ["a b", "尾\\", "中文"], "a b|尾\\|中文", 0),
@@ -259,6 +354,13 @@ internal sealed class MemoryJobStore : IJobStore
         if (FailCommit) throw new IOException("synthetic disk failure");
         Jobs[job.Id] = job; Events.Add(jobEvent); return Task.CompletedTask;
     }
+    public Task RetryAsync(Job previous, Job replacement, JobEvent jobEvent, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (FailCommit) throw new IOException("Synthetic retry failure");
+        Jobs.Remove(previous.Id); Events.RemoveAll(e => e.JobId == previous.Id);
+        return CommitAsync(replacement, jobEvent, cancellationToken);
+    }
 }
 internal sealed class DelegateRunner(Func<Job, JobContext, Task> execute) : IJobRunner { public Task RunAsync(Job job, JobContext context) => execute(job, context); }
 internal sealed class NoExecutor : IToolExecutor
@@ -266,6 +368,8 @@ internal sealed class NoExecutor : IToolExecutor
 internal sealed class CountingExecutor : IToolExecutor
 {
     public int Calls;
+    public HashSet<string> Closed { get; } = new(StringComparer.Ordinal);
+    public Task CloseJobAsync(string jobId) { Closed.Add(jobId); return Task.CompletedTask; }
     public Task<ToolExecutionResult> ExecuteAsync(AuthorizedCall call, string resultsDirectory, CancellationToken cancellationToken)
     { call.Consume(); Interlocked.Increment(ref Calls); return Task.FromResult(new ToolExecutionResult("completed", 0, "ok", "")); }
 }
