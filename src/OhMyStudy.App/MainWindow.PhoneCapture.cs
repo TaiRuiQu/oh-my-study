@@ -52,8 +52,11 @@ public sealed partial class MainWindow
         restorationPanel.Children.Add(restorationStatus);
         restorationPanel.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Text = UiText.Get("Standard: DocScanner rectification, OpenCV shadow removal and mild defocus recovery. Optional DocRes: 855 MiB of weights plus several GB of isolated Python and CUDA dependencies. Downloads stay on this computer.") });
         var installRestoration = new Button { Content = UiText.Get("Download and install DocRes"), IsEnabled = false };
+        var downloadProgress = new ProgressBar { Minimum = 0, Maximum = 100, Visibility = Visibility.Collapsed, IsIndeterminate = true };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(downloadProgress, UiText.Get("DocRes download progress"));
         var enableRestoration = new CheckBox { Content = UiText.Get("Enable optional DocRes restoration"), IsEnabled = false };
         restorationPanel.Children.Add(installRestoration);
+        restorationPanel.Children.Add(downloadProgress);
         restorationPanel.Children.Add(enableRestoration);
         CancellationTokenSource? restorationDownload = null;
         async Task RefreshRestorationAsync()
@@ -72,10 +75,66 @@ public sealed partial class MainWindow
             restorationDownload = canceled;
             installRestoration.Content = UiText.Get("Cancel DocRes download");
             enableRestoration.IsEnabled = false;
+            downloadProgress.Visibility = Visibility.Visible;
+            downloadProgress.IsIndeterminate = true;
+            downloadProgress.Value = 0;
+            bool reporting = true;
             try
             {
                 restorationStatus.Text = UiText.Get("Downloading and checking DocRes locally. This may take several minutes…");
-                await DocResRestoration.InstallAsync(line => AppLog.Info("DocRes.Install", line), canceled.Token);
+                string dependency = "";
+                int loggedBucket = -1;
+                string loggedName = "";
+                void ShowInstallLine(bool parsed, DocResInstallProgress sample, string label, string text)
+                {
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (_closed || !reporting) return;
+                        if (parsed && sample.Total > 0)
+                        {
+                            int percent = (int)Math.Clamp(sample.Current * 100d / sample.Total, 0, 100);
+                            downloadProgress.IsIndeterminate = false;
+                            downloadProgress.Value = percent;
+                            restorationStatus.Text = label.Length == 0
+                                ? UiText.Format("Downloading dependencies… {0}%", percent)
+                                : UiText.Format("Downloading {0}… {1}%", label, percent);
+                        }
+                        else if (parsed)
+                        {
+                            downloadProgress.IsIndeterminate = true;
+                            restorationStatus.Text = label.Length == 0
+                                ? UiText.Get("Downloading dependencies…")
+                                : UiText.Format("Downloading {0}…", label);
+                        }
+                        else if (text is "Installing isolated CUDA runtime and PyTorch; this can download several GB."
+                            or "Checking weights and running CUDA inference on the selected physical device."
+                            or "DocRes installation verified. Enable it explicitly to use it.")
+                        {
+                            downloadProgress.IsIndeterminate = true;
+                            restorationStatus.Text = UiText.Get(text);
+                        }
+                    });
+                }
+                await DocResRestoration.InstallAsync(line =>
+                {
+                    string text = line.Trim();
+                    bool parsed = DocResRestoration.TryParseInstallProgress(text, out var sample);
+                    if (!parsed && text.StartsWith("Downloading ", StringComparison.Ordinal)) dependency = text["Downloading ".Length..].Trim();
+                    string label = parsed && sample.Name.Length == 0 ? dependency : sample.Name;
+                    if (!parsed)
+                        AppLog.Info("DocRes.Install", line);
+                    else
+                    {
+                        int bucket = sample.Total > 0 ? (int)Math.Clamp(sample.Current * 10d / sample.Total, 0, 10) : 0;
+                        if (bucket != loggedBucket || label != loggedName || sample.Current == sample.Total)
+                        {
+                            AppLog.Info("DocRes.Install", line);
+                            loggedBucket = bucket;
+                            loggedName = label;
+                        }
+                    }
+                    ShowInstallLine(parsed, sample, label, text);
+                }, canceled.Token);
             }
             catch (OperationCanceledException) when (canceled.IsCancellationRequested) { restorationStatus.Text = UiText.Get("DocRes download canceled. Standard restoration remains available."); }
             catch (Exception error)
@@ -85,7 +144,10 @@ public sealed partial class MainWindow
             }
             finally
             {
+                reporting = false;
                 restorationDownload = null;
+                downloadProgress.Visibility = Visibility.Collapsed;
+                downloadProgress.IsIndeterminate = true;
                 installRestoration.Content = UiText.Get("Download and install DocRes");
                 var capability = await Task.Run(DocResRestoration.Status);
                 installRestoration.IsEnabled = capability.Eligible && !capability.Installed;
@@ -126,7 +188,14 @@ public sealed partial class MainWindow
         {
             XamlRoot = RootGrid.XamlRoot,
             Title = UiText.Get("Take photos with phone"),
-            Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+            Content = new ScrollViewer
+            {
+                Content = panel,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                HorizontalScrollMode = ScrollMode.Disabled,
+                Padding = new Thickness(0, 0, 16, 0)
+            },
             PrimaryButtonText = UiText.Get("Import"),
             CloseButtonText = UiText.Get("Cancel"),
             IsPrimaryButtonEnabled = false

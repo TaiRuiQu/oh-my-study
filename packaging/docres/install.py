@@ -13,14 +13,31 @@ def download(url, target, digest):
     if target.exists():
         with target.open("rb") as existing:
             if hashlib.file_digest(existing, "sha256").hexdigest() == digest:
+                size = target.stat().st_size
+                print(f"OHMS {size} {size} {target.name}", flush=True)
                 return target
-    print("Downloading " + target.name, flush=True)
     partial = target.with_suffix(target.suffix + ".partial")
     checksum = hashlib.sha256()
+    last_percent = -1
+    last_bytes = -1
+
+    def emit(done, total):
+        nonlocal last_percent, last_bytes
+        percent = done * 100 // total if total else 0
+        if last_percent < 0 or done == total or percent > last_percent or done - last_bytes >= 8 * 1024 * 1024:
+            print(f"OHMS {done} {total} {target.name}", flush=True)
+            last_percent = percent
+            last_bytes = done
+
     with urllib.request.urlopen(url, timeout=60) as response, partial.open("wb") as output:
+        total = int(response.headers.get("Content-Length") or 0)
+        done = 0
+        emit(done, total)
         while data := response.read(1024 * 1024):
             output.write(data)
             checksum.update(data)
+            done += len(data)
+            emit(done, total)
     if checksum.hexdigest() != digest:
         partial.unlink(missing_ok=True)
         raise RuntimeError("Download checksum mismatch: " + target.name)
@@ -58,8 +75,8 @@ def main():
         archive.extractall(sites)
     python = runtime / "python.exe"
     print("Installing isolated CUDA runtime and PyTorch; this can download several GB.", flush=True)
-    run([python, "-I", "-B", "-m", "pip", "install", "--disable-pip-version-check", "--only-binary=:all:", "torch==2.9.1", "torchvision==0.24.1", "--index-url", "https://download.pytorch.org/whl/cu128", "--report", root / "torch-install.json"])
-    run([python, "-I", "-B", "-m", "pip", "install", "--disable-pip-version-check", "--only-binary=:all:", "numpy==2.2.6", "opencv-python-headless==4.12.0.88", "einops==0.8.1", "pillow==11.3.0", "--report", root / "image-install.json"])
+    run([python, "-I", "-B", "-m", "pip", "install", "--progress-bar", "raw", "--disable-pip-version-check", "--only-binary=:all:", "torch==2.9.1", "torchvision==0.24.1", "--index-url", "https://download.pytorch.org/whl/cu128", "--report", root / "torch-install.json"])
+    run([python, "-I", "-B", "-m", "pip", "install", "--progress-bar", "raw", "--disable-pip-version-check", "--only-binary=:all:", "numpy==2.2.6", "opencv-python-headless==4.12.0.88", "einops==0.8.1", "pillow==11.3.0", "--report", root / "image-install.json"])
     source = root / "source"
     source.mkdir(exist_ok=True)
     with zipfile.ZipFile(root / "docres-source.zip") as archive:

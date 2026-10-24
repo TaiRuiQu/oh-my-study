@@ -892,4 +892,12 @@
     <text key="PhoneCapture.099" xml:space="preserve">DocRes：正在增强外观</text>
     <text key="PhoneCapture.100" xml:space="preserve">请至少选择一项 DocRes 修复任务。</text>
     <text key="PhoneCapture.101" xml:space="preserve">不增强仍进行几何校正，但跳过所有光度修复任务。</text>
+    <text key="PhoneCapture.102" xml:space="preserve">正在下载 {0}… {1}%</text>
+    <text key="PhoneCapture.103" xml:space="preserve">正在下载依赖… {0}%</text>
+    <text key="PhoneCapture.104" xml:space="preserve">正在下载 {0}…</text>
+    <text key="PhoneCapture.105" xml:space="preserve">正在下载依赖…</text>
+    <text key="PhoneCapture.106" xml:space="preserve">正在安装独立的 CUDA 运行时和 PyTorch，可能还需下载数 GB。</text>
+    <text key="PhoneCapture.107" xml:space="preserve">正在校验权重，并在所选物理设备上运行 CUDA 推理。</text>
+    <text key="PhoneCapture.108" xml:space="preserve">DocRes 安装已通过校验。需单独启用后才能使用。</text>
+    <text key="PhoneCapture.109" xml:space="preserve">DocRes 下载进度</text>
 </resources>

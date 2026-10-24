@@ -285,6 +285,18 @@ await Check("cache_concurrent_budget_is_preserved", async () =>
     })));
     Assert(cache.RetainedBytes <= 128 && cache.Count <= 8);
 });
+await Check("docres_install_progress_lines", () =>
+{
+    Assert(DocResRestoration.TryParseInstallProgress("OHMS 50 200 docres.pkl", out var file) && file.Current == 50 && file.Total == 200 && file.Name == "docres.pkl");
+    Assert(DocResRestoration.TryParseInstallProgress("OHMS 0 0 archive.zip", out var unknown) && unknown.Current == 0 && unknown.Total == 0 && unknown.Name == "archive.zip");
+    Assert(DocResRestoration.TryParseInstallProgress("Progress 20 of 80", out var pip) && pip.Current == 20 && pip.Total == 80 && pip.Name.Length == 0);
+    Assert(DocResRestoration.TryParseInstallProgress("Progress 0 of 0", out var open) && open.Total == 0 && open.Name.Length == 0);
+    Assert(!DocResRestoration.TryParseInstallProgress("Downloading docres.pkl", out _));
+    Assert(!DocResRestoration.TryParseInstallProgress("Progress 20 of many", out _));
+    Assert(!DocResRestoration.TryParseInstallProgress("OHMS 1 2", out _));
+    Assert(!DocResRestoration.TryParseInstallProgress("OHMS -1 2 name", out _));
+    return Task.CompletedTask;
+});
 await PhoneCaptureChecks.RunAsync(Check);
 using var process = Process.GetCurrentProcess();
 bool coreClr = process.Modules.Cast<ProcessModule>().Any(m => m.ModuleName.Equals("coreclr.dll", StringComparison.OrdinalIgnoreCase));

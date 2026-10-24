@@ -33,6 +33,12 @@ public sealed partial class MainWindow
             {
                 var capture = ReceivePhoneFilesAsync(new OhMyStudy.Infrastructure.Import.PhoneNetwork[] { new("Loopback test", System.Net.IPAddress.Loopback) });
                 for (int attempt = 0; attempt < 60 && !VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Any(); attempt++) await Task.Delay(100);
+                var phoneDialog = VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(popup => popup.Child).OfType<ContentDialog>().Single();
+                var phoneScroll = NativeDescendants(phoneDialog).OfType<ScrollViewer>().Single(view => view.Content is StackPanel);
+                Require(phoneScroll.Padding.Right >= 16 && phoneScroll.HorizontalScrollMode == ScrollMode.Disabled && phoneScroll.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled, "phone-capture-scrollbar-clears-content");
+                var restoration = NativeDescendants(phoneDialog).OfType<Expander>().Single();
+                var progress = ((StackPanel)restoration.Content).Children.OfType<ProgressBar>().Single();
+                Require(progress.Visibility == Visibility.Collapsed && progress.Maximum == 100, "docres-download-progress-is-ready");
                 await CaptureDialog("phone-capture");
                 Require((await capture).Count == 0, "phone-capture-cancel-preserves-library");
             }

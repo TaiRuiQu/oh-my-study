@@ -892,4 +892,12 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="PhoneCapture.099" xml:space="preserve">DocRes: appearance</text>
     <text key="PhoneCapture.100" xml:space="preserve">Select at least one DocRes task.</text>
     <text key="PhoneCapture.101" xml:space="preserve">No enhancement keeps geometric correction and skips all photometric tasks.</text>
+    <text key="PhoneCapture.102" xml:space="preserve">Downloading {0}… {1}%</text>
+    <text key="PhoneCapture.103" xml:space="preserve">Downloading dependencies… {0}%</text>
+    <text key="PhoneCapture.104" xml:space="preserve">Downloading {0}…</text>
+    <text key="PhoneCapture.105" xml:space="preserve">Downloading dependencies…</text>
+    <text key="PhoneCapture.106" xml:space="preserve">Installing isolated CUDA runtime and PyTorch; this can download several GB.</text>
+    <text key="PhoneCapture.107" xml:space="preserve">Checking weights and running CUDA inference on the selected physical device.</text>
+    <text key="PhoneCapture.108" xml:space="preserve">DocRes installation verified. Enable it explicitly to use it.</text>
+    <text key="PhoneCapture.109" xml:space="preserve">DocRes download progress</text>
 </resources>

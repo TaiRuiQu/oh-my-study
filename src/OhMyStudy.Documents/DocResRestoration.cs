@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace OhMyStudy.Documents;
 
 public sealed record DocResStatus(bool Eligible, bool Installed, bool Enabled, string Reason);
+public readonly record struct DocResInstallProgress(long Current, long Total, string Name);
 internal sealed record DocResRequest(string Input, string Output, int Width, int Height, int DeviceIndex, string[] Tasks, bool PreCropped);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
@@ -35,6 +37,32 @@ public static class DocResRestoration
             File.WriteAllText(path, "enabled");
         }
         else if (File.Exists(path)) File.Delete(path);
+    }
+
+    public static bool TryParseInstallProgress(string line, out DocResInstallProgress progress)
+    {
+        progress = default;
+        if (line.StartsWith("OHMS ", StringComparison.Ordinal))
+        {
+            string[] parts = line.Split(' ', 4);
+            if (parts.Length == 4
+                && long.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out long current)
+                && long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out long total)
+                && parts[3].Length > 0)
+            {
+                progress = new(current, total, parts[3]);
+                return true;
+            }
+            return false;
+        }
+        if (!line.StartsWith("Progress ", StringComparison.Ordinal)) return false;
+        string[] fields = line.Split(' ');
+        if (fields.Length != 4 || fields[2] != "of"
+            || !long.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out long done)
+            || !long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out long size))
+            return false;
+        progress = new(done, size, "");
+        return true;
     }
 
     public static async Task InstallAsync(Action<string> progress, CancellationToken cancellationToken)
