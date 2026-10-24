@@ -34,7 +34,7 @@ public sealed partial class LibraryRepository
         if (sources.Count is < 1 or > LibraryLimits.MaximumPages) throw new ArgumentException("Select between 1 and 12 files at a time");
         if (sources.Sum(s => (long)s.Bytes.Length) > LibraryLimits.MaximumBatchBytes) throw new ArgumentException("This batch exceeds 256 MiB");
         foreach (var input in sources)
-            if (input.Bytes.Length is < 1 or > LibraryLimits.MaximumAssetBytes || input.Role is not ("material" or "reference"))
+            if (input.Bytes.Length is < 1 or > LibraryLimits.MaximumAssetBytes || input.Role is not ("material" or "reference" or "student"))
                 throw new ArgumentException("Invalid file size or page role");
         var submitted = sources.ToArray();
         await mediaGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -130,6 +130,11 @@ public sealed partial class LibraryRepository
                 {
                     InsertAsset(asset);
                     if (!asset.OriginalOnly) Execute("INSERT INTO source_pages(id,document_id,asset_id,page_index,rotation,preview_status,role,original_asset_id,pdf_page_index) VALUES($p0,$p1,$p2,$p3,0,'ready',$p4,$p5,$p6)", NewId(), id, asset.Id, ordinal++, asset.Role, asset.OriginalId, asset.PdfPageIndex);
+                }
+                if (assets.Any(asset => asset.Role == "student"))
+                {
+                    Execute("UPDATE documents SET mode=$p0 WHERE id=$p1 AND mode=$p2", DomainJson.Serialize(ImportMode.Auto), id, DomainJson.Serialize(ImportMode.Blank));
+                    Execute("UPDATE paper_info SET earned=NULL WHERE document_id=$p0", id);
                 }
                 return Document(id);
             });

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace OhMyStudy.Domain;
 
 [JsonConverter(typeof(StrictEnumConverter<ImportMode>))]
-public enum ImportMode { TeacherGraded, AiGrading, Blank }
+public enum ImportMode { TeacherGraded, AiGrading, Blank, Auto }
 [JsonConverter(typeof(StrictEnumConverter<Verdict>))]
 public enum Verdict { Correct, Partial, Incorrect, Unanswered, Uncertain }
 [JsonConverter(typeof(StrictEnumConverter<GradeSource>))]
@@ -91,6 +91,8 @@ public sealed record AppSettings
 {
     public bool LegacyNoticeDismissed { get; init; }
     public string? DefaultModel { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Thinking? DefaultThinking { get; init; }
     public required string ExecutionMode { get; init; }
     public required bool SandboxNetworking { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -165,10 +167,13 @@ public sealed record TeacherMark
 public sealed record Attempt
 {
     public string StudentAnswer { get; set; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool StudentAnswerEdited { get; set; }
     public List<Region> StudentRegions { get; set; } = [];
     public TeacherMark? Teacher { get; init; }
     public string? ReferenceKey { get; init; }
     public string AiSolution { get; set; } = "";
+    public string? ErrorAnalysis { get; set; }
     public string? Conflict { get; init; }
     public Grade Grade { get; set; } = new() { Verdict = Verdict.Uncertain, Source = GradeSource.AiSolution, Reason = "No grade provided." };
 }

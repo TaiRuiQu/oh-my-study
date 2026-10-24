@@ -344,7 +344,7 @@ public sealed partial class MainWindow
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".library.png"));
             AppWindow.Resize(new Windows.Graphics.SizeInt32(720, 960));
             SettingsPanel.ChangeView(null, 0, null, true); await Task.Delay(100);
-            checks["settings-narrow-layout"] = Grid.GetRow(ProviderDetails) == 1 && ProviderDetails.ActualWidth >= ProviderLayout.ActualWidth - 1;
+            checks["settings-narrow-layout"] = Grid.GetRow(ProviderDetails) == 2 && ProviderDetails.ActualWidth >= ProviderLayout.ActualWidth - 1;
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-narrow.png"));
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Task.Delay(100);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".settings-compact.png"));
@@ -366,6 +366,71 @@ public sealed partial class MainWindow
             checks["light-caption"] = AppWindow.TitleBar.ButtonForegroundColor == CaptionForeground;
             checks["keyboard-editor-focus"] = NotesEditor.Focus(FocusState.Programmatic);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".png"));
+            var beforeConfirmation = await _library!.GetQuestionAsync(saved.Id);
+            const string confirmationFormula = @"请核对公式 $f'(x)=3x^2-3$ 和 $\frac{x_1^2+x_2^2}{2}$。";
+            const string legacyConfirmationFormula = @"请确认驻点是否为 \(x=\pm1\)，并检查 \(\sqrt{x+2}\) 的定义域。";
+            await _library.EditQuestionAsync(saved.Id, beforeConfirmation.Question with { Uncertainties = [confirmationFormula, legacyConfirmationFormula] });
+            await ReloadQuestionsAsync(); await _questionPresentationTask;
+            await Task.Delay(100); RootGrid.UpdateLayout();
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".confirm-result.png"));
+            var reviewNotice = NativeDescendants(QuestionContentHost).OfType<InfoBar>().Single(notice => notice.Title == UiText.Get("Needs review"));
+            var reviewParagraphs = NativeDescendants(reviewNotice).OfType<Controls.NativeFormulaParagraph>().ToArray();
+            checks["confirm-result-renders-latex"] = string.IsNullOrEmpty(reviewNotice.Message)
+                && reviewParagraphs.Length == 2 && reviewParagraphs.All(paragraph => paragraph.NativeSurfaceReady && paragraph.BaselineChecksPassed)
+                && reviewParagraphs.SelectMany(paragraph => paragraph.FormulaSources).ToHashSet().SetEquals((string[])[@"f'(x)=3x^2-3", @"\frac{x_1^2+x_2^2}{2}", @"x=\pm1", @"\sqrt{x+2}"]);
+            checks["confirm-result-keeps-formula-source"] = reviewParagraphs.Select(paragraph => paragraph.Source).SequenceEqual((string[])[confirmationFormula, legacyConfirmationFormula]);
+            RootGrid.RequestedTheme = ElementTheme.Dark; AppWindow.Resize(new(460, 960)); await Task.Delay(200);
+            await _questionPresentationTask; RootGrid.UpdateLayout(); await Task.Delay(100);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".confirm-result-compact-dark.png"));
+            var compactReview = NativeDescendants(QuestionContentHost).OfType<InfoBar>().Single(notice => notice.Title == UiText.Get("Needs review"));
+            var compactParagraphs = NativeDescendants(compactReview).OfType<Controls.NativeFormulaParagraph>().ToArray();
+            checks["confirm-result-formulas-fit-compact-width"] = compactParagraphs.Length == 2 && compactParagraphs.All(paragraph =>
+                paragraph.NativeSurfaceReady && paragraph.TransformToVisual(compactReview).TransformPoint(new(0, 0)).X + paragraph.ActualWidth <= compactReview.ActualWidth + 1);
+            RootGrid.RequestedTheme = ElementTheme.Light; AppWindow.Resize(new(1440, 960)); await Task.Delay(200); await _questionPresentationTask;
+            var confirmResult = NativeDescendants(QuestionContentHost).OfType<Button>().Single(button => Equals(button.Content, UiText.Get("Confirm result")));
+            var confirmationPeer = new Microsoft.UI.Xaml.Automation.Peers.ButtonAutomationPeer(confirmResult);
+            ((Microsoft.UI.Xaml.Automation.Provider.IInvokeProvider)confirmationPeer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Invoke)).Invoke();
+            for (int attempt = 0; attempt < 40 && (await _library.GetQuestionAsync(saved.Id)).Question.Uncertainties.Count > 0; attempt++) await Task.Delay(50);
+            await _questionPresentationTask;
+            checks["confirm-result-button-clears-review-text"] = (await _library.GetQuestionAsync(saved.Id)).Question.Uncertainties.Count == 0
+                && !NativeDescendants(QuestionContentHost).OfType<InfoBar>().Any(notice => notice.Title == UiText.Get("Needs review"));
+            string boundsPath = Path.Combine(root, "window.txt");
+            var initialWindowSize = AppWindow.Size;
+            AppWindow.Resize(new(1180, 840)); await Task.Delay(120);
+            RememberWindowBounds(boundsPath);
+            AppWindow.Resize(new(900, 700)); await Task.Delay(100);
+            RestoreWindowBounds(boundsPath); await Task.Delay(120);
+            checks["window-size-restored-from-file"] = AppWindow.Size.Width == 1180 && AppWindow.Size.Height == 840;
+            if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
+            {
+                presenter.Maximize(); await Task.Delay(150); RememberWindowBounds(boundsPath);
+                var maximizedBounds = Services.WindowBounds.Parse(await File.ReadAllTextAsync(boundsPath));
+                checks["maximized-window-retains-restored-size"] = maximizedBounds is { Width: 1180, Height: 840, Maximized: true };
+                presenter.Restore(); await Task.Delay(120); AppWindow.Resize(new(900, 700)); await Task.Delay(100);
+                RestoreWindowBounds(boundsPath); await Task.Delay(150);
+                checks["window-maximized-state-restored"] = presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Maximized;
+                presenter.Restore(); await Task.Delay(120);
+                checks["unmaximized-window-retains-user-size"] = AppWindow.Size.Width == 1180 && AppWindow.Size.Height == 840;
+            }
+            AppWindow.Resize(initialWindowSize); await Task.Delay(100);
+            ViewModel.SelectedQuestion.Notes = "未保存的复习笔记";
+            StudentAnswer_Click(this, new RoutedEventArgs()); await Task.Delay(200);
+            var studentDialog = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(popup => popup.Child).OfType<ContentDialog>().Single();
+            NativeDescendants(studentDialog).OfType<TextBox>().First().Text = "先求导，再比较端点与驻点的函数值。";
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".student-answer.png"), studentDialog);
+            var studentSave = NativeDescendants(studentDialog).OfType<Button>().Single(button => button.Name == "PrimaryButton");
+            var studentPeer = new Microsoft.UI.Xaml.Automation.Peers.ButtonAutomationPeer(studentSave);
+            ((Microsoft.UI.Xaml.Automation.Provider.IInvokeProvider)studentPeer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Invoke)).Invoke();
+            for (int attempt = 0; attempt < 40 && _questionEditorOpen; attempt++) await Task.Delay(50);
+            var studentSaved = await _library!.GetQuestionAsync(saved.Id);
+            checks["student-answer-dialog-saves-without-stale-grade"] = studentSaved.Question.Items[0].Attempt is { StudentAnswerEdited: true, Grade.Verdict: Verdict.Uncertain, Grade.Earned: null, ErrorAnalysis: null };
+            checks["student-answer-keeps-unsaved-notes"] = ViewModel.SelectedQuestion.Notes == "未保存的复习笔记" && ViewModel.SelectedQuestion.IsDirty;
+            StudentAnswer_Click(this, new RoutedEventArgs()); await Task.Delay(150);
+            var compactStudentDialog = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(popup => popup.Child).OfType<ContentDialog>().Single();
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(200);
+            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".student-answer-compact.png"), compactStudentDialog);
+            checks["student-answer-compact-fit"] = compactStudentDialog.ActualWidth <= RootGrid.ActualWidth;
+            compactStudentDialog.Hide(); await Task.Delay(100);
             checks["native-aot"] = !RuntimeFeature.IsDynamicCodeSupported && !Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Any(m => m.ModuleName.Equals("coreclr.dll", StringComparison.OrdinalIgnoreCase));
             exitCode = checks.Where(check => check.Key != "native-aot").All(check => check.Value) ? 0 : 1;
         }

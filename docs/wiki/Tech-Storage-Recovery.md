@@ -2,11 +2,11 @@
 
 [Home](Home.md) · [Tech for nerds](Tech-for-nerds.md) · [简体中文](Tech-Storage-Recovery-zh-CN.md)
 
-## Schema v5
+## Schema v6
 
-The library contains `study.sqlite3` and managed `assets`. The current SQLite `user_version` is **5**. Earlier writable libraries receive a `study.sqlite3.pre-v5-…` database snapshot before transactional migration. Schema v4 converts recursive legacy questions into shared stems and flat items and adds query-summary columns; v5 records ownership of generated question images in `question_assets`.
+The library contains `study.sqlite3` and managed `assets`. The current SQLite `user_version` is **6**. Earlier writable libraries receive a `study.sqlite3.pre-v6-…` database snapshot before transactional migration. Schema v4 converts recursive legacy questions into shared stems and flat items and adds query-summary columns; v5 records ownership of generated question images in `question_assets`.
 
-Questions retain typed JSON payloads, while summary columns support list search/filter/sort without deserializing every question. Reference answers match `matched_item_key`. Grading rollback records support explicit task retry; semantic-index tables cache embeddings independently of question payloads. Older application versions cannot open the upgraded schema.
+Schema v6 adds a separate `student` source-page role for answer attachments while preserving original page IDs, order, rotations, and PDF relationships. Student responses and nullable error analysis remain in the question JSON. Questions retain typed JSON payloads, while summary columns support list search/filter/sort without deserializing every question. Reference answers match `matched_item_key`. Grading rollback records support explicit task retry; semantic-index tables cache embeddings independently of question payloads. Older application versions cannot open the upgraded schema.
 
 ## Ownership and indexing
 
@@ -20,7 +20,7 @@ Meaning search hashes eligible question text and embedding configuration. Saved 
 
 The backup service refuses existing targets and targets inside the source. It stages a SQLite online snapshot, copies managed assets, writes a hash manifest, validates, and finalizes the new directory. Online backup includes committed WAL data; copying only the database while running does not.
 
-Copy and switch uses the backup service and retains the old library. User-facing manual backup remains: save, exit, and copy the entire library folder. Preserve the backup and select a working copy as an existing library when recovering. A pre-v5 database snapshot alone is not a complete asset backup. Internal restore and legacy migration services do not imply dedicated menu buttons.
+Copy and switch uses the backup service and retains the old library. User-facing manual backup remains: save, exit, and copy the entire library folder. Preserve the backup and select a working copy as an existing library when recovering. A pre-v6 database snapshot alone is not a complete asset backup. Internal restore and legacy migration services do not imply dedicated menu buttons.
 
 Provider and search keys live in Windows Credential Manager, outside library copies. Language preference and active-library location are computer-level settings. Logs can contain study text and code; inspect them before sharing.
 

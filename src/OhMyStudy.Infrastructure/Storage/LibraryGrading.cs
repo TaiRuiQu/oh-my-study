@@ -31,7 +31,7 @@ public sealed partial class LibraryRepository
         var result = Query("SELECT j.state,r.input_json FROM jobs j JOIN grading_runs r ON r.job_id=j.id WHERE j.id=$p0", r => (State: r.GetString(0), Json: r.GetString(1)), jobId).SingleOrDefault();
         if (result.State != "RUNNING") throw new InvalidOperationException("The task is not running. Results cannot be written");
         var input = DomainJson.Deserialize<GradingInput>(result.Json);
-        if (!JsonEqual(DomainJson.Serialize(Document(input.Document.Id)), DomainJson.Serialize(input.Document)))
+        if (!SameGradingDocument(Document(input.Document.Id), input.Document))
             throw new InvalidOperationException("Document page order or rotation has changed. Restart the whole-paper task");
         return input;
     }
@@ -41,6 +41,9 @@ public sealed partial class LibraryRepository
         using var l = JsonDocument.Parse(left); using var r = JsonDocument.Parse(right);
         return JsonElement.DeepEquals(l.RootElement, r.RootElement);
     }
+
+    private static bool SameGradingDocument(Document left, Document right) =>
+        JsonEqual(DomainJson.Serialize(left with { Name = "" }), DomainJson.Serialize(right with { Name = "" }));
 
     private SavedQuestion WriteQuestion(string documentId, Question question, string? id = null)
     {
@@ -95,7 +98,7 @@ public sealed partial class LibraryRepository
             var input = CheckRun(jobId); var existing = Questions(input.Document.Id);
             var previous = existing.SingleOrDefault(q => q.Question.DraftKey == next.DraftKey);
             next = next with { Notes = previous?.Question.Notes ?? "" };
-            if (previous is not null) next = Preserve(next, previous.Question, input.Document.Mode == ImportMode.TeacherGraded);
+            if (previous is not null) next = Preserve(next, previous.Question, input.Document.Mode is ImportMode.TeacherGraded or ImportMode.Auto);
             var references = References(input.Document.Id);
             GradingValidation.ValidateQuestion(next, input.Document, references, true);
             CheckManual(next, previous?.Question);
@@ -116,7 +119,7 @@ public sealed partial class LibraryRepository
     }
 
     private static bool Protected(QuestionItem item, bool teacherMode) => item.Attempt is { } a &&
-        (a.Grade.Source == GradeSource.Manual || teacherMode && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null));
+        (a.StudentAnswerEdited || a.Grade.Source == GradeSource.Manual || teacherMode && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null));
 
     private static Question Preserve(Question next, Question old, bool teacherMode)
     {
@@ -128,9 +131,14 @@ public sealed partial class LibraryRepository
     private static QuestionItem Preserve(QuestionItem next, QuestionItem old, bool teacherMode)
     {
         if (old.Attempt is not { } previous) return next;
-        var preserve = previous.Grade.Source == GradeSource.Manual || teacherMode && (previous.Grade.Source == GradeSource.Teacher || previous.Teacher?.Grade is not null);
+        var preserve = Protected(old, teacherMode);
         if (preserve && next.Attempt is null) throw new InvalidOperationException("Regrading cannot remove existing teacher or manual grades");
         if (next.Attempt is not { } attempt) return next;
+        if (previous.StudentAnswerEdited)
+        {
+            attempt = attempt with { StudentAnswer = previous.StudentAnswer, StudentRegions = previous.StudentRegions, StudentAnswerEdited = true };
+            next = next with { Attempt = attempt };
+        }
         if (previous.Grade.Source == GradeSource.Manual) return next with { Attempt = attempt with { Grade = previous.Grade } };
         if (teacherMode && (previous.Grade.Source == GradeSource.Teacher || previous.Teacher?.Grade is not null)) return next with { Attempt = attempt with { Teacher = previous.Teacher, Grade = previous.Grade } };
         return next;
@@ -139,8 +147,12 @@ public sealed partial class LibraryRepository
     private static void CheckManual(Question question, Question? old)
     {
         foreach (var item in question.Items)
+        {
             if (item.Attempt?.Grade.Source == GradeSource.Manual && old?.Items.FirstOrDefault(o => o.Key == item.Key)?.Attempt?.Grade.Source != GradeSource.Manual)
                 throw new InvalidOperationException("AI cannot generate a manual grading source");
+            if (item.Attempt?.StudentAnswerEdited == true && old?.Items.FirstOrDefault(o => o.Key == item.Key)?.Attempt?.StudentAnswerEdited != true)
+                throw new InvalidOperationException("AI cannot mark student answers as user-edited");
+        }
     }
 
     public Task SaveGradingReferencesAsync(string jobId, IReadOnlyList<ReferenceAnswer> references, CancellationToken cancellationToken = default)
@@ -202,7 +214,7 @@ public sealed partial class LibraryRepository
             var current = Document(documentId);
             if (Convert.ToInt32(Scalar("PRAGMA user_version")) < 2) return GradingResult.Empty;
             var previous = Query("SELECT r.coverage_json,r.input_json FROM grading_runs r JOIN jobs j ON j.id=r.job_id WHERE r.document_id=$p0 AND r.coverage_json IS NOT NULL ORDER BY j.created_at DESC,j.rowid DESC LIMIT 1", r => (Coverage: r.GetString(0), Input: r.GetString(1)), documentId).SingleOrDefault();
-            var coverage = previous.Input is not null && JsonEqual(DomainJson.Serialize(DomainJson.Deserialize<GradingInput>(previous.Input).Document), DomainJson.Serialize(current)) ? DomainJson.Deserialize<List<Coverage>>(previous.Coverage) : [];
+            var coverage = previous.Input is not null && SameGradingDocument(DomainJson.Deserialize<GradingInput>(previous.Input).Document, current) ? DomainJson.Deserialize<List<Coverage>>(previous.Coverage) : [];
             return new GradingResult
             {
                 Questions = Questions(documentId),
@@ -246,6 +258,18 @@ public sealed partial class LibraryRepository
             if (row.DocumentId is null) throw new KeyNotFoundException("Question not found");
             var saved = Questions(row.DocumentId).Single(q => q.Id == id);
             return WriteQuestion(row.DocumentId, saved.Question with { Notes = notes }, id);
+        }), cancellationToken, true);
+    }
+
+    public Task<SavedQuestion> ConfirmQuestionAsync(string id, CancellationToken cancellationToken = default)
+    {
+        ValidId(id);
+        return Run(() => Transaction(cancellationToken, () =>
+        {
+            string documentId = Scalar("SELECT document_id FROM questions WHERE id=$p0", id) as string ?? throw new KeyNotFoundException("Question not found");
+            DocumentIdle(documentId);
+            var saved = Questions(documentId).Single(question => question.Id == id);
+            return WriteQuestion(documentId, saved.Question with { Uncertainties = [] }, saved.Id);
         }), cancellationToken, true);
     }
 

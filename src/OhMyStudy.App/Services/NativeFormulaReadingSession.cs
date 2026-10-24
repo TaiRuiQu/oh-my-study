@@ -23,6 +23,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
     private readonly double _width = Math.Clamp(width, 40, 4000);
     private readonly bool _preview = preview;
     private readonly ElementTheme _theme = initialTheme;
+    internal double Width => _width;
     internal static long Compilations;
     internal static long CacheHits;
     internal static long InvalidFormulas;
@@ -44,9 +45,10 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
         }
     }
 
-    internal async Task<FrameworkElement> PresentAsync(string source, CancellationToken token, bool table, ElementTheme? requestedTheme)
+    internal async Task<FrameworkElement> PresentAsync(string source, CancellationToken token, bool table, ElementTheme? requestedTheme, double? width = null)
     {
         token.ThrowIfCancellationRequested();
+        double available = Math.Clamp(width ?? _width, 40, 4000);
         string normalized = DocumentText.NormalizeMath(source);
         var runs = DocumentText.Split(normalized);
         var blocks = new List<FrameworkElement>(); var parts = new List<NativeFormulaParagraph.Part>(); var paragraphSource = new StringBuilder(); double previewHeight = 20;
@@ -60,6 +62,12 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                 if (result.Document is null) blocks.Add(Plain("$$" + run.Text + "$$"));
                 else
                 {
+                    if (FormulaWidth(result.Document) + 4 > available)
+                    {
+                        var wrapped = await FitFormulaAsync(result.Document, true, 20, available, token);
+                        blocks.Add(new NativeFormulaParagraph(source, wrapped, available, 20, false));
+                        continue;
+                    }
                     MathView formula = new() { Result = result.Document, AccessibleDescription = run.Text };
                     // MathView measures fractional DIPs but allocates whole pixels. Matching
                     // the surface extent avoids resampling its glyphs by a fractional ratio.
@@ -84,7 +92,8 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                         if (observedRoot is not null) observedRoot.Changed -= AlignSurface;
                         observedRoot = null;
                     };
-                    blocks.Add(new ScrollViewer { Content = formula, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollMode = ScrollMode.Enabled, VerticalScrollMode = ScrollMode.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalAlignment = HorizontalAlignment.Stretch });
+                    formula.HorizontalAlignment = HorizontalAlignment.Left;
+                    blocks.Add(formula);
                 }
                 continue;
             }
@@ -97,14 +106,17 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                     return Plain(UiText.Get("Preview unavailable"));
                 }
                 if (_preview && result.Document is { } large && (Math.Max(large.LogicalSize.Height, large.InkBounds.Y + large.InkBounds.Height) - Math.Min(0, large.InkBounds.Y) + 2 > 46
-                    || Math.Max(large.LogicalSize.Width, large.InkBounds.X + large.InkBounds.Width) - Math.Min(0, large.InkBounds.X) + 2 > _width))
+                    || Math.Max(large.LogicalSize.Width, large.InkBounds.X + large.InkBounds.Width) - Math.Min(0, large.InkBounds.X) + 2 > available))
                 {
                     paragraphSource.Append('…'); parts.Add(new("…", null));
                     break;
                 }
                 string delimiter = run.IsDisplay ? "$$" : "$";
                 string marked = delimiter + run.Text + delimiter;
-                paragraphSource.Append(marked); parts.Add(new(result.Document is null ? marked : string.Empty, result.Document));
+                paragraphSource.Append(marked);
+                if (!_preview && result.Document is { } document && FormulaWidth(document) + 4 > available)
+                    parts.AddRange(await FitFormulaAsync(document, false, 16, table ? Math.Min(available, 280) : available, token));
+                else parts.Add(new(result.Document is null ? marked : string.Empty, result.Document));
             }
             else
             {
@@ -139,21 +151,50 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
             {
                 try
                 {
-                    NativeFormulaParagraph paragraph = new(source, parts.ToArray(), table ? Math.Min(_width, 280) : _width, _preview ? 14 : 16, _preview);
+                    NativeFormulaParagraph paragraph = new(source, parts.ToArray(), table ? Math.Min(available, 280) : available, _preview ? 14 : 16, _preview);
                     previewHeight = paragraph.Height;
-                    blocks.Add(new ScrollViewer { Content = paragraph, HorizontalScrollBarVisibility = _preview ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalScrollMode = _preview ? ScrollMode.Disabled : ScrollMode.Enabled, VerticalScrollMode = ScrollMode.Disabled, IsTabStop = false });
+                    blocks.Add(paragraph);
                 }
                 catch (InvalidOperationException) { blocks.Add(Plain(original)); }
             }
             else
             {
                 TextBlock literal = Plain(string.Concat(parts.Select(part => part.Text)));
-                literal.Measure(new Windows.Foundation.Size(_width, 10000)); previewHeight = literal.DesiredSize.Height;
+                literal.Measure(new Windows.Foundation.Size(available, 10000)); previewHeight = literal.DesiredSize.Height;
                 blocks.Add(literal);
             }
             parts.Clear(); paragraphSource.Clear();
         }
         TextBlock Plain(string text) => new() { Text = text, FontFamily = new FontFamily(UiText.ReadingFontFamily), FontSize = _preview ? 14 : 16, TextWrapping = TextWrapping.Wrap, MaxLines = _preview ? 2 : 0, TextTrimming = _preview ? TextTrimming.CharacterEllipsis : TextTrimming.None, IsTextSelectionEnabled = !_preview, HorizontalAlignment = HorizontalAlignment.Stretch };
+    }
+
+    private static double FormulaWidth(MathDocument document) =>
+        Math.Max(document.LogicalSize.Width, document.InkBounds.X + document.InkBounds.Width) - Math.Min(0, document.InkBounds.X);
+
+    private static async Task<IReadOnlyList<NativeFormulaParagraph.Part>> FitFormulaAsync(MathDocument document, bool display, double fontSize, double width, CancellationToken token)
+    {
+        var segments = FormulaLineBreaks.Split(document.Source);
+        var parts = new List<NativeFormulaParagraph.Part>();
+        foreach (string segment in segments)
+        {
+            var result = segments.Count == 1 ? new Compilation(document, default) : await CompileAsync("{}" + segment, display, fontSize, token);
+            if (result.Document is not { } fragment)
+            {
+                parts.Clear();
+                break;
+            }
+            double maximum = Math.Max(1, width - 6);
+            if (FormulaWidth(fragment) > maximum)
+            {
+                result = await CompileAsync(fragment.Source, display, fontSize * maximum / FormulaWidth(fragment), token);
+                if (result.Document is not { } fitted) { parts.Clear(); break; }
+                fragment = fitted;
+            }
+            parts.Add(new("", fragment, document.Source));
+        }
+        if (parts.Count != 0) return parts;
+        var fallback = await CompileAsync(document.Source, display, fontSize * Math.Max(1, width - 6) / FormulaWidth(document), token);
+        return (NativeFormulaParagraph.Part[])[new("", fallback.Document ?? document, document.Source)];
     }
 
     private static async Task<Compilation> CompileAsync(string source, bool display, double fontSize, CancellationToken token)

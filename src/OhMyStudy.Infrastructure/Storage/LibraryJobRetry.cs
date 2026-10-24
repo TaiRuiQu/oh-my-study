@@ -97,6 +97,9 @@ public sealed partial class LibraryRepository
                 WritePaperInfo(documentId, row.GetProperty("subject").GetString(), Number(row, "earned"), Number(row, "possible"), row.GetProperty("manual").GetInt32() != 0);
             }
         }
+        foreach (var change in changes.Where(c => c.Kind == "title"))
+            if (DomainJson.Serialize(Document(documentId).Name) == change.After && change.Before is not null)
+                Execute("UPDATE documents SET name=$p0 WHERE id=$p1", DomainJson.Deserialize<string>(change.Before), documentId);
         var used = Questions(documentId).SelectMany(q => q.Question.Stem.Concat(q.Question.Items.SelectMany(i => i.Prompt)))
             .OfType<ImageContent>().Select(i => i.AssetId).OfType<string>().ToHashSet(StringComparer.Ordinal);
         foreach (var change in changes.Where(c => c.Kind == "asset" && !used.Contains(c.Key)))

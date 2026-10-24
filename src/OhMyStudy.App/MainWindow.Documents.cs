@@ -120,7 +120,7 @@ public sealed partial class MainWindow
                 case ImageContent image:
                     if (!pages.TryGetValue(image.Region.PageId, out var page)) throw new InvalidDataException(UiText.Get("The source of a question image no longer exists."));
                     var asset = await library.ReadAssetAsync(image.AssetId ?? page.AssetId, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    var result = await reader.ReadAsync(asset.Bytes, image.AssetId is null ? image.Region : null, image.AssetId is null ? page.Rotation : (ushort)0, cancellationToken).ConfigureAwait(false);
+                    var result = await reader.ReadForDisplayAsync(asset.Bytes, image.AssetId is null ? image.Region : null, image.AssetId is null ? page.Rotation : (ushort)0, cancellationToken).ConfigureAwait(false);
                     segments.Add(new("", Image: new ExamImage(imageBudget.Intern(Convert.FromBase64String(result.Image.Base64)), image.Caption, image.ContainsHandwriting)));
                     break;
                 default: throw new InvalidDataException(UiText.Get("Question content could not be read completely."));
@@ -180,7 +180,7 @@ public sealed partial class MainWindow
                     int current = index;
                     var page = pages[index];
                     var line = new StackPanel { Spacing = 6 };
-                    line.Children.Add(new TextBlock { Text = UiText.Format("Page {0} · {1} · {2}°", index + 1, (page.Role == "reference" ? UiText.Get("Reference answers") : UiText.Get("Material")), page.Rotation), TextWrapping = TextWrapping.Wrap });
+                    line.Children.Add(new TextBlock { Text = UiText.Format("Page {0} · {1} · {2}°", index + 1, (page.Role == "reference" ? UiText.Get("Reference answers") : page.Role == "student" ? UiText.Get("Student answer") : UiText.Get("Material")), page.Rotation), TextWrapping = TextWrapping.Wrap });
                     var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
                     var up = new Button { Content = UiText.Get("Move up"), IsEnabled = index > 0 };
                     up.Click += (_, _) => { (pages[current - 1], pages[current]) = (pages[current], pages[current - 1]); Refresh(); };
@@ -237,7 +237,7 @@ public sealed partial class MainWindow
                 _lifetime.Token.ThrowIfCancellationRequested();
                 if (page.PreviewStatus != "ready") throw new InvalidDataException();
                 var asset = await _library.ReadAssetAsync(page.AssetId, cancellationToken: _lifetime.Token);
-                var rendered = await reader.ReadAsync(asset.Bytes, null, page.Rotation, _lifetime.Token);
+                var rendered = await reader.ReadForDisplayAsync(asset.Bytes, null, page.Rotation, _lifetime.Token);
                 using var stream = new InMemoryRandomAccessStream();
                 using (var writer = new DataWriter(stream))
                 {

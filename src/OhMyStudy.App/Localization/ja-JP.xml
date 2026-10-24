@@ -766,4 +766,15 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0757" xml:space="preserve">プロバイダーの Files API に画像をアップロード中</text>
     <text key="S0758" xml:space="preserve">プロバイダーが Files API 操作を拒否しました。Files API への対応、ファイル権限、有効期限パラメーターを確認してください。</text>
     <text key="S0759" xml:space="preserve">リクエストが大きすぎます。対応するプロバイダーでは Files API を有効にするか、一度に認識するページ数を減らしてください。</text>
+    <text key="S0760" xml:space="preserve">自動判定</text>
+    <text key="S0761" xml:space="preserve">プロバイダー</text>
+    <text key="S0762" xml:space="preserve">生徒の解答をアップロード</text>
+    <text key="S0763" xml:space="preserve">生徒の解答を入力</text>
+    <text key="S0764" xml:space="preserve">誤答の原因分析</text>
+    <text key="S0765" xml:space="preserve">生徒自身の解答を入力してください。保存後に再認識すると、採点と誤答の原因分析を行えます。</text>
+    <text key="S0766" xml:space="preserve">生徒の解答を追加しました。再認識して採点してください。</text>
+    <text key="S0767" xml:space="preserve">生徒の解答が変更されました。再認識して採点してください。</text>
+    <text key="S0768" xml:space="preserve">結果を確認</text>
+    <text key="S0769" xml:space="preserve">結果を確認しました。</text>
+    <text key="S0770" xml:space="preserve">確認できませんでした。タスク完了後にもう一度お試しください。</text>
 </resources>

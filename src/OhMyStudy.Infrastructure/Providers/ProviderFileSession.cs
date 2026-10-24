@@ -74,13 +74,13 @@ internal sealed class ProviderFileSession(HttpClient http, Protocol protocol, Ur
         if (protocol == Protocol.Responses)
         {
             fields["purpose"] = "user_data";
-            form.Add(new StringContent("user_data"), "purpose");
-            form.Add(new StringContent("created_at"), "expires_after[anchor]");
-            form.Add(new StringContent("3600"), "expires_after[seconds]");
+            form.Add(new StringContent("user_data"), "\"purpose\"");
+            form.Add(new StringContent("created_at"), "\"expires_after[anchor]\"");
+            form.Add(new StringContent("3600"), "\"expires_after[seconds]\"");
         }
-        else form.Add(new StringContent("3600"), "expires_in_seconds");
+        else form.Add(new StringContent("3600"), "\"expires_in_seconds\"");
         var content = new ByteArrayContent(bytes); content.Headers.ContentType = new MediaTypeHeaderValue(mime);
-        form.Add(content, "file", filename);
+        form.Add(content, "\"file\"", $"\"{filename}\"");
         try
         {
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);

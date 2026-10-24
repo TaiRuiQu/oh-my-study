@@ -27,6 +27,10 @@ Check meaning, not only appearance. A missing minus sign changes a formula even 
 
 A completed task can still contain unreadable pages or uncertain content. Read those reasons instead of assuming completion means accuracy.
 
+Once you have checked a transcription concern against the original, click **Confirm result** in its Needs review notice. This clears the review text without changing content or grades. An uncertain grade still requires a supported grading correction and can keep the question in Needs review.
+
+To add work to a blank exam, use **Enter student answer** on the question page or **More → Upload student answers** in the exam, then **Recognize again**. Save entered work separately from standard answers; editing it clears its previous result. See [student work and review](Features-Workspace-Editing.md#add-student-work-and-confirm-reviewed-results).
+
 ## Make one correction
 
 Select Edit question, expand the section, change the value, and save. For example, correct a recognized formula from x + 1 to x - 1 in its formula block. Correct an associated answer/explanation if the sign change affects it; editing a stem does not independently prove or recalculate its answer.

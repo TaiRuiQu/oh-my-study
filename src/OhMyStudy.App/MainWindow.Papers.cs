@@ -47,7 +47,7 @@ public sealed partial class MainWindow
 
     private void SetPaperMenuDetail(bool detail)
     {
-        foreach (var action in new FrameworkElement[] { PaperPagesAction, PaperReferencesAction, PaperDeleteAction })
+        foreach (var action in new FrameworkElement[] { PaperPagesAction, PaperReferencesAction, PaperStudentAnswersAction, PaperDeleteAction })
             action.Visibility = detail ? Visibility.Visible : Visibility.Collapsed;
         PaperDetailSeparator.Visibility = detail ? Visibility.Visible : Visibility.Collapsed;
         PaperMoreButton.Visibility = detail || HasSampleAction ? Visibility.Visible : Visibility.Collapsed;

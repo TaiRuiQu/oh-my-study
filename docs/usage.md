@@ -26,7 +26,9 @@ New recognition tasks automatically select model-specific instructions and tool 
 
 The Tasks page shows estimated costs. Click "Details (明细)" to view cost and usage. Costs may not be calculable when prices or the necessary usage data are missing; a missing cost does not mean the service is free.
 
-If your provider supports the Files API and image file IDs, enable "Support Files API (支持 Files API)" in its settings and save. This option defaults to off and applies to new tasks. It supports the configured Responses or Messages protocol and uses the same provider address and key. Only images requested during recognition are uploaded, including page crops and generated images. Identical images upload once per task; subsequent model calls reference their file IDs, keeping the request body small even after repeated page reads. Different crops remain distinct images without reducing their resolution.
+Images sent to the model target 200 KiB each before base64 encoding, including full pages, crops, and previews of generated images. Small images remain lossless PNGs; larger images use color JPEG, lowering quality down to 0.6 and scaling down proportionally to a long-side floor of 1280 pixels without upscaling smaller sources. Images may exceed the target at those readability limits. Original files, question previews, and PDF export assets retain their existing quality. The target reduces transfer size but does not guarantee recognition accuracy or lower image token charges.
+
+If your provider supports the Files API and image file IDs, enable "Support Files API (支持 Files API)" in its settings and save. This option defaults to off and applies to new tasks. It supports the configured Responses or Messages protocol and uses the same provider address and key. Only images requested during recognition are uploaded, including page crops and generated images. Identical images upload once per task; subsequent model calls reference their file IDs, keeping the request body small even after repeated page reads. Different crops remain distinct images and use the same compression policy.
 
 Uploads request expiration **one hour after creation**, and the app also attempts to delete its uploaded files when the task completes, fails, or is canceled. If the app exits unexpectedly, the provider's requested expiration remains in effect. The provider must support the protocol's expiration parameter; rejected uploads fail with an actionable task message instead of silently sending a large inline request or uploading without expiration. Deletion failures and request sizes are recorded in the local diagnostic log, without recording uploaded image bytes. Providers may charge for storage or model input; file IDs reduce transfer size but do not remove model input token or image limits. See the [Responses file upload contract](https://developers.openai.com/api/reference/resources/files/methods/create) and [Messages file upload contract](https://platform.claude.com/docs/en/api/http/files/upload).
 
@@ -40,28 +42,39 @@ The index uses question stems, formulas, subquestions, options, and knowledge po
 
 ## Importing exams
 
-Click "Import exam (导入试卷)" and choose a PDF, PNG, JPEG, or WebP file. An exam plus its reference answers may total at most 12 pages; split longer materials first.
+Click "Import exam (导入试卷)" and choose a PDF, PNG, JPEG, or WebP file. An exam plus its supplementary student answers and references may total at most 12 pages; split longer materials first.
 
 Choose the exam type in the import dialog:
 
 | Exam type | Purpose |
 | --- | --- |
-| Blank exam (空白试卷) | Recognize questions and add them to the question bank; unanswered questions are not counted as wrong |
+| Detect automatically (自动识别) | The model reads the pages and decides itself whether the exam is blank, answered, or teacher-graded, then organizes and grades it accordingly |
+| Blank exam (空白试卷) | Recognize questions and generate standard answers and solutions; questions without student responses are not counted as wrong |
 | Answered, needs grading (已作答，需批改) | Recognize questions and student answers, and have AI grade them |
 | Already graded by a teacher (已有教师批改) | Extract the teacher's grading results and supplement explanations |
 
-Select a model and any thinking options it supports, confirm, then click "Import and recognize (导入并识别)". Materials are sent to the selected provider and may incur costs.
+Choose a provider and one of its models, plus any thinking options the model supports, then confirm and click "Import and recognize (导入并识别)". Your last chosen provider, model, and reasoning level are remembered and preselected the next time. Materials are sent to the selected provider and may incur costs.
 
 Imported originals are copied into the library, so you can still view them after deleting the external original files. Recognized questions are saved to the question bank as the task progresses; saving the original does not mean recognition has finished.
 
+Recognition can use the title printed on the exam as its name. If no title is visible, the imported filename remains the fallback. A title you edit in Exam information is preserved when recognizing again.
+
+After import, open an exam and choose **More → Upload student answers** to add answer photos or PDFs, or open a question and choose **Enter student answer** to type the student's work. Then select **Recognize again** in the exam to grade the added answers. Originals and standard solutions are retained, and manually entered responses are preserved. Changing an entered response clears its previous grade and error analysis until it is graded again. Supplementary pages count toward the same 12-page limit alongside exam and reference pages.
+
+For incorrect or partially correct responses, the model can show a separate **Error analysis** explaining the supported mistake and a correction. It stays empty when the cause cannot be determined from the work. Standard answers and solutions are generated even for a blank exam, with uncertainty recorded when a question cannot be solved reliably.
+
 ## Viewing and organizing questions
+
+The app restores your previous window size and maximized state on the next normal launch. Long formulas wrap at suitable operators within the reading pane; indivisible groups fit the available width. Copying a formula retains its complete original source.
+
+After checking the model's transcription concerns against the original, click **Confirm result** in the **Needs review** notice. This clears the review text directly while preserving question content, notes, and grades. An undetermined grade remains undetermined and may still appear under Needs review.
 
 - In "Exams (试卷)", search by title or subject and open an exam to view its questions; "Exam information (试卷信息)" lets you edit the title, subject, and score.
 - Drag dividers between functional panes to resize them: navigation and content, source and questions, question list and detail, question and notes, task list and detail, task summary and log, and provider list and settings. Horizontal dividers resize heights and vertical dividers resize widths. Focus a divider with Tab and use the matching arrow keys; Home/End select the minimum/maximum size. Narrow layouts retain draggable dividers wherever both panes are shown.
 - "Question bank (题库)" lists every saved question across exams. Search question text, answers, notes, or exam names, filter by subject or result ("All results (全部结果)", "Mistakes (错题)", "Needs review (待确认)", "Correct (正确)"), and sort the list. More questions load as you scroll, so large banks stay responsive.
 - "Mistakes (错题)" lists questions with at least one partially correct, incorrect, or unanswered subquestion.
 - Click a question to open its page. Use the arrows to move to the previous or next question in the current list, and the back button to return to the same position in the list.
-- A question page uses the available width and shows the shared stem followed by every subquestion in order, like a printed paper. Subquestion labels such as `(1)` appear inline with their prompts. Each subquestion keeps its own response, score, and grading notes. Click its "Show answer and explanation (查看答案与解析)" control to reveal the standard answer, explanation, and solution steps.
+- A question page uses the available width and shows the shared stem followed by every subquestion in order, like a printed paper. Subquestion labels such as `(1)` appear inline with their prompts. All responses are collected in one "Your answer (我的作答)" card marked by an accent bar, with each subquestion's score shown as a small badge beside the answer. One "Show answer and explanation (查看答案与解析)" control at the end reveals the standard answers, explanations, and solution steps for every subquestion.
 - Write your own review notes in "My notes (我的笔记)" and click "Save notes (保存笔记)". Notes are kept when an exam is recognized again.
 - Click "View in exam (在试卷中查看)" to open the question's exam with the original page and the question highlighted. Inside an exam, click "View original (查看原件)" to expand the original, or "Locate original (定位原件)" on a question to see its position; you can page, zoom, and rotate.
 - Click "Edit question (编辑题目)" to modify the stem, subquestions, options, answers, explanations, or grading, then click "Save (保存)". A grade you change is marked as edited by you and is kept when the exam is recognized again. Save your changes before exiting or switching libraries.
@@ -110,7 +123,7 @@ AppContainer does not require Windows Sandbox, virtualization, or an optional Wi
 
 The model can execute Python and Windows PowerShell scripts for calculations, file processing, and image processing. The bundled Python includes Pillow, NumPy, SymPy, and Matplotlib. Python calls within one task share imports, variables, functions, and in-memory images like a notebook, including in sandbox mode. Ordinary exceptions preserve assignments already completed. A timeout, cancellation, output limit, or worker exit resets Python state; completing the task discards it. Separate tasks have separate namespaces. PowerShell calls share files but start fresh processes. Page reads provide local copies of the displayed image and the unrotated original. Working files and generated outputs carry over to later calls, including sandbox calls. The task details show execution results and errors so failed code can be corrected.
 
-The model can request previews of generated PNG, JPEG, or WebP images and use their returned asset IDs in saved question images. These processed images are stored in the library and used in question previews and PDF exports; the original documents and source regions remain available. Image regions use `[left, top, right, bottom]` with integer coordinates from 0 to 999 on the full unrotated original page; `[0, 0, 999, 999]` means the full page. Existing saved regions remain compatible.
+The model can request previews of generated PNG, JPEG, or WebP images and use their returned asset IDs in saved question images. These processed images are stored in the library and used in question previews and PDF exports; the original documents and source regions remain available. When the original photo is sideways, the model can rotate and correct it in code; corrected figures carry the code output's asset ID, so the question displays the upright image instead of re-cropping the unrotated original. Image regions use `[left, top, right, bottom]` with integer coordinates from 0 to 999 on the full unrotated original page; `[0, 0, 999, 999]` means the full page. Existing saved regions remain compatible.
 
 ## Exporting PDFs
 
@@ -131,7 +144,7 @@ The default library location is `%LOCALAPPDATA%/OhMyStudy/Library`. Check the ac
 - Manual backup: save your changes and quit the app, then copy the entire library folder to another location. Do not copy only some of the question or original files.
 - Open existing materials: click "Select existing library (选择已有资料库)" and choose a complete library folder created by the current version. When you need to use a backup, keep the original backup and select a copy of it to avoid overwriting existing materials.
 - Location unavailable: confirm the disk is connected and the folder is accessible, then select an existing library in Settings. If changing the location fails, follow the prompt to check the target location and free space, then retry.
-- Upgrading a library: the first time this version opens a library, it converts saved questions to the current question format and keeps a copy of the previous database file (`study.sqlite3.pre-v5-…`) in the library folder. Earlier app versions cannot open a converted library, so keep a backup if you may need to go back.
+- Upgrading a library: the first time this version opens a library, it converts saved questions to the current question format and keeps a copy of the previous database file (`study.sqlite3.pre-v6-…`) in the library folder. Earlier app versions cannot open a converted library, so keep a backup if you may need to go back.
 
 Provider keys are stored in the Credential Manager of the current Windows account. After copying the library to another account or computer, you may need to re-enter the keys. Back up older-version materials completely first; do not overwrite old materials directly with a new version.
 
@@ -143,7 +156,7 @@ Provider keys are stored in the Credential Manager of the current Windows accoun
 | Connection test or recognition fails | Check the API type, address, key, model ID, account quota, and network, then fix the issue and retry |
 | The original was saved, but recognition did not start or failed midway | Fix the settings and use "Retry task (重试任务)" in Tasks to start over; use "Re-recognize (重新识别)" in the exam to keep saved results |
 | PDF cannot be read | Confirm the file opens normally; decrypt encrypted files first, and obtain a new copy of corrupted files |
-| Page limit exceeded | Split the materials so that each exam plus its reference answers totals no more than 12 pages |
+| Page limit exceeded | Split the materials so that each exam plus its supplementary student answers and references totals no more than 12 pages |
 | Prompt says import components are missing or damaged | Extract the portable version completely again, or repair or reinstall the app |
 | Cannot export | Save the questions first, check the question images and save location; export in batches if there is too much content |
 

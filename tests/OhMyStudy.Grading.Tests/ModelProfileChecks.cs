@@ -65,7 +65,7 @@ internal static class ModelProfileChecks
                     && instructions.Contains("Simplified Chinese", StringComparison.Ordinal)
                     && instructions.Contains("usually 4 to 8 questions per call", StringComparison.Ordinal)
                     && instructions.Contains("larger batches for short, simple questions and smaller batches for long, complex questions", StringComparison.Ordinal)
-                    && instructions.Contains(referenceOnly ? "Organize reference answers only." : "Organize a blank paper without grading.", StringComparison.Ordinal),
+                    && instructions.Contains(referenceOnly ? "Organize reference answers only." : "Organize and solve a blank paper without grading.", StringComparison.Ordinal),
                     $"{model}: model specialization retains execution, language, evidence and task-mode constraints");
             }
         }

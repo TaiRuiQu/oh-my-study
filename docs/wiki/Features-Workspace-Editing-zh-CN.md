@@ -10,6 +10,16 @@
 
 **我的笔记 → 保存笔记** 保存个人复习记录，识别会保留。**在试卷中查看** 打开试卷并定位题目。在试卷内用查看原件/定位原件打开来源，翻页、缩放、适应和旋转只影响显示。
 
+应用关闭后会记住普通窗口尺寸和最大化状态。长公式在合适的顶层运算符处换行，不可拆分的组适应阅读宽度；复制公式仍保留完整源码。
+
+## 补充作答与确认已核查结果
+
+用 **录入学生作答** 为每个评分项输入作答，不改动标准答案。保存后在试卷中选择 **重新识别** 批改。手动录入的作答在识别时受保护；修改后会清除原评分、教师批注与错因分析，在重新批改前标为待确认。空白卷补充作答后转为自动识别。照片或 PDF 使用试卷中的 **更多 → 上传学生作答**，详见[导入与限制](Features-Import-zh-CN.md)。
+
+错误或部分正确的作答可能显示独立的 **错因分析**，其内容须有学生作答证据支持，用于补充评分说明和标准解法；没有错因分析不代表答案正确。
+
+对照原件核实识别疑点后，在 **待确认** 提示中点击 **确认结果**，直接清除题目的识别疑点文字，保留题目内容、个人笔记、作答与评分。此操作不会将待确认评分改为正确，因此题目仍可能出现在待确认筛选中。保存作答或确认前须先结束活动任务。
+
 ## 编辑块和评分项
 
 点击 **编辑题目**。公共题干由有序文字、LaTeX 公式、表格、图片块组成。评分项分别保存标签、题目内容、选项、答案、解析、满分；已作答试卷还包含学生作答与评分。添加或调整评分项而非建立嵌套树，印刷标签 `(2)(a)` 作为组合标签保留。
@@ -28,4 +38,4 @@
 
 快捷键：Ctrl+O 导入、Ctrl+S 保存快捷编辑/设置、Ctrl+E 编辑、Ctrl+0 适应原页、Ctrl+1–4 切换试卷/题库/错题/任务。面板分割线支持拖动、方向键、Home 和 End。
 
-源码：[题库](../../src/OhMyStudy.App/MainWindow.QuestionBank.cs)、[阅读页](../../src/OhMyStudy.App/MainWindow.QuestionPage.cs)、[编辑器](../../src/OhMyStudy.App/MainWindow.Editing.cs)、[模型](../../src/OhMyStudy.Domain/Models.cs)。
+源码：[题库](../../src/OhMyStudy.App/MainWindow.QuestionBank.cs)、[阅读页](../../src/OhMyStudy.App/MainWindow.QuestionPage.cs)、[编辑器](../../src/OhMyStudy.App/MainWindow.Editing.cs)、[学生作答](../../src/OhMyStudy.App/MainWindow.StudentAnswers.cs)、[确认结果](../../src/OhMyStudy.App/MainWindow.Confirmation.cs)、[模型](../../src/OhMyStudy.Domain/Models.cs)。

@@ -64,7 +64,7 @@ public sealed partial class MainWindow
         try
         {
             var content = await NativeQuestionPresenter.CreateAsync(saved.Question, library, cancellation, _openPresentationWidth, RootGrid.ActualTheme,
-                _openContext);
+                _openContext, () => ConfirmQuestionAsync(ViewModel.OpenQuestion));
             if (!_closed && generation == _openGeneration && ReferenceEquals(ViewModel.OpenQuestion.Saved, saved)) QuestionPageHost.Content = content;
         }
         catch (OperationCanceledException) { }

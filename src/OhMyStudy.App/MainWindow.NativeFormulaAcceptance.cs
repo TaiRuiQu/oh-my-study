@@ -80,11 +80,14 @@ public sealed partial class MainWindow
 
             string longSource = @"\[" + string.Join("+", Enumerable.Range(1, 100).Select(index => @"\frac{x_{" + index + @"}^2}{" + index + "}")) + @"\]";
             QuestionContentHost.Content = await reading.PresentAsync(longSource, _lifetime.Token); RootGrid.UpdateLayout(); await Task.Delay(80);
-            var scrolling = NativeDescendants(QuestionContentHost).OfType<ScrollViewer>().FirstOrDefault(view => view.ScrollableWidth > 10);
-            if (scrolling is null) throw new InvalidOperationException("A long formula must expose horizontal scrolling.");
-            scrolling.ChangeView(scrolling.ScrollableWidth, null, null, true); await Task.Delay(80);
-            if (scrolling.HorizontalOffset < scrolling.ScrollableWidth - 1) throw new InvalidOperationException("The long formula could not scroll to its end.");
-            checks.Add("native-long-formula-scroll-to-end=PASS");
+            var wrapped = NativeDescendants(QuestionContentHost).OfType<NativeFormulaParagraph>().Single();
+            if (wrapped.Width > 620 || wrapped.LineBaselines.Count < 2 || !wrapped.BaselineChecksPassed
+                || NativeDescendants(QuestionContentHost).OfType<ScrollViewer>().Any(view => view.ScrollableWidth > 1))
+                throw new InvalidOperationException("Long formulas must wrap within the reading width without horizontal scrolling.");
+            var wrappedPeer = FrameworkElementAutomationPeer.CreatePeerForElement(wrapped);
+            if (wrappedPeer.GetChildren().Single().GetName() != longSource[2..^2]) throw new InvalidOperationException("Wrapped formulas must preserve their full source for accessibility and copying.");
+            checks.Add("native-long-formula-wraps-with-full-source=PASS");
+            QuestionContentHost.Content = await reading.PresentAsync(@"\[\frac{x^2+1}{2}\]", _lifetime.Token); RootGrid.UpdateLayout(); await Task.Delay(80);
             RootGrid.RequestedTheme = ElementTheme.Dark; await Task.Delay(80);
             var display = NativeDescendants(QuestionContentHost).OfType<VelociTex.WinUI.MathView>().Single();
             double pixelWidth = display.Width * display.XamlRoot.RasterizationScale;

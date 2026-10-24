@@ -14,6 +14,8 @@ Text, formulas, tables, and image regions remain separate. Formula source is ret
 
 VelociTex supports native formula reading and SVG generation for print. A formula conversion can fail or be too wide for the available column. The export path can retain source notation and issue diagnostics instead of silently deleting the expression.
 
+For screen reading, `FormulaLineBreaks` splits eligible expressions at top-level operators while keeping fenced/braced groups intact. Unsupported constructs remain whole, indivisible runs fit the available width, and copying uses the complete original formula source. This changes responsive reading, not the fixed PDF layout.
+
 That fallback is evidence preservation, not a promise of textbook typesetting for arbitrary LaTeX. A PDF can be successfully compiled while still requiring human formula inspection.
 
 ## Build a controlled print model

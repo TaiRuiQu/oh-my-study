@@ -45,6 +45,8 @@ Implementation and reference: [MainWindow.Language.cs](../../src/OhMyStudy.App/M
 
 A rejection of `purpose=vision` during Responses upload indicates an older build: current inference uploads use `user_data`, as required by DeepSeek. Update the app and retry the failed task. Providers must support image file IDs and the one-hour expiry contract; otherwise disable Support Files API before a new task, accepting inline-image request limits.
 
+If a provider reports missing multipart fields such as `purpose` or expiration despite the option being enabled, update to v0.1.9 or later for the corrected field formatting. Malformed tool arguments now receive correction feedback within the task; repeated failures still need investigation in Tasks and the local log.
+
 Retry task rolls back that run when recovery/edit checks allow it; Re-recognize keeps current results. See [recovery and local log locations](Features-Tasks.md). Failure logs contain detailed context and may include private study text; review before sharing.
 
 ---

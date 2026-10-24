@@ -31,8 +31,14 @@ internal static partial class Program
             await ModelProfilesAtTaskStart();
             await OutputTokenChecks();
             await FilesLifecycleChecks();
+            await PageImageFormats();
             await ThreeProtocolsAndModes();
+            await AutoModeDetection();
+            await MisplacedAttemptFields();
             await OptionalFields();
+            await PaperNamesAndStudentAnswers();
+            await SupplementaryStudentPages();
+            await QuestionConfirmationChecks();
             await BatchedTools();
             await StreamingActivity();
             await StreamRetryRecovery();
@@ -42,6 +48,7 @@ internal static partial class Program
             await CodeImageOutputs();
             await CoverageAndToolValidation();
             await InvalidToolsAndReferencePriority();
+            await MalformedToolArguments();
             await FinishMustBeLast();
             await ProtectedRegrading();
             await ReferencesOnly();
@@ -290,6 +297,108 @@ internal static partial class Program
             }
     }
 
+    private static async Task AutoModeDetection()
+    {
+        foreach (var protocol in Enum.GetValues<Protocol>())
+        {
+            await using var blankFixture = await Fixture.Create(ImportMode.Auto, protocol);
+            var blankQuestion = WithAttempt(Question(blankFixture.Document, reference: false), null);
+            var blankApi = new ScriptApi(protocol, (round, request, _) =>
+            {
+                AssertPromptContract(protocol, request, ImportMode.Auto, referenceOnly: false);
+                return Task.FromResult(round switch
+                {
+                    1 => blankFixture.Document.Pages.Select(page => Read(page)).ToList(),
+                    2 => [new ToolCall { Id = "paper-info", Name = "save_paper_info", Arguments = JsonDocument.Parse("{\"subject\":\"数学\",\"earned\":null,\"possible\":100}").RootElement.Clone() },
+                        Save(blankQuestion), Finish(Coverage(blankFixture.Document, blankQuestion.DraftKey))],
+                    _ => throw new InvalidOperationException("Unexpected auto blank round")
+                });
+            });
+            Check((await blankFixture.Run(blankApi)).State == JobState.Completed, $"{protocol}/auto: detected blank paper saves attempts and earned as null");
+            var blankSaved = (await blankFixture.Library.GradingQuestionsAsync(blankFixture.Document.Id)).Single().Question;
+            Check(blankSaved.Items.Single().Attempt is null, $"{protocol}/auto: blank-detected questions keep attempts null");
+            Check((await blankFixture.Library.ListPapersAsync()).Single().Earned is null, $"{protocol}/auto: blank-detected paper keeps earned null");
+
+            await using var teacherFixture = await Fixture.Create(ImportMode.Auto, protocol);
+            var baseQuestion = Question(teacherFixture.Document, reference: false);
+            var teacherGrade = new Grade { Verdict = Verdict.Incorrect, Earned = 0, Possible = 2, Source = GradeSource.Teacher, Reason = "Synthetic teacher result" };
+            var teacherQuestion = baseQuestion with
+            {
+                Items = [baseQuestion.Items[0] with
+                {
+                    Attempt = (Attempt)baseQuestion.Items[0].Attempt! with
+                    {
+                        Teacher = new TeacherMark { Raw = "Synthetic teacher mark", Regions = [Region(teacherFixture.Document.Pages.First(p => p.Role == "material"))], Grade = teacherGrade },
+                        Grade = teacherGrade
+                    }
+                }]
+            };
+            var teacherApi = new ScriptApi(protocol, (round, request, _) => Task.FromResult(round switch
+            {
+                1 => teacherFixture.Document.Pages.Select(page => Read(page)).ToList(),
+                2 => [Save(teacherQuestion), Finish(Coverage(teacherFixture.Document, teacherQuestion.DraftKey))],
+                _ => throw new InvalidOperationException("Unexpected auto teacher round")
+            }));
+            Check((await teacherFixture.Run(teacherApi)).State == JobState.Completed, $"{protocol}/auto: detected teacher grading completes with preserved teacher results");
+            var regrade = new ScriptApi(protocol, (round, request, _) => Task.FromResult(round switch
+            {
+                1 => teacherFixture.Document.Pages.Select(page => Read(page)).ToList(),
+                2 => [Save(baseQuestion), Finish(Coverage(teacherFixture.Document, baseQuestion.DraftKey))],
+                _ => throw new InvalidOperationException("Unexpected auto regrade round")
+            }));
+            Check((await teacherFixture.Run(regrade)).State == JobState.Completed, $"{protocol}/auto: regrading a teacher-detected paper completes");
+            var regraded = (await teacherFixture.Library.GradingQuestionsAsync(teacherFixture.Document.Id)).Single().Question;
+            var retained = regraded.Items.Single().Attempt!;
+            Check(retained.Teacher?.Grade == teacherGrade && retained.Grade == teacherGrade, $"{protocol}/auto: regrading keeps explicit teacher results");
+        }
+    }
+
+    private static async Task MisplacedAttemptFields()
+    {
+        await using var fixture = await Fixture.Create(ImportMode.TeacherGraded, Protocol.Responses);
+        var question = Question(fixture.Document, reference: false);
+        var payload = JsonNode.Parse(DomainJson.Serialize(question))!;
+        PageSources(payload);
+        var item = payload["items"]![0]!.AsObject();
+        var attempt = item["attempt"]!.AsObject();
+        var studentAnswer = attempt["student_answer"]!.DeepClone();
+        var nestedGrade = attempt["grade"]!.DeepClone();
+        item["ai_solution"] = attempt["ai_solution"]!.DeepClone();
+        item["grade"] = nestedGrade.DeepClone();
+        attempt.Remove("ai_solution");
+        attempt.Remove("grade");
+        var withoutAttempt = JsonNode.Parse(payload.ToJsonString())!;
+        withoutAttempt["draft_key"] = "misplaced-no-attempt";
+        withoutAttempt["number"] = "2";
+        var withoutAttemptItem = withoutAttempt["items"]![0]!.AsObject();
+        withoutAttemptItem.Remove("attempt");
+        withoutAttemptItem["key"] = "misplaced-no-attempt-i";
+        withoutAttemptItem["student_answer"] = studentAnswer.DeepClone();
+        withoutAttemptItem["grade"] = nestedGrade.DeepClone();
+        var incomplete = JsonNode.Parse(payload.ToJsonString())!;
+        incomplete["draft_key"] = "misplaced-missing-items";
+        incomplete.AsObject().Remove("items");
+        List<ToolCall> FinishAfterFeedback(JsonObject request)
+        {
+            Check(request.ToJsonString().Contains("missing required properties", StringComparison.Ordinal), "json failures explain the missing field to the model");
+            return [Finish(Coverage(fixture.Document, question.DraftKey, "misplaced-no-attempt"))];
+        }
+        var api = new ScriptApi(Protocol.Responses, (round, request, _) => Task.FromResult(round switch
+        {
+            1 => fixture.Document.Pages.Select(page => Read(page)).ToList(),
+            2 => [Call("save_questions", Args("questions", new JsonArray(payload, incomplete, withoutAttempt)))],
+            _ => FinishAfterFeedback(request)
+        }));
+        Check((await fixture.Run(api)).State == JobState.Completed && api.Attempts == 3, "misplaced answer fields save alongside one invalid entry");
+        var saved = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).ToDictionary(entry => entry.Question.DraftKey, entry => entry.Question);
+        Check(saved.ContainsKey("misplaced-missing-items") == false, "entry without items stays rejected");
+        var original = question.Items[0].Attempt!;
+        var lifted = saved[question.DraftKey].Items[0].Attempt!;
+        Check(lifted.AiSolution == original.AiSolution && lifted.Grade == original.Grade, "item-level solution and grade land inside the attempt");
+        var created = saved["misplaced-no-attempt"].Items[0].Attempt!;
+        Check(created.StudentAnswer == original.StudentAnswer && created.Grade == original.Grade, "item-level answer fields create the attempt");
+    }
+
     private static async Task ModelProfilesAtTaskStart()
     {
         foreach (var protocol in Enum.GetValues<Protocol>())
@@ -446,7 +555,8 @@ internal static partial class Program
         Check(task.Length == 2 && task[1].StartsWith(referenceOnly ? "Organize reference answers only." : mode switch
         {
             ImportMode.TeacherGraded => "Organize and grade the whole paper.",
-            ImportMode.Blank => "Organize a blank paper without grading.",
+            ImportMode.Blank => "Organize and solve a blank paper without grading.",
+            ImportMode.Auto => "Decide the exam type yourself from all page images and saved student responses",
             _ => "Organize and grade the whole answered paper."
         }, StringComparison.Ordinal), "native instructions select exactly the current task mode");
         var messages = request[protocol == Protocol.Responses ? "input" : "messages"]!.AsArray();
@@ -459,6 +569,7 @@ internal static partial class Program
         {
             ImportMode.TeacherGraded => "teacher_graded",
             ImportMode.Blank => "blank",
+            ImportMode.Auto => "auto",
             _ => "ai_grading"
         };
         Check(context.RootElement.GetProperty("document").GetProperty("mode").GetString() == expectedMode
@@ -477,9 +588,9 @@ internal static partial class Program
             if (protocol == Protocol.Responses) Check(tool["strict"]!.GetValue<bool>() == false, name + ": omission semantics remain available");
             if (name == "save_questions")
                 Check(schema["properties"]!["questions"]!["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).ToHashSet().SetEquals(["draft_key", "number", "stem", "source_page_ids", "items"])
-                    && schema["properties"]!["questions"]!["items"]!["properties"]!["items"]!["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).SequenceEqual(["key"])
-                    && schema["properties"]!["questions"]!["items"]!["properties"]!["items"]!["items"]!["properties"]!["attempt"]!["anyOf"]![0]!["required"]!.AsArray().Count == 0,
-                    "question, item and attempt auxiliary fields remain optional for regrading");
+                    && schema["properties"]!["questions"]!["items"]!["properties"]!["items"]!["items"]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).SequenceEqual(["key", "answer", "explanation"])
+                    && schema["properties"]!["questions"]!["items"]!["properties"]!["items"]!["items"]!["properties"]!["attempt"]!["anyOf"]![0]!["required"]!.AsArray().Select(n => n!.GetValue<string>()).SequenceEqual(["error_analysis"]),
+                    "model schemas request standard solutions and nullable error analysis while other auxiliary fields retain omission semantics");
         }
     }
 
@@ -618,12 +729,21 @@ internal static partial class Program
                     assetId = feedback.Single(value => value["path"]?.ToString() == "processed.png" && value["asset_id"] is not null)["asset_id"]!.GetValue<string>();
                     Check(feedback.Any(value => value["path"]?.ToString() == "missing.png" && value["error"] is not null), "missing output returns a recoverable per-image error");
                     Check(feedback.Any(value => value["stderr"]?.ToString() == "synthetic worker startup failure"), "worker startup errors are returned to the model without switching executors");
+                    Check(feedback.Any(value => value["usage_hint"] is not null), "processed outputs remind the model to set asset_id on image blocks");
                     var image = new OhMyStudy.Domain.ImageContent { Region = Region(fixture.Document.Pages[0]), AssetId = assetId, Caption = "Processed diagram" };
                     question = question with { Stem = [new TextContent { Text = "Question with processed image" }, image] };
                     var invalid = question with { DraftKey = "invalid-image", Items = [question.Items[0] with { Key = "invalid-image" }], Stem = [image with { AssetId = Guid.NewGuid().ToString() }] };
-                    calls = [Save(invalid), Save(question)];
+                    var plain = question with { DraftKey = "plain-image", Items = [question.Items[0] with { Key = "plain-image" }], Stem = [new TextContent { Text = "Question with original crop" }, image with { AssetId = null }] };
+                    calls = [Save(invalid), Save(question), Save(plain)];
                 }
-                else calls = [Finish(Coverage(fixture.Document, question.DraftKey))];
+                else if (round == 5)
+                {
+                    var entries = feedback.Where(value => value["saved_id"] is not null).ToList();
+                    Check(entries.Single(entry => entry["draft_key"]?.GetValue<string>() == "plain-image")["image_hint"] is not null, "region-only saves after processed outputs receive the asset hint");
+                    Check(entries.Single(entry => entry["draft_key"]?.GetValue<string>() == question.DraftKey)["image_hint"] is null, "asset-backed saves stay hint-free");
+                    calls = [Finish(Coverage(fixture.Document, question.DraftKey, "plain-image"))];
+                }
+                else calls = [Finish(Coverage(fixture.Document, question.DraftKey, "plain-image"))];
                 return Task.FromResult(NativeTurn(protocol, calls));
             });
             await using var queue = await fixture.Queue(client);
@@ -646,7 +766,7 @@ internal static partial class Program
             using var startupDiagnostic = JsonDocument.Parse(startupFailure.Detail);
             Check(startupFailure.Failed && startupDiagnostic.RootElement.GetProperty("exception").GetString()!.Contains("System.IO.IOException", StringComparison.Ordinal)
                 && startupDiagnostic.RootElement.GetProperty("arguments").GetProperty("code").GetString() == "startup failure", "tool startup failures retain arguments and exception details");
-            var saved = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single();
+            var saved = (await fixture.Library.GradingQuestionsAsync(fixture.Document.Id)).Single(entry => entry.Question.DraftKey == question.DraftKey);
             var stored = saved.Question.Stem.OfType<OhMyStudy.Domain.ImageContent>().Single();
             Check(stored.AssetId == assetId && stored.Region == Region(fixture.Document.Pages[0]), "processed asset and original evidence region persist together");
             Check((await fixture.Library.ReadAssetAsync(assetId!)).Bytes.SequenceEqual(png), "processed image remains readable from the library");
@@ -785,6 +905,27 @@ internal static partial class Program
         var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
         Check(job.State == JobState.Completed && api.Attempts == 3 && fixture.Reader.Requests.Count == 2, "invalid page, crop, rotation, field and grade recover without extra image reads");
         Check(AttemptOf(result.Questions.Single().Question).Grade.Source == GradeSource.AiReference, "matched reference cannot be bypassed by AI source");
+    }
+
+    private static async Task MalformedToolArguments()
+    {
+        foreach (var protocol in Enum.GetValues<Protocol>())
+        {
+            await using var fixture = await Fixture.Create(ImportMode.Blank, protocol);
+            var question = Question(fixture.Document);
+            ToolCall Malformed(string name) => Call(name, new JsonObject { ["synthetic"] = true }) with { Arguments = Element(JsonValue.Create("{\"questions\": [{")!) };
+            var api = new ScriptApi(protocol, async (round, request, _) =>
+            {
+                if (round == 1) return [Malformed("save_questions"), Malformed("read_pages"), Malformed("finish")];
+                Check(HasToolError(protocol, request), "malformed arguments produce correction feedback instead of ending the task");
+                Check(request.ToJsonString().Contains("Tool arguments must be one JSON object", StringComparison.Ordinal), "correction feedback names the argument contract");
+                return [.. fixture.Document.Pages.Select(page => Read(page)), Save(question), Finish(Coverage(fixture.Document, question.DraftKey))];
+            });
+            var job = await fixture.Run(api);
+            var result = await fixture.Library.GradingResultAsync(fixture.Document.Id);
+            Check(job.State == JobState.Completed && api.Attempts == 2 && result.Questions.Count == 1 && result.ModelCalls.Count == 2, "malformed arguments stay recoverable for Responses and Messages");
+            Check(fixture.Reader.Requests.Count == fixture.Document.Pages.Count, "malformed arguments never reach tools or the document reader");
+        }
     }
 
     private static async Task ReferencesOnly()
@@ -962,6 +1103,7 @@ internal static partial class Program
     }
     private sealed class PixelReader : IGradingImageReader
     {
+        public Image? Output { get; set; }
         public List<(Region? Crop, ushort Rotation)> Requests { get; } = [];
         public Task<GradingImageResult> ReadAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken)
         {
@@ -969,7 +1111,7 @@ internal static partial class Program
             if (!bytes.SequenceEqual(png)) throw new InvalidDataException("Unexpected image bytes");
             Requests.Add((crop, rotation));
             // Pixel transport only: geometry/recognition belongs to separate document/semantic acceptance.
-            return Task.FromResult(new GradingImageResult(new Image { Mime = "image/png", Base64 = Convert.ToBase64String(bytes) }, 4, 3));
+            return Task.FromResult(new GradingImageResult(Output ?? new Image { Mime = "image/png", Base64 = Convert.ToBase64String(bytes) }, 4, 3));
         }
     }
     private sealed class RejectExecutor : IToolExecutor

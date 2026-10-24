@@ -193,13 +193,19 @@ public static class ProviderProtocol
     };
     private static ToolCall Call(string? id, string name, JsonElement arguments)
     {
-        if (arguments.ValueKind == JsonValueKind.String)
+        if (arguments.ValueKind == JsonValueKind.String && TryParse(arguments.GetString()!, out var parsed)) arguments = parsed;
+        return new ToolCall { Id = id, Name = name, Arguments = Clone(arguments) };
+    }
+
+    private static bool TryParse(string json, out JsonElement parsed)
+    {
+        try
         {
-            try { using var doc = JsonDocument.Parse(arguments.GetString()!); arguments = doc.RootElement.Clone(); }
-            catch (JsonException) { throw ProtocolError("invalid tool argument JSON"); }
+            using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 256 });
+            parsed = document.RootElement.Clone();
+            return true;
         }
-        if (arguments.ValueKind != JsonValueKind.Object) throw ProtocolError("tool arguments must be a JSON object");
-        return new ToolCall { Id = id, Name = name, Arguments = arguments.Clone() };
+        catch (JsonException) { parsed = default; return false; }
     }
     internal static JsonNode? Node(JsonElement element) => element.ValueKind == JsonValueKind.Undefined ? null : JsonNode.Parse(element.GetRawText());
     internal static JsonElement Element(JsonNode node) { using var document = JsonDocument.Parse(node.ToJsonString()); return document.RootElement.Clone(); }

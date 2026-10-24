@@ -50,7 +50,9 @@ Recognition selects a local model prompt profile once per task. Unknown versions
 
 ## Optional Files API
 
-Enable **Support Files API** only if the provider supports image file IDs and the required expiration contract. It defaults off and affects new tasks. Only requested page images, crops, and generated images upload; identical images upload once per task without reducing resolution.
+Enable **Support Files API** only if the provider supports image file IDs and the required expiration contract. It defaults off and affects new tasks. Only requested page images, crops, and generated images upload; identical images upload once per task.
+
+With or without the Files API, model images target 200 KiB each before base64 encoding. Small images remain PNG; larger ones use color JPEG with quality no lower than 0.6 and proportional resizing down to a 1280-pixel long side, without upscaling smaller sources. Images may exceed the target at those limits. Library originals, reading previews, and export assets retain their existing quality; smaller transfers do not guarantee lower image token charges.
 
 Responses uploads use `purpose=user_data`, including on DeepSeek, and request expiry one hour after creation. Messages uses its own upload contract. Completion, failure, and cancellation trigger deletion attempts. Rejected uploads fail explicitly rather than creating permanent files or silently reverting to inline requests.
 

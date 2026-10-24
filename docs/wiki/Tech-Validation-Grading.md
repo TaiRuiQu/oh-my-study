@@ -27,7 +27,13 @@ Question maximum points are the sum of item points only when every item maximum 
 
 ## Evidence and protected edits
 
-An attempt separates student work, teacher annotations, matched reference, AI solution/conflict, and grade. Provenance is `Teacher`, `AiReference`, `AiSolution`, or `Manual`. Existing manual grades are protected; teacher mode also preserves explicit teacher results and evidence. AI cannot create a manual provenance label or remove a protected item.
+An attempt separates student work, teacher annotations, matched reference, AI solution/conflict, and grade. Provenance is `Teacher`, `AiReference`, `AiSolution`, or `Manual`. Existing manual grades are protected; teacher and automatic modes also preserve explicit teacher results and evidence. AI cannot create a manual provenance label or remove a protected item.
+
+Standard answers and solutions belong in item `answer` and `explanation`, including blank papers with no attempt. Legacy `attempt.ai_solution` remains readable. Nullable `attempt.error_analysis` describes evidence-supported causes of incorrect/partial work, separately from the grade reason.
+
+Supplementary response pages use `role=student`. Tool calls supply `attempt.student_page_ids`, converted to full-page stored regions; the question's sources still require material pages. Matching reuses existing item keys. `SaveStudentAnswersAsync` marks changed responses edited, clears stale assessment evidence, and sets an uncertain grade; it changes blank mode to automatic detection and clears the paper earned score. AI preserves the entered response while updating unprotected assessment fields.
+
+`ConfirmQuestionAsync` clears the question's `uncertainties` while retaining notes and grades. It requires an idle document and does not turn an uncertain verdict into a resolved one.
 
 Re-recognition reuses stable keys. Omitted auxiliary values keep saved data; explicit empty values can replace unprotected data. Personal notes survive recognition. This is not a complete revision history for question text.
 

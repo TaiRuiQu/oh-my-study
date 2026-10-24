@@ -52,7 +52,7 @@ public sealed partial class MainWindow
 
     private async void AppWindow_Closing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
     {
-        if (_shutdownFinished || _library is null && _jobs is null) return;
+        if (_shutdownFinished || _library is null && _jobs is null) { RememberWindowBounds(); return; }
         args.Cancel = true;
         if (_shutdownStarted || _closeReviewOpen) return;
         if (_questionEditorOpen) { ViewModel.StatusMessage = UiText.Get("Save or close the editor first."); return; }
@@ -61,6 +61,7 @@ public sealed partial class MainWindow
         catch { ViewModel.StatusMessage = UiText.Get("Close the current dialog before exiting."); return; }
         finally { _closeReviewOpen = false; }
         _shutdownStarted = true;
+        RememberWindowBounds();
         _lifetime.Cancel();
         ViewModel.StatusMessage = UiText.Get("Stopping tasks…");
         try { if (_jobs is not null) await _jobs.DisposeAsync(); }
@@ -286,7 +287,7 @@ public sealed partial class MainWindow
                 _restoringRotation = true; _rotation = page.Rotation;
                 // Keep one geometry at every resolution so zoom upgrades preserve the source overlay.
                 SetPageDimensions(page.Width ?? (uint)raster.Width, page.Height ?? (uint)raster.Height); _restoringRotation = false;
-                OriginalCaption.Text = page.Role == "reference" ? UiText.Get("Reference answers") : "";
+                OriginalCaption.Text = page.Role == "reference" ? UiText.Get("Reference answers") : page.Role == "student" ? UiText.Get("Student answer") : "";
                 PdfPageControls.Visibility = document.Pages.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
                 PdfPageLabel.Text = UiText.Format("Page {0} / {1}", index + 1, document.Pages.Count);
                 PreviousPdfPage.IsEnabled = index > 0; NextPdfPage.IsEnabled = index + 1 < document.Pages.Count;
@@ -304,7 +305,7 @@ public sealed partial class MainWindow
         catch (Exception error) { AppLog.Error("Document.ShowPage", error); if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = UiText.Get("Could not open this page. Select or import it again."); }
     }
 
-    private async Task ImportFilesAsync(IReadOnlyList<StorageFile> files, bool reference = false, string? referenceDocumentId = null, ProcessingChoice? confirmedProcessing = null)
+    private async Task ImportFilesAsync(IReadOnlyList<StorageFile> files, bool reference = false, string? referenceDocumentId = null, ProcessingChoice? confirmedProcessing = null, bool studentAnswers = false)
     {
         if (_library is null || files.Count == 0) return;
         if (!await _importGate.WaitAsync(0)) return;
@@ -321,10 +322,11 @@ public sealed partial class MainWindow
                 DiscardSettingsForm();
             }
             if (files.Count > LibraryLimits.MaximumPages) { ViewModel.StatusMessage = UiText.Get("Import up to 12 pages at a time."); return; }
-            var processing = reference ? null : confirmedProcessing ?? await ChooseProcessingAsync(false, importing: true);
-            if (!reference && processing is null) return;
+            bool append = reference || studentAnswers;
+            var processing = append ? null : confirmedProcessing ?? await ChooseProcessingAsync(false, importing: true);
+            if (!append && processing is null) return;
             ViewModel.StatusMessage = UiText.Get("Importing…");
-            AppLog.Info("Import.Start", $"Files={files.Count}; Reference={reference}");
+            AppLog.Info("Import.Start", $"Files={files.Count}; Reference={reference}; StudentAnswers={studentAnswers}");
             var sources = new List<ImportSource>();
             long total = 0;
             foreach (var file in files)
@@ -333,20 +335,20 @@ public sealed partial class MainWindow
                 if (properties.Size > LibraryLimits.MaximumAssetBytes || total + (long)properties.Size > LibraryLimits.MaximumBatchBytes)
                     throw new InvalidDataException(UiText.Get("Files must be at most 64 MB each and 256 MB per import. Split them and retry."));
                 byte[] bytes = await File.ReadAllBytesAsync(file.Path, _lifetime.Token);
-                total += bytes.Length; sources.Add(new(file.Name, bytes, reference ? "reference" : "material"));
+                total += bytes.Length; sources.Add(new(file.Name, bytes, studentAnswers ? "student" : reference ? "reference" : "material"));
             }
-            imported = reference && referenceDocumentId is not null
+            imported = append && referenceDocumentId is not null
                 ? await _library.AppendDocumentSourcesAsync(referenceDocumentId, sources, _lifetime.Token)
                 : await _library.ImportDocumentAsync(Path.GetFileNameWithoutExtension(files[0].Name), processing!.Mode, sources, _lifetime.Token);
             AppLog.Info("Import.Saved", $"Document={imported.Id}; Pages={imported.Pages.Count}; ElapsedMs={clock.ElapsedMilliseconds}");
             await RefreshDocumentsAsync(imported.Id);
-            if (!reference)
+            if (!append)
             {
                 recognitionJob = await SubmitProcessingAsync(imported, processing!, false);
                 recognitionQueued = true;
                 await ShowQuestionLibraryAsync();
             }
-            ViewModel.StatusMessage = reference ? UiText.Get("Reference answers added. You can organize them again.")
+            ViewModel.StatusMessage = studentAnswers ? UiText.Get("Student answers added. Recognize again to grade them.") : reference ? UiText.Get("Reference answers added. You can organize them again.")
                 : RecognitionStatus((await _jobs!.GetAsync(recognitionJob!.Id, _lifetime.Token)).State);
         }
         catch (OperationCanceledException) { ViewModel.StatusMessage = UiText.Get("Import canceled."); }
@@ -580,38 +582,73 @@ public sealed partial class MainWindow
         if (_library is null || _jobs is null) return null;
         var providers = await _library.ListProvidersAsync(_lifetime.Token);
         providers = providers.Where(p => p.KeyRef is not null && p.Models.Count > 0).ToList();
-        var provider = providers.FirstOrDefault(p => p.Models.Any(m => p.Id + ":" + m.Id == _settings.DefaultModel)) ?? providers.FirstOrDefault(p => p.Models.Any(m => m.Id == _settings.DefaultModel)) ?? providers.FirstOrDefault();
-        if (provider is null || provider.Models.Count == 0 || provider.KeyRef is null)
+        if (providers.Count == 0)
         {
             var setup = new ContentDialog { XamlRoot = RootGrid.XamlRoot, RequestedTheme = RootGrid.ActualTheme, Title = UiText.Get("Set up a recognition model first"), Content = UiText.Get("Recognition requires a model and key. Once set up, import exams to add questions automatically."), PrimaryButtonText = UiText.Get("Go to Settings"), CloseButtonText = UiText.Get("Cancel"), DefaultButton = ContentDialogButton.Primary };
             if (await setup.ShowAsync() == ContentDialogResult.Primary) Navigation.SelectedItem = Navigation.SettingsItem;
             ViewModel.StatusMessage = importing ? UiText.Get("Not imported yet. Set up a model first.") : UiText.Get("Add a model and key in Settings first.");
             return null;
         }
-        var model = provider.Models.FirstOrDefault(m => provider.Id + ":" + m.Id == _settings.DefaultModel || m.Id == _settings.DefaultModel) ?? provider.Models[0];
-        var availableModels = providers.SelectMany(p => p.Models.Select(m => (Provider: p, Model: m))).ToList();
-        double modelWidth = Math.Max(200, Math.Min(460, RootGrid.ActualWidth - 96));
-        var choice = CreateFixedModelChoice(availableModels.Select(a => a.Provider.Name + " / " + a.Model.Label), modelWidth);
-        choice.SelectedIndex = availableModels.FindIndex(p => p.Provider.Id == provider.Id && p.Model.Id == model.Id);
-        var thinkingChoice = new ComboBox { Header = UiText.Get("Reasoning"), HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = 0 };
-        thinkingChoice.Items.Add(UiText.Get("Default")); foreach (var option in model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option));
+        double fieldWidth = Math.Max(200, Math.Min(460, RootGrid.ActualWidth - 96));
+        string? rememberedProviderId = null;
+        string? rememberedModelId = _settings.DefaultModel;
+        if (_settings.DefaultModel is { } remembered && remembered.Contains(':', StringComparison.Ordinal))
+        {
+            rememberedProviderId = remembered[..remembered.IndexOf(':')];
+            rememberedModelId = remembered[(remembered.IndexOf(':') + 1)..];
+        }
+        var providerChoice = CreateProcessingChoice(UiText.Get("Provider"), fieldWidth);
+        foreach (var candidate in providers) providerChoice.Items.Add(candidate.Name);
+        var modelChoice = CreateProcessingChoice(UiText.Get("Recognition model"), fieldWidth);
+        var thinkingChoice = CreateProcessingChoice(UiText.Get("Reasoning"), fieldWidth);
         var unknown = new CheckBox { Content = UiText.Get("Allow trying models with unverified capabilities") };
-        choice.SelectionChanged += (_, _) => { thinkingChoice.Items.Clear(); thinkingChoice.Items.Add(UiText.Get("Default")); if (choice.SelectedIndex >= 0) foreach (var option in availableModels[choice.SelectedIndex].Model.Capabilities.Thinking) thinkingChoice.Items.Add(ThinkingLabel(option)); thinkingChoice.SelectedIndex = 0; };
+        var models = new List<ModelConfig>();
+        var thinkingOptions = new List<Thinking>();
+        void FillModels(Provider current)
+        {
+            models.Clear(); models.AddRange(current.Models);
+            modelChoice.Items.Clear();
+            foreach (var candidate in models) modelChoice.Items.Add(candidate.Label);
+            modelChoice.SelectedIndex = Math.Max(0, models.FindIndex(m => m.Id == rememberedModelId));
+        }
+        void FillThinking(ModelConfig current)
+        {
+            Thinking? keep = thinkingChoice.SelectedIndex > 0 && thinkingChoice.SelectedIndex - 1 < thinkingOptions.Count ? thinkingOptions[thinkingChoice.SelectedIndex - 1] : null;
+            thinkingOptions.Clear(); thinkingOptions.AddRange(current.Capabilities.Thinking);
+            thinkingChoice.Items.Clear(); thinkingChoice.Items.Add(UiText.Get("Default"));
+            foreach (var option in thinkingOptions) thinkingChoice.Items.Add(ThinkingLabel(option));
+            Thinking? restore = keep ?? _settings.DefaultThinking;
+            thinkingChoice.SelectedIndex = restore is null ? 0 : Math.Max(0, 1 + thinkingOptions.FindIndex(option => SameThinking(option, restore)));
+        }
         var preferred = _settings.ExecutionMode switch { "sandbox" => ExecutionMode.Sandbox, "bypass_permission" => ExecutionMode.BypassPermission, _ => ExecutionMode.RequestPermission };
         var capability = await SandboxCapability.ProbeAsync(Path.Combine(AppContext.BaseDirectory, "runtime", "python"), _lifetime.Token);
         var policy = ExecutionPolicy.Freeze(preferred, capability, _settings.SandboxNetworking);
-        var content = new StackPanel { Spacing = 14 }; content.Children.Add(choice); content.Children.Add(thinkingChoice); content.Children.Add(unknown);
+        var content = new StackPanel { Spacing = 14 };
+        var modeChoice = CreateProcessingChoice(UiText.Get("Exam type"), fieldWidth);
+        modeChoice.Items.Add(UiText.Get("Detect automatically"));
+        modeChoice.Items.Add(UiText.Get("Blank exam"));
+        modeChoice.Items.Add(UiText.Get("Answered, needs grading"));
+        modeChoice.Items.Add(UiText.Get("Already graded by a teacher"));
+        modeChoice.SelectedIndex = 0;
+        if (importing) content.Children.Add(modeChoice);
+        content.Children.Add(providerChoice); content.Children.Add(modelChoice); content.Children.Add(thinkingChoice); content.Children.Add(unknown);
         if (retry) content.Children.Add(new TextBlock { Text = UiText.Get("Retry clears the failed run's saved results and temporary files, then starts a new task. Original documents and manual edits are kept. Previous provider charges and changes made by code outside task folders cannot be undone."), TextWrapping = TextWrapping.Wrap });
-        var modeChoice = new ComboBox { Header = UiText.Get("Exam type"), SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
-        modeChoice.Items.Add(UiText.Get("Blank exam")); modeChoice.Items.Add(UiText.Get("Answered, needs grading")); modeChoice.Items.Add(UiText.Get("Already graded by a teacher"));
-        if (importing) content.Children.Insert(0, modeChoice);
         if (policy.Warning is not null) content.Children.Add(new TextBlock { Text = UiText.Get("Sandbox unavailable. Code and commands will run locally with access to this account's files and network."), TextWrapping = TextWrapping.Wrap });
         content.Children.Add(new TextBlock { Text = UiText.Get("Materials will be sent to the selected model and may incur charges."), TextWrapping = TextWrapping.Wrap });
-        var filesNotice = new TextBlock { Text = UiText.Get("Images will be uploaded to the provider Files API and referenced by file ID. Files expire after 1 hour and are deleted when the task ends. Provider storage or model charges may apply."), TextWrapping = TextWrapping.Wrap, Visibility = provider.SupportsFilesApi ? Visibility.Visible : Visibility.Collapsed };
-        choice.SelectionChanged += (_, _) => filesNotice.Visibility = choice.SelectedIndex >= 0 && availableModels[choice.SelectedIndex].Provider.SupportsFilesApi ? Visibility.Visible : Visibility.Collapsed;
+        var filesNotice = new TextBlock { Text = UiText.Get("Images will be uploaded to the provider Files API and referenced by file ID. Files expire after 1 hour and are deleted when the task ends. Provider storage or model charges may apply."), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+        providerChoice.SelectionChanged += (_, _) =>
+        {
+            if (providerChoice.SelectedIndex < 0) return;
+            FillModels(providers[providerChoice.SelectedIndex]);
+            filesNotice.Visibility = providers[providerChoice.SelectedIndex].SupportsFilesApi ? Visibility.Visible : Visibility.Collapsed;
+        };
+        modelChoice.SelectionChanged += (_, _) => { if (modelChoice.SelectedIndex >= 0) FillThinking(models[modelChoice.SelectedIndex]); };
         content.Children.Add(filesNotice);
         if (!references && _settings.EmbeddingModel is { } embedding)
             content.Children.Add(new TextBlock { Text = UiText.Format("New question text will also be sent to {0} using {1} for automatic indexing. Additional charges may apply.", embedding.BaseUrl, embedding.Model), TextWrapping = TextWrapping.Wrap });
+        int providerIndex = providers.FindIndex(p => p.Id == rememberedProviderId);
+        if (providerIndex < 0 && rememberedModelId is not null) providerIndex = providers.FindIndex(p => p.Models.Any(m => m.Id == rememberedModelId));
+        providerChoice.SelectedIndex = Math.Max(0, providerIndex);
         var dialog = new ContentDialog
         {
             XamlRoot = RootGrid.XamlRoot,
@@ -623,15 +660,27 @@ public sealed partial class MainWindow
             DefaultButton = ContentDialogButton.Primary
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return null;
-        (provider, model) = availableModels[choice.SelectedIndex];
-        Thinking? thinking = thinkingChoice.SelectedIndex > 0 ? model.Capabilities.Thinking[thinkingChoice.SelectedIndex - 1] : null;
+        var provider = providers[providerChoice.SelectedIndex];
+        var model = models[modelChoice.SelectedIndex];
+        Thinking? thinking = thinkingChoice.SelectedIndex > 0 ? thinkingOptions[thinkingChoice.SelectedIndex - 1] : null;
+        try
+        {
+            string defaultModel = provider.Id + ":" + model.Id;
+            if (_settings.DefaultModel != defaultModel || !SameThinking(_settings.DefaultThinking, thinking))
+                await ChangeSettingsAsync(current => current with { DefaultModel = defaultModel, DefaultThinking = thinking });
+        }
+        catch (Exception error) { AppLog.Error("Processing.RememberChoice", error); }
         return new(provider, model, thinking, unknown.IsChecked == true, policy,
-            modeChoice.SelectedIndex switch { 1 => ImportMode.AiGrading, 2 => ImportMode.TeacherGraded, _ => ImportMode.Blank });
+            modeChoice.SelectedIndex switch { 1 => ImportMode.Blank, 2 => ImportMode.AiGrading, 3 => ImportMode.TeacherGraded, _ => ImportMode.Auto });
     }
+
+    private static bool SameThinking(Thinking? left, Thinking? right) =>
+        left is null ? right is null : right is not null && DomainJson.Serialize(left) == DomainJson.Serialize(right);
 
     private async Task<Job> SubmitProcessingAsync(Document document, ProcessingChoice processing, bool references)
     {
         if (_jobs is null) throw new InvalidOperationException(UiText.Get("Task queue is not ready."));
+        if (_library is not null) document = await _library.GetDocumentAsync(document.Id, _lifetime.Token);
         var input = new GradingInput { Document = document, Provider = processing.Provider, Model = processing.Model, Thinking = processing.Thinking, AllowUnknown = processing.AllowUnknown };
         var submitted = await _jobs.SubmitAsync(references ? DiagnosticKind.References : DiagnosticKind.Grading, processing.Policy, input, _lifetime.Token);
         _activeJob = submitted.Id;

@@ -44,6 +44,11 @@ internal static class FilesApiRegression
             {
                 Require(request.Method == HttpMethod.Post && request.Content is MultipartFormDataContent, "Files API uploads multipart file content");
                 var parts = ((MultipartFormDataContent)request.Content!).ToDictionary(p => p.Headers.ContentDisposition!.Name!.Trim('"'));
+                string multipart = await request.Content!.ReadAsStringAsync(token);
+                foreach (string name in parts.Keys)
+                    Require(multipart.Contains($"Content-Disposition: form-data; name=\"{name}\"", StringComparison.Ordinal), "Files API quotes every multipart field name for strict form parsers");
+                string filename = parts["file"].Headers.ContentDisposition!.FileName!.Trim('"');
+                Require(multipart.Contains($"name=\"file\"; filename=\"{filename}\"", StringComparison.Ordinal), "Files API quotes the multipart filename for strict form parsers");
                 Require(parts["file"].Headers.ContentType!.MediaType == "image/png" && (await parts["file"].ReadAsByteArrayAsync(token)).Length > 0, "Files API sends binary image without base64");
                 if (protocol == Protocol.Responses)
                 {

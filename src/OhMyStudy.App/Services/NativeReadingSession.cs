@@ -26,8 +26,10 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
     internal static double? CachedPreviewHeight(string text, double availableWidth)
         => NativeFormulaReadingSession.CachedPreviewHeight(text, Math.Clamp(Math.Floor(availableWidth), 40, 1200));
 
-    public Task<FrameworkElement> PresentAsync(string text, CancellationToken token, bool table = false, ElementTheme? theme = null)
-        => _native.PresentAsync(text, token, table, theme);
+    internal double Width => _native.Width;
+
+    public Task<FrameworkElement> PresentAsync(string text, CancellationToken token, bool table = false, ElementTheme? theme = null, double? width = null)
+        => _native.PresentAsync(text, token, table, theme, width);
 
     internal static IEnumerable<Content> Coalesce(IEnumerable<Content> content)
     {
@@ -88,7 +90,8 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
     internal static IEnumerable<FeedbackSection> FeedbackSections(QuestionItem item)
     {
         if (item.Attempt is not { } attempt) yield break;
-        if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return new(UiText.Get("Grading notes"), "\uE9D9", new[] { attempt.Grade.Reason });
+        if (!string.IsNullOrWhiteSpace(attempt.ErrorAnalysis)) yield return new(UiText.Get("Error analysis"), "\uE7BA", new[] { attempt.ErrorAnalysis });
+        if (!string.IsNullOrWhiteSpace(attempt.Grade.Reason)) yield return new(UiText.Get("Grading notes"), "\uE9D9", new[] { UiText.Get(attempt.Grade.Reason) });
         if (attempt.Teacher is { } teacher && !string.IsNullOrWhiteSpace(teacher.Raw)) yield return new(UiText.Get("Teacher annotations"), "\uE8F2", new[] { teacher.Raw });
         if (!string.IsNullOrWhiteSpace(attempt.Conflict)) yield return new(UiText.Get("Grading differences"), "\uE7BA", new[] { attempt.Conflict });
     }

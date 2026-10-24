@@ -46,6 +46,8 @@ By default, the portable version still stores study materials in your user profi
 
 ## Upgrading and repairing
 
+Version v0.1.9 upgrades writable libraries to SQLite schema v6 to support supplementary student answer pages. Before the first launch, save, close the app, and back up the entire library folder. The automatic `study.sqlite3.pre-v6-…` snapshot contains the database only. Older apps cannot open an upgraded library; use a complete earlier backup if returning to an older app. See the [release notes](releases/v0.1.9.md) and [library guide](wiki/Features-Library.md).
+
 Save your changes and close the app first, then run the new MSI. Upgrading preserves study materials and keeps the original installation location and desktop shortcut choices by default. All four variants install as the same application, so you can switch between them during an upgrade; side-by-side installation is not supported, and the installer refuses downgrades.
 
 To repair an installation, run the original MSI again. To update the portable version, extract the new version completely into a separate folder and run the new app.

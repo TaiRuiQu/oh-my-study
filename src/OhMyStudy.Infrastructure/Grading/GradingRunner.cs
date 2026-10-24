@@ -107,6 +107,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         var definitions = GradingTools.Create(referenceOnly, profile);
         var viewed = new HashSet<string>(StringComparer.Ordinal);
         var saved = new HashSet<string>(StringComparer.Ordinal);
+        int processedImages = 0;
         int textOnlyTurns = 0;
         for (uint ordinal = 1; ordinal <= 60; ordinal++)
         {
@@ -193,6 +194,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 try
                 {
                     if (finished) throw new InvalidOperationException("Tools cannot be called after finish.");
+                    if (call.Arguments.ValueKind != JsonValueKind.Object)
+                        throw new DomainValidationException("Tool arguments must be one JSON object that matches the tool definition.");
                     switch (call.Name)
                     {
                         case "read_pages":
@@ -204,26 +207,32 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                                 return metadata;
                             }).ConfigureAwait(false); break;
                         case "save_paper_info" when !referenceOnly:
-                            GradingTools.Fields(call.Arguments, "subject", "earned", "possible");
+                            GradingTools.Fields(call.Arguments, "name", "subject", "earned", "possible");
                             var subject = call.Arguments.GetProperty("subject");
                             call.Arguments.TryGetProperty("earned", out var earned);
                             call.Arguments.TryGetProperty("possible", out var possible);
+                            call.Arguments.TryGetProperty("name", out var name);
                             var paperInfoSaved = await context.CommitAsync(token => library.SaveGradingPaperInfoAsync(job.Id,
                                 subject.ValueKind == JsonValueKind.Null ? null : subject.GetString(),
                                 earned.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? null : earned.GetDouble(),
-                                possible.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? null : possible.GetDouble(), token)).ConfigureAwait(false);
+                                possible.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? null : possible.GetDouble(),
+                                name.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? null : name.GetString(), token)).ConfigureAwait(false);
                             result = new() { ["saved"] = paperInfoSaved, ["manual_values_kept"] = !paperInfoSaved }; break;
                         case "save_questions" when !referenceOnly:
                             result = await BatchAsync(call.Arguments, "questions", async args =>
                             {
                                 var previous = existing.FirstOrDefault(q => q.Question.DraftKey == args.GetProperty("draft_key").GetString())?.Question;
-                                var question = DomainJson.Deserialize<Question>(GradingTools.WithSourceRegions(args, previous?.Sources).ToJsonString());
-                                question = FillOmittedFields(question, args, previous, input.Document.Mode);
+                                var normalized = Parse(GradingTools.WithSourceRegions(args, previous?.Sources));
+                                var question = DomainJson.Deserialize<Question>(normalized.GetRawText());
+                                question = FillOmittedFields(question, normalized, previous, input.Document.Mode);
                                 var stored = await context.CommitAsync(token => library.SaveGradingQuestionAsync(job.Id, question, token)).ConfigureAwait(false);
                                 questionSaved?.Invoke(stored);
                                 saved.Add(stored.Question.DraftKey);
                                 existing.RemoveAll(q => q.Question.DraftKey == stored.Question.DraftKey); existing.Add(stored);
-                                return new JsonObject { ["saved_id"] = stored.Id, ["draft_key"] = stored.Question.DraftKey };
+                                var entry = new JsonObject { ["saved_id"] = stored.Id, ["draft_key"] = stored.Question.DraftKey };
+                                if (processedImages > 0 && stored.Question.Stem.Concat(stored.Question.Items.SelectMany(item => item.Prompt)).OfType<ImageContent>().Any(image => image.AssetId is null))
+                                    entry["image_hint"] = "This question re-crops the original page for at least one image. If a code output shows the corrected or rotated figure, set that output's asset_id on the image block.";
+                                return entry;
                             }).ConfigureAwait(false); break;
                         case "save_references":
                             GradingTools.Fields(call.Arguments, "references");
@@ -272,6 +281,12 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                             };
                             if (!executionResult.Succeeded) result["error"] = $"Code execution status: {executionResult.Status}; exit code: {executionResult.ExitCode?.ToString() ?? "unavailable"}.";
                             else if (result["outputs"]!.AsArray().Any(output => output?["error"] is not null)) result["error"] = "Some output images could not be read. Inspect outputs and correct their paths or formats.";
+                            var produced = result["outputs"]?.AsArray().Count(output => output?["asset_id"] is not null) ?? 0;
+                            if (produced > 0)
+                            {
+                                processedImages += produced;
+                                result["usage_hint"] = "Set this asset_id on the matching image block of save_questions to display the processed image; keep region pointing at the original source page.";
+                            }
                             break;
                         default: throw new InvalidOperationException("This tool is not allowed for the current task.");
                     }
@@ -345,7 +360,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             catch (Exception error) when (error is DomainValidationException or JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException)
             {
                 OperationDiagnostics.Record("Tool.EntryFailed", new() { ["exception"] = error.ToString(), ["entry"] = JsonNode.Parse(entry.GetRawText()) }, true);
-                result = new() { ["error"] = error is DomainValidationException ? error.Message : "Invalid entry. Correct it according to the tool definition." };
+                result = new() { ["error"] = error is DomainValidationException or JsonException ? error.Message : "Invalid entry. Correct it according to the tool definition." };
                 failures++;
             }
             result["index"] = results.Count;
@@ -389,7 +404,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             ["source_file"] = await workspace.WriteImageAsync(asset.Bytes, cancellationToken, asset.Mime).ConfigureAwait(false),
             ["source_width"] = page.Width,
             ["source_height"] = page.Height,
-            ["local_file"] = await workspace.WriteImageAsync(Convert.FromBase64String(image.Image.Base64), cancellationToken).ConfigureAwait(false)
+            ["local_file"] = await workspace.WriteImageAsync(Convert.FromBase64String(image.Image.Base64), cancellationToken, image.Image.Mime).ConfigureAwait(false)
         };
     }
 
@@ -413,7 +428,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
     {
         bool Has(string name) => args.TryGetProperty(name, out _);
         Attempt? attempt = item.Attempt;
-        if (!Has("attempt")) attempt = old?.Attempt ?? (mode == ImportMode.Blank ? null : new Attempt());
+        if (!Has("attempt")) attempt = old?.Attempt ?? (mode is ImportMode.Blank or ImportMode.Auto ? null : new Attempt());
         else if (attempt is not null && args.GetProperty("attempt") is { ValueKind: JsonValueKind.Object } raw)
         {
             var previous = old?.Attempt;
@@ -428,9 +443,13 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                 Grade = raw.TryGetProperty("grade", out _) ? attempt.Grade : previous?.Grade ?? attempt.Grade,
                 ReferenceKey = raw.TryGetProperty("reference_key", out _) ? attempt.ReferenceKey : previous?.ReferenceKey,
                 AiSolution = raw.TryGetProperty("ai_solution", out _) ? attempt.AiSolution : previous?.AiSolution ?? "",
+                ErrorAnalysis = raw.TryGetProperty("error_analysis", out _) ? attempt.ErrorAnalysis
+                    : previous?.StudentAnswer == attempt.StudentAnswer && previous?.Grade.Verdict == attempt.Grade.Verdict ? previous.ErrorAnalysis : null,
                 Conflict = raw.TryGetProperty("conflict", out _) ? attempt.Conflict : previous?.Conflict
             };
         }
+        if (attempt is not null && attempt.Grade.Verdict is not (Verdict.Partial or Verdict.Incorrect))
+            attempt = attempt with { ErrorAnalysis = null };
         return item with
         {
             Label = Has("label") ? item.Label : old?.Label ?? "",

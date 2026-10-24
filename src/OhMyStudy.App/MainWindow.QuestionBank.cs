@@ -251,6 +251,7 @@ public sealed partial class MainWindow
     {
         UpdateSearchMode();
         bool narrowToolbar = RootGrid.ActualWidth < 760;
+        StudentAnswerLabel.Visibility = OpenStudentAnswerLabel.Visibility = RootGrid.ActualWidth < 1050 ? Visibility.Collapsed : Visibility.Visible;
         Grid.SetRow(QuestionPager, narrowToolbar ? 1 : 0); Grid.SetColumn(QuestionPager, narrowToolbar ? 0 : 1); Grid.SetColumnSpan(QuestionPager, narrowToolbar ? 3 : 1);
         bool narrow = RootGrid.ActualWidth < 860, mistakes = _bankSection == "mistakes";
         if (_bankFilterLayout == (narrow, mistakes)) return;

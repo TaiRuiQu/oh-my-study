@@ -24,6 +24,7 @@ internal sealed class CompatibilitySuite
         RunFixtureCases();
         RunAdditionalCases();
         LocalizationChecks.Run((id, check) => Check("localization", id, check));
+        LayoutPreferenceChecks.Run((id, check) => Check("layout", id, check));
         var report = new JsonObject
         {
             ["recorded_at"] = DateTimeOffset.UtcNow.ToString("O"),

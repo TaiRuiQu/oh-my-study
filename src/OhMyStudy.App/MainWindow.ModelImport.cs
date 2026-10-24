@@ -45,18 +45,10 @@ public sealed partial class MainWindow
         Filter(); return new(dialog, selected, search, list);
     }
 
-    private static ComboBox CreateFixedModelChoice(IEnumerable<string> labels, double width)
+    private static ComboBox CreateProcessingChoice(string header, double width) => new()
     {
-        var choice = new ComboBox { Header = UiText.Get("Recognition model"), Width = width, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var style = new Style(typeof(ComboBoxItem));
-        style.Setters.Add(new Setter(FrameworkElement.WidthProperty, width));
-        style.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));
-        choice.ItemContainerStyle = style;
-        foreach (string label in labels)
-        {
-            var text = new TextBlock { Text = label, MaxWidth = width - 52, TextTrimming = TextTrimming.CharacterEllipsis };
-            ToolTipService.SetToolTip(text, label); choice.Items.Add(text);
-        }
-        return choice;
-    }
+        Header = header,
+        Width = width,
+        HorizontalAlignment = HorizontalAlignment.Stretch
+    };
 }

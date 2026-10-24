@@ -8,11 +8,17 @@
 
 Open the document yourself. Decrypt encrypted PDFs, check page order, and ensure small print and handwriting are legible. The application accepts PDF, PNG, JPEG, and WebP; an unsupported office document should first be converted using its own application.
 
-Limits apply at several levels: 12 pages across the exam and references, 64 MiB per file, 256 MiB per batch, and 40 million pixels per image. Derived media can also exceed processing budgets. A small PDF file can still contain too many pages; a one-page image can still be too large.
+Limits apply at several levels: 12 pages across the exam, student answer attachments, and references, 64 MiB per file, 256 MiB per batch, and 40 million pixels per image. Derived media can also exceed processing budgets. A small PDF file can still contain too many pages; a one-page image can still be too large.
 
 ## Mode is a grading contract
 
-Blank mode extracts reusable questions and leaves attempts absent, even if reference answers exist. Answered mode must retain student work and distinguish a visibly blank response from illegible writing. Teacher mode prioritizes explicit teacher results and uses AI where a teacher result is unknown.
+Automatic detection asks the model to decide from the page images and saved responses whether the exam is blank, answered, or teacher-graded, then apply the corresponding behavior. Choose an explicit mode when you already know the source type.
+
+Blank mode extracts reusable questions and generates standard answers and solutions while leaving attempts absent, even if reference answers exist. Answered mode must retain student work and distinguish a visibly blank response from illegible writing. Teacher mode prioritizes explicit teacher results and uses AI where a teacher result is unknown. Incorrect or partial work receives a separate error analysis when the cause is supported by the evidence; unclear causes stay empty.
+
+After import, use **More → Upload student answers** inside the exam to add answer photos or PDFs. To type work for an individual question, use **Enter student answer** on its page. Then recognize the exam again. Added work matches existing question keys; original questions and standard solutions remain. A blank exam with added responses switches to automatic detection so the model can grade them. Manually entered responses are protected, and editing a response clears its old grade and error analysis.
+
+The model can also report the printed exam title. An absent title keeps the imported name, and a user-edited title is preserved on re-recognition.
 
 For example, a red subtraction mark without enough context should not become an invented numerical score. Unknown maximum points cannot support a fabricated earned score. A reference key is evidence for matching, not permission to disregard explicit teacher results.
 

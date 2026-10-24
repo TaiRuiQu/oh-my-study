@@ -70,9 +70,13 @@ public sealed partial class LibraryRepository
         }, ct, true);
     }
 
-    public Task<bool> SaveGradingPaperInfoAsync(string jobId, string? subject, double? earned, double? possible, CancellationToken ct = default)
+    public Task<bool> SaveGradingPaperInfoAsync(string jobId, string? subject, double? earned, double? possible, CancellationToken ct = default) =>
+        SaveGradingPaperInfoAsync(jobId, subject, earned, possible, null, ct);
+
+    public Task<bool> SaveGradingPaperInfoAsync(string jobId, string? subject, double? earned, double? possible, string? name, CancellationToken ct = default)
     {
         ValidId(jobId); ValidatePaperInfo(subject, earned, possible);
+        if (name?.Trim().Length > 240) throw new ArgumentException("Exam titles must be at most 240 characters.");
         return Run(() => Transaction(ct, () =>
         {
             var input = CheckRun(jobId);
@@ -80,6 +84,12 @@ public sealed partial class LibraryRepository
             string? before = PaperInfoJson(input.Document.Id);
             bool saved = WritePaperInfo(input.Document.Id, subject, earned, possible, false) > 0;
             if (saved) TrackGradingChange(jobId, "paper", input.Document.Id, before, PaperInfoJson(input.Document.Id));
+            if (saved && !string.IsNullOrWhiteSpace(name))
+            {
+                string previousName = Document(input.Document.Id).Name;
+                Execute("UPDATE documents SET name=$p0 WHERE id=$p1", name.Trim(), input.Document.Id);
+                TrackGradingChange(jobId, "title", input.Document.Id, DomainJson.Serialize(previousName), DomainJson.Serialize(name.Trim()));
+            }
             return saved;
         }), ct, true);
     }

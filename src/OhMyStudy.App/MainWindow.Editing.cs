@@ -128,7 +128,7 @@ public sealed partial class MainWindow
     {
         private readonly QuestionItem _original;
         private readonly TextBox _label, _answer, _explanation, _points;
-        private readonly TextBox? _student, _earned, _reason, _solution;
+        private readonly TextBox? _student, _earned, _reason, _solution, _errorAnalysis;
         private readonly ComboBox? _verdict;
         private readonly EditorList<Content> _prompt;
         private readonly EditorList<string> _options;
@@ -160,6 +160,7 @@ public sealed partial class MainWindow
             _verdict.SelectedIndex = (int)attempt.Grade.Verdict; Panel.Children.Add(_verdict);
             _earned = AddText(Panel, UiText.Get("Score (leave blank if undetermined)"), ScoreText(attempt.Grade.Earned));
             _reason = AddText(Panel, UiText.Get("Grading notes"), attempt.Grade.Reason, true);
+            _errorAnalysis = AddText(Panel, UiText.Get("Error analysis"), attempt.ErrorAnalysis ?? "", true);
             _solution = AddText(Panel, UiText.Get("Solution steps"), attempt.AiSolution, true);
             if (attempt.Teacher is { } teacher)
                 Panel.Children.Add(new TextBlock { Text = UiText.Get("Teacher annotations: ") + teacher.Raw, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
@@ -183,6 +184,7 @@ public sealed partial class MainWindow
                     StudentAnswer = _student!.Text,
                     StudentRegions = _studentRegions!.Read(),
                     AiSolution = _solution!.Text,
+                    ErrorAnalysis = string.IsNullOrWhiteSpace(_errorAnalysis!.Text) ? null : _errorAnalysis.Text,
                     Grade = attempt.Grade with
                     {
                         Verdict = (Verdict)_verdict!.SelectedIndex,

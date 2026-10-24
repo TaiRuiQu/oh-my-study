@@ -15,6 +15,7 @@ if (RuntimeFeature.IsDynamicCodeSupported && !args.Contains("--managed-sdk-check
 var fixtures = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "round-trips.synthetic.json")))!;
 var completed = 0;
 await Run("native requests, images, opaque tool context and usage", NativeRoundTrips);
+await Run("malformed tool arguments survive as correction feedback", MalformedArguments);
 await Run("Files API image reuse, expiration, cleanup and opt-in", () => FilesApiRegression.RunAsync(fixtures));
 await Run("native thinking and collision checks", Thinking);
 await Run("native image capability checks", CapabilityChecks);
@@ -174,6 +175,52 @@ Task NativeRoundTrips()
     }
     return Task.CompletedTask;
 }
+
+Task MalformedArguments()
+{
+    foreach (var protocol in Enum.GetValues<Protocol>())
+    {
+        var native = fixtures[Key(protocol)]!["tool"]!;
+        foreach (var (label, malformed, kind, expected) in new (string, JsonNode?, JsonValueKind, string)[]
+        {
+            ("truncated object", JsonValue.Create("{\"pages\": [{\"page_id\": \"synthetic-page\""), JsonValueKind.String, "{\"pages\": [{\"page_id\": \"synthetic-page\""),
+            ("non-object JSON", JsonValue.Create("[1, 2]"), JsonValueKind.Array, "[1, 2]"),
+            ("raw text", JsonValue.Create("not JSON"), JsonValueKind.String, "not JSON"),
+            ("missing arguments", null, JsonValueKind.Null, "null")
+        })
+        {
+            var reply = (JsonObject)native.DeepClone();
+            var block = reply[protocol == Protocol.Responses ? "output" : "content"]!.AsArray().OfType<JsonObject>().Single(item => Text(item, "type") is "function_call" or "tool_use");
+            if (malformed is null) block.Remove(protocol == Protocol.Responses ? "arguments" : "input");
+            else block[protocol == Protocol.Responses ? "arguments" : "input"] = malformed.DeepClone();
+            var turn = ProviderProtocol.Parse(protocol, Element(reply));
+            Check(turn.Calls.Count == 1 && turn.Calls[0].Name == "read_image", $"{label} keeps the call");
+            Check(turn.Calls[0].Arguments.ValueKind == kind && ArgumentText(turn.Calls[0].Arguments) == expected, $"{label} stays non-object for correction feedback");
+            var history = ProviderProtocol.Initial(protocol, "x", []);
+            ProviderProtocol.ContinueWith(protocol, history, turn, [new ToolResult { Call = turn.Calls[0], Text = "Tool arguments must be one JSON object.", Images = [], IsError = true }]);
+            Check(history.ToJsonString().Contains("must be one JSON object", StringComparison.Ordinal), $"{label} returns feedback to the model");
+            var body = ProviderProtocol.BuildRequest(protocol, Options(), history, [Tool()]);
+            Check(body["input"] is JsonArray || body["messages"] is JsonArray, $"{label} keeps the conversation continuable");
+        }
+    }
+    var malformedStream = new ProviderStreamAssembler(Protocol.Messages);
+    malformedStream.Push(Encoding.UTF8.GetBytes(Sse(JsonNode.Parse("{\"type\":\"message_start\",\"message\":{\"content\":[],\"usage\":{\"input_tokens\":1}}}")!)));
+    malformedStream.Push(Encoding.UTF8.GetBytes(Sse(JsonNode.Parse("{\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_partial\",\"name\":\"read_image\",\"input\":{}}}")!)));
+    malformedStream.Push(Encoding.UTF8.GetBytes(Sse(JsonNode.Parse("{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"page\\\":1\"}}")!)));
+    malformedStream.Push(Encoding.UTF8.GetBytes(Sse(JsonNode.Parse("{\"type\":\"content_block_stop\",\"index\":0}")!)));
+    malformedStream.Push(Encoding.UTF8.GetBytes(Sse(JsonNode.Parse("{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\"},\"usage\":{\"output_tokens\":1}}")!)));
+    malformedStream.Push(Encoding.UTF8.GetBytes(Sse(JsonNode.Parse("{\"type\":\"message_stop\"}")!)));
+    var streamed = malformedStream.Finish();
+    Check(streamed.Calls.Count == 1 && streamed.Calls[0].Arguments.ValueKind == JsonValueKind.String, "truncated streamed arguments complete the turn");
+    return Task.CompletedTask;
+}
+static string? Text(JsonObject node, string key) => node[key] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+static string ArgumentText(JsonElement arguments) => arguments.ValueKind switch
+{
+    JsonValueKind.Undefined or JsonValueKind.Null => "null",
+    JsonValueKind.String => arguments.GetString()!,
+    _ => arguments.GetRawText()
+};
 
 Task Thinking()
 {

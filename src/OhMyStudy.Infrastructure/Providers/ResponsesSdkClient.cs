@@ -153,6 +153,12 @@ internal sealed class ResponsesSdkClient
                 item = (JsonObject)item.DeepClone();
                 item.Insert(0, "type", "message");
             }
+            if (Text(item, "type") == "function_call" && (item["arguments"] is not { } arguments || arguments.GetValueKind() != JsonValueKind.String))
+            {
+                // Malformed or missing arguments are stored verbatim; the SDK writes this field as a JSON string only.
+                item = (JsonObject)item.DeepClone();
+                item["arguments"] = item["arguments"] is { } raw && raw.GetValueKind() != JsonValueKind.Null ? raw.ToJsonString() : "{}";
+            }
             if (Text(item, "type") == "function_call_output" && item["output"] is JsonArray output)
             {
                 // The SDK models text output only; a block array (text plus images) travels through the native field.

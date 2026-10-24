@@ -37,8 +37,8 @@ internal static partial class Program
                 }).ToList()
             };
             await library.SaveGradingQuestionAsync(running.Id, extra);
-            await library.SaveGradingPaperInfoAsync(running.Id, "Failed subject", 0, 10);
-            await library.SaveGradingPaperInfoAsync(running.Id, "Failed twice", 0, 20);
+            await library.SaveGradingPaperInfoAsync(running.Id, "Failed subject", 0, 10, name: "Failed title");
+            await library.SaveGradingPaperInfoAsync(running.Id, "Failed twice", 0, 20, name: "Failed title twice");
             await library.SaveGradingReferencesAsync(running.Id, Fixture<List<ReferenceAnswer>>("references").Select(r => r with { Answer = "Failed answer" }).ToList());
             await library.RecordModelCallAsync(running.Id, 1, contracts.RootElement.GetProperty("model_call"));
             var asset = await library.SaveGradingImageAsync(running.Id, png);
@@ -57,6 +57,7 @@ internal static partial class Program
             var restored = (await library.GradingQuestionsAsync(failed.Input!.Document.Id)).Single();
             Check(restored.Id == original.Id && restored.Question.Number == original.Question.Number && restored.Question.Notes == "Manual notes after failure", "retry after reopening restores original question and preserves notes");
             Check((await library.ListPapersAsync()).Single().Subject == "Original subject", "retry restores paper metadata before first write");
+            Check((await library.GetDocumentAsync(failed.Input.Document.Id)).Name == failed.Input.Document.Name, "retry restores the title before the first model rename");
             Check((await library.GradingReferencesAsync(failed.Input.Document.Id)).All(r => r.Answer != "Failed answer"), "retry removes failed reference answers");
             Check(!File.Exists(generatedFile), "retry removes generated asset file");
             Check((await library.ListJobEventsAsync(failed.Id)).Count == 0 && (await library.ListJobEventsAsync(replacement.Id)).Count == 1, "retry replaces failed history with fresh queued event");

@@ -9,7 +9,7 @@
 - [Provider adapters, batch tools, streaming, and usage](Tech-Model-Loop.md)
 - [Question items, grading invariants, and edit protection](Tech-Validation-Grading.md)
 - [Job lifecycle, retry recovery, and code isolation](Tech-Jobs-Execution.md)
-- [SQLite v5, assets, search indexes, and recovery](Tech-Storage-Recovery.md)
+- [SQLite v6, assets, search indexes, and recovery](Tech-Storage-Recovery.md)
 - [Native reading, formula assets, and PDF compilation](Tech-Rendering-Export.md)
 
 ## Project boundaries
@@ -27,7 +27,7 @@
 
 Import validates limits and preserves originals, then queues one paper in one model conversation. The model calls `read_pages`, `save_references`, `save_paper_info`, `save_questions`, optional `python`/`shell`, and `finish`. Reference-only tasks omit question/paper-information writes. Every save crosses typed validation and the active-job/cancellation boundary.
 
-The question model is a shared stem plus ordered flat `QuestionItem` records. References target item keys, coverage targets question keys, and generated images keep original evidence. Storage is SQLite schema v5. Explicit task retry rolls back only the failed run when recovery checks permit it; re-recognition preserves current results and protected manual/teacher grades.
+The question model is a shared stem plus ordered flat `QuestionItem` records. References target item keys, coverage targets question keys, and generated images keep original evidence. Storage is SQLite schema v6. Explicit task retry rolls back only the failed run when recovery checks permit it; re-recognition preserves current results and protected manual/teacher grades.
 
 Recognition, file upload, optional background embedding, and reranking have distinct data paths. [Meaning search](Features-Search.md) uses cached embeddings, a local cosine scan, and optional remote reranking. Provider/search keys stay outside the library in Windows Credential Manager.
 

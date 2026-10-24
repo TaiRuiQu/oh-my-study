@@ -15,10 +15,17 @@ namespace OhMyStudy.App.Services;
 /// <summary>Native codecs run off the UI thread; regions always address the unrotated source raster.</summary>
 public sealed class NativePageImages(string? webpDecoderPath = null) : IGradingImageReader
 {
+    private const int ModelImageBytes = 200 * 1024;
+    private const float ModelJpegQualityFloor = 0.6f;
+    private const uint ModelImageLongSideFloor = 1280;
     private readonly string _webpDecoderPath = webpDecoderPath ?? NativeWebpDecoder.DefaultPath;
     public Task<GradingImageResult> ReadAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken) => ReadForModelAsync(bytes, crop, rotation, cancellationToken);
 
-    public Task<GradingImageResult> ReadForModelAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken = default) => NativeImageWork.RunAsync(async () =>
+    public Task<GradingImageResult> ReadForModelAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken = default) => ReadImageAsync(bytes, crop, rotation, true, cancellationToken);
+
+    public Task<GradingImageResult> ReadForDisplayAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken = default) => ReadImageAsync(bytes, crop, rotation, false, cancellationToken);
+
+    private Task<GradingImageResult> ReadImageAsync(byte[] bytes, Region? crop, ushort rotation, bool compress, CancellationToken cancellationToken) => NativeImageWork.RunAsync(async () =>
     {
         PageViewportTransform.ValidateRotation(rotation);
         using var source = await NativeImageCodec.OpenAsync(bytes, cancellationToken).ConfigureAwait(false);
@@ -45,9 +52,48 @@ public sealed class NativePageImages(string? webpDecoderPath = null) : IGradingI
         NativeImageCodec.ValidatePixels(decodedWidth, decodedHeight, pixels);
         (pixels, uint finalWidth, uint finalHeight) = NativeImageCodec.Rotate(pixels, decodedWidth, decodedHeight, rotation, cancellationToken);
         var png = await NativeImageCodec.EncodePngAsync(pixels, finalWidth, finalHeight, cancellationToken).ConfigureAwait(false);
+        if (compress && png.Length > ModelImageBytes)
+            return await CompressAsync(pixels, finalWidth, finalHeight, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return new GradingImageResult(new Image { Mime = "image/png", Base64 = Convert.ToBase64String(png) }, finalWidth, finalHeight);
     }, cancellationToken);
+
+    private static async Task<GradingImageResult> CompressAsync(byte[] pixels, uint width, uint height, CancellationToken cancellationToken)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int x = 0; x < width; x++)
+            {
+                int offset = checked((y * (int)width + x) * 4);
+                int alpha = pixels[offset + 3];
+                for (int channel = 0; channel < 3; channel++)
+                    pixels[offset + channel] = (byte)((pixels[offset + channel] * alpha + 255 * (255 - alpha) + 127) / 255);
+                pixels[offset + 3] = 255;
+            }
+        }
+        uint targetWidth = width, targetHeight = height;
+        double floorScale = Math.Min(1, ModelImageLongSideFloor / (double)Math.Max(width, height));
+        uint minWidth = Math.Max(1, (uint)Math.Floor(width * floorScale)), minHeight = Math.Max(1, (uint)Math.Floor(height * floorScale));
+        while (true)
+        {
+            byte[] resized = NativeImageCodec.Resize(pixels, width, height, targetWidth, targetHeight, cancellationToken);
+            byte[] jpeg = [];
+            foreach (float quality in new[] { 0.8f, 0.7f, ModelJpegQualityFloor })
+            {
+                jpeg = await NativeImageCodec.EncodeJpegAsync(resized, targetWidth, targetHeight, quality, cancellationToken).ConfigureAwait(false);
+                if (jpeg.Length <= ModelImageBytes)
+                    return new(new Image { Mime = "image/jpeg", Base64 = Convert.ToBase64String(jpeg) }, targetWidth, targetHeight);
+            }
+            if (targetWidth <= minWidth && targetHeight <= minHeight)
+                return new(new Image { Mime = "image/jpeg", Base64 = Convert.ToBase64String(jpeg) }, targetWidth, targetHeight);
+            double scale = Math.Max(floorScale, Math.Min(0.9, Math.Sqrt(ModelImageBytes / (double)jpeg.Length) * 0.95));
+            uint nextWidth = Math.Max(minWidth, (uint)Math.Floor(targetWidth * scale)), nextHeight = Math.Max(minHeight, (uint)Math.Floor(targetHeight * scale));
+            if (nextWidth >= targetWidth && nextHeight >= targetHeight)
+                return new(new Image { Mime = "image/jpeg", Base64 = Convert.ToBase64String(jpeg) }, targetWidth, targetHeight);
+            targetWidth = nextWidth; targetHeight = nextHeight;
+        }
+    }
 
     public Task<RasterizedPage> RasterForUiAsync(byte[] bytes, int maximumDimension, CancellationToken cancellationToken = default) => NativeImageWork.RunAsync(async () =>
     {
@@ -165,12 +211,20 @@ internal static class NativeImageCodec
         return (target, targetWidth, targetHeight);
     }
 
-    public static async Task<byte[]> EncodePngAsync(byte[] pixels, uint width, uint height, CancellationToken cancellationToken)
+    public static Task<byte[]> EncodePngAsync(byte[] pixels, uint width, uint height, CancellationToken cancellationToken)
+        => EncodeAsync(pixels, width, height, null, cancellationToken);
+
+    public static Task<byte[]> EncodeJpegAsync(byte[] pixels, uint width, uint height, float quality, CancellationToken cancellationToken)
+        => EncodeAsync(pixels, width, height, quality, cancellationToken);
+
+    private static async Task<byte[]> EncodeAsync(byte[] pixels, uint width, uint height, float? quality, CancellationToken cancellationToken)
     {
         ValidatePixels(width, height, pixels);
         using var stream = new InMemoryRandomAccessStream();
-        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream).AsTask(cancellationToken).ConfigureAwait(false);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, width, height, 96, 96, pixels);
+        var encoder = quality is { } value
+            ? await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, stream, new BitmapPropertySet { ["ImageQuality"] = new(value, Windows.Foundation.PropertyType.Single) }).AsTask(cancellationToken).ConfigureAwait(false)
+            : await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream).AsTask(cancellationToken).ConfigureAwait(false);
+        encoder.SetPixelData(BitmapPixelFormat.Bgra8, quality is null ? BitmapAlphaMode.Straight : BitmapAlphaMode.Ignore, width, height, 96, 96, pixels);
         await encoder.FlushAsync().AsTask(cancellationToken).ConfigureAwait(false);
         if (stream.Size > LibraryLimits.MaximumAssetBytes) throw new InvalidDataException(UiText.Get("Processed image exceeds 64 MB. Resize it and retry."));
         using var reader = new DataReader(stream.GetInputStreamAt(0));

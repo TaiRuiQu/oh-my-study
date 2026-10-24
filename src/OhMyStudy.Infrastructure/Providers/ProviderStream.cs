@@ -147,7 +147,7 @@ public sealed class ProviderStreamAssembler(Protocol protocol)
                 if (_arguments.Remove(index, out var arguments) && arguments.Length > 0)
                 {
                     try { _blocks[index]["input"] = JsonNode.Parse(arguments.ToString()); }
-                    catch (JsonException) { throw ProtocolError("truncated tool arguments"); }
+                    catch (JsonException) { _blocks[index]["input"] = arguments.ToString(); }
                 }
                 break;
             case "message_delta":

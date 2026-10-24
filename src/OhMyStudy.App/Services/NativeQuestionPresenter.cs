@@ -22,7 +22,7 @@ public static class NativeQuestionPresenter
     private const double SectionSpacing = 20;
 
     public static async Task<FrameworkElement> CreateAsync(Question question, LibraryRepository library, CancellationToken cancellationToken, double availableWidth = 720,
-        ElementTheme theme = ElementTheme.Default, string? context = null)
+        ElementTheme theme = ElementTheme.Default, string? context = null, Func<Task>? confirmResult = null)
     {
         ArgumentNullException.ThrowIfNull(question);
         ArgumentNullException.ThrowIfNull(library);
@@ -32,10 +32,30 @@ public static class NativeQuestionPresenter
         var root = new StackPanel { Spacing = SectionSpacing, HorizontalAlignment = HorizontalAlignment.Stretch };
         if (Overview(question, context) is { } overview) root.Children.Add(overview);
         if (question.Uncertainties.Count > 0)
-            root.Children.Add(new InfoBar { Severity = InfoBarSeverity.Warning, IsOpen = true, IsClosable = false, Title = UiText.Get("Needs review"), Message = string.Join("\n", question.Uncertainties) });
-        root.Children.Add(await ContentAsync(question.Stem, [], library, reading, cancellationToken));
-        for (int index = 0; index < question.Items.Count; index++)
-            root.Children.Add(await ItemAsync(question, index, library, reading, cancellationToken));
+        {
+            var notice = new InfoBar { Severity = InfoBarSeverity.Warning, IsOpen = true, IsClosable = false, Title = UiText.Get("Needs review") };
+            var messages = new StackPanel { Spacing = 6, Margin = new Thickness(0, 0, 16, 14) };
+            foreach (string issue in question.Uncertainties)
+                messages.Children.Add(await reading.PresentAsync(issue, cancellationToken, width: Math.Max(40, reading.Width - 64)));
+            notice.Content = messages;
+            if (confirmResult is not null)
+            {
+                var confirm = new Button { Content = UiText.Get("Confirm result") };
+                confirm.Click += async (_, _) =>
+                {
+                    confirm.IsEnabled = false;
+                    try { await confirmResult(); }
+                    finally { confirm.IsEnabled = true; }
+                };
+                notice.ActionButton = confirm;
+            }
+            root.Children.Add(notice);
+        }
+        root.Children.Add(await QuestionBodyAsync(question, library, reading, cancellationToken));
+        if (question.Items.Any(item => item.Attempt is not null))
+            root.Children.Add(await AnswersAsync(question, reading, cancellationToken));
+        var solutions = SolutionBlocks(question);
+        if (solutions.Count > 0) root.Children.Add(AnswerExpander(solutions, question.Items.Count > 1, reading, cancellationToken));
         if (question.KnowledgePoints.Count > 0)
         {
             var topics = new StackPanel { Spacing = 6 };
@@ -79,43 +99,77 @@ public static class NativeQuestionPresenter
         return new Border { Style = OutcomeVisuals.ChipStyle(verdict), Child = content, VerticalAlignment = VerticalAlignment.Center };
     }
 
-    private static async Task<FrameworkElement> ItemAsync(Question question, int index, LibraryRepository library, NativeReadingSession reading, CancellationToken cancellationToken)
+    private static async Task<FrameworkElement> QuestionBodyAsync(Question question, LibraryRepository library, NativeReadingSession reading, CancellationToken cancellationToken)
     {
-        var item = question.Items[index];
-        var panel = new StackPanel { Spacing = 16, HorizontalAlignment = HorizontalAlignment.Stretch };
-        if (item.Prompt.Count > 0 || item.Options.Count > 0 || !string.IsNullOrWhiteSpace(item.Label))
+        var panel = new StackPanel { Spacing = 14, HorizontalAlignment = HorizontalAlignment.Stretch };
+        panel.Children.Add(await ContentAsync(question.Stem, [], library, reading, cancellationToken));
+        foreach (var item in question.Items)
+        {
+            if (item.Prompt.Count == 0 && item.Options.Count == 0 && string.IsNullOrWhiteSpace(item.Label)) continue;
             panel.Children.Add(await ContentAsync(NativeReadingSession.ItemPrompt(item), item.Options, library, reading, cancellationToken));
-        if (item.Attempt is { } attempt) panel.Children.Add(await ResponseAsync(attempt, reading, cancellationToken, question.Items.Count > 1));
-        if (Solutions(item) is { Count: > 0 } solutions) panel.Children.Add(AnswerExpander(solutions, reading, cancellationToken));
+        }
         return panel;
     }
 
-    private static async Task<FrameworkElement> ResponseAsync(Attempt attempt, NativeReadingSession reading, CancellationToken cancellationToken, bool showGrade)
+    private static async Task<FrameworkElement> AnswersAsync(Question question, NativeReadingSession reading, CancellationToken cancellationToken)
     {
-        var body = new StackPanel { Spacing = ContentSpacing };
-        var heading = new Grid { ColumnSpacing = 16 };
-        heading.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        heading.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        heading.Children.Add(LabelRow(UiText.Get("Your answer"), "\uE70F"));
-        if (showGrade && Result(attempt.Grade.Verdict, attempt.Grade.Earned, attempt.Grade.Possible, 16) is { } result)
-        { Grid.SetColumn(result, 1); heading.Children.Add(result); }
-        body.Children.Add(heading);
-        if (string.IsNullOrWhiteSpace(attempt.StudentAnswer))
-            body.Children.Add(new TextBlock { Text = attempt.Grade.Verdict == Verdict.Unanswered ? UiText.Get("Unanswered") : UiText.Get("No response recorded"), FontSize = 15, Opacity = .76, TextWrapping = TextWrapping.Wrap });
-        else body.Children.Add(await reading.PresentAsync(attempt.StudentAnswer, cancellationToken));
-        string source = attempt.Grade.Source switch { GradeSource.Teacher => UiText.Get("Teacher grading"), GradeSource.Manual => UiText.Get("Manual grading"), GradeSource.AiReference => UiText.Get("Based on reference answers"), _ => UiText.Get("Model grading") };
-        var sections = NativeReadingSession.FeedbackSections(new QuestionItem { Key = "", Attempt = attempt }).ToList();
-        if (sections.FirstOrDefault()?.Title != UiText.Get("Grading notes"))
-            body.Children.Add(new TextBlock { Text = source, FontSize = 13, Opacity = .76, Margin = new Thickness(0, SectionSpacing / 2, 0, 0) });
-        foreach (var section in sections)
+        var body = new StackPanel { Spacing = 12 };
+        body.Children.Add(LabelRow(UiText.Get("Your answer"), "\uE70F"));
+        var accent = new Border { Width = 3, CornerRadius = new CornerRadius(2), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Stretch, Margin = new Thickness(0, 2, 10, 2) };
+        var card = new Border { CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 12, 14, 14), BorderThickness = new Thickness(1) };
+        double inner = reading.Width - accent.Width - accent.Margin.Right - card.Padding.Left - card.Padding.Right;
+        bool multi = question.Items.Count > 1;
+        foreach (var item in question.Items)
         {
-            var block = new StackPanel { Spacing = 6, Margin = new Thickness(0, SectionSpacing / 2, 0, 0) };
-            block.Children.Add(LabelRow(section.Title == UiText.Get("Grading notes") ? section.Title + " · " + source : section.Title, section.Glyph));
-            foreach (string text in section.Texts) block.Children.Add(await reading.PresentAsync(text, cancellationToken));
+            if (item.Attempt is not { } attempt) continue;
+            var block = new StackPanel { Spacing = 6 };
+            FrameworkElement? score = Result(attempt.Grade.Verdict, attempt.Grade.Earned, attempt.Grade.Possible, 14);
+            var row = new Grid { ColumnSpacing = 14 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            double answerWidth = inner;
+            if (score is not null)
+            {
+                score.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+                answerWidth = Math.Max(110, inner - row.ColumnSpacing - Math.Ceiling(score.DesiredSize.Width));
+            }
+            var answer = new StackPanel { Spacing = 6 };
+            string prefix = multi && !string.IsNullOrWhiteSpace(item.Label) ? item.Label.Trim() + "\u2002" : "";
+            if (string.IsNullOrWhiteSpace(attempt.StudentAnswer))
+                answer.Children.Add(new TextBlock { Text = prefix + (attempt.Grade.Verdict == Verdict.Unanswered ? UiText.Get("Unanswered") : UiText.Get("No response recorded")), FontSize = 15, Opacity = .76, TextWrapping = TextWrapping.Wrap });
+            else answer.Children.Add(await reading.PresentAsync(prefix + attempt.StudentAnswer, cancellationToken, width: answerWidth));
+            Grid.SetColumn(answer, 0); row.Children.Add(answer);
+            if (score is not null) { Grid.SetColumn(score, 1); row.Children.Add(score); }
+            block.Children.Add(row);
+            string source = attempt.Grade.Source switch { GradeSource.Teacher => UiText.Get("Teacher grading"), GradeSource.Manual => UiText.Get("Manual grading"), GradeSource.AiReference => UiText.Get("Based on reference answers"), _ => UiText.Get("Model grading") };
+            var sections = NativeReadingSession.FeedbackSections(new QuestionItem { Key = "", Attempt = attempt }).ToList();
+            if (sections.FirstOrDefault()?.Title != UiText.Get("Grading notes"))
+                block.Children.Add(new TextBlock { Text = source, FontSize = 12, Opacity = .7 });
+            foreach (var section in sections)
+            {
+                var notes = new StackPanel { Spacing = 5 };
+                notes.Children.Add(LabelRow(section.Title == UiText.Get("Grading notes") ? section.Title + " · " + source : section.Title, section.Glyph));
+                foreach (string text in section.Texts) notes.Children.Add(await reading.PresentAsync(text, cancellationToken, width: inner));
+                block.Children.Add(notes);
+            }
             body.Children.Add(block);
         }
-        return body;
+        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("CardBackgroundFillColorSecondaryBrush", out var fill) && fill is Brush background) card.Background = background;
+        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("ControlStrokeColorDefaultBrush", out var stroke) && stroke is Brush borderBrush) card.BorderBrush = borderBrush;
+        card.Child = body;
+        if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("AccentFillColorDefaultBrush", out var accentFill) && accentFill is Brush accentBrush) accent.Background = accentBrush;
+        var layout = new Grid();
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(accent, 0); layout.Children.Add(accent);
+        Grid.SetColumn(card, 1); layout.Children.Add(card);
+        return layout;
     }
+
+    private sealed record SolutionBlock(string Label, string Title, string Glyph, string Text);
+
+    private static List<SolutionBlock> SolutionBlocks(Question question) =>
+        question.Items.SelectMany(item => Solutions(item).Select(solution => new SolutionBlock(item.Label.Trim(), solution.Title, solution.Glyph, solution.Text))).ToList();
 
     private static List<(string Title, string Glyph, string Text)> Solutions(QuestionItem item)
     {
@@ -126,7 +180,7 @@ public static class NativeQuestionPresenter
         return result;
     }
 
-    private static Expander AnswerExpander(List<(string Title, string Glyph, string Text)> solutions, NativeReadingSession reading, CancellationToken cancellationToken)
+    private static Expander AnswerExpander(List<SolutionBlock> solutions, bool multi, NativeReadingSession reading, CancellationToken cancellationToken)
     {
         var expander = new Expander
         {
@@ -160,8 +214,14 @@ public static class NativeQuestionPresenter
             loaded = true;
             try
             {
-                foreach (var (title, glyph, text) in solutions)
+                string? heading = null;
+                foreach (var (label, title, glyph, text) in solutions)
                 {
+                    if (multi && label.Length > 0 && label != heading)
+                    {
+                        heading = label;
+                        body.Children.Add(new TextBlock { Text = label, FontFamily = new FontFamily(UiText.ReadingFontFamily), FontSize = 14, FontWeight = FontWeights.SemiBold });
+                    }
                     var block = new StackPanel { Spacing = 6 };
                     block.Children.Add(LabelRow(title, glyph));
                     block.Children.Add(await reading.PresentAsync(text, cancellationToken));
@@ -246,7 +306,7 @@ public static class NativeQuestionPresenter
             var page = documents.SelectMany(document => document.Pages).SingleOrDefault(page => page.Id == content.Region.PageId);
             if (page is null) return Text(UiText.Get("Image temporarily unavailable."));
             var source = await library.ReadAssetAsync(content.AssetId ?? page.AssetId, cancellationToken: cancellationToken);
-            var result = await PageImages.ReadAsync(source.Bytes, content.AssetId is null ? content.Region : null, content.AssetId is null ? page.Rotation : (ushort)0, cancellationToken);
+            var result = await PageImages.ReadForDisplayAsync(source.Bytes, content.AssetId is null ? content.Region : null, content.AssetId is null ? page.Rotation : (ushort)0, cancellationToken);
             var image = await ImageAsync(Convert.FromBase64String(result.Image.Base64), content.Caption, cancellationToken);
             image.MaxHeight = 420;
             if (string.IsNullOrWhiteSpace(content.Caption)) return image;

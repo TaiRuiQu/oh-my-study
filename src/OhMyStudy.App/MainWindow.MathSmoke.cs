@@ -71,6 +71,21 @@ public sealed partial class MainWindow
             Show(longQuestion); await Capture("long");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("long-compact");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+            const string chainedAnswer = @"$f(x_1)+f(x_2)=e^{x_1}+e^{x_2}-\frac12(x_1^2+x_2^2)-a(x_1+x_2)=x_1+a+x_2+a-\frac12(x_1^2+x_2^2)-a(x_1+x_2)=2a+(1-a)(x_1+x_2)-\frac12(x_1^2+x_2^2)$";
+            var answered = WithBody(question, [new TextContent { Text = "讨论函数的极值，并写出完整的推导过程。" }]);
+            answered = answered with
+            {
+                Items = [answered.Items[0] with { Attempt = new Attempt { StudentAnswer = chainedAnswer,
+                Grade = new Grade { Verdict = Verdict.Partial, Earned = 1, Possible = 6, Source = GradeSource.AiSolution, Reason = "推导尚未完成。" },
+                ErrorAnalysis = "尚未完成不等式证明，应继续检验所需结论。" } }]
+            };
+            Show(answered); await Capture("long-student-answer");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("long-student-answer-compact");
+            if (NativeDescendants(QuestionContentHost).OfType<Microsoft.UI.Xaml.Controls.ScrollViewer>().Any(view => view.ScrollableWidth > 1)
+                || !NativeDescendants(QuestionContentHost).OfType<Controls.NativeFormulaParagraph>().Any(paragraph => paragraph.Source == chainedAnswer && paragraph.LineBaselines.Count > 1 && paragraph.BaselineChecksPassed))
+                throw new InvalidOperationException("A long student answer must wrap beside its score without horizontal scrolling.");
+            evidence.Add("long-student-answer-wraps-beside-score=PASS");
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
             Show(WithBody(question, [new TextContent { Text = "不含公式的普通题目，文字仍可选择和复制。" }])); await Capture("plain");
             var other = saved with { Id = "other", Question = vector, UpdatedAt = "2" };
             ViewModel.LoadLibrary(new[] { saved, other }, false);

@@ -16,7 +16,7 @@
 
 ## Current behavior at a glance
 
-Configure a Responses or Messages provider and model before importing PDF, PNG, JPEG, or WebP. Limits are 12 combined exam/reference pages, 64 MiB per source file, 256 MiB per import batch, and 40 million pixels per input image. Blank exams have no attempts; answered exams retain student work; teacher mode protects explicit teacher grades.
+Configure a Responses or Messages provider and model before importing PDF, PNG, JPEG, or WebP. Limits are 12 combined exam/student-answer/reference pages, 64 MiB per source file, 256 MiB per import batch, and 40 million pixels per input image. Automatic detection lets the model classify the paper itself; blank exams have no attempts; answered exams retain student work; teacher mode protects explicit teacher grades.
 
 Question pages show a shared stem followed by flat, independently graded items. Search saved questions locally or configure meaning search with separate embedding/reranking services. Review Needs review separately from Mistakes; uncertainty alone does not establish a wrong answer.
 
@@ -24,4 +24,4 @@ Recognition uses batched page reads and question saves. Failed or interrupted ta
 
 The default code execution mode runs on the host without per-call approval. Change it to Ask every time or Run in sandbox before submitting new tasks. Files API support defaults off; compatible uploads use one-hour expiration and task-end deletion attempts. See the models and tasks chapters for details.
 
-The library is local and currently uses schema v5. Back up the complete folder after exit before upgrading or broad reprocessing. Keys stay in Windows Credential Manager. See [installation](../installation.md), [usage](../usage.md), and [model prompt profiles](../model-prompts.md).
+The library is local and currently uses schema v6. Back up the complete folder after exit before upgrading or broad reprocessing. Keys stay in Windows Credential Manager. See [installation](../installation.md), [usage](../usage.md), and [model prompt profiles](../model-prompts.md).

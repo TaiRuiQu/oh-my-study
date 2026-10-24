@@ -42,6 +42,7 @@ internal static partial class Program
             await JobRetryChecks();
             await ProviderFilesChecks();
             await PaperMetadata();
+            await StudentAnswerStorageChecks();
             await RetiredProviders();
             await CredentialAtomicity();
             await CopyUpgradeRecovery();
@@ -157,7 +158,7 @@ internal static partial class Program
             }
             await using (var repository = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)))
             {
-                Check((await repository.InspectAsync()).SchemaVersion == 5, $"v{version} upgraded/opened v5");
+                Check((await repository.InspectAsync()).SchemaVersion == 6, $"v{version} upgraded/opened v6");
                 Check((await repository.ListProvidersAsync()).Single().Id == Fixture<Provider>("provider").Id, "provider stable reference");
                 var document = await repository.GetDocumentAsync(Fixture<Document>("document").Id);
                 var reordered = await repository.UpdatePagesAsync(document.Id, document.Pages.AsEnumerable().Reverse().Select(p => new PageEdit { Id = p.Id, Rotation = 90 }).ToList());
@@ -165,7 +166,7 @@ internal static partial class Program
                 await Fails(() => LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)), "cooperating writer lease");
                 await repository.VerifyIntegrityAsync();
             }
-            if (version == 1) Check(Directory.GetFiles(path, "study.sqlite3.pre-v5-*").Length == 1, "v1 consistent preupgrade database backup");
+            if (version == 1) Check(Directory.GetFiles(path, "study.sqlite3.pre-v6-*").Length == 1, "v1 consistent preupgrade database backup");
         }
         var failed = CreateLegacy(1, true);
         await Fails(() => LibraryRepository.OpenAsync(new(failed, LibraryOpenMode.ReadWrite)), "migration conflict rejects open");
@@ -182,7 +183,7 @@ internal static partial class Program
             string source = CreateLegacy(version), backup = Unique("cutover-backup"), destination = Unique("cutover-copy");
             byte[] originalDatabase = File.ReadAllBytes(Path.Combine(source, "study.sqlite3"));
             var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source, backup, destination);
-            Check(migration.OriginalSchemaVersion == version && migration.CurrentSchemaVersion == 5 && migration.Documents == 1, $"v{version} copy-only migration upgrades verified destination");
+            Check(migration.OriginalSchemaVersion == version && migration.CurrentSchemaVersion == 6 && migration.Documents == 1, $"v{version} copy-only migration upgrades verified destination");
             Check(File.ReadAllBytes(Path.Combine(source, "study.sqlite3")).SequenceEqual(originalDatabase), $"v{version} source database bytes untouched");
             Check(migration.CredentialReferences == 1 && migration.ContentSha256.Length == 64, "cutover validates credential references without reading secrets");
             using var receipt = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(destination, "migration-receipt.json")));
@@ -204,12 +205,12 @@ internal static partial class Program
     {
         string path = CreateLegacy(2);
         await using (var upgraded = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)))
-            Check((await upgraded.InspectAsync()).SchemaVersion == 5, "question asset migration fixture initialized");
+            Check((await upgraded.InspectAsync()).SchemaVersion == 6, "question asset migration fixture initialized");
         using (var database = Db(path)) Sql(database, "DROP TABLE question_assets; PRAGMA user_version=4;");
         await using (var readOnly = await LibraryRepository.OpenAsync(new(path)))
             Check((await readOnly.InspectAsync()).SchemaVersion == 4, "v4 library remains readable without modification");
         await using var repository = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite));
-        Check((await repository.InspectAsync()).SchemaVersion == 5, "v4 library upgrades to question image assets without repeating question migration");
+        Check((await repository.InspectAsync()).SchemaVersion == 6, "v4 library upgrades to question image assets without repeating question migration");
         var document = await repository.GetDocumentAsync(Fixture<Document>("document").Id);
         Check((await repository.ReadAssetAsync(document.Pages[0].AssetId)).Bytes.SequenceEqual(png), "question asset migration preserves original source bytes");
         await repository.VerifyIntegrityAsync();
@@ -263,7 +264,7 @@ internal static partial class Program
         var rawBefore = RawRows(source);
         var assetsBefore = Directory.GetFiles(Path.Combine(source, "assets")).ToDictionary(path => Path.GetFileName(path)!, File.ReadAllBytes, StringComparer.Ordinal);
         var migration = await LibraryMigrationService.CopyAndUpgradeAsync(source + Path.DirectorySeparatorChar, backup, destination);
-        Check(migration.OriginalSchemaVersion == 2 && migration.CurrentSchemaVersion == 5 && migration.Questions == 1, "complex v2 migration includes nested question and historical runs");
+        Check(migration.OriginalSchemaVersion == 2 && migration.CurrentSchemaVersion == 6 && migration.Questions == 1, "complex v2 migration includes nested question and historical runs");
         Check(databaseBefore.SequenceEqual(File.ReadAllBytes(Path.Combine(source, "study.sqlite3"))), "complex migration leaves original database bytes unchanged");
         foreach (string path in new[] { backup, destination })
         {

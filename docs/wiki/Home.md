@@ -16,7 +16,7 @@ The main workflow is **configure a model → import an exam → follow recogniti
 
 ## Detailed guide
 
-The [Feature Guide](Feature-Guide.md) covers model setup, all three import modes, original-page navigation, structured editing, reference answers, re-recognition, progress, execution permissions, costs, exports, library management, appearance, and troubleshooting.
+The [Feature Guide](Feature-Guide.md) covers model setup, automatic detection and three explicit import modes, supplementary student answers, original-page navigation, structured editing, reference answers, re-recognition, progress, execution permissions, costs, exports, library management, appearance, and troubleshooting.
 
 Its nine dedicated guides include field explanations, step-by-step workflows, examples, limitations, and recovery advice. Start with [models and costs](Features-Models.md), or go directly to [editing](Features-Workspace-Editing.md), [tasks](Features-Tasks.md), [PDF export](Features-Export.md), or [library recovery](Features-Library.md).
 
@@ -36,4 +36,4 @@ This wiki describes the current repository implementation. Older releases may di
 
 The maintained Wiki now lives in `docs/wiki`. Use [contents](_Sidebar.md) for all chapters and [migration notes](README.md) for provenance.
 
-Current behavior includes shared stems and ordered items, dedicated question reading pages, local text and optional [meaning search](Features-Search.md), [task retry recovery](Features-Tasks.md), batch page reads/saves, reusable one-hour file uploads, persistent Python, generated study images, and SQLite v5. Older releases may differ.
+Current behavior includes shared stems and ordered items, dedicated question reading pages, local text and optional [meaning search](Features-Search.md), [task retry recovery](Features-Tasks.md), batch page reads/saves, reusable one-hour file uploads, persistent Python, generated study images, and SQLite v6. Older releases may differ.

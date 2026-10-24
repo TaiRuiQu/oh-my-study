@@ -20,7 +20,7 @@ The media processor prepares decoded images and thumbnails outside the database 
 
 A page ID is not its current displayed number. PageIndex controls ordering; PDF page index locates the source within the original PDF. Regions refer to page IDs. Reordering changes presentation without making every question point to a different physical page.
 
-Material and reference are explicit roles. Question/attempt image evidence must belong to material pages; answer references must use reference pages. The validator rejects cross-role regions even when their coordinates would otherwise be valid.
+Material, reference, and supplementary student-answer pages have explicit roles (`material`, `reference`, and `student`). Question sources and content images require material pages; student responses and teacher annotations can cite material or student pages; reference answers require reference pages. The validator checks these roles before saving. All three roles share the 12-page exam limit.
 
 ## One coordinate convention
 
@@ -36,6 +36,8 @@ For W=1000 and H=2000, (0.1,0.2,0.3,0.1) means (100,400,300,200). A 90-degree di
 The read_pages response supplies ordered per-page results, crop, rotation, dimensions, coordinate-system labels, and local image paths. Model regions use integer bbox corners from 0 to 999; stored regions use the fractional rectangles above. A crop helps inspect detail, but returned crop pixels must not be mistaken for full-page coordinates.
 
 ## Reading performance without changing evidence
+
+`NativePageImages` separates model transfers from display/export reads. Model pages, crops, and generated-image previews target 200 KiB before base64 encoding, using lossless PNG when small or color JPEG with quality and size floors. Reaching those floors can leave images above the target. Original assets and display/export reads are not replaced by the model-compressed bytes.
 
 Bounded page caching limits retained raster work. Reading services select/refresh presentation resources while cancellation/generation handling prevents stale work from replacing a newly selected document. Cache eviction affects speed and memory, not the durable original.
 

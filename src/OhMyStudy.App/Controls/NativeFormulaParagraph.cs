@@ -22,7 +22,10 @@ namespace OhMyStudy.App.Controls;
 /// <summary>Host-owned DirectWrite paragraph layout with native formula inline objects.</summary>
 internal sealed unsafe partial class NativeFormulaParagraph : Grid
 {
-    internal readonly record struct Part(string Text, MathDocument? Formula);
+    internal readonly record struct Part(string Text, MathDocument? Formula, string? OriginalFormula = null)
+    {
+        internal string FormulaSource => OriginalFormula ?? Formula!.Source;
+    }
     private readonly string _source;
     private readonly IReadOnlyList<Part> _parts;
     private readonly double _availableWidth, _fontSize;
@@ -59,9 +62,9 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
         copy.Invoked += (_, args) => { Copy(_source); args.Handled = true; }; KeyboardAccelerators.Add(copy);
         var menu = new MenuFlyout(); var all = new MenuFlyoutItem { Text = UiText.Get("Copy") }; all.Click += (_, _) => Copy(_source); menu.Items.Add(all);
         int index = 0;
-        foreach (var part in parts.Where(part => part.Formula is not null))
+        foreach (var part in parts.Where(part => part.Formula is not null).DistinctBy(part => part.FormulaSource))
         {
-            var item = new MenuFlyoutItem { Text = UiText.Format("Copy formula {0}", ++index) }; string formula = part.Formula!.Source;
+            var item = new MenuFlyoutItem { Text = UiText.Format("Copy formula {0}", ++index) }; string formula = part.FormulaSource;
             item.Click += (_, _) => Copy(formula); menu.Items.Add(item);
         }
         if (!preview) ContextFlyout = menu;
@@ -92,7 +95,8 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
             else { ranges.Add((text.Length, part.Formula)); text.Append('\uFFFC'); }
         }
         string value = text.ToString(); if (value.Length == 0) value = " ";
-        fixed (char* characters = value) Check(((delegate* unmanaged[Stdcall]<nint, char*, uint, nint, float, float, nint*, int>)Slot(_factory, 18))(_factory, characters, (uint)value.Length, _format, (float)_availableWidth, 32768, &layout)); _layout = layout;
+        const double surfacePadding = 2;
+        fixed (char* characters = value) Check(((delegate* unmanaged[Stdcall]<nint, char*, uint, nint, float, float, nint*, int>)Slot(_factory, 18))(_factory, characters, (uint)value.Length, _format, (float)Math.Max(1, _availableWidth - surfacePadding), 32768, &layout)); _layout = layout;
         _handle = GCHandle.Alloc(this);
         foreach (var range in ranges)
         {
@@ -111,7 +115,7 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
         _lineBaselines.Clear(); float lineTop = 1;
         foreach (var line in lines) { _lineBaselines.Add(lineTop + line.Baseline); lineTop += line.Height; }
         _fullHeight = Math.Ceiling(metrics.Height) + 2;
-        Width = Math.Max(1, Math.Ceiling(Math.Max(metrics.WidthIncludingTrailingWhitespace, Math.Min(_availableWidth, metrics.Width))) + 2);
+        Width = Math.Max(1, Math.Ceiling(Math.Max(metrics.WidthIncludingTrailingWhitespace, Math.Min(_availableWidth - surfacePadding, metrics.Width))) + surfacePadding);
         if (_preview && _fullHeight > 48)
         {
             double shown = 0; int visible = 0;
@@ -218,27 +222,27 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
         protected override IList<AutomationPeer> GetChildrenCore()
         {
             var children = new List<AutomationPeer>();
-            foreach (var part in owner._parts) if (part.Formula is { } formula) children.Add(new FormulaPeer(formula));
+            foreach (var part in owner._parts.Where(part => part.Formula is not null).DistinctBy(part => part.FormulaSource)) children.Add(new FormulaPeer(part.FormulaSource));
             return children;
         }
         public bool IsReadOnly => true; public string Value => owner._source;
         public void SetValue(string value) => throw new InvalidOperationException(UiText.Get("Question content cannot be edited here."));
     }
-    private sealed partial class FormulaPeer(MathDocument formula) : AutomationPeer, IValueProvider
+    private sealed partial class FormulaPeer(string source) : AutomationPeer, IValueProvider
     {
         protected override string GetClassNameCore() => "Formula";
         protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
-        protected override string GetNameCore() => formula.Source;
+        protected override string GetNameCore() => source;
         protected override string GetLocalizedControlTypeCore() => UiText.Get("Formula");
         protected override string GetHelpTextCore() => UiText.Get("Copy this formula from the question menu.");
         protected override object GetPatternCore(PatternInterface pattern) => pattern == PatternInterface.Value ? this : base.GetPatternCore(pattern);
-        public bool IsReadOnly => true; public string Value => formula.Source;
+        public bool IsReadOnly => true; public string Value => source;
         public void SetValue(string value) => throw new InvalidOperationException(UiText.Get("Formulas cannot be edited here."));
     }
     internal int FormulaCount => _parts.Count(part => part.Formula is not null);
     internal string Source => _source;
     internal bool NativeSurfaceReady => _surface is not null;
-    internal IReadOnlyList<string> FormulaSources => _parts.Where(part => part.Formula is not null).Select(part => part.Formula!.Source).ToArray();
+    internal IReadOnlyList<string> FormulaSources => _parts.Where(part => part.Formula is not null).Select(part => part.FormulaSource).Distinct().ToArray();
     internal bool BaselineChecksPassed => (_preview || _placements.Count == FormulaCount) && _placements.All(item => _lineBaselines.Any(line => Math.Abs(line - item.Y - item.Baseline) < .02f)) && _glyphBaselines.All(value => _lineBaselines.Any(line => Math.Abs(line - value) < .02f));
     internal IReadOnlyList<float> LineBaselines => _lineBaselines;
     internal void RebuildForAcceptance(double density) => Rebuild(density);

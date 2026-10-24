@@ -61,24 +61,24 @@ public static class GradingValidation
     {
         Require(item.Points is not { } points || (double.IsFinite(points) && points >= 0), "Invalid item points");
         foreach (var image in item.Prompt.OfType<ImageContent>()) ValidateRegion(image.Region, doc, "material");
-        Require(doc.Mode == ImportMode.Blank ? item.Attempt is null : item.Attempt is not null,
+        Require(doc.Mode switch { ImportMode.Blank => item.Attempt is null, ImportMode.Auto => true, _ => item.Attempt is not null },
             doc.Mode == ImportMode.Blank ? "Blank exams must not create student attempts or unanswered records" : "Preserve attempts from answered materials; mark illegible answers uncertain");
         if (item.Attempt is not { } a) return;
-        foreach (var region in a.StudentRegions) ValidateRegion(region, doc, "material");
+        foreach (var region in a.StudentRegions) ValidateRegion(region, doc, doc.Pages.FirstOrDefault(p => p.Id == region.PageId)?.Role == "student" ? "student" : "material");
         ValidateGrade(a.Grade);
         Require(manual || a.Grade.Source != GradeSource.Manual, "AI cannot mark results as manually edited by the user");
         Require(a.Grade.Possible is null || item.Points is null || a.Grade.Possible == item.Points, "Possible grade points do not match item points");
         if (a.Teacher is { } t)
         {
-            foreach (var region in t.Regions) ValidateRegion(region, doc, "material");
+            foreach (var region in t.Regions) ValidateRegion(region, doc, doc.Pages.FirstOrDefault(p => p.Id == region.PageId)?.Role == "student" ? "student" : "material");
             if (t.Grade is { } g)
             {
                 ValidateGrade(g);
                 Require(g.Source == GradeSource.Teacher, "Teacher grades must use the teacher source");
-                if (doc.Mode == ImportMode.TeacherGraded && !manual) Require(g.Verdict == a.Grade.Verdict && g.Earned == a.Grade.Earned && g.Possible == a.Grade.Possible && g.Source == a.Grade.Source, "Teacher mode must preserve explicit teacher results");
+                if (doc.Mode is (ImportMode.TeacherGraded or ImportMode.Auto) && !manual) Require(g.Verdict == a.Grade.Verdict && g.Earned == a.Grade.Earned && g.Possible == a.Grade.Possible && g.Source == a.Grade.Source, "Teacher mode must preserve explicit teacher results");
             }
         }
-        bool teacherPriority = doc.Mode == ImportMode.TeacherGraded && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null);
+        bool teacherPriority = doc.Mode is (ImportMode.TeacherGraded or ImportMode.Auto) && (a.Grade.Source == GradeSource.Teacher || a.Teacher?.Grade is not null);
         if (!manual && !teacherPriority && refs.FirstOrDefault(r => r.MatchedItemKey == item.Key) is { } reference)
             Require(a.ReferenceKey == reference.Key, "This item has a matched reference answer that must be used for grading");
         if (a.ReferenceKey is { } key)

@@ -32,6 +32,14 @@ Question saves normally contain 4–8 questions per call. Short, simple question
 
 Every profile retains source preservation, language and mathematics rules, notebook-style Python state, protected user edits, and server-side validation. Model-specific wording changes how the model uses these tools; library writes still pass through the same validated save operations.
 
+## Paper information, solutions, and student responses
+
+`save_paper_info.name` is an optional nullable title transcribed from the exam. Missing, null, or whitespace names retain the import name; user-edited paper information is protected. Renaming does not invalidate page snapshots or coverage, and failed-run retry restores the previous title.
+
+Every readable item requests `answer` and `explanation`, including blank papers with `attempt=null`. The explanation contains the concise standard solution; the legacy `attempt.ai_solution` field remains readable but need not duplicate it. Unknown answers require a specific uncertainty rather than invented content. `attempt.error_analysis` is nullable and describes evidence-supported causes for incorrect or partial work; uncertain causes, correct answers, and absent work use null.
+
+Supplementary pages use `role=student`. The model matches them to existing stable item keys and supplies `attempt.student_page_ids` for evidence without repeating question stems or creating duplicate questions. Manually entered answers are preserved while their AI grade and error analysis can be updated. Adding responses to blank papers enables automatic grading; changing an entered response clears its old result.
+
 ## Guidance and validation
 
 Reviewed on 2026-10-23. The profiles adapt these official sources to exam organization and grading:

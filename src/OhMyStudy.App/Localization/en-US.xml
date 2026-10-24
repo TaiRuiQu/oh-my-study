@@ -766,4 +766,15 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0757" xml:space="preserve">Uploading images to the provider Files API</text>
     <text key="S0758" xml:space="preserve">The provider rejected a Files API operation. Check Support Files API and the provider&apos;s file permissions or expiration support.</text>
     <text key="S0759" xml:space="preserve">The request is too large. Enable Support Files API if the provider supports it, or recognize fewer pages at a time.</text>
+    <text key="S0760" xml:space="preserve">Detect automatically</text>
+    <text key="S0761" xml:space="preserve">Provider</text>
+    <text key="S0762" xml:space="preserve">Upload student answers</text>
+    <text key="S0763" xml:space="preserve">Enter student answer</text>
+    <text key="S0764" xml:space="preserve">Error analysis</text>
+    <text key="S0765" xml:space="preserve">Enter the student&apos;s own work. Recognize again to grade it and analyze mistakes.</text>
+    <text key="S0766" xml:space="preserve">Student answers added. Recognize again to grade them.</text>
+    <text key="S0767" xml:space="preserve">Student answer changed; recognize again to grade it.</text>
+    <text key="S0768" xml:space="preserve">Confirm result</text>
+    <text key="S0769" xml:space="preserve">Result confirmed.</text>
+    <text key="S0770" xml:space="preserve">Could not confirm. Wait for the task to finish and retry.</text>
 </resources>

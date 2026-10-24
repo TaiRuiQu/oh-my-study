@@ -21,7 +21,7 @@ Reference-only tasks include page reading, reference saving, computation, and fi
 
 ## Bounds and recovery
 
-A task has at most 60 model turns and a linked 20-minute deadline. Two consecutive text-only replies receive continuation prompts; the third fails. Invalid tool arguments get correction feedback; successful entries must not be repeated merely because another entry failed.
+A task has at most 60 model turns and a linked 20-minute deadline. Two consecutive text-only replies receive continuation prompts; the third fails. Invalid tool arguments get correction feedback; successful entries must not be repeated merely because another entry failed. Arguments that are not one JSON object, including truncated or malformed streams, are never executed and do not end the task: each such call is answered with a correction message so the model can retry.
 
 Transient network, interrupted-stream, service, and rate-limit failures allow up to four attempts per round. Delays are normally 1, 2, and 4 seconds; Retry-After can extend a wait to 30 seconds. Incomplete responses are not executed. Authentication, invalid parameters, refusals, and explicit output-limit failures are not automatically retried. Earlier completed rounds remain intact; unreported retry usage makes cost unknown.
 

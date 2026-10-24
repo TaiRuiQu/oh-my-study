@@ -766,4 +766,15 @@
     <text key="S0757" xml:space="preserve">正在向供应商的 Files API 上传图片</text>
     <text key="S0758" xml:space="preserve">供应商拒绝了 Files API 操作。请检查是否支持 Files API，以及文件权限和过期参数。</text>
     <text key="S0759" xml:space="preserve">请求体过大。如果供应商支持，请启用 Files API；也可减少单次识别的页数。</text>
+    <text key="S0760" xml:space="preserve">自动识别</text>
+    <text key="S0761" xml:space="preserve">模型供应商</text>
+    <text key="S0762" xml:space="preserve">上传学生作答</text>
+    <text key="S0763" xml:space="preserve">录入学生作答</text>
+    <text key="S0764" xml:space="preserve">错因分析</text>
+    <text key="S0765" xml:space="preserve">录入学生自己的作答过程。保存后重新识别，即可批改并分析错因。</text>
+    <text key="S0766" xml:space="preserve">已添加学生作答。请重新识别以进行批改。</text>
+    <text key="S0767" xml:space="preserve">学生作答已更改，请重新识别以进行批改。</text>
+    <text key="S0768" xml:space="preserve">确认结果</text>
+    <text key="S0769" xml:space="preserve">已确认结果。</text>
+    <text key="S0770" xml:space="preserve">未能确认。请等待任务结束后重试。</text>
 </resources>

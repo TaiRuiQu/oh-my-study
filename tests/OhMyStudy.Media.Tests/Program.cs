@@ -90,6 +90,79 @@ await Check("model_entire_page_dimensions_are_bounded", async () =>
     Assert(crop.Width == 2700 && crop.Height == 3600);
 });
 await Check("ui_raster_is_bounded", async () => { var raster = await images.RasterForUiAsync(gridPng, 2); Assert(raster.Width == 2 && raster.Height == 1); });
+await Check("model_scan_compression_preserves_text_color_and_original", async () =>
+{
+    const int width = 1600, height = 2200;
+    byte[] pixels = new byte[width * height * 4];
+    var random = new Random(42);
+    for (int offset = 0; offset < pixels.Length; offset += 4)
+    {
+        byte paper = (byte)random.Next(246, 256);
+        pixels[offset] = paper; pixels[offset + 1] = paper; pixels[offset + 2] = paper; pixels[offset + 3] = 255;
+    }
+    for (int row = 0; row < 24; row++)
+        for (int x = 100; x < 1500; x++)
+        {
+            int y = 160 + row * 75 + x % 23;
+            for (int stroke = 0; stroke < 3; stroke++)
+            {
+                int offset = ((y + stroke) * width + x) * 4;
+                pixels[offset] = 15; pixels[offset + 1] = 15; pixels[offset + 2] = 15;
+            }
+        }
+    for (int y = 70; y < 110; y++) for (int x = 100; x < 400; x++)
+    {
+        int offset = (y * width + x) * 4;
+        pixels[offset] = 10; pixels[offset + 1] = 10; pixels[offset + 2] = 220;
+    }
+    byte[] source = await NativeImageCodec.EncodePngAsync(pixels, width, height, default);
+    byte[] hash = SHA256.HashData(source);
+    Assert(source.Length > 500 * 1024);
+    var result = await images.ReadAsync(source, null, 0, default);
+    byte[] compressed = Convert.FromBase64String(result.Image.Base64);
+    Console.WriteLine($"Scan compression: {source.Length} -> {compressed.Length} bytes; {result.Width}x{result.Height}");
+    Assert(result.Image.Mime == "image/jpeg" && compressed.Length <= 200 * 1024 && compressed.Length < source.Length);
+    Assert(Math.Max(result.Width, result.Height) >= 1280 && SHA256.HashData(source).SequenceEqual(hash));
+    var raster = await images.RasterForUiAsync(compressed, height);
+    Assert(raster.Width == result.Width && raster.Height == result.Height);
+    int red = ((int)(90d * raster.Height / height) * raster.Width + (int)(200d * raster.Width / width)) * 4;
+    Assert(raster.Bgra32[red + 2] > 180 && raster.Bgra32[red] < 40 && raster.Bgra32[red + 1] < 40);
+    int ink = ((int)(179.5 * raster.Height / height) * raster.Width + (int)(110.5 * raster.Width / width)) * 4;
+    Assert(raster.Bgra32[ink] < 70);
+    var display = await images.ReadForDisplayAsync(source, null, 0);
+    var displayRaster = await images.RasterForUiAsync(Convert.FromBase64String(display.Image.Base64), height);
+    Assert(display.Image.Mime == "image/png" && displayRaster.Bgra32.SequenceEqual(pixels));
+    string evidence = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(reportPath))!, "model-images");
+    Directory.CreateDirectory(evidence);
+    await File.WriteAllBytesAsync(Path.Combine(evidence, "scan-original.png"), source);
+    await File.WriteAllBytesAsync(Path.Combine(evidence, "scan-model.jpg"), compressed);
+});
+await Check("model_noisy_crop_compression_reports_actual_rotated_dimensions", async () =>
+{
+    const int width = 1200, height = 1600;
+    byte[] pixels = new byte[width * height * 4];
+    new Random(73).NextBytes(pixels);
+    for (int offset = 3; offset < pixels.Length; offset += 4) pixels[offset] = 255;
+    byte[] source = await NativeImageCodec.EncodePngAsync(pixels, width, height, default);
+    var result = await images.ReadAsync(source, new Region { PageId = "synthetic", X = 0, Y = 0, Width = 1, Height = 1 }, 90, default);
+    byte[] compressed = Convert.FromBase64String(result.Image.Base64);
+    Assert(result.Image.Mime == "image/jpeg" && Math.Max(result.Width, result.Height) == 1280);
+    Assert(result.Width < height && result.Height < width && Math.Abs(result.Width / (double)result.Height - height / (double)width) < 0.01);
+    var raster = await images.RasterForUiAsync(compressed, height);
+    Assert(raster.Width == result.Width && raster.Height == result.Height);
+});
+await Check("model_jpeg_composites_transparency_on_white", async () =>
+{
+    const int width = 1000, height = 1000;
+    byte[] pixels = new byte[width * height * 4];
+    new Random(17).NextBytes(pixels);
+    for (int offset = 3; offset < pixels.Length; offset += 4) pixels[offset] = 0;
+    byte[] source = await NativeImageCodec.EncodePngAsync(pixels, width, height, default);
+    Assert(source.Length > 500 * 1024);
+    var result = await images.ReadAsync(source, null, 0, default);
+    var raster = await images.RasterForUiAsync(Convert.FromBase64String(result.Image.Base64), height);
+    Assert(result.Image.Mime == "image/jpeg" && raster.Bgra32.All(value => value >= 254));
+});
 await Check("jpeg_native_decode_and_png_model_output", async () =>
 {
     using var stream = new InMemoryRandomAccessStream();

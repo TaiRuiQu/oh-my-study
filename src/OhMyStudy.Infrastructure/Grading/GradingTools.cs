@@ -33,8 +33,9 @@ public static class GradingTools
         };
         if (!referenceOnly)
         {
-            result.Add(Define("save_paper_info", "Save the subject and printed or fully derived total scores. User-edited values are preserved.", Object(new()
+            result.Add(Define("save_paper_info", "Save the paper name, subject, and printed or fully derived total scores. User-edited values are preserved.", Object(new()
             {
+                ["name"] = Describe(Nullable(String()), "Optional exam title visible on the paper, preserving its language, at most 240 characters. Use null or omit if no title is visible; never invent one or use a student name. The import filename remains the fallback."),
                 ["subject"] = Describe(Nullable(String()), "Subject inferred from this paper, in Simplified Chinese; use a general-studies label for mixed subjects or null if unknown."),
                 ["earned"] = Describe(Nullable(Number()), "Total earned points. Use null when unknown, when possible is unknown, or for blank papers. Cannot exceed possible."),
                 ["possible"] = Describe(Nullable(Number()), "Total possible points, or null when unknown. Omitted score fields are treated as null.")
@@ -120,16 +121,18 @@ public static class GradingTools
         var attempt = Object(new()
         {
             ["student_answer"] = String("Student response to this item only, preserving its language. Do not include teacher marks, reference answers, or AI solutions."),
+            ["student_page_ids"] = Describe(Array(String()), "Optional source page IDs for this student response, from material or student pages. Match supplementary student pages to existing item keys; never create duplicate questions from them."),
+            ["error_analysis"] = Describe(Nullable(String()), "For an incorrect or partially correct student response, explain the specific error and a useful correction in Simplified Chinese, grounded in visible work. Use null if the cause is unclear, the response is unreadable or blank, or the answer is correct. Do not guess a misconception from a wrong final answer alone."),
             ["teacher"] = Describe(Nullable(Object(new()
             {
                 ["raw"] = String("Verbatim teacher comments or deduction marks for this item; do not invent missing text."),
                 ["grade"] = Describe(Nullable(Grade()), "Explicit teacher result, with source=teacher. In teacher mode its verdict/scores/source must agree with attempt.grade. Omit or use null if unknown.")
             }, [])), "Teacher annotations, separate from the student response. Omit when unavailable; explicit null clears this field unless protected."),
             ["reference_key"] = Describe(Nullable(String()), "Key of a saved reference matched to this exact item key. Required when grading by a matched reference; null when none applies."),
-            ["ai_solution"] = String("Your own solution for this item in Simplified Chinese, kept separate from the student and reference answers."),
+            ["ai_solution"] = String("Legacy solution field; prefer item.answer and item.explanation for the standard answer and solution, including on blank papers. Omit to avoid repeating the same solution."),
             ["conflict"] = Describe(Nullable(String()), "Explain disagreement with the matched reference while still grading by that reference; null when there is no conflict."),
             ["grade"] = Describe(Grade(), "Verdict and scores for this item based on teacher priority, a matched reference, or your solution. Omission preserves the saved grade or defaults to uncertain.")
-        }, []);
+        }, ["error_analysis"]);
         var item = Object(new()
         {
             ["key"] = String("Nonempty stable item key, unique across all items of the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. References match this key."),
@@ -137,10 +140,10 @@ public static class GradingTools
             ["prompt"] = Content("Content specific to this subquestion in reading order. Leave empty for a question without subquestions, whose whole text belongs in stem."),
             ["options"] = Describe(Array(String()), "Answer options for this item in printed order, including their labels; omit if unavailable."),
             ["points"] = Describe(Nullable(Number()), "Maximum points for this item; null if unknown. Question totals are derived from item points."),
-            ["answer"] = String("Verified standard answer for this item, kept separate from student work. Omit when unknown."),
-            ["explanation"] = String("Solution explanation for this item in Simplified Chinese, without student work; omit when unavailable."),
-            ["attempt"] = Describe(Nullable(attempt), "Must be null on a blank paper. On answered papers, keep a nonnull attempt; distinguish visibly unanswered from unreadable/uncertain. Omitted fields preserve existing information.")
-        }, ["key"]);
+            ["answer"] = String("Standard answer for this item, from a verified reference or your own solution. Generate it even on a blank paper. Use an empty string only when the answer cannot be determined and explain why in uncertainties."),
+            ["explanation"] = String("Concise complete standard solution in Simplified Chinese, including the essential steps or justification. Generate it even on a blank paper, independently of student work. Do not repeat it in attempt.ai_solution."),
+            ["attempt"] = Describe(Nullable(attempt), "Must be null on a blank paper. On answered papers, keep a nonnull attempt; distinguish visibly unanswered from unreadable/uncertain. Student answers, teacher marks, references, solutions, and grades belong inside attempt, never directly on the item. Omitted fields preserve existing information.")
+        }, ["key", "answer", "explanation"]);
         return Object(new()
         {
             ["draft_key"] = String("Nonempty stable question key, unique across the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. Coverage lists this key."),
@@ -158,6 +161,22 @@ public static class GradingTools
     internal static JsonObject WithSourceRegions(JsonElement args, IReadOnlyList<Region>? previous)
     {
         var result = JsonNode.Parse(args.GetRawText()) as JsonObject ?? throw new JsonException("Expected an object.");
+        LiftAttemptFields(result);
+        if (result["items"] is JsonArray items)
+            foreach (var item in items.OfType<JsonObject>())
+                if (item["attempt"] is JsonObject attempt && attempt.Remove("student_page_ids", out var studentPages))
+                {
+                    if (studentPages is not JsonArray answerPageIds) throw new JsonException("student_page_ids must be an array.");
+                    var regions = new JsonArray();
+                    var seenPages = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (var page in answerPageIds)
+                    {
+                        string id = page?.GetValue<string>() ?? throw new JsonException("Student page IDs must be strings.");
+                        if (string.IsNullOrWhiteSpace(id) || !seenPages.Add(id)) throw new JsonException("Student page IDs must be nonempty and unique.");
+                        regions.Add(JsonNode.Parse(DomainJson.Serialize(new Region { PageId = id, X = 0, Y = 0, Width = 1, Height = 1 })));
+                    }
+                    attempt["student_regions"] = regions;
+                }
         GradingCoordinates.ToStoredRegions(result);
         if (!result.Remove("source_page_ids", out var pages)) return result;
         if (result.ContainsKey("sources") || pages is not JsonArray { Count: > 0 } pageIds)
@@ -176,6 +195,25 @@ public static class GradingTools
         return result;
     }
 
+    private static readonly string[] AttemptFields = ["student_answer", "student_page_ids", "error_analysis", "teacher", "reference_key", "ai_solution", "conflict", "grade"];
+
+    // Models sometimes place answer fields beside attempt instead of inside it; lift them so both layouts save.
+    private static void LiftAttemptFields(JsonObject question)
+    {
+        if (question["items"] is not JsonArray items) return;
+        foreach (var entry in items.OfType<JsonObject>())
+        {
+            JsonObject? attempt = entry["attempt"] as JsonObject;
+            foreach (string field in AttemptFields)
+            {
+                if (entry[field] is not { } value) continue;
+                if (attempt is null) { attempt = new JsonObject(); entry["attempt"] = attempt; }
+                if (attempt[field] is null) attempt[field] = value.DeepClone();
+                entry.Remove(field);
+            }
+        }
+    }
+
     internal static void UsePageSources(JsonNode? node)
     {
         if (node is JsonArray array) { foreach (var item in array) UsePageSources(item); }
@@ -183,7 +221,9 @@ public static class GradingTools
         if (obj.Remove("sources", out var sources) && sources is JsonArray regions)
             obj["source_page_ids"] = new JsonArray(regions.Select(region => region!["page_id"]!.GetValue<string>())
                 .Distinct(StringComparer.Ordinal).Select(id => (JsonNode?)JsonValue.Create(id)).ToArray());
-        obj.Remove("student_regions");
+        if (obj.Remove("student_regions", out var studentRegions) && studentRegions is JsonArray studentPages)
+            obj["student_page_ids"] = new JsonArray(studentPages.Select(region => region!["page_id"]!.GetValue<string>()).Distinct(StringComparer.Ordinal).Select(id => (JsonNode?)JsonValue.Create(id)).ToArray());
+        obj.Remove("student_answer_edited");
         obj.Remove("regions");
         if (obj["region"] is JsonObject region) obj["region"] = GradingCoordinates.ToModelRegion(DomainJson.Deserialize<Region>(region.ToJsonString()));
         foreach (var property in obj) UsePageSources(property.Value);

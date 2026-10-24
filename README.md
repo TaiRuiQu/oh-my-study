@@ -6,8 +6,9 @@ A Windows study app for students. It imports exams, recognizes and grades questi
 
 ## Key features
 
-- Import PDF, PNG, JPEG, and WebP files; work with blank exams, exams awaiting grading, or exams already graded by a teacher.
-- View questions alongside the original and edit stems, answers, explanations, scores, and notes.
+- Import PDF, PNG, JPEG, and WebP files; automatically detect the exam type or select blank, answered, or teacher-graded mode.
+- Generate standard answers and solutions for blank exams; add student answer files or type responses later, then recognize again for grading and error analysis.
+- View questions alongside the original, confirm reviewed transcription concerns, and edit stems, answers, explanations, scores, and notes.
 - Organize saved questions in the question bank and wrong-question collection, and view recognition task progress and estimated costs.
 - Export questions, or answers and explanations, separately as A4 or A3 landscape PDFs.
 - Store exam originals and study materials locally, and change the library location when needed.
@@ -27,6 +28,7 @@ AI recognition and grading require an internet connection, send materials to the
 - [Wiki](docs/wiki/Home.md): [Quick Start](docs/wiki/Quick-Start.md), [Feature Guide](docs/wiki/Feature-Guide.md), and [Tech for nerds](docs/wiki/Tech-for-nerds.md).
 - [Installation, upgrade, and uninstallation](docs/installation.md): choosing a download, installation steps, and keeping your materials.
 - [Usage guide](docs/usage.md): model setup, exam import, question organization, PDF export, and FAQ.
+- [v0.1.9 release notes](docs/releases/v0.1.9.md): new workflows and the library v6 upgrade.
 
 ## License
 

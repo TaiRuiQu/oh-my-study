@@ -48,6 +48,7 @@ public sealed partial class MainWindow : Window
     private readonly string? _performanceReportPath;
     private CancellationTokenSource? _questionPresentationCancellation;
     private readonly ThemeSettings _themeSettings;
+    private Services.WindowBounds _windowBounds = Services.WindowBounds.Default;
     private sealed class PreviewInputException(string message) : Exception(message);
 
     public WorkspaceViewModel ViewModel { get; }
@@ -74,7 +75,8 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
         AppWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "App.ico"));
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+        RestoreWindowBounds();
+        AppWindow.Changed += (_, _) => CaptureWindowBounds();
         _themeSettings = ThemeSettings.CreateForWindowId(AppWindow.Id);
         _initialized = true;
         ViewModel.Questions.CollectionChanged += (_, _) => DispatcherQueue.TryEnqueue(() => { if (!_closed) UpdateQuestionState(); });
@@ -103,6 +105,49 @@ public sealed partial class MainWindow : Window
 
     private void AppTitleBar_PaneToggleRequested(TitleBar sender, object args)
         => Navigation.IsPaneOpen = !Navigation.IsPaneOpen;
+
+    private static string WindowStatePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "window.txt");
+
+    private static bool DiagnosticLaunch => Services.WindowBounds.IsDiagnosticLaunch(Environment.GetCommandLineArgs());
+
+    private void RestoreWindowBounds(string? statePath = null)
+    {
+        _windowBounds = Services.WindowBounds.Default;
+        if (statePath is not null || !DiagnosticLaunch)
+        {
+            try
+            {
+                string path = statePath ?? WindowStatePath;
+                if (File.Exists(path)) _windowBounds = Services.WindowBounds.Parse(File.ReadAllText(path));
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { AppLog.Error("Window.RestoreBounds", error); }
+        }
+        bool maximized = _windowBounds.Maximized;
+        var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+        AppWindow.Resize(new(Math.Min(_windowBounds.Width, area.Width), Math.Min(_windowBounds.Height, area.Height)));
+        if (maximized && AppWindow.Presenter is OverlappedPresenter overlapped) overlapped.Maximize();
+    }
+
+    private void CaptureWindowBounds()
+    {
+        if (AppWindow.Presenter is not OverlappedPresenter presenter) return;
+        if (presenter.State == OverlappedPresenterState.Maximized) _windowBounds = _windowBounds with { Maximized = true };
+        else if (presenter.State == OverlappedPresenterState.Restored && AppWindow.Size is { Width: >= 460, Height: >= 420 } size)
+            _windowBounds = new(size.Width, size.Height, false);
+    }
+
+    private void RememberWindowBounds(string? statePath = null)
+    {
+        if (statePath is null && DiagnosticLaunch) return;
+        try
+        {
+            CaptureWindowBounds();
+            string path = statePath ?? WindowStatePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, _windowBounds.ToString());
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { AppLog.Error("Window.SaveBounds", error); }
+    }
 
     private void RootGrid_ActualThemeChanged(FrameworkElement sender, object args)
     {
@@ -304,6 +349,7 @@ public sealed partial class MainWindow : Window
         _reviewSourceRegion = null;
         if (QuestionList.SelectedItem is QuestionViewModel selected) ViewModel.SelectedQuestion = selected;
         EditQuestionButton.IsEnabled = ViewModel.SelectedQuestion.Saved is not null;
+        StudentAnswerButton.IsEnabled = ViewModel.SelectedQuestion.Saved is not null;
         UpdateSourceHighlight();
         var question = ViewModel.SelectedQuestion.Saved;
         if (question is null || _library is null) { QuestionContentHost.Content = null; return; }
@@ -311,7 +357,9 @@ public sealed partial class MainWindow : Window
         if (clear) QuestionContentHost.Content = new TextBlock { Text = UiText.Get("Loading question…") };
         try
         {
-            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme);
+            var selectedQuestion = ViewModel.SelectedQuestion;
+            var content = await OhMyStudy.App.Services.NativeQuestionPresenter.CreateAsync(question.Question, _library, cancellation, _questionPresentationWidth, RootGrid.ActualTheme,
+                confirmResult: () => ConfirmQuestionAsync(selectedQuestion));
             if (!_closed && generation == _questionPresentationGeneration && ReferenceEquals(ViewModel.SelectedQuestion.Saved, question))
             {
                 QuestionContentHost.Content = content;

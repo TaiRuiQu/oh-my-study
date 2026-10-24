@@ -105,13 +105,17 @@ public sealed partial class MainWindow
             int multiIndex = _bankQuestions.ToList().FindIndex(item => item.Summary.ItemCount > 1);
             await OpenBankQuestionAsync(multiIndex); await Settle();
             Require(QuestionReaderPage.Visibility == Visibility.Visible && !NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Any(), "detail-continuous-paper-without-subquestion-tabs");
-            Require(NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 3 && QuestionPosition.Text.Contains('/'), "detail-all-subquestions-and-answer-controls-present");
+            Require(NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 1 && QuestionPosition.Text.Contains('/'), "detail-all-subquestions-and-answer-controls-present");
             Require(ParagraphTexts().Where(text => text.StartsWith("(1) ", StringComparison.Ordinal) || text.StartsWith("(2) ", StringComparison.Ordinal) || text.StartsWith("(3) ", StringComparison.Ordinal)).Count() == 3
                 && !NativeDescendants(QuestionPageHost).OfType<TextBlock>().Any(text => text.Text is "(1)" or "(2)" or "(3)"), "detail-labels-share-prompt-paragraphs");
             Require(QuestionPageBody.ActualWidth > 880 && Math.Abs(QuestionPageBody.ActualWidth - (QuestionPageScroll.ActualWidth - QuestionPageScroll.Padding.Left - QuestionPageScroll.Padding.Right)) < 2
                 && Math.Abs(PageNotesEditor.ActualWidth - QuestionPageBody.ActualWidth) < 2, "detail-and-notes-use-full-available-width");
+            Require(NativeDescendants(QuestionPageHost).OfType<NativeFormulaParagraph>().Any(paragraph => paragraph.FormulaCount > 5 && paragraph.Source.Contains("极大值")),
+                "detail-long-answer-renders-native-paragraph-with-formulas");
+            Require(NativeDescendants(QuestionPageHost).OfType<ScrollViewer>().Where(view => view.Content is NativeFormulaParagraph).All(view => view.ScrollableWidth < 1),
+                "detail-answer-paragraphs-fit-without-horizontal-scroll");
             await Capture("detail-parts");
-            NativeDescendants(QuestionPageHost).OfType<Expander>().ElementAt(1).IsExpanded = true; await Settle();
+            NativeDescendants(QuestionPageHost).OfType<Expander>().First().IsExpanded = true; await Settle();
             await Capture("detail-answer");
             string firstTitle = ViewModel.DocumentTitle;
             NextQuestion_Click(this, new RoutedEventArgs()); await Settle();
@@ -122,7 +126,7 @@ public sealed partial class MainWindow
             RootGrid.RequestedTheme = ElementTheme.Light;
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Settle();
             PreviousQuestion_Click(this, new RoutedEventArgs()); await Settle();
-            Require(ViewModel.DocumentTitle == firstTitle && NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 3
+            Require(ViewModel.DocumentTitle == firstTitle && NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 1
                 && ParagraphTexts().Any(text => text.StartsWith("(3) ", StringComparison.Ordinal)), "detail-previous-restores-complete-question");
             ViewModel.OpenQuestion.Notes = "复习：先写定义域，再讨论单调性。"; await Settle();
             Require(ViewModel.HasUnsavedChanges, "notes-dirty");
@@ -154,7 +158,7 @@ public sealed partial class MainWindow
             await Capture("mistakes");
             int mistakeMulti = _bankQuestions.ToList().FindIndex(item => item.Summary.ItemCount > 1);
             await OpenBankQuestionAsync(mistakeMulti); await Settle();
-            Require(!NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Any() && NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 3
+            Require(!NativeDescendants(QuestionPageHost).OfType<SelectorBar>().Any() && NativeDescendants(QuestionPageHost).OfType<Expander>().Count() == 1
                 && QuestionBackLabel.Text == UiText.Get("Mistakes"), "mistakes-shows-complete-question-with-all-subquestion-results");
             await Capture("mistakes-detail");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Settle(); await Capture("mistakes-detail-dark");
@@ -240,6 +244,7 @@ public sealed partial class MainWindow
     private sealed class BankSmokeRunner(LibraryRepository library) : IJobRunner
     {
         public const int Count = 120;
+        internal const string LongResponse = @"因为 \(g(x)=f'(x)=e^x-x-a\) 在 \((0,+\infty)\) 上单调递增，当 \(a>1\) 时 \(g(0)=1-a<0\)，故存在 \(x_1<x_2\) 使得 \(g(x_1)=g(x_2)=0\)，从而 \(f(x)\) 在 \((-\infty,x_1)\) 上单调递增，在 \((x_1,x_2)\) 上单调递减，在 \((x_2,+\infty)\) 上单调递增，所以 \(f(x_1)\) 是极大值，\(f(x_2)\) 是极小值，且 \(f(x_1)+f(x_2)=e^{x_1}+e^{x_2}-\frac{1}{2}(x_1^2+x_2^2)-a(x_1+x_2)>2\) 成立。";
 
         public async Task RunAsync(Job job, JobContext context)
         {
@@ -309,7 +314,7 @@ public sealed partial class MainWindow
                 Stem = Stem(subject, index),
                 Sources = [region],
                 KnowledgePoints = ["综合分析"],
-                Items = [Item(1, "PSⅡ 位于什么结构上？", Verdict.Correct, 2, 2, "类囊体薄膜"), Item(2, "写出关键关系式并说明理由。", Verdict.Incorrect, 0, 3, "不会"), Item(3, "根据材料推断并说明原因。", Verdict.Partial, 2, 5, "光照过强导致电子积累")]
+                Items = [Item(1, "PSⅡ 位于什么结构上？", Verdict.Correct, 2, 2, "类囊体薄膜"), Item(2, "写出关键关系式并说明理由。", Verdict.Incorrect, 0, 3, "不会"), Item(3, "根据材料推断并说明原因。", Verdict.Partial, 2, 5, LongResponse)]
             };
         }
     }

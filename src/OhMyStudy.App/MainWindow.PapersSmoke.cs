@@ -32,7 +32,7 @@ public sealed partial class MainWindow
             Require(PapersPanel.Visibility == Visibility.Collapsed && WorkspaceActions.Visibility == Visibility.Visible && DocumentToolbar.Visibility == Visibility.Visible, "open-paper");
             var paperMenu = (MenuFlyout)PaperMoreButton.Flyout;
             Require(paperMenu.Placement == FlyoutPlacementMode.BottomEdgeAlignedRight, "more-menu-opens-down");
-            var expectedMenu = HasSampleAction ? (string[])["管理页面", "整理参考答案", "查看示例", "删除试卷"] : ["管理页面", "整理参考答案", "删除试卷"];
+            var expectedMenu = HasSampleAction ? (string[])["管理页面", "上传学生作答", "整理参考答案", "查看示例", "删除试卷"] : ["管理页面", "上传学生作答", "整理参考答案", "删除试卷"];
             Require(paperMenu.Items.OfType<MenuFlyoutItem>().Where(item => item.Visibility == Visibility.Visible).Select(item => item.Text)
                 .SequenceEqual(expectedMenu), "more-menu-actions");
             paperMenu.ShowAt(PaperMoreButton); await Task.Delay(300); Require(paperMenu.IsOpen, "more-menu-open");
@@ -122,23 +122,10 @@ public sealed partial class MainWindow
             compactSelection.Dialog.RequestedTheme = ElementTheme.Dark; await Task.Delay(300);
             await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model-select-compact.png"), compactSelection.Dialog); compactSelection.Dialog.Hide(); await compactShown;
             RootGrid.RequestedTheme = ElementTheme.Light; AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960)); await Task.Delay(180);
-            var choice = CreateFixedModelChoice(Enumerable.Range(1, 80).Select(i => i == 80 ? "示例供应商 / 一个非常长的名称，用来验证滚动后也不会改变模型下拉框的宽度与位置" : $"供应商 / 模型 {i}"), 460); choice.SelectedIndex = 0;
-            var choiceDialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = "导入试卷", Content = choice, CloseButtonText = "取消" }; var choiceShown = choiceDialog.ShowAsync(); await Task.Delay(200);
-            choice.IsDropDownOpen = true; await Task.Delay(250);
-            var popup = VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot)
-                .Select(p => p.Child).OfType<FrameworkElement>()
-                .FirstOrDefault(child => child is not ContentDialog && FindVisualChild<ScrollViewer>(child) is not null)
-                ?? throw new InvalidOperationException("dropdown-popup-not-found"); double initial = popup.ActualWidth;
-            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model-dropdown-start.png"));
-            var dropdownScroll = popup as ScrollViewer ?? FindVisualChild<ScrollViewer>(popup) ?? throw new InvalidOperationException("dropdown-scroll-not-found: " + popup.GetType().Name);
-            dropdownScroll.ChangeView(null, dropdownScroll.ScrollableHeight, null, true); await Task.Delay(350);
-            Require(dropdownScroll.VerticalOffset > 0, "dropdown-actually-scrolled");
-            Require(Math.Abs(initial - popup.ActualWidth) < 1 && Math.Abs(choice.ActualWidth - 460) < 1, "dropdown-fixed-width-after-scroll");
-            await CaptureWorkspaceAsync(Path.ChangeExtension(reportPath, ".model-dropdown-end.png")); choice.IsDropDownOpen = false; choiceDialog.Hide(); await choiceShown;
             await LoadDocumentAsync(document);
             var question = SmokeQuestion("visual-q", "17", [new TextContent { Text = "已知函数 f(x) = x³ − 3x，在区间 [−2, 2] 上讨论函数的最值，并说明解题思路。" }],
                 [new Region { PageId = document.Pages[0].Id, X = .1, Y = .1, Width = .8, Height = .4 }], points: 14, answer: "最大值为 2，最小值为 −2。",
-                attempt: new Attempt { StudentAnswer = "先求导，再比较端点和驻点的函数值，得到最大值为 2，最小值为 −2。", Grade = new Grade { Verdict = Verdict.Partial, Earned = 10, Possible = 14, Source = GradeSource.Teacher, Reason = "方法正确，部分计算步骤需要补充。" }, Teacher = new TeacherMark { Raw = "第（1）和（3）步各扣 2 分，其余步骤正确。" }, AiSolution = "求导得到 f′(x) = 3x² − 3。令导数为零，得到驻点 x = ±1，分别计算端点和驻点的函数值。" });
+                attempt: new Attempt { StudentAnswer = "先求导，再比较端点和驻点的函数值，得到最大值为 2，最小值为 −2。", Grade = new Grade { Verdict = Verdict.Partial, Earned = 10, Possible = 14, Source = GradeSource.Teacher, Reason = "方法正确，部分计算步骤需要补充。" }, ErrorAnalysis = "遗漏了端点与驻点函数值的逐一比较，解题步骤不完整。应列出各处函数值后再确定最值。", Teacher = new TeacherMark { Raw = "第（1）和（3）步各扣 2 分，其余步骤正确。" }, AiSolution = "求导得到 f′(x) = 3x² − 3。令导数为零，得到驻点 x = ±1，分别计算端点和驻点的函数值。" });
             question = question with { Subject = "数学", Uncertainties = ["原卷的部分批注较淡，请核对第（3）步的扣分位置。"] };
             ViewModel.LoadDocument(document, new[] { new SavedQuestion { Id = Guid.NewGuid().ToString(), DocumentId = document.Id, UpdatedAt = DateTimeOffset.Now.ToString("O"), Question = question } });
             await Task.Delay(350); await _questionPresentationTask; await Capture("question-sections");

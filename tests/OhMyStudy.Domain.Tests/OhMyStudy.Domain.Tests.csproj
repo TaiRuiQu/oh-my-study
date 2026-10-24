@@ -8,6 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/OhMyStudy.App/Localization/UiText.cs" Link="Localization/UiText.cs" />
+    <Compile Include="../../src/OhMyStudy.App/Services/FormulaLineBreaks.cs" Link="Services/FormulaLineBreaks.cs" />
+    <Compile Include="../../src/OhMyStudy.App/Services/WindowBounds.cs" Link="Services/WindowBounds.cs" />
     <EmbeddedResource Include="../../src/OhMyStudy.App/Localization/*.xml" LogicalName="OhMyStudy.App.Localization.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../src/OhMyStudy.App/MainWindow.xaml" LogicalName="Localization.MainWindow.xaml" />
     <ProjectReference Include="../../src/OhMyStudy.Domain/OhMyStudy.Domain.csproj" />

@@ -6,7 +6,7 @@
 
 ## Prepare a small, readable sample
 
-Use a PDF, PNG, JPEG, or WebP. Check that it opens and the question numbers, diagrams, and writing are readable. An exam including reference pages is limited to 12 pages; a single source file is limited to 64 MiB and an import batch to 256 MiB. Images may not exceed 40 million pixels.
+Use a PDF, PNG, JPEG, or WebP. Check that it opens and the question numbers, diagrams, and writing are readable. An exam including supplementary student answer and reference pages is limited to 12 pages; a single source file is limited to 64 MiB and an import batch to 256 MiB. Images may not exceed 40 million pixels.
 
 For your first run, use material you can check yourself. A small blank paper is useful for learning recognition; a small answered paper demonstrates grading.
 
@@ -14,7 +14,8 @@ For your first run, use material you can check yourself. A small blank paper is 
 
 | Your material | Import mode | What to expect |
 | --- | --- | --- |
-| Questions with no student work | Blank exam | Structured questions without graded attempts. |
+| Let the model decide | Detect automatically | The model reads the pages and applies the matching mode below. |
+| Questions with no student work | Blank exam | Structured questions, standard answers, and solutions without graded attempts. |
 | Student work needing evaluation | Answered, needs grading | Student answers plus AI grading. |
 | A teacher has already marked it | Already graded by a teacher | Teacher evidence and protected explicit teacher results. |
 
@@ -22,7 +23,7 @@ Do not select answered mode simply to make an empty practice paper appear in Mis
 
 ## Start processing
 
-Click Import exam, select the files, choose the mode/model, and review thinking options. Keep the default thinking choice unless you have confirmed another option is supported. If capabilities are unconfirmed, understand the uncertainty before allowing a trial.
+Click Import exam, select the files, choose the exam type, provider, model, and thinking options. Your last provider, model, and thinking choice are remembered for the next task. Keep the default thinking choice unless you have confirmed another option is supported. If capabilities are unconfirmed, understand the uncertainty before allowing a trial.
 
 The confirmation explains provider uploads and may show a sandbox-unavailable warning. Import and recognize starts local preservation and queues recognition. Your external source file is not the app's only copy after import.
 

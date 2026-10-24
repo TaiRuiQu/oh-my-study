@@ -16,7 +16,7 @@ Oh My Study 将试卷 PDF 和图片整理为保存在本地、可以编辑的题
 
 ## 详细指南
 
-[功能详解](Feature-Guide-zh-CN.md) 介绍模型设置、三种导入模式、原件阅读、结构化编辑、参考答案、重新识别、任务进度、执行权限、费用、导出、资料库管理、外观和故障处理。
+[功能详解](Feature-Guide-zh-CN.md) 介绍模型设置、自动识别与三种指定导入模式、补充学生作答、原件阅读、结构化编辑、参考答案、重新识别、任务进度、执行权限、费用、导出、资料库管理、外观和故障处理。
 
 九篇指南分别给出字段、步骤、例子、边界和恢复建议。可从[模型与费用](Features-Models-zh-CN.md)开始，或直接查看[编辑](Features-Workspace-Editing-zh-CN.md)、[任务](Features-Tasks-zh-CN.md)、[PDF](Features-Export-zh-CN.md)、[资料库恢复](Features-Library-zh-CN.md)。
 
@@ -36,4 +36,4 @@ Oh My Study 将试卷 PDF 和图片整理为保存在本地、可以编辑的题
 
 Wiki 现与代码一起维护于 `docs/wiki`，完整章节见[目录](_Sidebar.md)，来源见[迁移说明](README.md)。
 
-当前功能包括公共题干/有序评分项、独立题目阅读页、本地文字与可选[语义搜索](Features-Search-zh-CN.md)、[任务重试恢复](Features-Tasks-zh-CN.md)、批量读页/存题、一小时文件上传复用、持久 Python、生成学习图片以及 SQLite v5，旧发行版可能不同。
+当前功能包括公共题干/有序评分项、独立题目阅读页、本地文字与可选[语义搜索](Features-Search-zh-CN.md)、[任务重试恢复](Features-Tasks-zh-CN.md)、批量读页/存题、一小时文件上传复用、持久 Python、生成学习图片以及 SQLite v6，旧发行版可能不同。
