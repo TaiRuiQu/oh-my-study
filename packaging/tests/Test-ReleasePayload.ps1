@@ -57,9 +57,9 @@ foreach ($relative in $removed) {
     [IO.File]::WriteAllText($file, 'SYNTHETIC DEVELOPMENT FILE')
     [IO.File]::WriteAllText((Join-Path $bad 'package-manifest.json'), '{"version":"0.1.1","files":[]}')
     $rejected = $false
-    try { & (Join-Path $PSScriptRoot '../Build-MsiPackage.ps1') -PackageDirectory $bad -OutputFile (Join-Path $area 'rejected.msi') | Out-Null }
+    try { Assert-ReleasePayload $bad }
     catch { if ($_.Exception.Message -like 'Development file in release payload*') { $rejected = $true } else { throw } }
-    if (-not $rejected) { throw "MSI builder accepted development file: $relative" }
+    if (-not $rejected) { throw "Release payload validation accepted development file: $relative" }
 }
 $runtimeSource = Join-Path $workspace 'output/migration/toolchain/runtime'
 if (-not (Test-Path -LiteralPath (Join-Path $runtimeSource 'python/python.exe'))) { throw 'Prepare the pinned computation runtime before testing release payloads' }
@@ -98,5 +98,5 @@ assert Image.open(output).size[0] > 0
 foreach ($file in Get-ChildItem -LiteralPath $runtimeTarget -Recurse -File) {
     if (Get-ReleaseExclusionReason ('runtime/' + [IO.Path]::GetRelativePath($runtimeTarget,$file.FullName).Replace('\','/'))) { throw 'Computation wrote development files into its release payload' }
 }
-Write-Output 'PASS release payload: symbols, linker files, Python caches and tests excluded; runtime, licenses, source and original hashes preserved; MSI rejects regressions'
+Write-Output 'PASS release payload: symbols, linker files, Python caches and tests excluded; runtime, licenses, source and original hashes preserved; validation rejects regressions'
 Write-Output 'PASS trimmed runtime: NumPy linear algebra, FFT and testing helpers; SymPy integration and matrices; Matplotlib PNG export; Pillow decoding and fontTools import'

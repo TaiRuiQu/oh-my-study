@@ -16,19 +16,19 @@
 
 ## 开始使用
 
-1. 从项目发布页面下载适合的 Windows 10/11 x64 版本。不确定时选择文件名含 `aot`、不含 `avx512` 的版本。
-2. 双击 `-installer.msi` 安装，或解压 `-portable.zip` 后运行 `OhMyStudy.App.exe`。
+1. 下载 Windows 10/11 x64 发布版本。每个源码标签 `vX` 都有独立的 `vX-aot`、`vX-self-contained` 和 `vX-framework-dependent` 发布；不确定时选择 `vX-aot`。
+2. 运行 `Setup.exe` 进行当前用户安装，或完整解压便携 ZIP 后运行 `OhMyStudy.App.exe`。
 3. 打开“设置”，添加模型供应商、密钥和模型并保存。
 4. 点击“导入试卷”，选择 PDF 或图片、试卷类型和模型，再点击“导入并识别”。
 
-AI 识别与批改需要联网，会将材料发送给所选供应商，并可能产生费用。安装包附带本地排版和计算所需组件；安装与查看已保存资料不需要调用模型。AI 结果可能有误，请对照原件和参考答案核对。
+AI 识别与批改需要联网，会将材料发送给所选供应商，并可能产生费用。软件包附带本地排版和计算所需组件；安装与查看已保存资料不需要调用模型。AI 结果可能有误，请对照原件和参考答案核对。
 
 ## 使用文档
 
 - [维基](docs/wiki/Home-zh-CN.md)：[快速开始](docs/wiki/Quick-Start-zh-CN.md)、[功能详解](docs/wiki/Feature-Guide-zh-CN.md)与 [Tech for nerds：技术内幕](docs/wiki/Tech-for-nerds-zh-CN.md)。
 - [安装、升级与卸载](docs/installation.zh-CN.md)：下载选择、安装步骤和资料保留。
 - [使用指南](docs/usage.zh-CN.md)：模型设置、试卷导入、题目整理、PDF 导出和常见问题。
-- [v0.1.9 发行说明](docs/releases/v0.1.9.zh-CN.md)：新增流程与资料库 v6 升级说明。
+- [v0.2.0 发行说明](docs/releases/v0.2.0.zh-CN.md)：试卷重命名、Velopack 安装与增量更新。
 
 ## 许可证
 

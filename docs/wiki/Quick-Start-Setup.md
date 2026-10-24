@@ -10,9 +10,9 @@ A running app, a saved provider and model, and an execution policy you understan
 
 ## Install the complete package
 
-Download from the project's Releases page. For a typical Windows 10/11 x64 computer, the AOT build without AVX512 is the default starting choice. The AVX512 variant requires compatible hardware. Other variants have different runtime prerequisites; follow the installation guide rather than choosing by file size.
+Download from the project's Releases page. For a typical Windows 10/11 x64 computer, choose the `vX-aot` release. Self-contained and framework-dependent builds have different runtime prerequisites; follow the installation guide rather than choosing by file size.
 
-With MSI, complete the installer and launch the app. With portable ZIP, extract the entire archive before running OhMyStudy.App.exe. Keeping only the EXE discards native document/computation components. Installation and opening saved materials do not require a model request.
+Run `Setup.exe` for a one-click, per-user installation under `%LOCALAPPDATA%/TaiRuiQu.OhMyStudy`. With portable ZIP, extract the entire archive before running `OhMyStudy.App.exe`. Keeping only the EXE discards native document/computation components. Installation and opening saved materials do not require a model request.
 
 ## Create the connection
 

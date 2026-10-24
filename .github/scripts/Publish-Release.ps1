@@ -3,96 +3,99 @@
 param(
     [Parameter(Mandatory)][string]$Tag,
     [Parameter(Mandatory)][string]$Repository,
+    [Parameter(Mandatory)][ValidateSet('aot','self-contained','framework-dependent')][string]$Variant,
     [Parameter(Mandatory)][string]$AssetDirectory,
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
-if ([string]::IsNullOrWhiteSpace($Tag) -or $Tag.StartsWith('-') -or $Tag.Contains("`n") -or $Tag.Contains("`r")) { throw 'Invalid release tag' }
+if ([string]::IsNullOrWhiteSpace($Tag) -or $Tag.StartsWith('-') -or $Tag.Contains("`n") -or $Tag.Contains("`r") -or $Tag -notmatch '^v?\d+\.\d+\.\d+(?:[-+][A-Za-z0-9._-]+)?$') { throw 'Invalid release tag' }
 if ($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') { throw 'Invalid repository name' }
 $root = (Resolve-Path -LiteralPath $AssetDirectory).Path
-# Each matrix artifact has a separate manifest; require exactly four complete pairs.
-$manifests=@(Get-ChildItem -LiteralPath $root -Filter build-manifest.json -Recurse -File | Where-Object { $_.DirectoryName -ne $root })
-if ($manifests.Count -ne 4) { throw 'All four build manifests are required' }
-$expectedVariants=@('aot','aot-avx512','self-contained','framework-dependent')
-$seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-$names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-$packages=@(); $assets=@(); $commit=$null; $builds=@()
-foreach ($file in $manifests) {
-    $manifest=Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -DateKind String
-    if ($manifest.schemaVersion -ne 2 -or $manifest.ref -cne $Tag -or $manifest.variant -cnotin $expectedVariants -or
-        -not $seen.Add($manifest.variant) -or $manifest.commit -notmatch '^[a-f0-9]{40}$' -or
-        $manifest.validationStatus -ne 'release-candidate-user-acceptance-pending') { throw 'Invalid build identity or tag' }
-    if ($commit -and $commit -cne $manifest.commit) { throw 'Builds must use the same source commit' }
-    $commit=$manifest.commit
-    if (@($manifest.packages).Count -notin @(2,3) -or @($manifest.packages | Where-Object kind -eq 'portable').Count -ne 1 -or
-        @($manifest.packages | Where-Object kind -eq 'installer').Count -ne 1) { throw 'Portable and installer are both required; one optional patch is allowed' }
-    $kinds=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach ($package in $manifest.packages) {
-        if ($package.variant -cne $manifest.variant -or $package.kind -cnotin @('portable','installer','patch') -or
-            -not $kinds.Add($package.kind) -or $package.name -notmatch '^[A-Za-z0-9._-]+$' -or
-            -not $names.Add($package.name) -or $package.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Invalid package identity' }
-        $suffix = switch ($package.kind) {
-            'portable' { '-portable.zip' }
-            'installer' { '-installer.msi' }
-            'patch' {
-                if ($package.baselineVersion -notmatch '^\d+\.\d+\.\d+$' -or $package.packageVersion -notmatch '^\d+\.\d+\.\d+$' -or
-                    [version]$package.packageVersion -le [version]$package.baselineVersion -or $package.baselineSha256 -notmatch '^[a-f0-9]{64}$' -or
-                    $package.updateSha256 -cne ($manifest.packages | Where-Object kind -eq 'installer').sha256 -or
-                    $package.productCode -notmatch '^\{[A-Fa-f0-9-]{36}\}$' -or $package.patchCode -notmatch '^\{[A-Fa-f0-9-]{36}\}$') { throw 'Invalid patch baseline or update identity' }
-                '-from-' + $package.baselineVersion + '-patch.msp'
-            }
-        }
-        if (-not $package.name.EndsWith('-'+$manifest.variant+$suffix, [StringComparison]::Ordinal)) { throw 'Package name does not match profile' }
-        $path=Join-Path $file.DirectoryName $package.name
-        if ((Get-Item -LiteralPath $path).Length -ne $package.bytes -or
-            (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $package.sha256) { throw 'Release package size or hash mismatch' }
-        $packages+=$package; $assets+=$path
+$manifestFile = Get-Item -LiteralPath (Join-Path $root 'build-manifest.json')
+$manifest = Get-Content -LiteralPath $manifestFile.FullName -Raw | ConvertFrom-Json -DateKind String
+$channel = "win-x64-$Variant"
+$releaseTag = "$Tag-$Variant"
+$version = $Tag.TrimStart('v')
+if ($manifest.schemaVersion -ne 3 -or $manifest.ref -cne $Tag -or $manifest.variant -cne $Variant -or $manifest.channel -cne $channel -or
+    $manifest.version -cne $version -or $manifest.commit -notmatch '^[a-f0-9]{40}$' -or
+    $manifest.validationStatus -ne 'release-candidate-user-acceptance-pending') { throw 'Invalid build identity, variant, channel or tag' }
+$required = @('portable','installer','full','feed','legacyFeed')
+$packages = @($manifest.packages)
+if (@($packages | Where-Object kind -In $required).Count -ne $required.Count -or
+    @($packages | Where-Object kind -EQ 'delta').Count -gt 1 -or $packages.Count -notin @(5,6)) { throw 'Portable, installer, full package and update feeds are required; one optional delta is allowed' }
+$names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$kinds = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+$assets = @()
+foreach ($package in $packages) {
+    if ($package.variant -cne $Variant -or $package.channel -cne $channel -or $package.kind -cnotin @('portable','installer','full','delta','feed','legacyFeed') -or
+        -not $kinds.Add($package.kind) -or $package.name -notmatch '^[A-Za-z0-9._-]+$' -or
+        -not $names.Add($package.name) -or $package.sha256 -notmatch '^[a-f0-9]{64}$') { throw 'Invalid package identity' }
+    $expectedName = switch ($package.kind) {
+        'portable' { "OhMyStudy-$Tag-win-x64-$Variant-portable.zip" }
+        'installer' { "OhMyStudy-$Tag-win-x64-$Variant-Setup.exe" }
+        'full' { "TaiRuiQu.OhMyStudy-$version-$channel-full.nupkg" }
+        'delta' { "TaiRuiQu.OhMyStudy-$version-$channel-delta.nupkg" }
+        'feed' { "releases.$channel.json" }
+        'legacyFeed' { "RELEASES-$channel" }
     }
-    $builds+=$manifest
+    if ($package.name -cne $expectedName) { throw "Package name does not match $($package.kind): $($package.name)" }
+    $path = Join-Path $manifestFile.DirectoryName $package.name
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -ne $package.bytes -or
+        (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $package.sha256) { throw 'Release package size or hash mismatch' }
+    $assets += $path
 }
-$packages=@($packages | Sort-Object name)
-[IO.File]::WriteAllText((Join-Path $root 'SHA256SUMS.txt'), (($packages | ForEach-Object { "$($_.sha256)  $($_.name)" }) -join "`n")+"`n", [Text.UTF8Encoding]::new($false))
-[ordered]@{ schemaVersion=2; ref=$Tag; commit=$commit; packages=$packages; builds=$builds } | ConvertTo-Json -Depth 10 |
-    Set-Content -LiteralPath (Join-Path $root 'build-manifest.json') -Encoding utf8
-$assets+=@((Join-Path $root 'SHA256SUMS.txt'), (Join-Path $root 'build-manifest.json'))
+$feed = Get-Content -LiteralPath (Join-Path $manifestFile.DirectoryName "releases.$channel.json") -Raw | ConvertFrom-Json
+$full = $packages | Where-Object kind -EQ 'full'
+$fullAssets = @($feed.Assets | Where-Object { $_.Type -eq 'Full' -and $_.FileName -ceq $full.name })
+if ($fullAssets.Count -ne 1 -or $fullAssets[0].Version -cne $version -or $fullAssets[0].SHA256 -cin @('', $null) -or
+    $fullAssets[0].SHA256.ToLowerInvariant() -cne $full.sha256 -or $fullAssets[0].Size -ne $full.bytes) { throw 'Update feed does not identify the full package' }
+$delta = $packages | Where-Object kind -EQ 'delta'
+$allDeltaAssets = @($feed.Assets | Where-Object Type -EQ 'Delta')
+if ($delta) {
+    $deltaAssets = @($allDeltaAssets | Where-Object { $_.FileName -ceq $delta.name -and $_.Version -ceq $version })
+    if ($deltaAssets.Count -ne 1 -or $deltaAssets[0].SHA256.ToLowerInvariant() -cne $delta.sha256 -or $deltaAssets[0].Size -ne $delta.bytes) { throw 'Update feed does not identify the delta package' }
+} elseif ($allDeltaAssets.Count) { throw 'Delta feed entry has no release asset' }
+$packages = @($packages | Sort-Object name)
+[IO.File]::WriteAllText((Join-Path $root 'SHA256SUMS.txt'), (($packages | ForEach-Object { "$($_.sha256)  $($_.name)" }) -join "`n") + "`n", [Text.UTF8Encoding]::new($false))
+[ordered]@{ schemaVersion=3; ref=$Tag; releaseTag=$releaseTag; commit=$manifest.commit; variant=$Variant; channel=$channel; version=$version; validationStatus=$manifest.validationStatus; packages=$packages } |
+    ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $root 'build-manifest.json') -Encoding utf8
+$assets += @((Join-Path $root 'SHA256SUMS.txt'), (Join-Path $root 'build-manifest.json'))
 $prerelease = $Tag -notmatch '^v?\d+\.\d+\.\d+$'
-if ($DryRun) { Write-Output "Validated release $Repository@$Tag; prerelease=$prerelease; assets=$($assets.Count)"; return }
+if ($DryRun) { Write-Output "Validated release $Repository@$releaseTag; prerelease=$prerelease; assets=$($assets.Count)"; return }
 function Invoke-Gh([string[]]$Arguments) { & gh @Arguments; if ($LASTEXITCODE -ne 0) { throw "gh failed with exit $LASTEXITCODE" } }
-$existing = & gh release view $Tag --repo $Repository --json isDraft 2>$null
+$existing = & gh release view $releaseTag --repo $Repository --json isDraft 2>$null
 if ($LASTEXITCODE -eq 0) {
-    Write-Output "Updating release $Tag with the complete checked build set."
+    Write-Output "Updating release $releaseTag with the complete checked build set."
 } else {
-    Invoke-Gh @('release','create',$Tag,'--repo',$Repository,'--verify-tag','--draft','--generate-notes','--title',$Tag)
+    Invoke-Gh @('release','create',$releaseTag,'--repo',$Repository,'--target',$Tag,'--draft','--generate-notes','--title',"Oh My Study $Tag ($Variant)")
 }
-# Publish only after all checked assets have uploaded; retries can resume our draft.
-Invoke-Gh (@('release','upload',$Tag,'--repo',$Repository,'--clobber') + $assets)
-$arguments = @('release','edit',$Tag,'--repo',$Repository,'--draft=false')
+Invoke-Gh (@('release','upload',$releaseTag,'--repo',$Repository,'--clobber') + $assets)
+$arguments = @('release','edit',$releaseTag,'--repo',$Repository,'--draft=false')
 if ($prerelease) { $arguments += '--prerelease' } else { $arguments += '--latest' }
 Invoke-Gh $arguments
-# Keep existing release text and make supplemental-build provenance and choices visible.
-$body=& gh release view $Tag --repo $Repository --json body --jq .body
+$body = & gh release view $releaseTag --repo $Repository --json body --jq .body
 if ($LASTEXITCODE -ne 0) { throw 'Cannot read release notes' }
-$marker='<!-- distribution-variants -->'
-$body=($body -split [regex]::Escape($marker),2)[0].TrimEnd()
-$notes=@"
+$marker = '<!-- distribution-variant -->'
+$body = ($body -split [regex]::Escape($marker),2)[0].TrimEnd()
+$deltaText = if ($delta) { '此 Release 包含上一版到当前版的差分包；安装版会自动优先使用增量更新，必要时回退到全量包。' } else { '这是首个 Velopack 安装版本，仅包含全量包；后续 Release 将提供差分包。' }
+$runtime = switch ($Variant) {
+    'aot' { 'Native AOT，无需另装 .NET。' }
+    'self-contained' { '自带 .NET 运行时，非 Native AOT。' }
+    'framework-dependent' { '需要先安装 Microsoft .NET 10 x64 Runtime。' }
+}
+$notes = @"
 $body
 
 $marker
-## 下载版本
+## 下载与更新
 
-每种版本均提供 portable ZIP 和MSI 安装包。通常选择 **aot**；不确定处理器是否支持 AVX-512 时请选择普通 AOT 版。
-若提供 MSP，仅适用于文件名所列基线版本和相同构建类型的 MSI 安装；首次安装、切换类型或不匹配时请选择完整 MSI。MSP 也需要管理员权限。
-
-| 文件标识 | 运行要求 |
-| --- | --- |
-| aot | 无需安装 .NET；不启用 AVX-512 |
-| aot-avx512 | 需要 x86-64-v4（AVX-512 F/BW/CD/DQ/VL）处理器及系统支持 |
-| self-contained | 非 AOT，自带 .NET 运行时 |
-| framework-dependent | 非 AOT，需要先安装 .NET 10 x64 Runtime |
-
-以上八个文件的源码提交：$commit。补充构建保留原版本标签，准确来源见 build-manifest.json 和包内源码快照。旧的单一 ZIP 如仍列出，不属于本次四种构建。
-二进制未代码签名，人工验收待完成；自动检查结果见构建清单。
+- `-Setup.exe`：Velopack 一键安装版，安装到当前用户目录，可在应用“关于”中检查更新。
+- `-portable.zip`：完整解压后运行，不支持安装式应用内更新。
+$deltaText
+$runtime
+旧 MSI 用户请先卸载旧程序再安装此版本；学习资料会保留。
+二进制未代码签名，人工验收待完成；自动检查结果见 build-manifest.json。源码提交：$($manifest.commit)。
 "@
-$bodyFile=Join-Path $root 'release-notes.md'
+$bodyFile = Join-Path $root 'release-notes.md'
 [IO.File]::WriteAllText($bodyFile,$notes,[Text.UTF8Encoding]::new($false))
-Invoke-Gh @('release','edit',$Tag,'--repo',$Repository,'--notes-file',$bodyFile)
+Invoke-Gh @('release','edit',$releaseTag,'--repo',$Repository,'--notes-file',$bodyFile)

@@ -777,4 +777,17 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="S0768" xml:space="preserve">Confirm result</text>
     <text key="S0769" xml:space="preserve">Result confirmed.</text>
     <text key="S0770" xml:space="preserve">Could not confirm. Wait for the task to finish and retry.</text>
+    <text key="S0771" xml:space="preserve">Version {0}</text>
+    <text key="S0772" xml:space="preserve">Check for updates</text>
+    <text key="S0773" xml:space="preserve">Checking for updates…</text>
+    <text key="S0774" xml:space="preserve">You are using the latest version.</text>
+    <text key="S0775" xml:space="preserve">Version {0} is available. Download it now?</text>
+    <text key="S0776" xml:space="preserve">Download</text>
+    <text key="S0777" xml:space="preserve">Downloading update… {0}%</text>
+    <text key="S0778" xml:space="preserve">Update downloaded. Save your work, then restart to install it.</text>
+    <text key="S0779" xml:space="preserve">Restart and install</text>
+    <text key="S0780" xml:space="preserve">Updates are available only for installed copies. Download a new installer to update a portable copy.</text>
+    <text key="S0781" xml:space="preserve">Could not check for updates. Check your connection and try again later.</text>
+    <text key="S0782" xml:space="preserve">Could not download the update. Try again later.</text>
+    <text key="S0783" xml:space="preserve">Update installed. Restart the application to continue.</text>
 </resources>

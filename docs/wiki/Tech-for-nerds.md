@@ -20,8 +20,8 @@
 | Application | Job queue, authorization, orchestration, search contracts/service. |
 | Infrastructure | SQLite, credentials, provider SDK adapters, file uploads, grading tools, processes, search indexing. |
 | Documents | PDFium rasterization, coordinates, VelociTex mathematics, Typst export. |
-| App | WinUI workspace, structured editors, list/detail navigation, localization, visual smoke fixtures. |
-| Setup | Installer engine and Windows integration; packaging scripts build MSI, MSP, and ZIP payloads. |
+| App | WinUI workspace, structured editors, list/detail navigation, localization, Velopack update client, visual smoke fixtures. |
+| Packaging and CI | Velopack packaging and release scripts in `packaging/` and `.github/`; builds Setup, portable ZIP, and update packages. |
 
 ## Processing and persistence
 
@@ -47,4 +47,4 @@ dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
 ./packaging/Invoke-CI.ps1 -Phase Test
 ```
 
-The executable tests cover domain, storage, providers, execution, grading, media/documents, integration, and setup. Ordinary branch/PR runs use managed provider/grading SDK tests; tag/manual runs use full Native AOT validation and build all four distribution variants. App smoke fixtures provide separate visual evidence; printing still needs output inspection. See [architecture](Tech-Architecture.md) and [installation](../installation.md).
+The executable tests cover domain, storage, providers, execution, grading, media/documents, integration, and packaging. Ordinary branch/PR runs use managed provider/grading SDK tests; tag/manual runs use full Native AOT validation and build all three distribution variants. App smoke fixtures provide separate visual evidence; printing still needs output inspection. See [architecture](Tech-Architecture.md) and [installation](../installation.md).

@@ -20,7 +20,7 @@
     <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
   </PropertyGroup>
   <PropertyGroup Condition="'$(OhMyStudyPublishVariant)' != ''">
-    <PublishAot Condition="'$(OhMyStudyPublishVariant)' == 'aot' Or '$(OhMyStudyPublishVariant)' == 'aot-avx512'">true</PublishAot>
+    <PublishAot Condition="'$(OhMyStudyPublishVariant)' == 'aot'">true</PublishAot>
     <PublishAot Condition="'$(OhMyStudyPublishVariant)' == 'self-contained' Or '$(OhMyStudyPublishVariant)' == 'framework-dependent'">false</PublishAot>
     <SelfContained Condition="'$(OhMyStudyPublishVariant)' == 'framework-dependent'">false</SelfContained>
     <SelfContained Condition="'$(OhMyStudyPublishVariant)' != 'framework-dependent'">true</SelfContained>
@@ -34,6 +34,7 @@
     <NuGetLockFilePath Condition="'$(OhMyStudyPublishVariant)' == 'framework-dependent'">packages.framework-dependent.lock.json</NuGetLockFilePath>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Velopack" />
     <PackageReference Include="VelociTex.Core" GeneratePathProperty="true" />
     <PackageReference Include="VelociTex.Rendering.Direct2D" GeneratePathProperty="true" />
     <PackageReference Include="VelociTex.WinUI" GeneratePathProperty="true" />

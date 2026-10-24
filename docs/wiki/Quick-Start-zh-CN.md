@@ -19,7 +19,7 @@
 
 ## 处理第一份试卷
 
-1. **安装。** 从[发布版本](https://github.com/TaiRuiQu/oh-my-study/releases)下载 Windows 10/11 x64 包。不确定时选名称含 `aot`、不含 `avx512` 的版本。运行 MSI，或完整解压便携 ZIP 后打开 `OhMyStudy.App.exe`。其他版本与依赖说明见[安装指南](../installation.zh-CN.md)。
+1. **安装。** 从[发布版本](https://github.com/TaiRuiQu/oh-my-study/releases)下载 Windows 10/11 x64 包。不确定时选择 `vX-aot` 发布。运行 `Setup.exe` 进行当前用户安装，或完整解压便携 ZIP 后打开 `OhMyStudy.App.exe`。其他版本与依赖说明见[安装指南](../installation.zh-CN.md)。
 2. **配置模型。** 打开 **设置 → 添加供应商**，填写 API 类型、地址和密钥并保存。使用 **导入模型** 或 **添加模型**，确认图片、工具能力和思考选项，再 **保存模型**。测试连接会发送简短请求，可能计费。
 3. **导入。** 点击 **导入试卷**，选择 PDF、PNG、JPEG 或 WebP，选择自动识别或指定类型及模型，再点击 **导入并识别**。试卷连同补充学生作答、参考答案最多 12 页。
 4. **查看进度。** 在 **任务** 中查看页面读取、题目保存、执行请求和预估费用。题目会随保存逐步出现；原件已复制不代表识别完成。

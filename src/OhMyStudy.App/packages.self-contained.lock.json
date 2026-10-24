@@ -57,6 +57,12 @@
           "VelociTex.Rendering.Direct2D": "1.0.0-preview6"
         }
       },
+      "Velopack": {
+        "type": "Direct",
+        "requested": "[1.3.39-g8d2844f, )",
+        "resolved": "1.3.39-g8d2844f",
+        "contentHash": "0RljDRJznUT4yaAybkb67Q+6/VEMa6oPFGDLwc8wKb/Vf0f5pVqLJlCIkRByJzqHEtmpLVyNjzhPyRV/jYvuqQ=="
+      },
       "Microsoft.Extensions.AI.Abstractions": {
         "type": "Transitive",
         "resolved": "10.5.1",

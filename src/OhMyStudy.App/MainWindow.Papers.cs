@@ -73,10 +73,13 @@ public sealed partial class MainWindow
 
     private MenuFlyout CreatePaperContextMenu(PaperViewModel paper)
     {
+        var edit = new MenuFlyoutItem { Text = UiText.Get("Exam details"), Icon = new FontIcon { Glyph = "\uE946" } };
+        edit.Click += async (_, _) => await EditPaperInfoAsync(paper);
         var delete = new MenuFlyoutItem { Text = UiText.Get("Delete exam"), Icon = new FontIcon { Glyph = "\uE74D" } };
         delete.Resources.Source = new Uri("ms-appx:///Themes/DestructiveMenuFlyoutItemResources.xaml");
         delete.Click += async (_, _) => await DeletePaperAsync(paper);
         var flyout = new MenuFlyout();
+        flyout.Items.Add(edit);
         flyout.Items.Add(delete);
         return flyout;
     }
@@ -178,12 +181,19 @@ public sealed partial class MainWindow
 
     private async void EditPaperInfo_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.CurrentDocument is not { } document || _library is null) return;
-        var summary = _papers.FirstOrDefault(p => p.Id == document.Id)?.Summary;
-        var title = new TextBox { Header = UiText.Get("Title"), Text = document.Name, MaxLength = 240 };
-        var subject = new TextBox { Header = UiText.Get("Subject"), Text = summary?.Subject ?? "", PlaceholderText = UiText.Get("e.g. Mathematics, Chinese, English"), MaxLength = 60 };
-        var earned = new TextBox { Header = UiText.Get("Score"), Text = summary?.Earned?.ToString(CultureInfo.InvariantCulture) ?? "", PlaceholderText = UiText.Get("Undetermined") };
-        var possible = new TextBox { Header = UiText.Get("Maximum score"), Text = summary?.Possible?.ToString(CultureInfo.InvariantCulture) ?? "", PlaceholderText = UiText.Get("Undetermined") };
+        if (ViewModel.CurrentDocument is not { } document) return;
+        if (_papers.FirstOrDefault(paper => paper.Id == document.Id) is { } current) await EditPaperInfoAsync(current);
+    }
+
+    private async Task EditPaperInfoAsync(PaperViewModel paper)
+    {
+        if (_library is null) return;
+        bool open = ViewModel.CurrentDocument?.Id == paper.Id && WorkspaceGrid.Visibility == Visibility.Visible;
+        var summary = paper.Summary;
+        var title = new TextBox { Header = UiText.Get("Title"), Text = summary.Document.Name, MaxLength = 240 };
+        var subject = new TextBox { Header = UiText.Get("Subject"), Text = summary.Subject ?? "", PlaceholderText = UiText.Get("e.g. Mathematics, Chinese, English"), MaxLength = 60 };
+        var earned = new TextBox { Header = UiText.Get("Score"), Text = summary.Earned?.ToString(CultureInfo.InvariantCulture) ?? "", PlaceholderText = UiText.Get("Undetermined") };
+        var possible = new TextBox { Header = UiText.Get("Maximum score"), Text = summary.Possible?.ToString(CultureInfo.InvariantCulture) ?? "", PlaceholderText = UiText.Get("Undetermined") };
         var feedback = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var content = new StackPanel { Spacing = 12 }; content.Children.Add(title); content.Children.Add(subject); content.Children.Add(earned); content.Children.Add(possible); content.Children.Add(feedback);
         var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, RequestedTheme = RootGrid.ActualTheme, Title = UiText.Get("Exam details"), Content = content, PrimaryButtonText = UiText.Get("Save"), CloseButtonText = UiText.Get("Cancel"), DefaultButton = ContentDialogButton.Primary };
@@ -193,9 +203,9 @@ public sealed partial class MainWindow
             try
             {
                 static double? Number(string value) => string.IsNullOrWhiteSpace(value) ? null : double.Parse(value, CultureInfo.InvariantCulture);
-                await _library.UpdatePaperAsync(document.Id, title.Text, subject.Text, Number(earned.Text), Number(possible.Text), _lifetime.Token);
+                await _library.UpdatePaperAsync(paper.Id, title.Text, subject.Text, Number(earned.Text), Number(possible.Text), _lifetime.Token);
                 dialog.Hide();
-                try { await RefreshDocumentsAsync(document.Id); } catch { ViewModel.StatusMessage = UiText.Get("Details saved. Reopen the exam to view them."); }
+                try { await RefreshDocumentsAsync(open ? paper.Id : null); } catch { ViewModel.StatusMessage = UiText.Get("Details saved. Reopen the exam to view them."); }
             }
             catch (Exception error) { feedback.Text = string.IsNullOrWhiteSpace(title.Text) ? UiText.Get("Enter an exam title.") : error is FormatException or ArgumentException ? UiText.Get("Enter valid scores. The score cannot exceed the maximum.") : UiText.Get("Could not save. Wait for recognition to finish and retry."); }
             finally { dialog.IsPrimaryButtonEnabled = true; deferral.Complete(); }

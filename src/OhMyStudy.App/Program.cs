@@ -12,6 +12,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        Velopack.VelopackApp.Build().Run();
         OperationDiagnostics.Written += (phase, detail, failed) =>
         {
             if (failed) AppLog.Failure(phase, detail); else AppLog.Info(phase, detail);

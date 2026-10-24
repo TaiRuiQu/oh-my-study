@@ -16,19 +16,19 @@ A Windows study app for students. It imports exams, recognizes and grades questi
 
 ## Getting started
 
-1. Download the Windows 10/11 x64 build that suits you from the project's releases page. If unsure, choose a build whose filename contains `aot` and does not contain `avx512`.
-2. Double-click the `-installer.msi` to install, or extract the `-portable.zip` and run `OhMyStudy.App.exe`.
+1. Download a Windows 10/11 x64 release. Each source tag `vX` has independent `vX-aot`, `vX-self-contained`, and `vX-framework-dependent` releases; if unsure, choose `vX-aot`.
+2. Run `Setup.exe` for a per-user installation, or fully extract the portable ZIP and run `OhMyStudy.App.exe`.
 3. Open "Settings", add a model provider, key, and model, and save.
 4. Click "Import exam", select a PDF or image, the exam type, and a model, then click "Import and recognize".
 
-AI recognition and grading require an internet connection, send materials to the selected provider, and may incur costs. The installer bundles the components needed for local typesetting and computation; installing the app and viewing saved materials do not call a model. AI results may be wrong, so verify them against the originals and reference answers.
+AI recognition and grading require an internet connection, send materials to the selected provider, and may incur costs. The packages bundle the components needed for local typesetting and computation; installing the app and viewing saved materials do not call a model. AI results may be wrong, so verify them against the originals and reference answers.
 
 ## Documentation
 
 - [Wiki](docs/wiki/Home.md): [Quick Start](docs/wiki/Quick-Start.md), [Feature Guide](docs/wiki/Feature-Guide.md), and [Tech for nerds](docs/wiki/Tech-for-nerds.md).
 - [Installation, upgrade, and uninstallation](docs/installation.md): choosing a download, installation steps, and keeping your materials.
 - [Usage guide](docs/usage.md): model setup, exam import, question organization, PDF export, and FAQ.
-- [v0.1.9 release notes](docs/releases/v0.1.9.md): new workflows and the library v6 upgrade.
+- [v0.2.0 release notes](docs/releases/v0.2.0.md): exam renaming, Velopack installation, and incremental updates.
 
 ## License
 

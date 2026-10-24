@@ -100,6 +100,7 @@ public sealed partial class MainWindow : Window
             ReleaseReadingResources();
             _lifetime.Cancel();
             ViewModel.Dispose();
+            _restartAfterClose?.Invoke();
         };
     }
 
@@ -242,6 +243,10 @@ public sealed partial class MainWindow : Window
         else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--import-smoke") is int importIndex && importIndex > 0)
         {
             await RunImportSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[importIndex + 1]));
+            return;
+        }
+        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--update-smoke") >= 0)
+        {
             return;
         }
         else
@@ -788,19 +793,7 @@ public sealed partial class MainWindow : Window
         };
     }
 
-    private async void About_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = RootGrid.XamlRoot,
-            Title = "Oh My Study",
-            RequestedTheme = RootGrid.ActualTheme,
-            Content = UiText.Get("Organize materials, review mistakes, and study with ease."),
-            CloseButtonText = UiText.Get("Got it"),
-            DefaultButton = ContentDialogButton.Close
-        };
-        await dialog.ShowAsync();
-    }
+    private async void About_Click(object sender, RoutedEventArgs e) => await ShowAboutAndUpdatesAsync();
 
     private async Task RunSmokeTestAsync(string reportPath)
     {

@@ -1,6 +1,0 @@
-需要安装向导时，双击同版本的 MSI，选择安装位置和是否创建桌面快捷方式。
-便携版 ZIP 解压后直接运行 OhMyStudy.App.exe。
-卸载可在 Windows 设置中进行，学习资料与备份会保留。
-旧 EXE 安装需先卸载，再安装 MSI。
-
-English version: README.txt.

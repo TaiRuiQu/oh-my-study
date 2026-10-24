@@ -777,4 +777,17 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0768" xml:space="preserve">結果を確認</text>
     <text key="S0769" xml:space="preserve">結果を確認しました。</text>
     <text key="S0770" xml:space="preserve">確認できませんでした。タスク完了後にもう一度お試しください。</text>
+    <text key="S0771" xml:space="preserve">バージョン {0}</text>
+    <text key="S0772" xml:space="preserve">更新を確認</text>
+    <text key="S0773" xml:space="preserve">更新を確認しています…</text>
+    <text key="S0774" xml:space="preserve">最新バージョンを使用しています。</text>
+    <text key="S0775" xml:space="preserve">バージョン {0} があります。今すぐダウンロードしますか？</text>
+    <text key="S0776" xml:space="preserve">ダウンロード</text>
+    <text key="S0777" xml:space="preserve">更新をダウンロードしています… {0}%</text>
+    <text key="S0778" xml:space="preserve">更新をダウンロードしました。作業を保存してから再起動してインストールしてください。</text>
+    <text key="S0779" xml:space="preserve">再起動してインストール</text>
+    <text key="S0780" xml:space="preserve">アプリ内更新はインストール版でのみ利用できます。ポータブル版は新しいパッケージをダウンロードしてください。</text>
+    <text key="S0781" xml:space="preserve">更新を確認できませんでした。接続を確認して、後でもう一度お試しください。</text>
+    <text key="S0782" xml:space="preserve">更新をダウンロードできませんでした。後でもう一度お試しください。</text>
+    <text key="S0783" xml:space="preserve">更新をインストールしました。アプリを再起動して続行してください。</text>
 </resources>

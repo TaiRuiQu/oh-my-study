@@ -777,4 +777,17 @@
     <text key="S0768" xml:space="preserve">确认结果</text>
     <text key="S0769" xml:space="preserve">已确认结果。</text>
     <text key="S0770" xml:space="preserve">未能确认。请等待任务结束后重试。</text>
+    <text key="S0771" xml:space="preserve">版本 {0}</text>
+    <text key="S0772" xml:space="preserve">检查更新</text>
+    <text key="S0773" xml:space="preserve">正在检查更新…</text>
+    <text key="S0774" xml:space="preserve">当前已是最新版本。</text>
+    <text key="S0775" xml:space="preserve">发现版本 {0}。是否立即下载？</text>
+    <text key="S0776" xml:space="preserve">下载</text>
+    <text key="S0777" xml:space="preserve">正在下载更新… {0}%</text>
+    <text key="S0778" xml:space="preserve">更新已下载。保存工作后，重启即可安装。</text>
+    <text key="S0779" xml:space="preserve">重启并安装</text>
+    <text key="S0780" xml:space="preserve">只有安装版支持应用内更新。便携版请下载新版安装包或完整便携包。</text>
+    <text key="S0781" xml:space="preserve">暂时无法检查更新。请检查网络后稍后重试。</text>
+    <text key="S0782" xml:space="preserve">更新下载失败，请稍后重试。</text>
+    <text key="S0783" xml:space="preserve">更新已安装。请重启应用以继续。</text>
 </resources>

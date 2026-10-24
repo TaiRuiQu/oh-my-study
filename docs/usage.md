@@ -69,7 +69,7 @@ The app restores your previous window size and maximized state on the next norma
 
 After checking the model's transcription concerns against the original, click **Confirm result** in the **Needs review** notice. This clears the review text directly while preserving question content, notes, and grades. An undetermined grade remains undetermined and may still appear under Needs review.
 
-- In "Exams (试卷)", search by title or subject and open an exam to view its questions; "Exam information (试卷信息)" lets you edit the title, subject, and score.
+- In "Exams (试卷)", search by title or subject and open an exam to view its questions. Edit the title, subject, and score through "Exam information (试卷信息)" inside the exam, or through "Exam details (试卷信息)" in the exam's list context menu.
 - Drag dividers between functional panes to resize them: navigation and content, source and questions, question list and detail, question and notes, task list and detail, task summary and log, and provider list and settings. Horizontal dividers resize heights and vertical dividers resize widths. Focus a divider with Tab and use the matching arrow keys; Home/End select the minimum/maximum size. Narrow layouts retain draggable dividers wherever both panes are shown.
 - "Question bank (题库)" lists every saved question across exams. Search question text, answers, notes, or exam names, filter by subject or result ("All results (全部结果)", "Mistakes (错题)", "Needs review (待确认)", "Correct (正确)"), and sort the list. More questions load as you scroll, so large banks stay responsive.
 - "Mistakes (错题)" lists questions with at least one partially correct, incorrect, or unanswered subquestion.

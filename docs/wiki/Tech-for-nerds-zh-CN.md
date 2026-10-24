@@ -20,8 +20,8 @@
 | Application | 任务队列、授权、编排、搜索契约与服务。 |
 | Infrastructure | SQLite、凭据、供应商 SDK、文件上传、评分工具、进程、搜索索引。 |
 | Documents | PDFium 栅格化、坐标、VelociTex 数学、Typst 导出。 |
-| App | WinUI 工作区、结构化编辑、列表/详情导航、本地化与视觉冒烟。 |
-| Setup | 安装引擎及 Windows 集成，打包脚本生成 MSI、MSP、ZIP。 |
+| App | WinUI 工作区、结构化编辑、列表/详情导航、本地化、Velopack 更新客户端与视觉冒烟。 |
+| 打包与 CI | `packaging/` 和 `.github/` 中的 Velopack 打包及发布脚本，生成 Setup、便携 ZIP 和更新包。 |
 
 ## 处理与持久化
 
@@ -47,4 +47,4 @@ dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
 ./packaging/Invoke-CI.ps1 -Phase Test
 ```
 
-可执行测试覆盖领域、存储、供应商、执行、评分、媒体/文档、集成、安装。普通分支/PR 使用托管供应商/评分 SDK 测试；标签/手动运行执行完整 Native AOT 验证并打包四种版本。应用冒烟提供独立视觉证据，打印仍需检查实际输出。见[架构](Tech-Architecture-zh-CN.md)和[安装](../installation.zh-CN.md)。
+可执行测试覆盖领域、存储、供应商、执行、评分、媒体/文档、集成、打包。普通分支/PR 使用托管供应商/评分 SDK 测试；标签/手动运行执行完整 Native AOT 验证并打包三种版本。应用冒烟提供独立视觉证据，打印仍需检查实际输出。见[架构](Tech-Architecture-zh-CN.md)和[安装](../installation.zh-CN.md)。

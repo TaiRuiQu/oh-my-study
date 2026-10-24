@@ -46,6 +46,8 @@ public partial class App : Microsoft.UI.Xaml.Application
         string? previewPdfPath = null;
         string? workflowReport = null;
         string? performanceReport = null;
+        string? updateReport = null;
+        string? updateSource = null;
         for (int index = 1; index < arguments.Length; index++)
         {
             if (arguments[index] == "--smoke-test" && index + 1 < arguments.Length)
@@ -56,6 +58,11 @@ public partial class App : Microsoft.UI.Xaml.Application
                 workflowReport = Path.GetFullPath(arguments[++index]);
             else if (arguments[index] == "--performance-smoke" && index + 1 < arguments.Length)
                 performanceReport = Path.GetFullPath(arguments[++index]);
+            else if (arguments[index] == "--update-smoke" && index + 2 < arguments.Length)
+            {
+                updateReport = Path.GetFullPath(arguments[++index]);
+                updateSource = Path.GetFullPath(arguments[++index]);
+            }
         }
 
         try
@@ -64,6 +71,7 @@ public partial class App : Microsoft.UI.Xaml.Application
             Microsoft.UI.Xaml.Application.Current.Resources["ContentControlThemeFontFamily"] = font;
             _window = new MainWindow(reportPath, previewPdfPath, workflowReport, performanceReport);
             _window.Activate();
+            if (updateReport is not null && updateSource is not null) _ = _window.RunUpdateSmokeAsync(updateReport, updateSource);
             AppLog.Info("Application.WindowActivated", "Main window activated.");
         }
         catch (Exception exception)

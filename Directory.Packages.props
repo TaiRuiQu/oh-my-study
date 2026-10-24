@@ -3,6 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Velopack" Version="1.3.39-g8d2844f" />
     <PackageVersion Include="VelociTex.Core" Version="1.0.0-preview6" />
     <PackageVersion Include="VelociTex.Rendering.Direct2D" Version="1.0.0-preview6" />
     <PackageVersion Include="VelociTex.WinUI" Version="1.0.0-preview6" />

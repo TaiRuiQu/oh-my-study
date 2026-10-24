@@ -71,7 +71,7 @@ public sealed partial class MainWindow
             }
             else Require(PaperMoreButton.Visibility == Visibility.Collapsed, "list-more-hidden");
             var contextMenu = CreatePaperContextMenu(_filteredPapers[0]);
-            Require(contextMenu.Items.OfType<MenuFlyoutItem>().Any(item => item.Text == "删除试卷"), "paper-context-menu");
+            Require(contextMenu.Items.OfType<MenuFlyoutItem>().Select(item => item.Text).SequenceEqual((string[])["试卷信息", "删除试卷"]), "paper-context-menu");
             PaperList.ScrollIntoView(_filteredPapers[0], ScrollIntoViewAlignment.Leading);
             await Task.Delay(200); PaperList.UpdateLayout();
             var firstRow = PaperList.ContainerFromIndex(0) as FrameworkElement;
@@ -88,9 +88,26 @@ public sealed partial class MainWindow
             Require(VisualTreeHelper.FindElementsInHostCoordinates(blankPosition, RootGrid).Contains(rowSurface), "paper-row-blank-space-hit-test");
             var requested = new Microsoft.UI.Xaml.Input.ContextRequestedEventArgs();
             PaperRow_ContextRequested(paperRow, requested); await Task.Delay(300);
-            Require(requested.Handled && VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Any(popup => popup.Child is MenuFlyoutPresenter), "paper-context-request-opens");
-            foreach (var openPopup in VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).ToArray()) openPopup.IsOpen = false;
-            await Task.Delay(220);
+            var contextPresenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Select(popup => popup.Child).OfType<MenuFlyoutPresenter>().SingleOrDefault();
+            Require(requested.Handled && contextPresenter is not null, "paper-context-request-opens");
+            var editItem = NativeDescendants(contextPresenter!).OfType<MenuFlyoutItem>().Single(item => item.Text == "试卷信息");
+            var editPeer = new Microsoft.UI.Xaml.Automation.Peers.MenuFlyoutItemAutomationPeer(editItem);
+            ((Microsoft.UI.Xaml.Automation.Provider.IInvokeProvider)editPeer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Invoke)).Invoke();
+            await Task.Delay(350);
+            var renameDialog = OpenDialog();
+            const string renamedTitle = "数学 · 单元练习（已重命名）";
+            NativeDescendants(renameDialog).OfType<TextBox>().Single(text => text.Header as string == "标题").Text = renamedTitle;
+            var saveButton = NativeDescendants(renameDialog).OfType<Button>().Single(button => button.Name == "PrimaryButton");
+            var savePeer = new Microsoft.UI.Xaml.Automation.Peers.ButtonAutomationPeer(saveButton);
+            ((Microsoft.UI.Xaml.Automation.Provider.IInvokeProvider)savePeer.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.Invoke)).Invoke();
+            await Task.Delay(500);
+            var renamedSummary = (await _library.ListPapersAsync()).Single();
+            Require(renamedSummary.Document.Name == renamedTitle, "paper-context-rename-persisted");
+            Require(renamedSummary.Subject == "数学" && renamedSummary.Earned == 86.5 && renamedSummary.Possible == 100, "paper-context-rename-preserves-metadata");
+            Require(PapersPanel.Visibility == Visibility.Visible && _filteredPapers.Single().Title == renamedTitle, "paper-context-rename-list");
+            await LoadDocumentAsync(renamedSummary.Document);
+            Require(ViewModel.CurrentDocument?.Name == renamedTitle && PapersPanel.Visibility == Visibility.Collapsed, "paper-context-rename-reopened");
+            BackToPapers_Click(this, new RoutedEventArgs()); await Task.Delay(220);
             // A large presentation fixture exercises virtualized rows without generating user data.
             for (int i = 0; i < 240; i++) _papers.Add(new(new PaperSummary(document with { Id = Guid.NewGuid().ToString(), Name = i == 4 ? "这是一份标题非常长的数学试卷，包含函数、导数、数列、概率以及跨页综合题，需要完整保留标题以便整理归档" : $"{new[] { "数学", "语文", "英语", "物理" }[i % 4]} · 第 {i + 1:000} 次练习", CreatedAt = DateTimeOffset.Now.AddDays(-i).ToString("O") }, i % 7 == 0 ? null : new[] { "数学", "语文", "英语", "物理" }[i % 4], i % 3 == 0 ? null : 70 + i % 30, i % 5 == 0 ? null : 100, i % 24)));
             RefreshPaperSubjects(); ApplyPaperFilters(); WorkspaceNotice.Title = "示例资料"; WorkspaceNotice.Message = "仅供界面检查。"; WorkspaceNotice.IsOpen = true; WorkspaceNotice.Visibility = Visibility.Visible;

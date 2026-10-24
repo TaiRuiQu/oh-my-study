@@ -1,11 +1,13 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('aot','aot-avx512','self-contained','framework-dependent')][string]$Variant = 'aot',
+    [ValidateSet('aot','self-contained','framework-dependent')][string]$Variant = 'aot',
     [string]$AppPublishDirectory,
     [string]$RuntimeDirectory,
     [string]$OutputDirectory,
-    [string]$BaselineMsi,
+    [string]$BaselinePackage,
+    [string]$PackId = 'TaiRuiQu.OhMyStudy',
+    [string]$PackTitle = 'Oh My Study',
     [switch]$DesktopSmoke,
     [switch]$WorkflowSmoke
 )
@@ -14,6 +16,10 @@ $workspace=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'ReleasePayload.ps1')
 $cache=Join-Path $workspace 'output/migration'
 $profile = & (Join-Path $PSScriptRoot 'Get-PublishProfile.ps1') -Variant $Variant
+$releaseTag=if($env:RELEASE_TAG){$env:RELEASE_TAG}elseif($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}
+if ($releaseTag -notmatch '^v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$') { throw "Invalid release version: $releaseTag" }
+$version=$Matches[1]
+$channel="win-x64-$Variant"
 if (-not $RuntimeDirectory) { $RuntimeDirectory=Join-Path $cache 'toolchain/runtime' }
 if (-not $OutputDirectory) { $OutputDirectory=Join-Path $workspace 'output/releases' }
 $destination=[IO.Path]::GetFullPath($OutputDirectory)
@@ -54,9 +60,9 @@ try {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT='1'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'
     if (-not $AppPublishDirectory) {
         $project=Join-Path $workspace 'src/OhMyStudy.App/OhMyStudy.App.csproj'
-        Invoke-Dotnet (@('restore',$project,'-p:Configuration=Release','--locked-mode','--disable-parallel') + $profile.properties) (Join-Path $run 'app-restore.log')
+        Invoke-Dotnet (@('restore',$project,'-p:Configuration=Release','--locked-mode','--disable-parallel',"-p:Version=$version") + $profile.properties) (Join-Path $run 'app-restore.log')
         $AppPublishDirectory=Join-Path $run 'app-publish'
-        Invoke-Dotnet (@('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$AppPublishDirectory) + $profile.properties) (Join-Path $run 'app-publish.log')
+        Invoke-Dotnet (@('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$AppPublishDirectory,"-p:Version=$version") + $profile.properties) (Join-Path $run 'app-publish.log')
     }
     $appSource=(Resolve-Path -LiteralPath $AppPublishDirectory).Path
     $report.appPublishDirectory=$appSource
@@ -95,7 +101,6 @@ try {
     $report.excludedDevelopmentBytes = [long]($excludedFiles | Measure-Object -Property bytes -Sum).Sum
     Copy-Item -LiteralPath (Join-Path $workspace 'LICENSE') -Destination (Join-Path $package 'LICENSE')
     $notices=Join-Path $package 'licenses'; New-Item -ItemType Directory -Path $notices -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'msi/LICENSE.WiX.txt') -Destination (Join-Path $notices 'WiX-MS-RL.txt')
     Copy-Item -LiteralPath (Join-Path $workspace 'probes/native-documents.lock.json') -Destination (Join-Path $notices 'native-documents.lock.json')
     if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'runtime.lock.json'))) { throw 'Private runtime lock is missing' }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime.lock.json') -Destination (Join-Path $notices 'runtime.lock.json')
@@ -113,18 +118,18 @@ try {
         foreach ($framework in $graph.dependencies.PSObject.Properties) {
             foreach ($dependency in $framework.Value.PSObject.Properties) {
                 if (-not $dependency.Value.resolved -or $dependency.Value.type -eq 'Project') { continue }
-                $id=$dependency.Name; $version=$dependency.Value.resolved
-                if (-not $seen.Add("$id/$version")) { continue }
-                $packageCache=Join-Path $env:NUGET_PACKAGES "$($id.ToLowerInvariant())/$version"
+                $id=$dependency.Name; $dependencyVersion=$dependency.Value.resolved
+                if (-not $seen.Add("$id/$dependencyVersion")) { continue }
+                $packageCache=Join-Path $env:NUGET_PACKAGES "$($id.ToLowerInvariant())/$dependencyVersion"
                 if ($id -eq 'SourceGear.sqlite3') { Assert-Hash (Join-Path $package 'e_sqlite3.dll') (Get-FileHash -LiteralPath (Join-Path $packageCache 'runtimes/win-x64/native/e_sqlite3.dll') -Algorithm SHA256).Hash }
-                $target=Join-Path $notices "$id-$version"; New-Item -ItemType Directory -Path $target -Force | Out-Null
+                $target=Join-Path $notices "$id-$dependencyVersion"; New-Item -ItemType Directory -Path $target -Force | Out-Null
                 $metadata=@(Get-ChildItem -LiteralPath $packageCache -File | Where-Object { $_.Name -match '(?i)license|notice|copying|\.nuspec$|^README\.md$' })
                 foreach ($file in $metadata) { Copy-Item -LiteralPath $file.FullName -Destination $target }
                 if ($id -like 'VelociTex.*') {
                     Copy-Tree (Join-Path $packageCache 'licenses') (Join-Path $target 'licenses')
                     Copy-Item -LiteralPath (Join-Path $packageCache 'THIRD-PARTY-NOTICES.md') -Destination $target
                 }
-                $components.Add([ordered]@{ name=$id; version=$version; nugetContentHash=$dependency.Value.contentHash; graph=$lockPath; metadataPath="licenses/$id-$version"; distributionScope='dependency-graph; build tools may not be runtime files'; licenseReview='upstream metadata retained; redistribution review not completed' })
+                $components.Add([ordered]@{ name=$id; version=$dependencyVersion; nugetContentHash=$dependency.Value.contentHash; graph=$lockPath; metadataPath="licenses/$id-$dependencyVersion"; distributionScope='dependency-graph; build tools may not be runtime files'; licenseReview='upstream metadata retained; redistribution review not completed' })
             }
         }
     }
@@ -162,13 +167,12 @@ Redistribution/license review and clean-system installation acceptance remain un
     $sourceDirectory=Join-Path $package 'source'; New-Item -ItemType Directory -Path $sourceDirectory -Force | Out-Null
     [IO.Compression.ZipFile]::CreateFromDirectory($sourceStage,(Join-Path $sourceDirectory 'source-snapshot.zip'),[IO.Compression.CompressionLevel]::Optimal,$false)
     @'
-此 ZIP 为便携版，解压后直接运行 OhMyStudy.App.exe；需要安装向导请选择同版本的 MSI。
+此 ZIP 为便携版，解压后直接运行 OhMyStudy.App.exe；需要一键安装请选择同版本的 Setup.exe。
 资料与备份存放在用户资料目录，更新或卸载程序时会保留。
 AI 识别与批改需要在设置中添加供应商、密钥和模型；材料会发送给所选供应商，可能产生费用。
-更新前请保存修改并关闭应用，重要资料请保留完整备份。
+安装版可在“关于”中检查更新。更新前请保存修改，重要资料请保留完整备份。
 '@ | Set-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Encoding utf8
     $requirements = switch ($Variant) {
-        'aot-avx512' { '此版本需要支持 x86-64-v4（AVX-512 F/BW/CD/DQ/VL）的处理器和操作系统；不确定时请选择普通 AOT 版。' }
         'framework-dependent' { '运行应用前请安装 Microsoft .NET 10 x64 Runtime；安装器不会自动下载运行时。' }
         default { '此版本无需另行安装 .NET 运行时。' }
     }
@@ -178,23 +182,44 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
     $report.payloadBytes = ($files | Measure-Object -Property bytes -Sum).Sum
     $sourceCommit=(& git -C $workspace rev-parse HEAD).Trim()
     $sourceStatus=@(& git -C $workspace status --porcelain --untracked-files=normal)
-    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; variant=$Variant; nativeAot=$profile.nativeAot; selfContained=$profile.selfContained; instructionSet=$profile.instructionSet; entryPoint='OhMyStudy.App.exe'; installerType='msi'; version=if($env:RELEASE_TAG){$env:RELEASE_TAG}elseif($env:GITHUB_REF_TYPE -eq 'tag'){$env:GITHUB_REF_NAME}else{'0.1.0-migration'}; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
+    $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; variant=$Variant; nativeAot=$profile.nativeAot; selfContained=$profile.selfContained; instructionSet=$profile.instructionSet; entryPoint='OhMyStudy.App.exe'; installerType='velopack'; version=$version; channel=$channel; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
     $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $package 'package-manifest.json') -Encoding utf8
     $verification=Join-Path $run 'package-verification.json'
     & (Join-Path $PSScriptRoot 'Test-OfflinePackage.ps1') -PackageDirectory $package -ReportFile $verification -DesktopSmoke:$DesktopSmoke -WorkflowSmoke:$WorkflowSmoke
     $report.verificationReport=$verification
     $zip=Join-Path $run "$runId.zip"
     [IO.Compression.ZipFile]::CreateFromDirectory($package,$zip,[IO.Compression.CompressionLevel]::Optimal,$false)
-    $report.installer = Join-Path $run ($runId + '-installer.msi')
-    $msi = & (Join-Path $PSScriptRoot 'Build-MsiPackage.ps1') -PackageDirectory $package -OutputFile $report.installer
-    $report.installerSha256 = $msi.sha256
-    $report.installerType = 'msi'
-    & (Join-Path $PSScriptRoot 'Test-MsiPackage.ps1') -InstallerMsi $report.installer -ReportFile (Join-Path $run 'msi-verification.json') -InstallSmoke -VerifyPayload
-    if ($BaselineMsi) {
-        $report.patch = Join-Path $run ($runId + '-patch.msp')
-        $patch = & (Join-Path $PSScriptRoot 'Build-MspPackage.ps1') -BaselineMsi $BaselineMsi -UpdateMsi $report.installer -OutputFile $report.patch
-        $report.patchMetadata = $patch
+    $releases=Join-Path $run 'velopack'
+    New-Item -ItemType Directory -Path $releases -Force | Out-Null
+    if ($BaselinePackage) {
+        $baseline=(Resolve-Path -LiteralPath $BaselinePackage).Path
+        if ($baseline -notlike "*-$channel-full.nupkg") { throw 'Baseline package channel does not match this build' }
+        Copy-Item -LiteralPath $baseline -Destination $releases
     }
+    $vpk=& (Join-Path $PSScriptRoot 'prepare-velopack.ps1')
+    & $vpk pack --packId $PackId --packVersion $version --packDir $package --mainExe OhMyStudy.App.exe --packTitle $PackTitle --packAuthors TaiRuiQu --icon (Join-Path $workspace 'src/OhMyStudy.App/Assets/App.ico') --channel $channel --runtime win-x64 --outputDir $releases | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "Velopack pack exited with $LASTEXITCODE" }
+    $report.installer=Join-Path $releases "$PackId-$channel-Setup.exe"
+    $report.fullPackage=Join-Path $releases "$PackId-$version-$channel-full.nupkg"
+    $report.feed=Join-Path $releases "releases.$channel.json"
+    $report.legacyFeed=Join-Path $releases "RELEASES-$channel"
+    $report.assetsFeed=Join-Path $releases "assets.$channel.json"
+    foreach ($name in @('installer','fullPackage','feed','legacyFeed','assetsFeed')) {
+        if (-not (Test-Path -LiteralPath $report[$name] -PathType Leaf)) { throw "Velopack output missing: $name" }
+        $report[$name+'Sha256']=(Get-FileHash -LiteralPath $report[$name] -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    if ($BaselinePackage) {
+        $report.deltaPackage=Join-Path $releases "$PackId-$version-$channel-delta.nupkg"
+        if (-not (Test-Path -LiteralPath $report.deltaPackage -PathType Leaf)) { throw 'Required Velopack delta package was not generated' }
+        $report.deltaPackageSha256=(Get-FileHash -LiteralPath $report.deltaPackage -Algorithm SHA256).Hash.ToLowerInvariant()
+        $reconstructed=Join-Path $run 'reconstructed.nupkg'
+        & $vpk delta patch --base $baseline --patch $report.deltaPackage --output $reconstructed | Out-Host
+        if ($LASTEXITCODE -ne 0 -or (Get-FileHash -LiteralPath $reconstructed -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $report.fullPackage -Algorithm SHA256).Hash) { throw 'Delta package does not reconstruct the full package' }
+        Remove-Item -LiteralPath $reconstructed
+    }
+    $report.installerType='velopack'
+    $report.version=$version
+    $report.channel=$channel
     $report.zip=$zip; $report.zipSha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); $report.fileCount=$files.Count
     $report.packageStatus='created-and-local-checks-passed'
 } catch { $report.packageStatus='failed'; $report.error=$_.Exception.Message; throw }

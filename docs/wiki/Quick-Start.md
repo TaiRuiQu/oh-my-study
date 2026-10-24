@@ -19,7 +19,7 @@ The overview below is a reference; open a chapter for the detailed walkthrough.
 
 ## Your first exam
 
-1. **Install.** Get a Windows 10/11 x64 build from [Releases](https://github.com/TaiRuiQu/oh-my-study/releases). If unsure, choose a filename containing `aot` without `avx512`. Run the MSI installer, or fully extract the portable ZIP and open `OhMyStudy.App.exe`. See [installation](../installation.md) for other variants and prerequisites.
+1. **Install.** Get a Windows 10/11 x64 build from [Releases](https://github.com/TaiRuiQu/oh-my-study/releases). If unsure, choose the `vX-aot` release. Run `Setup.exe` for a per-user installation, or fully extract the portable ZIP and open `OhMyStudy.App.exe`. See [installation](../installation.md) for other variants and prerequisites.
 2. **Configure a model.** Open **Settings → Add provider**, enter the API type, address, and key, then save. Use **Import models** or **Add model**, confirm image/tool capabilities and thinking options, and **Save model**. A connection test makes a small, potentially billable request.
 3. **Import.** Choose **Import exam**, select PDF, PNG, JPEG, or WebP files, choose automatic detection or an explicit mode and a model, then **Import and recognize**. Each exam, its supplementary student answers, and its references together can contain at most 12 pages.
 4. **Follow progress.** Open **Tasks** to see page reads, saved questions, execution requests, and estimated costs. Questions appear as they are saved; a copied original alone does not mean recognition finished.

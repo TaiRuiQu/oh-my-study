@@ -777,4 +777,17 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0768" xml:space="preserve">결과 확인</text>
     <text key="S0769" xml:space="preserve">결과를 확인했습니다.</text>
     <text key="S0770" xml:space="preserve">확인하지 못했습니다. 작업이 끝난 후 다시 시도하세요.</text>
+    <text key="S0771" xml:space="preserve">버전 {0}</text>
+    <text key="S0772" xml:space="preserve">업데이트 확인</text>
+    <text key="S0773" xml:space="preserve">업데이트를 확인하는 중…</text>
+    <text key="S0774" xml:space="preserve">최신 버전을 사용하고 있습니다.</text>
+    <text key="S0775" xml:space="preserve">버전 {0}을 사용할 수 있습니다. 지금 다운로드하시겠습니까?</text>
+    <text key="S0776" xml:space="preserve">다운로드</text>
+    <text key="S0777" xml:space="preserve">업데이트를 다운로드하는 중… {0}%</text>
+    <text key="S0778" xml:space="preserve">업데이트를 다운로드했습니다. 작업을 저장한 후 다시 시작하여 설치하세요.</text>
+    <text key="S0779" xml:space="preserve">다시 시작하여 설치</text>
+    <text key="S0780" xml:space="preserve">앱 내 업데이트는 설치 버전에서만 사용할 수 있습니다. 포터블 버전은 새 패키지를 다운로드하세요.</text>
+    <text key="S0781" xml:space="preserve">업데이트를 확인할 수 없습니다. 연결을 확인하고 나중에 다시 시도하세요.</text>
+    <text key="S0782" xml:space="preserve">업데이트를 다운로드할 수 없습니다. 나중에 다시 시도하세요.</text>
+    <text key="S0783" xml:space="preserve">업데이트를 설치했습니다. 계속하려면 앱을 다시 시작하세요.</text>
 </resources>

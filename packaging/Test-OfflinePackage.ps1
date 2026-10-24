@@ -5,9 +5,7 @@ param(
     [Parameter(Mandatory,ParameterSetName='Zip')][string]$PackageZip,
     [string]$ReportFile,
     [switch]$DesktopSmoke,
-    [switch]$WorkflowSmoke,
-    [string]$InstallerMsi,
-    [switch]$InstallSmoke
+    [switch]$WorkflowSmoke
 )
 $ErrorActionPreference='Stop'
 $workspace=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
@@ -169,11 +167,7 @@ try {
         $report.checks+='portable-persisted-twelve-page-workflow'
         $report.workflowReport=$workflow
     } else { $report.notRun+='portable-persisted-workflow: not requested' }
-    if ($InstallSmoke) {
-        if (-not $InstallerMsi) { throw 'Provide -InstallerMsi for the MSI install smoke check' }
-        & (Join-Path $PSScriptRoot 'Test-MsiPackage.ps1') -InstallerMsi $InstallerMsi -ReportFile (Join-Path $evidence 'msi-verification.json') -InstallSmoke -VerifyPayload -WorkflowSmoke
-        $report.checks += 'actual-MSI-install-run-uninstall-preserves-data'
-    } else { $report.notRun += 'actual-MSI-install-run-uninstall: not requested' }
+    $report.notRun += 'actual-Velopack-install-update-uninstall: covered by Test-VelopackInstaller.ps1'
     # The portable tree is immutable. A diagnostic run must keep reports, libraries and caches
     # outside it, and must not quietly invalidate the package that will be archived next.
     foreach ($file in $manifest.files) { Assert-FileHash (Assert-Path $root $file.path) $file.sha256 }
