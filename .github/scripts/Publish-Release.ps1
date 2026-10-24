@@ -67,7 +67,7 @@ $existing = & gh release view $releaseTag --repo $Repository --json isDraft 2>$n
 if ($LASTEXITCODE -eq 0) {
     Write-Output "Updating release $releaseTag with the complete checked build set."
 } else {
-    Invoke-Gh @('release','create',$releaseTag,'--repo',$Repository,'--target',$Tag,'--draft','--generate-notes','--title',"Oh My Study $Tag ($Variant)")
+    Invoke-Gh @('release','create',$releaseTag,'--repo',$Repository,'--target',$manifest.commit,'--draft','--generate-notes','--title',"Oh My Study $Tag ($Variant)")
 }
 Invoke-Gh (@('release','upload',$releaseTag,'--repo',$Repository,'--clobber') + $assets)
 $arguments = @('release','edit',$releaseTag,'--repo',$Repository,'--draft=false')

@@ -101,4 +101,19 @@ foreach ($case in @('missing-kind','duplicate-kind','wrong-variant','wrong-commi
 Reject { & $script -Tag '-bad' -Repository TaiRuiQu/oh-my-study -Variant aot -AssetDirectory $root -DryRun }
 Reject { & $script -Tag v2.0.0 -Repository TaiRuiQu/oh-my-study -Variant aot -AssetDirectory (Join-Path $root 'aot') -DryRun }
 Reject { & $script -Tag v1.2.3 -Repository 'invalid repository' -Variant aot -AssetDirectory (Join-Path $root 'aot') -DryRun }
-Write-Output 'PASS three independent Velopack releases, full/delta feeds and invalid/missing/mixed inputs; no GitHub writes'
+$global:createdRelease = $null
+$savedExitCode = $global:LASTEXITCODE
+function gh {
+    param([Parameter(ValueFromRemainingArguments)][string[]]$Arguments)
+    if ($Arguments[1] -eq 'view' -and $Arguments -contains 'isDraft') { $global:LASTEXITCODE = 1; return }
+    if ($Arguments[1] -eq 'view' -and $Arguments -contains '.body') { $global:LASTEXITCODE = 0; return 'notes' }
+    if ($Arguments[1] -eq 'create') { $global:createdRelease = $Arguments }
+    $global:LASTEXITCODE = 0
+}
+try {
+    & $script -Tag v1.2.3 -Repository TaiRuiQu/oh-my-study -Variant aot -AssetDirectory (Join-Path $root 'aot')
+    if ($null -eq $createdRelease) { throw 'Release creation was not invoked' }
+    $targetIndex = [array]::IndexOf($createdRelease, '--target') + 1
+    if ($createdRelease[$targetIndex] -cne ('a' * 40)) { throw 'Release creation did not target the validated commit' }
+} finally { $global:LASTEXITCODE = $savedExitCode }
+Write-Output 'PASS three independent Velopack releases, full/delta feeds, validated commit target and invalid inputs; no network calls'
