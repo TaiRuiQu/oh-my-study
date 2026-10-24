@@ -29,6 +29,13 @@ public sealed partial class MainWindow
             await ShowQuestionLibraryAsync();
             Require(_library is not null && _bankTotal == 0 && BankEmpty.Visibility == Visibility.Visible && SourcePane.Visibility == Visibility.Collapsed, "empty-library");
             await Capture("empty");
+            if (Environment.GetCommandLineArgs().Contains("--phone-capture-smoke", StringComparer.Ordinal))
+            {
+                var capture = ReceivePhoneFilesAsync(new OhMyStudy.Infrastructure.Import.PhoneNetwork[] { new("Loopback test", System.Net.IPAddress.Loopback) });
+                for (int attempt = 0; attempt < 60 && !VisualTreeHelper.GetOpenPopupsForXamlRoot(RootGrid.XamlRoot).Any(); attempt++) await Task.Delay(100);
+                await CaptureDialog("phone-capture");
+                Require((await capture).Count == 0, "phone-capture-cancel-preserves-library");
+            }
             var setupChoice = ChooseProcessingAsync(false, importing: true);
             await CaptureDialog("setup-dialog");
             Require(await setupChoice is null && (await _library!.ListDocumentsAsync()).Count == 0, "missing-model-no-false-import");

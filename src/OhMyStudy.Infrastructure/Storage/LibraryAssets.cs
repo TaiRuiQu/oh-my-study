@@ -32,9 +32,9 @@ public sealed partial class LibraryRepository
     {
         var processor = options.MediaProcessor ?? throw new InvalidOperationException("File processing has not been configured");
         if (sources.Count is < 1 or > LibraryLimits.MaximumPages) throw new ArgumentException("Select between 1 and 12 files at a time");
-        if (sources.Sum(s => (long)s.Bytes.Length) > LibraryLimits.MaximumBatchBytes) throw new ArgumentException("This batch exceeds 256 MiB");
+        if (sources.Sum(s => (long)s.Bytes.Length + (s.ProcessedImagePng?.LongLength ?? 0)) > LibraryLimits.MaximumBatchBytes) throw new ArgumentException("This batch exceeds 256 MiB");
         foreach (var input in sources)
-            if (input.Bytes.Length is < 1 or > LibraryLimits.MaximumAssetBytes || input.Role is not ("material" or "reference" or "student"))
+            if (input.Bytes.Length is < 1 or > LibraryLimits.MaximumAssetBytes || input.ProcessedImagePng is { Length: < 1 or > LibraryLimits.MaximumAssetBytes } || input.Role is not ("material" or "reference" or "student"))
                 throw new ArgumentException("Invalid file size or page role");
         var submitted = sources.ToArray();
         await mediaGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -42,14 +42,16 @@ public sealed partial class LibraryRepository
         {
             return await Task.Run(async () =>
             {
-                var inputs = submitted.Select(s => s with { Bytes = s.Bytes.ToArray() }).ToArray();
+                var inputs = submitted.Select(s => s with { Bytes = s.Bytes.ToArray(), ProcessedImagePng = s.ProcessedImagePng?.ToArray() }).ToArray();
                 var result = new List<PreparedAsset>(); var count = 0;
                 foreach (var source in inputs)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var magic = DetectMime(source.Bytes);
-                    var media = await processor.PrepareAsync(source with { Bytes = source.Bytes.ToArray() }, maximumPages - count, cancellationToken).ConfigureAwait(false);
-                    if (media.Mime != magic) throw new InvalidDataException("File format verification failed");
+                    if (source.ProcessedImagePng is not null && (magic == "application/pdf" || DetectMime(source.ProcessedImagePng) != "image/png"))
+                        throw new InvalidDataException("A processed photo must be a PNG derived from an image");
+                    var media = await processor.PrepareAsync(source with { Bytes = (source.ProcessedImagePng ?? source.Bytes).ToArray(), ProcessedImagePng = null }, maximumPages - count, cancellationToken).ConfigureAwait(false);
+                    if (media.Mime != (source.ProcessedImagePng is null ? magic : "image/png")) throw new InvalidDataException("File format verification failed");
                     var id = NewId();
                     if (magic == "application/pdf")
                     {
@@ -65,10 +67,17 @@ public sealed partial class LibraryRepository
                     else
                     {
                         ValidateImage(media.Width, media.Height);
-                        if (magic == "image/png") ValidatePng(source.Bytes, media.Width!.Value, media.Height!.Value);
+                        if (source.ProcessedImagePng is not null) ValidatePng(source.ProcessedImagePng, media.Width!.Value, media.Height!.Value);
+                        else if (magic == "image/png") ValidatePng(source.Bytes, media.Width!.Value, media.Height!.Value);
                         if (media.ThumbnailPng is null) throw new InvalidDataException("No page preview was generated");
                         ValidateThumbnail(media.ThumbnailPng);
-                        result.Add(new(id, magic, source.Bytes, media.Width, media.Height, media.ThumbnailPng, source.Role)); count++;
+                        if (source.ProcessedImagePng is not null)
+                        {
+                            result.Add(new(id, magic, source.Bytes, null, null, null, source.Role, true));
+                            result.Add(new(NewId(), "image/png", source.ProcessedImagePng, media.Width, media.Height, media.ThumbnailPng, source.Role, false, id));
+                        }
+                        else result.Add(new(id, magic, source.Bytes, media.Width, media.Height, media.ThumbnailPng, source.Role));
+                        count++;
                     }
                     if (count > maximumPages) throw new ArgumentException("Materials and reference answers may total at most 12 pages. The batch was not imported");
                     if (result.Sum(a => (long)a.Bytes.Length + (a.Thumbnail?.Length ?? 0)) > LibraryLimits.MaximumBatchBytes)

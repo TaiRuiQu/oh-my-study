@@ -305,9 +305,10 @@ public sealed partial class MainWindow
         catch (Exception error) { AppLog.Error("Document.ShowPage", error); if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = UiText.Get("Could not open this page. Select or import it again."); }
     }
 
-    private async Task ImportFilesAsync(IReadOnlyList<StorageFile> files, bool reference = false, string? referenceDocumentId = null, ProcessingChoice? confirmedProcessing = null, bool studentAnswers = false)
+    private async Task ImportFilesAsync(IReadOnlyList<StorageFile> files, bool reference = false, string? referenceDocumentId = null, ProcessingChoice? confirmedProcessing = null, bool studentAnswers = false, IReadOnlyList<ImportSource>? captured = null)
     {
-        if (_library is null || files.Count == 0) return;
+        int fileCount = captured?.Count ?? files.Count;
+        if (_library is null || fileCount == 0) return;
         if (!await _importGate.WaitAsync(0)) return;
         var clock = Stopwatch.StartNew();
         Document? imported = null;
@@ -321,13 +322,14 @@ public sealed partial class MainWindow
                 if (!await ConfirmDiscardSettingsAsync()) return;
                 DiscardSettingsForm();
             }
-            if (files.Count > LibraryLimits.MaximumPages) { ViewModel.StatusMessage = UiText.Get("Import up to 12 pages at a time."); return; }
+            if (fileCount > LibraryLimits.MaximumPages) { ViewModel.StatusMessage = UiText.Get("Import up to 12 pages at a time."); return; }
             bool append = reference || studentAnswers;
             var processing = append ? null : confirmedProcessing ?? await ChooseProcessingAsync(false, importing: true);
             if (!append && processing is null) return;
             ViewModel.StatusMessage = UiText.Get("Importing…");
-            AppLog.Info("Import.Start", $"Files={files.Count}; Reference={reference}; StudentAnswers={studentAnswers}");
+            AppLog.Info("Import.Start", $"Files={fileCount}; Reference={reference}; StudentAnswers={studentAnswers}");
             var sources = new List<ImportSource>();
+            if (captured is not null) sources.AddRange(captured.Select(source => source with { Role = studentAnswers ? "student" : reference ? "reference" : "material" }));
             long total = 0;
             foreach (var file in files)
             {
@@ -339,7 +341,7 @@ public sealed partial class MainWindow
             }
             imported = append && referenceDocumentId is not null
                 ? await _library.AppendDocumentSourcesAsync(referenceDocumentId, sources, _lifetime.Token)
-                : await _library.ImportDocumentAsync(Path.GetFileNameWithoutExtension(files[0].Name), processing!.Mode, sources, _lifetime.Token);
+                : await _library.ImportDocumentAsync(Path.GetFileNameWithoutExtension(sources[0].Name), processing!.Mode, sources, _lifetime.Token);
             AppLog.Info("Import.Saved", $"Document={imported.Id}; Pages={imported.Pages.Count}; ElapsedMs={clock.ElapsedMilliseconds}");
             await RefreshDocumentsAsync(imported.Id);
             if (!append)
@@ -382,7 +384,7 @@ public sealed partial class MainWindow
     private async void AddReferences_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel.CurrentDocument is not { } document) { ViewModel.StatusMessage = UiText.Get("Select a material first."); return; }
-        try { await ImportFilesAsync(await PickFilesAsync(), true, document.Id); } catch { ViewModel.StatusMessage = UiText.Get("Could not open the file. Try again."); }
+        try { await PickAndImportAsync(true, document.Id); } catch (Exception error) { AppLog.Error("References.PickFiles", error); ViewModel.StatusMessage = UiText.Get("Could not open the file. Try again."); }
     }
 
     private async Task RefreshProvidersAsync()

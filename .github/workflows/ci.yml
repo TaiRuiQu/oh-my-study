@@ -42,6 +42,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          lfs: true
       - name: Set up native build environment
         uses: ./.github/actions/setup-native
       - name: Restore locked solution
@@ -89,6 +90,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          lfs: true
       - name: Set up native build environment
         uses: ./.github/actions/setup-native
       - name: Prepare pinned native dependencies

@@ -49,6 +49,7 @@ try {
             & (Join-Path $PSScriptRoot 'tests/Test-CIRelease.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-VelopackBaseline.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-ReleasePayload.ps1')
+            & (Join-Path $PSScriptRoot 'tests/Test-ScannerAssets.ps1')
             Invoke-Dotnet @('build','OhMyStudy.slnx','-c','Release','--no-restore','-warnaserror')
         }
         'Test' {

@@ -19,11 +19,17 @@ Choose a variant based on the release tag:
 | --- | --- |
 | `aot` | No separate .NET installation is required; choose this if unsure |
 | `self-contained` | Bundles the .NET runtime; no separate .NET installation is required |
-| `framework-dependent` | Requires Microsoft .NET 10 x64 Runtime to be installed first; Setup does not download it automatically |
+| `framework-dependent` | Requires Microsoft ASP.NET Core 10 x64 Runtime (including .NET Runtime) to be installed first; Setup does not download it automatically |
 
 The packages include the components needed for local typesetting, image processing, and computation, so you do not need to install Python, Node.js, or TeX yourself. AI features still require a network connection, a provider key, and an available model.
 
 Release packages exclude debug symbols, Python bytecode caches, and dependency test suites, while retaining the runtime helpers needed for computation. Bundled Windows UI components, PDF tools, and numerical libraries still contribute to the download size. Releases use Velopack rather than MSI, MSP, or WiX.
+
+## Document restoration components
+
+Standard phone-photo restoration includes CPU DocScanner-L ONNX inference and OpenCV. It needs no Python installation or CUDA. DocScanner's separate non-commercial, attribution/share-alike license is included with the model; commercial use needs prior written permission from Hao Feng. Optional DocRes is downloaded only by selecting **Download and install DocRes** in the desktop phone-import dialog, then enabled separately. Its weights are about 855 MiB, plus several GB of isolated Python/PyTorch CUDA dependencies under `%LOCALAPPDATA%/OhMyStudy/DocRes`. A single discrete NVIDIA GPU must have strictly more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB does not qualify. The app does not install a global CUDA toolkit. See [local document restoration](wiki/Features-Import.md#local-document-restoration) for tasks, cancellation, and fallback.
+
+For source builds, install Git LFS and run `git lfs pull`, then `./packaging/prepare-scanner.ps1`. The three bundled ONNX models are versioned with Git LFS in `packaging/models/scanner/`; preparation verifies their pinned sizes and SHA-256 hashes and copies them into the build toolchain without downloading upstream weights or installing Python. CI checks out the LFS objects before preparing dependencies. Models, licenses, and modification notices ship together. Maintainers can explicitly regenerate the tracked DocScanner ONNX with `./packaging/prepare-docscanner.ps1 -CheckpointPath <DocScanner-L.pth>`; this separate exporter downloads pinned upstream sources and uses an isolated CPU Python/PyTorch toolchain when needed. `-PythonExecutable <python.exe>` optionally supplies an exporter environment with torch 2.9.1 CPU, torchvision 0.24.1 CPU, onnx 1.19.1, onnxruntime 1.23.2, numpy 2.2.6 and pillow 11.3.0. The export verifies PyTorch/ONNX numerical parity and the pinned output SHA-256.
 
 ## Installing with Setup
 

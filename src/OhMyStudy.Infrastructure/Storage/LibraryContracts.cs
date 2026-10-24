@@ -10,7 +10,7 @@ public sealed record LibraryOpenOptions(string Directory, LibraryOpenMode Mode =
     public ILibraryMediaProcessor? MediaProcessor { get; init; }
 }
 
-public sealed record ImportSource(string Name, byte[] Bytes, string Role = "material");
+public sealed record ImportSource(string Name, byte[] Bytes, string Role = "material", byte[]? ProcessedImagePng = null);
 
 /// <summary>Decoding/rendering belongs outside the database thread. Originals are kept unchanged.</summary>
 public interface ILibraryMediaProcessor

@@ -38,6 +38,7 @@ internal static partial class Program
             await ManagedLibraryLocation();
             await DirectoryPromotionLocks();
             await PdfRelationships();
+            await PhonePhotoRelationships();
             await GradingAndJobs();
             await JobRetryChecks();
             await ProviderFilesChecks();
@@ -58,6 +59,31 @@ internal static partial class Program
     }
 
     private static LibraryOpenOptions NewOptions(string path) => new(path, LibraryOpenMode.CreateNew) { MediaProcessor = new FixtureProcessor() };
+
+    private static async Task PhonePhotoRelationships()
+    {
+        string path = Unique("phone-photo");
+        string documentId;
+        await using (var library = await LibraryRepository.OpenAsync(NewOptions(path)))
+        {
+            var document = await library.ImportDocumentAsync("Phone exam", ImportMode.Blank, [new("photo.png", png, ProcessedImagePng: png)]);
+            documentId = document.Id;
+            Check(document.Pages.Count == 1 && document.Pages[0].OriginalAssetId is not null && document.Pages[0].PdfPageIndex is null, "processed phone photo keeps one page linked to its original image");
+            var page = document.Pages[0];
+            var original = await library.ReadAssetAsync(page.OriginalAssetId!);
+            var processed = await library.ReadAssetAsync(page.AssetId);
+            Check(original.Bytes.SequenceEqual(png) && processed.Bytes.SequenceEqual(png) && page.AssetId != page.OriginalAssetId, "phone original and processed copy remain independent assets");
+            var appended = await library.AppendDocumentSourcesAsync(document.Id, [new("answer.png", png, "student", png)]);
+            Check(appended.Pages.Count == 2 && appended.Pages[1].Role == "student" && appended.Pages[1].OriginalAssetId is not null, "phone answer photo preserves its role and original");
+            await Fails(() => library.AppendDocumentSourcesAsync(document.Id, [new("bad.png", png, ProcessedImagePng: [1, 2, 3])]), "invalid processed phone image rejected");
+            await Fails(() => library.AppendDocumentSourcesAsync(document.Id, [new("bad.pdf", "%PDF-synthetic"u8.ToArray(), ProcessedImagePng: png)]), "photo correction cannot replace a PDF");
+        }
+        await using var reopened = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite));
+        var saved = (await reopened.ListDocumentsAsync()).Single(d => d.Id == documentId);
+        Check(saved.Pages.Count == 2 && saved.Pages.All(p => p.OriginalAssetId is not null), "phone photo original links survive reopening");
+        await reopened.DeletePaperAsync(documentId);
+        Check(!Directory.EnumerateFiles(Path.Combine(path, "assets")).Any(), "deleting phone exam cleans original and processed images");
+    }
 
     private static async Task PaperMetadata()
     {

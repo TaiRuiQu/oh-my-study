@@ -8,6 +8,7 @@ New-Item -ItemType Directory -Path $area -Force | Out-Null
 if (-not $ReportFile) { $ReportFile = Join-Path $area 'verification.json' }
 $ReportFile = [IO.Path]::GetFullPath($ReportFile)
 $packId = 'OMS.VR.' + [guid]::NewGuid().ToString('N').Substring(0,8)
+$packTitle = "Oh My Study Regression $packId"
 $channel = "win-x64-$Variant"
 $versions = @('0.1.1', '0.1.2')
 $runtimeDirectory = Join-Path $workspace 'output/migration/toolchain/runtime'
@@ -39,6 +40,28 @@ function Assert([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
     $checks.Add($Message)
     Write-Host "PASS: $Message"
+}
+
+function Assert-InstalledIcons {
+    foreach ($path in @($installedExe, (Join-Path $installRoot "$packTitle.exe"))) {
+        & (Join-Path $PSScriptRoot '../Test-ApplicationIcon.ps1') -Executable $path -IconFile (Join-Path $installRoot 'current/Assets/App.ico')
+    }
+    $shell = New-Object -ComObject WScript.Shell
+    try {
+        foreach ($directory in @([Environment]::GetFolderPath('DesktopDirectory'), [Environment]::GetFolderPath('Programs'))) {
+            $path = Join-Path $directory "$packTitle.lnk"
+            Assert (Test-Path -LiteralPath $path -PathType Leaf) "installed shortcut exists: $path"
+            $shortcut = $shell.CreateShortcut($path)
+            try {
+                Assert ($shortcut.TargetPath -eq $installedExe) "shortcut targets the installed app: $path"
+                Assert ($shortcut.IconLocation -eq "$installedExe,0") "shortcut uses the embedded application icon: $path"
+            } finally {
+                [Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut) | Out-Null
+            }
+        }
+    } finally {
+        [Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null
+    }
 }
 
 function Invoke-LoggedProcess([string]$FilePath, [string[]]$Arguments, [string]$Label, [int]$TimeoutMilliseconds = 120000) {
@@ -75,7 +98,7 @@ function New-Package([string]$Version, [string]$BaselinePackage) {
         RuntimeDirectory = $runtimeDirectory
         OutputDirectory = $output
         PackId = $packId
-        PackTitle = "Oh My Study Regression $packId"
+        PackTitle = $packTitle
     }
     if ($AppPublishDirectory) { $parameters.AppPublishDirectory = $AppPublishDirectory }
     if ($BaselinePackage) { $parameters.BaselinePackage = $BaselinePackage }
@@ -138,6 +161,8 @@ try {
     $installAttempted = $true
     Invoke-LoggedProcess $v1.installer @('--silent', '--verbose', '--log', (Join-Path $area 'install-velopack.log'), '--installto', $installRoot, '--', '--update-smoke', $smokeReport, (Split-Path -Parent $v2.feed)) 'install-v1' 180000
     Assert ((Test-Path -LiteralPath $installedExe -PathType Leaf) -and (Test-Path -LiteralPath $updateExe -PathType Leaf)) 'v1 installed only at the isolated custom root'
+    Assert-InstalledIcons
+    Assert $true 'installed app and stable shortcut launcher embed the application icon'
     Invoke-LoggedProcess $installedExe @('--update-smoke', $smokeReport, (Split-Path -Parent $v2.feed)) 'launch-v1-update-smoke' 180000
     Write-Host "Waiting for the installed app to download, apply, restart, and report: $smokeReport"
     $deadline = [DateTimeOffset]::UtcNow.AddMinutes(5)
@@ -170,6 +195,8 @@ try {
     if ($null -eq $updateResult) { throw "Update smoke timed out; report=$smokeReport; last observation=$lastObservation" }
     Assert ($updateResult.passed -eq $true -and $updateResult.downloaded -eq $true -and $updateResult.restarted -eq $true) 'installed app checked, downloaded, applied, and restarted'
     Assert ($updateResult.version -eq $versions[1]) "restarted app reports target version $($versions[1])"
+    Assert-InstalledIcons
+    Assert $true 'updated app and stable shortcut launcher preserve the application icon'
     Assert ([IO.File]::ReadAllText($userFile) -eq $userContent) 'update preserves user file outside the install root'
     $report.updateResult = $updateResult
 } catch {

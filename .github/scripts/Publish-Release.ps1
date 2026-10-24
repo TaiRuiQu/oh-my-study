@@ -81,7 +81,7 @@ $deltaText = if ($delta) { '此 Release 包含上一版到当前版的差分包�
 $runtime = switch ($Variant) {
     'aot' { 'Native AOT，无需另装 .NET。' }
     'self-contained' { '自带 .NET 运行时，非 Native AOT。' }
-    'framework-dependent' { '需要先安装 Microsoft .NET 10 x64 Runtime。' }
+    'framework-dependent' { '需要先安装 Microsoft ASP.NET Core 10 x64 Runtime（包含 .NET Runtime）。' }
 }
 $notes = @"
 $body

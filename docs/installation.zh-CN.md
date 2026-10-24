@@ -19,11 +19,17 @@
 | --- | --- |
 | `aot` | 无需另装 .NET；不确定时选择此项 |
 | `self-contained` | 自带 .NET 运行时，无需另装 .NET |
-| `framework-dependent` | 需要先安装 Microsoft .NET 10 x64 Runtime，Setup 不会自动下载 |
+| `framework-dependent` | 需要先安装 Microsoft ASP.NET Core 10 x64 Runtime（包含 .NET Runtime），Setup 不会自动下载 |
 
 软件包包含本地排版、图片处理和计算所需组件，无需自行安装 Python、Node.js 或 TeX。AI 功能仍需要网络、供应商密钥和可用模型。
 
 正式软件包不包含调试符号、Python 字节码缓存和依赖库测试套件，但保留计算所需的运行辅助模块。内置的 Windows 界面组件、PDF 工具和数值计算库仍会占用一定下载体积。发布使用 Velopack，不再使用 MSI、MSP 或 WiX。
+
+## 文档修复组件
+
+标准手机照片修复内置 CPU DocScanner-L ONNX 推理与 OpenCV，无需自行安装 Python 或 CUDA。模型附带 DocScanner 独立的非商业许可证，要求署名及相同方式共享；商业用途需提前取得 Hao Feng 的书面许可。可选 DocRes 仅在电脑端手机导入窗口主动点击**下载并安装 DocRes**后下载，且需单独启用。模型权重约 855 MiB，另需数 GB 独立 Python/PyTorch CUDA 依赖，保存在 `%LOCALAPPDATA%/OhMyStudy/DocRes`。单张 NVIDIA 独立显卡必须具有严格大于 12 GiB 的专用显存，并有已安装且可用的 CUDA 运行时；恰好 12 GiB 不符合要求。应用不安装全局 CUDA 工具包。任务选择、取消与回退见[本地文档修复](wiki/Features-Import-zh-CN.md#本地文档修复)。
+
+源码构建时先安装 Git LFS 并执行 `git lfs pull`，再执行 `./packaging/prepare-scanner.ps1`。三个随软件分发的 ONNX 模型通过 Git LFS 保存在 `packaging/models/scanner/`；准备脚本校验固定的文件大小和 SHA-256 后复制到构建工具目录，不再下载上游权重或安装 Python。CI 在准备依赖前检出 LFS 对象。模型、许可证与修改说明一起分发。维护者可主动执行 `./packaging/prepare-docscanner.ps1 -CheckpointPath <DocScanner-L.pth>`，重新生成仓库中的 DocScanner ONNX；这个独立导出器在需要时下载固定版本的上游源码，并使用独立的 CPU Python/PyTorch 工具链。也可用 `-PythonExecutable <python.exe>` 指定含 torch 2.9.1 CPU、torchvision 0.24.1 CPU、onnx 1.19.1、onnxruntime 1.23.2、numpy 2.2.6 与 pillow 11.3.0 的导出环境。导出器验证 PyTorch/ONNX 数值一致性，并核对固定的输出 SHA-256。
 
 ## 使用 Setup 安装
 

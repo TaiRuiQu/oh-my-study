@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Oh My Study</title>
+<style>
+:root{font-family:system-ui,"Microsoft YaHei UI",sans-serif;color:#202734;background:#f8f9fc;--accent:#087f79;--surface:#fff;--border:#cbd2dc;--muted:#53637b;--error:#b42318;color-scheme:light dark}
+*{box-sizing:border-box}body{margin:0}main{max-width:640px;margin:auto;padding:24px 20px 48px}h1{font-size:1.75rem;line-height:1.25;margin:24px 0 12px}h2{font-size:1.2rem;margin:28px 0 12px}p{line-height:1.6;margin:12px 0;color:var(--muted)}button,select,input{font:inherit;accent-color:var(--accent)}button,.file-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;padding:12px 16px;cursor:pointer;text-align:center}button:hover,.file-button:hover{border-color:var(--accent)}button:disabled{opacity:.55;cursor:wait}.primary{background:var(--accent);border-color:var(--accent);color:white;font-weight:600}.actions{display:flex;gap:12px;flex-wrap:wrap}.actions>*{flex:1}.file-button input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}.file-button{position:relative}.file-button:focus-within,button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}::selection{background:#b9ebe2;color:#202734}#status{min-height:26px;overflow-wrap:anywhere}#status.error{color:var(--error)}.brand{font-weight:650;color:var(--accent)}.limits{font-size:.875rem}#editor{position:relative;background:#17191d;line-height:0;margin:16px 0 24px;touch-action:pan-y}#photo{width:100%;height:auto;display:block}#outline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.corner{position:absolute;width:44px;height:44px;min-height:44px;padding:0;border:0;background:transparent;transform:translate(-50%,-50%);touch-action:none}.corner::after{content:"";width:18px;height:18px;background:white;border:3px solid #087f79;border-radius:50%;box-shadow:0 2px 5px #0008}.corner:focus-visible{outline:3px solid white}.settings{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}select{min-height:44px;max-width:100%;border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--surface);color:inherit}#result{max-width:100%;max-height:65vh;object-fit:contain;display:block;margin:16px auto}ol{padding:0;list-style:none}li{display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);padding:12px 0}li span{flex:1;overflow-wrap:anywhere}li button{flex:none;padding:8px 12px;min-height:44px}.progress{height:3px;background:var(--accent);transform-origin:left;animation:working 1.2s ease-in-out infinite}[hidden]{display:none!important}@keyframes working{0%,100%{transform:scaleX(.25)}50%{transform:scaleX(1)}}@media(prefers-reduced-motion:reduce){.progress{animation:none}}@media(prefers-color-scheme:dark){:root{color:#edf0f5;background:#171a20;--accent:#70d6cc;--surface:#262b33;--border:#414852;--muted:#b7c0cc;--error:#ffb4ab}.primary{color:#171a20}}@media(max-width:360px){main{padding:16px}.actions{gap:8px}.actions>*{flex-basis:100%}}
+</style>
+<main>
+<div class="brand">Oh My Study</div>
+<h1 data-text="Take photos with your phone"></h1>
+<p data-text="Photograph one page at a time. Check the corners before sending it to your computer."></p>
+<div id="busy" class="progress" hidden></div>
+<p id="status" role="status" aria-live="polite"></p>
+<p id="batch-progress" class="limits" role="status" aria-live="polite"></p>
+<div id="batch-retry" class="actions" hidden><button id="skip-file" data-text="Skip this file"></button><button id="retry-file" class="primary" data-text="Retry this file"></button></div>
+<section id="pick">
+<div class="actions">
+<label class="file-button primary"><span data-text="Take a photo"></span><input id="camera" type="file" accept="image/*" capture="environment"></label>
+<label class="file-button"><span data-text="Choose images or PDF"></span><input id="files" type="file" accept="image/*,application/pdf,.pdf" multiple></label>
+</div>
+<p class="limits" data-text="Up to 12 pages, 64 MB per file, 256 MB per import. Originals and processed copies both count toward the limit."></p>
+</section>
+<section id="review" hidden>
+<h2 data-text="Adjust page corners"></h2>
+<p id="detection"></p>
+<div id="editor"><img id="photo" alt=""><svg id="outline" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon id="polygon" fill="#087f7920" stroke="#70d6cc" stroke-width="0.6" vector-effect="non-scaling-stroke"></polygon></svg></div>
+<p id="direction"></p>
+<p class="limits" data-text="No enhancement keeps geometric correction and skips all photometric tasks."></p>
+<div class="settings"><label for="backend" data-text="Document restoration"></label><select id="backend"><option value="standard" data-text="Standard (DocScanner + OpenCV)"></option><option id="docres-option" value="docres" disabled data-text="DocRes (optional CUDA)"></option></select></div>
+<p id="docres-availability" class="limits" data-text="Install and enable optional DocRes on your computer to use it here."></p>
+<fieldset id="docres-tasks" hidden><legend data-text="DocRes tasks"></legend><label><input type="checkbox" value="dewarping" checked><span data-text="Dewarp curved pages"></span></label><br><label><input type="checkbox" value="deshadowing" checked><span data-text="Remove shadows"></span></label><br><label><input type="checkbox" value="deblurring"><span data-text="Recover mild blur"></span></label><br><label><input type="checkbox" value="appearance"><span data-text="Enhance appearance"></span></label></fieldset>
+<div class="settings"><button id="rotate" data-text="Rotate right"></button><button id="whole" data-text="Use full photo"></button><label for="enhancement" data-text="Enhancement"></label><select id="enhancement"><option value="color" data-text="Color restoration"></option><option value="gray" data-text="Grayscale restoration"></option><option value="original" data-text="No enhancement"></option></select></div>
+<div class="actions"><button id="cancel" data-text="Discard photo"></button><button id="render" class="primary" data-text="Preview correction"></button></div>
+<button id="stop-processing" hidden data-text="Cancel processing"></button>
+</section>
+<section id="confirm" hidden><h2 data-text="Check the corrected page"></h2><img id="result" alt=""><div class="actions"><button id="back" data-text="Adjust again"></button><button id="accept" class="primary" data-text="Send this page"></button></div></section>
+<section><h2 data-text="Sent to computer"></h2><p data-text="When finished, click Import on your computer. Recognition uses your existing model settings."></p><ol id="queue"></ol></section>
+<p class="limits" data-text="This temporary connection lasts 20 minutes. Keep this window open and use a trusted Wi-Fi network. Photos travel directly to your computer over local HTTP."></p>
+</main>
+<script>
+const strings = __CAPTURE_TEXT__;
+const t = value => strings[value] || value;
+document.documentElement.lang = __CAPTURE_LANGUAGE__;
+document.querySelectorAll('[data-text]').forEach(element => element.textContent = t(element.dataset.text));
+document.title = t('Take photos with your phone') + ' · Oh My Study';
+const $ = id => document.getElementById(id);
+const token = location.hash.slice(1);
+let active = null, corners = [], rotation = 0, processing = false, previewUrl = null, resultUrl = null;
+let pendingFiles = [], uploadedDraft = null, receivedCount = 0;
+let renderAbort = null;
+const controls = [];
+function message(value, error = false) { $('status').textContent = t(value); $('status').classList.toggle('error', error); }
+function batchProgress() { $('batch-progress').textContent = t('On computer: {0} / 12 files. Waiting to upload: {1}.').replace('{0}',receivedCount).replace('{1}',pendingFiles.length); }
+function busy(value) { processing = value; $('busy').hidden = !value; document.querySelectorAll('button,input,select').forEach(element => element.disabled = element.id === 'stop-processing' ? false : value || (active && element.dataset.photoId === active.id)); }
+async function api(path, options = {}) {
+    let response;
+    try { response = await fetch(path, {...options, headers: {...options.headers, 'X-Capture-Token': token}}); }
+    catch(error) { if(error.name === 'AbortError') throw new Error(t('Processing canceled. Your original photo and corner edits are preserved.')); throw new Error(t('Could not connect. Keep your computer awake and check Wi-Fi.')); }
+    if (!response.ok) {
+        if (response.status === 401 || response.status === 410) throw new Error(t('Connection expired. Scan the QR code on your computer again.'));
+        if (response.status === 413) throw new Error(t('The file exceeds 64 MB. Choose a smaller file.'));
+        if (response.status === 422) throw new Error(t('DocRes could not process this page. Select Standard restoration and retry. Check CUDA memory and the diagnostic log on your computer.'));
+        throw new Error(t('Upload or processing failed. Check the file size and format, then retry.'));
+    }
+    return response;
+}
+function failure(error) { message(error.message || t('Could not connect. Keep your computer awake and check Wi-Fi.'), true); }
+function show(id) { ['pick','review','confirm'].forEach(name => $(name).hidden = name !== id); }
+function draw() {
+    $('polygon').setAttribute('points', corners.map(p => `${p[0] * 100},${p[1] * 100}`).join(' '));
+    controls.forEach((button, i) => { button.style.left = corners[i][0] * 100 + '%'; button.style.top = corners[i][1] * 100 + '%'; });
+}
+for (let index = 0; index < 4; index++) {
+    const button = document.createElement('button');
+    button.className = 'corner';
+    button.setAttribute('aria-label', t(['Top left corner','Top right corner','Bottom right corner','Bottom left corner'][index]));
+    let dragging = false;
+    const move = event => { const rect = $('editor').getBoundingClientRect(); corners[index] = [Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))]; draw(); };
+    button.onpointerdown = event => { if (processing) return; dragging = true; button.setPointerCapture(event.pointerId); move(event); };
+    button.onpointermove = event => { if (dragging) move(event); };
+    button.onpointerup = button.onpointercancel = () => dragging = false;
+    button.onkeydown = event => { const delta = event.shiftKey ? .025 : .005; if (!event.key.startsWith('Arrow')) return; event.preventDefault(); if(event.key==='ArrowLeft') corners[index][0]-=delta; if(event.key==='ArrowRight') corners[index][0]+=delta; if(event.key==='ArrowUp') corners[index][1]-=delta; if(event.key==='ArrowDown') corners[index][1]+=delta; corners[index]=corners[index].map(v=>Math.max(0,Math.min(1,v))); draw(); };
+    controls.push(button); $('editor').append(button);
+}
+async function refresh() {
+    const data = await (await api('/status')).json();
+    const neuralReady = !!(data.restoration && data.restoration.eligible && data.restoration.installed && data.restoration.enabled);
+    $('docres-option').disabled = !neuralReady;
+    $('docres-availability').hidden = neuralReady;
+    if(!neuralReady && $('backend').value === 'docres') { $('backend').value = 'standard'; $('docres-tasks').hidden = true; }
+    receivedCount = data.files.length; batchProgress();
+    $('queue').replaceChildren();
+    data.files.forEach((file,index) => {
+        const row = document.createElement('li'), name = document.createElement('span'), remove = document.createElement('button');
+        name.textContent = `${index+1}. ${file.name}` + (file.ready ? '' : ' · ' + t('Not sent yet')); remove.textContent = t('Remove');
+        if (!file.ready && !active) {
+            const resume = document.createElement('button'); resume.textContent = t('Continue editing');
+            resume.onclick = async () => { busy(true); try { await openPhoto(file); } catch(error) { failure(error); } finally { busy(false); } };
+            row.append(resume);
+        }
+        remove.onclick = async () => { busy(true); try { await api('/remove/'+file.id,{method:'POST'}); await refresh(); } catch(error) { failure(error); } finally { busy(false); } };
+        remove.dataset.photoId = file.id;
+        if(active && file.id===active.id) remove.disabled=true;
+        row.prepend(name); row.append(remove); $('queue').append(row);
+    });
+}
+async function openPhoto(info) {
+    const blob = await (await api('/image/'+info.id)).blob();
+    active = info; corners = info.corners.map(p=>[...p]); rotation = info.rotation;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(blob);
+    $('photo').src = previewUrl; $('photo').alt = t('Photo preview');
+    $('detection').textContent = t(info.detected ? 'Page edges found. Drag the four handles if needed.' : 'No clear page edges found. Drag the four handles or use the full photo.');
+    $('direction').textContent = t(info.orientationConfidence < .8 ? 'Check the page direction. Rotate it if needed.' : info.rotation ? 'Page direction corrected automatically. You can still rotate it.' : 'Check the page direction before sending.');
+    show('review'); draw(); message('Check all four corners.');
+}
+async function normalized(file) {
+    if (['image/jpeg','image/png','image/webp'].includes(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name)) return file;
+    const url = URL.createObjectURL(file);
+    try {
+        const image = new Image(); image.src = url; await image.decode();
+        const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+        if (canvas.width * canvas.height > 40000000) throw new Error(t('The image exceeds 40 million pixels. Choose a smaller photo.'));
+        canvas.getContext('2d').drawImage(image,0,0);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve,'image/jpeg',.96));
+        if (!blob) throw new Error(t('This image format is not supported. Choose JPEG or PNG.'));
+        return new File([blob],file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'});
+    } finally { URL.revokeObjectURL(url); }
+}
+async function nextFile() {
+    if (active || pendingFiles.length === 0) return;
+    let failed = false;
+    $('batch-retry').hidden = true;
+    busy(true);
+    try {
+        if(uploadedDraft){await openPhoto(uploadedDraft);uploadedDraft=null;pendingFiles.shift();batchProgress();return;}
+        let file = pendingFiles[0];
+        if (file.size > 64*1024*1024) throw new Error(t('The file exceeds 64 MB. Choose a smaller file.'));
+        message('Uploading to computer…'); $('status').textContent += ' ' + file.name;
+        if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) file = await normalized(file);
+        const info = await (await api('/upload?name='+encodeURIComponent(file.name),{method:'POST',body:file})).json();
+        receivedCount++; batchProgress();
+        if (info.pdf) { pendingFiles.shift(); batchProgress(); message('Sent. Confirm the import on your computer.'); await refresh(); }
+        else {
+            uploadedDraft = info;
+            await openPhoto(info);
+            uploadedDraft=null; pendingFiles.shift(); batchProgress();
+        }
+    } catch(error) { failed = true; $('batch-retry').hidden = false; failure(error); }
+    finally { busy(false); }
+    if (!active && !failed && pendingFiles.length) await nextFile();
+}
+function choose(input) {
+    const selected = [...input.files]; input.value='';
+    if(receivedCount+pendingFiles.length+selected.length>12){message('Choose up to 12 files per session. Import this batch before starting another.',true);return;}
+    pendingFiles.push(...selected); batchProgress(); nextFile();
+}
+$('retry-file').onclick = () => nextFile();
+$('skip-file').onclick = async () => {
+    busy(true);
+    try { if(uploadedDraft) await api('/remove/'+uploadedDraft.id,{method:'POST'}); uploadedDraft=null; pendingFiles.shift(); $('batch-retry').hidden=true; await refresh(); }
+    catch(error){failure(error);return;} finally{busy(false);}
+    if(pendingFiles.length) await nextFile(); else message('Ready for more photos.');
+};
+$('camera').onchange = event => choose(event.target);
+$('files').onchange = event => choose(event.target);
+$('backend').onchange = () => $('docres-tasks').hidden = $('backend').value !== 'docres';
+$('stop-processing').onclick = () => renderAbort?.abort();
+$('whole').onclick = () => { corners = [[0,0],[1,0],[1,1],[0,1]]; draw(); };
+$('rotate').onclick = async () => {
+    busy(true);
+    try {
+        const image = $('photo'); await image.decode();
+        const canvas = document.createElement('canvas'); canvas.width = image.naturalHeight; canvas.height = image.naturalWidth;
+        const context = canvas.getContext('2d'); context.translate(canvas.width/2,canvas.height/2); context.rotate(Math.PI/2); context.drawImage(image,-image.naturalWidth/2,-image.naturalHeight/2);
+        const blob = await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!blob) throw new Error(t('Upload or processing failed. Check the file size and format, then retry.'));
+        const old = previewUrl; previewUrl = URL.createObjectURL(blob); image.src = previewUrl; await image.decode(); if(old) URL.revokeObjectURL(old);
+        corners = [corners[3],corners[0],corners[1],corners[2]].map(p=>[1-p[1],p[0]]); rotation=(rotation+90)%360; draw();
+    } catch(error) { failure(error); } finally { busy(false); }
+};
+$('cancel').onclick = async () => { busy(true); try { await api('/remove/'+active.id,{method:'POST'}); active=null; show('pick'); message('Photo discarded.'); } catch(error) { failure(error); } finally { busy(false); } if(!active) await nextFile(); };
+$('render').onclick = async () => {
+    if($('backend').value === 'docres' && !$('docres-tasks').querySelector('input:checked')) { message('Select at least one DocRes task.',true); return; }
+    const crosses = corners.map((p,i)=>{const q=corners[(i+1)%4],r=corners[(i+2)%4];return (q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]);});
+    const area = Math.abs(corners.reduce((sum,p,i)=>{const q=corners[(i+1)%4];return sum+p[0]*q[1]-q[0]*p[1];},0))/2;
+    if(crosses.some(value=>value<.001)||area<.01){message('Corners overlap or are too close. Adjust the four handles.',true);return;}
+    busy(true); message('Correcting perspective and enhancing…');
+    renderAbort = new AbortController(); $('stop-processing').hidden = false;
+    const thisRender = renderAbort;
+    const stageTimer = setInterval(async()=>{try { const stage = await (await api('/progress')).text(); if(stage && renderAbort === thisRender && !thisRender.signal.aborted) message(stage); } catch {}},750);
+    try {
+        const response = await api('/render/'+active.id,{method:'POST',signal:renderAbort.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({corners,enhancement:$('enhancement').value,rotation,backend:$('backend').value,tasks:[...$('docres-tasks').querySelectorAll('input:checked')].map(input=>input.value)})});
+        if(resultUrl) URL.revokeObjectURL(resultUrl);
+        resultUrl=URL.createObjectURL(await response.blob()); $('result').src=resultUrl; $('result').alt=t('Corrected page preview'); show('confirm'); message('Check that no text was cut off.');
+    } catch(error) { failure(error); } finally { clearInterval(stageTimer); renderAbort=null; $('stop-processing').hidden=true; busy(false); }
+};
+$('back').onclick = () => { show('review'); message('Check all four corners.'); };
+$('accept').onclick = async () => { busy(true); try { await api('/accept/'+active.id,{method:'POST'}); active=null; show('pick'); await refresh(); message('Sent. Confirm the import on your computer.'); } catch(error) { failure(error); } finally { busy(false); } if(!active) await nextFile(); };
+message('Connecting…');
+refresh().then(()=>message('Connected. You can start taking photos.')).catch(failure);
+setInterval(()=>{if(!processing) refresh().catch(failure);},10000);
+</script>
+</html>

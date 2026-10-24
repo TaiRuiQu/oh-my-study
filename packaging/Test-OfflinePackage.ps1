@@ -75,6 +75,15 @@ try {
     $report.checks+='all-manifest-file-sizes-and-sha256'; $report.fileCount=$manifest.files.Count
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','Assets/App.ico','Microsoft.ui.xaml.dll','e_sqlite3.dll','native/pdfium.dll','native/pdfium-licenses/pdfium.txt','native/typst/typst.exe','native/typst/LICENSE','native/typst/NOTICE','runtime/runtime-manifest.json','runtime/python/python.exe','runtime/python/execute.py','LICENSE','THIRD-PARTY-NOTICES.txt','components.json','source/source-snapshot.zip')) { $null=Assert-Path $root $required }
     foreach ($required in @('VelociTex.Core.Native.dll','licenses/VelociTex.Core/LICENSE','licenses/VelociTex.Core/THIRD-PARTY-NOTICES.md','licenses/VelociTex.Core/licenses/KaTeX-FONTS-OFL.txt','licenses/VelociTex.Core/licenses/KaTeX-LICENSE.txt','licenses/VelociTex.Rendering.Direct2D/LICENSE','licenses/VelociTex.WinUI/LICENSE')) { $null=Assert-Path $root $required }
+    foreach ($required in @('onnxruntime.dll','onnxruntime_providers_shared.dll','native/scanner/docaligner-lcnet.onnx','native/scanner/document-orientation.onnx','native/scanner/LICENSE.txt','native/scanner/model.json')) { $null=Assert-Path $root $required }
+    $scannerLock=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'scanner.lock.json') -Raw | ConvertFrom-Json
+    foreach ($required in @('OpenCvSharpExtern.dll','native/scanner/docscanner-l.onnx','native/scanner/DocScanner-LICENSE.md','native/scanner/DocScanner-NOTICE.txt','native/docres/install.py','native/docres/worker.py','native/docres/models.json')) { $null=Assert-Path $root $required }
+    Assert-FileHash (Join-Path $root 'native/scanner/docscanner-l.onnx') $scannerLock.rectifier.sha256
+    Assert-FileHash (Join-Path $root 'native/scanner/DocScanner-LICENSE.md') $scannerLock.rectifier.licenseSha256
+    Assert-FileHash (Join-Path $root 'native/scanner/docaligner-lcnet.onnx') $scannerLock.sha256
+    Assert-FileHash (Join-Path $root 'native/scanner/document-orientation.onnx') $scannerLock.orientation.sha256
+    & (Join-Path $PSScriptRoot 'Test-ApplicationIcon.ps1') -Executable (Join-Path $root 'OhMyStudy.App.exe') -IconFile (Join-Path $root 'Assets/App.ico')
+    $report.checks += 'executable-embeds-application-icon-at-shell-sizes'
     if ($profile.nativeAot) {
         Assert-NativeApp (Join-Path $root 'OhMyStudy.App.exe')
         foreach ($name in @('coreclr.dll','clrjit.dll')) { if (Test-Path -LiteralPath (Join-Path $root $name)) { throw "JIT file in AOT package: $name" } }

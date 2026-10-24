@@ -10,7 +10,7 @@ public sealed partial class MainWindow
     private async void UploadStudentAnswers_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel.CurrentDocument is not { } document) return;
-        try { await ImportFilesAsync(await PickFilesAsync(), referenceDocumentId: document.Id, studentAnswers: true); }
+        try { await PickAndImportAsync(documentId: document.Id, studentAnswers: true); }
         catch (Exception error)
         {
             AppLog.Error("StudentAnswers.PickFiles", error);

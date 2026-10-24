@@ -6,6 +6,7 @@
     <WindowsSdkPackageVersion>10.0.26100.87</WindowsSdkPackageVersion>
     <RootNamespace>OhMyStudy.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/App.ico</ApplicationIcon>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>false</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
@@ -35,6 +36,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Velopack" />
+    <PackageReference Include="QRCoder" />
     <PackageReference Include="VelociTex.Core" GeneratePathProperty="true" />
     <PackageReference Include="VelociTex.Rendering.Direct2D" GeneratePathProperty="true" />
     <PackageReference Include="VelociTex.WinUI" GeneratePathProperty="true" />
@@ -56,13 +58,19 @@
     <Content Include="$(DocumentToolchain)\pdfium\pdfium.dll" Link="native\pdfium.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\pdfium\pdfium.dll')" />
     <Content Include="$(DocumentToolchain)\libwebp\libwebp-1.6.0-windows-x64\bin\dwebp.exe" Link="native\webp\dwebp.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\libwebp\libwebp-1.6.0-windows-x64\bin\dwebp.exe')" />
     <Content Include="$(DocumentToolchain)\typst-x86_64-pc-windows-msvc\typst.exe" Link="native\typst\typst.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\typst-x86_64-pc-windows-msvc\typst.exe')" />
+    <Content Include="$(DocumentToolchain)\scanner\*" Link="native\scanner\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/docres/*" Link="native/docres/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="$(DocumentToolchain)\runtime\**\*" Link="runtime\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Condition="Exists('$(DocumentToolchain)\runtime\runtime-manifest.json')" />
   </ItemGroup>
   <Target Name="RequireDocumentTools" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
     <Error Condition="!Exists('$(DocumentToolchain)\pdfium\pdfium.dll')" Text="PDF dependency missing. Run ./probes/prepare-documents.ps1 before building the app." />
+    <Error Condition="!Exists('$(DocumentToolchain)\scanner\docaligner-lcnet.onnx')" Text="Document scanner model missing. Run ./packaging/prepare-scanner.ps1 before building the app." />
+    <Error Condition="!Exists('$(DocumentToolchain)\scanner\docscanner-l.onnx')" Text="DocScanner rectifier is missing. Run ./packaging/prepare-scanner.ps1 before building the app." />
+    <Error Condition="!Exists('$(DocumentToolchain)\scanner\document-orientation.onnx')" Text="Document orientation model missing. Run ./packaging/prepare-scanner.ps1 before building the app." />
   </Target>
   <ItemGroup>
     <EmbeddedResource Include="Localization/*.xml" LogicalName="OhMyStudy.App.Localization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="MobileCapture/index.html" LogicalName="OhMyStudy.App.MobileCapture.html" />
     <ProjectReference Include="../OhMyStudy.Documents/OhMyStudy.Documents.csproj" />
     <ProjectReference Include="../OhMyStudy.Infrastructure/OhMyStudy.Infrastructure.csproj" />
     <Content Include="Assets/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

@@ -17,6 +17,11 @@ int failures = 0;
 var webpDecoder = args.ElementAtOrDefault(2) ?? Path.Combine(Environment.CurrentDirectory, "output/migration/toolchain/libwebp/libwebp-1.6.0-windows-x64/bin/dwebp.exe");
 var images = new NativePageImages(webpDecoder);
 var media = new NativeMediaProcessor(pdfium, webpDecoder);
+if (args.Contains("--phone-capture-preview", StringComparer.Ordinal)) return await PhoneCaptureChecks.PreviewAsync();
+int photoTestIndex = Array.IndexOf(args, "--phone-capture-benchmark");
+if (photoTestIndex >= 0) return await PhoneCaptureChecks.BenchmarkAsync(args[(photoTestIndex + 1)..]);
+int docResTestIndex = Array.IndexOf(args, "--phone-capture-docres-benchmark");
+if (docResTestIndex >= 0) return await PhoneCaptureChecks.DocResBenchmarkAsync(args[(docResTestIndex + 1)..]);
 using var fixtures = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures/assets.synthetic.json")));
 byte[] originalPng = Convert.FromBase64String(fixtures.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
 byte[] originalPdf = Convert.FromBase64String(fixtures.RootElement.GetProperty("assets")[1].GetProperty("base64").GetString()!);
@@ -280,6 +285,7 @@ await Check("cache_concurrent_budget_is_preserved", async () =>
     })));
     Assert(cache.RetainedBytes <= 128 && cache.Count <= 8);
 });
+await PhoneCaptureChecks.RunAsync(Check);
 using var process = Process.GetCurrentProcess();
 bool coreClr = process.Modules.Cast<ProcessModule>().Any(m => m.ModuleName.Equals("coreclr.dll", StringComparison.OrdinalIgnoreCase));
 var report = new JsonObject

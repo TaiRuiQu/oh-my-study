@@ -109,6 +109,13 @@ try {
     $components=[Collections.Generic.List[object]]::new()
     $components.Add([ordered]@{ name='Typst'; version=$documentLock.typst.version; license=$documentLock.typst.license; path='native/typst/typst.exe'; sha256=$documentLock.typst.executableSha256; source=$documentLock.typst.url })
     $components.Add([ordered]@{ name='PDFium'; version=$documentLock.pdfium.version; license=$documentLock.pdfium.license; path='native/pdfium.dll'; sha256=$documentLock.pdfium.librarySha256; source=$documentLock.pdfium.url })
+    $scannerLock=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'scanner.lock.json') -Raw | ConvertFrom-Json
+    Assert-Hash (Join-Path $package 'native/scanner/docscanner-l.onnx') $scannerLock.rectifier.sha256
+    $components.Add([ordered]@{ name=$scannerLock.rectifier.name; license=$scannerLock.rectifier.license; path='native/scanner/docscanner-l.onnx'; sha256=$scannerLock.rectifier.sha256; source=$scannerLock.rectifier.source; notices='native/scanner/DocScanner-LICENSE.md'; changes='Combined segmentation and 12-iteration rectifier exported to ONNX normalized backward grid' })
+    Assert-Hash (Join-Path $package 'native/scanner/docaligner-lcnet.onnx') $scannerLock.sha256
+    $components.Add([ordered]@{ name=$scannerLock.name; license=$scannerLock.license; path='native/scanner/docaligner-lcnet.onnx'; sha256=$scannerLock.sha256; source=$scannerLock.source; notices='native/scanner/LICENSE.txt' })
+    Assert-Hash (Join-Path $package 'native/scanner/document-orientation.onnx') $scannerLock.orientation.sha256
+    $components.Add([ordered]@{ name=$scannerLock.orientation.name; license=$scannerLock.orientation.license; path='native/scanner/document-orientation.onnx'; sha256=$scannerLock.orientation.sha256; source=$scannerLock.orientation.source; notices='native/scanner/LICENSE.txt' })
     $components.Add([ordered]@{ name='libwebp dwebp'; version=$webpLock.version; license='BSD-3-Clause plus patent grant'; path='native/webp/dwebp.exe'; sha256=$webpLock.executableSha256; source=$webpLock.url })
     $components.Add([ordered]@{ name='CPython'; version=$pythonLock.cpython.version; distributionArchiveSha256=$pythonLock.cpython.sha256; path='runtime/python/python.exe'; source=$pythonLock.cpython.url; notices='runtime/python/LICENSE.txt' })
     foreach ($wheel in $pythonLock.wheels) { $components.Add([ordered]@{ name=$wheel.name; version=$wheel.version; distributionArchiveSha256=$wheel.sha256; source=$wheel.url; scope='extracted private runtime wheel'; notices='runtime/python/Lib/site-packages/*dist-info/' }) }
@@ -140,6 +147,7 @@ try {
 Oh My Study: GPL-3.0-or-later. The complete license is included as LICENSE.
 The working-tree source snapshot is source/source-snapshot.zip. Existing supplied publishes require source-correspondence review.
 Native third-party tools keep their licenses beside native/typst and native/pdfium-licenses.
+DocScanner by Hao Feng is restricted to non-commercial use with attribution and share-alike. Commercial use requires prior written permission. Its separate license and modification notice are in native/scanner/DocScanner-LICENSE.md and DocScanner-NOTICE.txt.
 Printed prose uses Windows-installed 新宋体 (NSimSun). Individual screen and print formulas use VelociTex's unchanged embedded KaTeX fonts (SIL OFL 1.1 / Reserved Font Names).
 VelociTex code and KaTeX rules have separate MIT notices. All upstream font licenses and notices are retained under licenses/VelociTex.*.
 Dependency-graph metadata and .NET notices are under licenses/. The private Python runtime keeps its own notices.
@@ -173,7 +181,7 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
 安装版可在“关于”中检查更新。更新前请保存修改，重要资料请保留完整备份。
 '@ | Set-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Encoding utf8
     $requirements = switch ($Variant) {
-        'framework-dependent' { '运行应用前请安装 Microsoft .NET 10 x64 Runtime；安装器不会自动下载运行时。' }
+        'framework-dependent' { '运行应用前请安装 Microsoft ASP.NET Core 10 x64 Runtime（包含 .NET Runtime）；安装器不会自动下载运行时。' }
         default { '此版本无需另行安装 .NET 运行时。' }
     }
     Add-Content -LiteralPath (Join-Path $package 'README-PORTABLE.zh-CN.txt') -Value $requirements

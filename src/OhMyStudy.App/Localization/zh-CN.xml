@@ -790,4 +790,106 @@
     <text key="S0781" xml:space="preserve">暂时无法检查更新。请检查网络后稍后重试。</text>
     <text key="S0782" xml:space="preserve">更新下载失败，请稍后重试。</text>
     <text key="S0783" xml:space="preserve">更新已安装。请重启应用以继续。</text>
+    <text key="PhoneCapture.000" xml:space="preserve">导入来源</text>
+    <text key="PhoneCapture.001" xml:space="preserve">选择电脑上的文件，或扫码使用手机拍照。</text>
+    <text key="PhoneCapture.002" xml:space="preserve">选择文件</text>
+    <text key="PhoneCapture.003" xml:space="preserve">手机拍照</text>
+    <text key="PhoneCapture.004" xml:space="preserve">请将电脑连接到 Wi-Fi 或以太网，然后重试手机拍照。</text>
+    <text key="PhoneCapture.005" xml:space="preserve">手机连接同一 Wi-Fi 后，用相机扫描二维码即可。无需安装 App 或登录账号。</text>
+    <text key="PhoneCapture.006" xml:space="preserve">电脑网络</text>
+    <text key="PhoneCapture.007" xml:space="preserve">扫码连接手机</text>
+    <text key="PhoneCapture.008" xml:space="preserve">连接链接</text>
+    <text key="PhoneCapture.009" xml:space="preserve">复制链接</text>
+    <text key="PhoneCapture.010" xml:space="preserve">无法连接？若 Windows 提示，请允许 Oh My Study 在专用网络上通信。请避开访客 Wi-Fi，可尝试手机热点或切换上方电脑网络。局域网 HTTP 连接请仅在可信网络使用。</text>
+    <text key="PhoneCapture.011" xml:space="preserve">已收到 {0} 个文件。拍摄完成后，点击“导入”。</text>
+    <text key="PhoneCapture.012" xml:space="preserve">等待手机连接。此二维码将于 {0:t} 失效。</text>
+    <text key="PhoneCapture.013" xml:space="preserve">无法启动手机拍照。请检查网络或切换上方电脑网络。</text>
+    <text key="PhoneCapture.014" xml:space="preserve">二维码已失效。可导入已接收的文件，或关闭后重新打开手机拍照获取新二维码。</text>
+    <text key="PhoneCapture.015" xml:space="preserve">用手机拍照导入</text>
+    <text key="PhoneCapture.016" xml:space="preserve">每次拍摄一页，检查四角后发送到电脑。</text>
+    <text key="PhoneCapture.017" xml:space="preserve">拍照</text>
+    <text key="PhoneCapture.018" xml:space="preserve">选择图片或 PDF</text>
+    <text key="PhoneCapture.019" xml:space="preserve">最多 12 页，单个文件不超过 64 MB，每次导入不超过 256 MB。原图和处理后的图片均计入限制。</text>
+    <text key="PhoneCapture.020" xml:space="preserve">调整页面四角</text>
+    <text key="PhoneCapture.021" xml:space="preserve">保留整张照片</text>
+    <text key="PhoneCapture.022" xml:space="preserve">图像增强</text>
+    <text key="PhoneCapture.023" xml:space="preserve">彩色修复</text>
+    <text key="PhoneCapture.024" xml:space="preserve">灰度修复</text>
+    <text key="PhoneCapture.025" xml:space="preserve">不增强</text>
+    <text key="PhoneCapture.026" xml:space="preserve">放弃此照片</text>
+    <text key="PhoneCapture.027" xml:space="preserve">预览矫正效果</text>
+    <text key="PhoneCapture.028" xml:space="preserve">检查矫正后的页面</text>
+    <text key="PhoneCapture.029" xml:space="preserve">重新调整</text>
+    <text key="PhoneCapture.030" xml:space="preserve">发送此页</text>
+    <text key="PhoneCapture.031" xml:space="preserve">已发送到电脑</text>
+    <text key="PhoneCapture.032" xml:space="preserve">拍摄完成后，在电脑上点击“导入”。识别将沿用现有模型设置。</text>
+    <text key="PhoneCapture.033" xml:space="preserve">临时连接有效期为 20 分钟。请保持此窗口打开，并使用可信 Wi-Fi。照片通过局域网 HTTP 直接传到电脑。</text>
+    <text key="PhoneCapture.034" xml:space="preserve">连接已失效。请重新扫描电脑上的二维码。</text>
+    <text key="PhoneCapture.035" xml:space="preserve">文件超过 64 MB。请选择较小的文件。</text>
+    <text key="PhoneCapture.036" xml:space="preserve">上传或处理失败。请检查文件大小和格式后重试。</text>
+    <text key="PhoneCapture.037" xml:space="preserve">无法连接。请保持电脑唤醒并检查 Wi-Fi。</text>
+    <text key="PhoneCapture.038" xml:space="preserve">左上角</text>
+    <text key="PhoneCapture.039" xml:space="preserve">右上角</text>
+    <text key="PhoneCapture.040" xml:space="preserve">右下角</text>
+    <text key="PhoneCapture.041" xml:space="preserve">左下角</text>
+    <text key="PhoneCapture.042" xml:space="preserve">移除</text>
+    <text key="PhoneCapture.043" xml:space="preserve">图片超过 4000 万像素。请选择较小的照片。</text>
+    <text key="PhoneCapture.044" xml:space="preserve">不支持此图片格式。请选择 JPEG 或 PNG。</text>
+    <text key="PhoneCapture.045" xml:space="preserve">正在上传到电脑…</text>
+    <text key="PhoneCapture.046" xml:space="preserve">已发送。请在电脑上确认导入。</text>
+    <text key="PhoneCapture.047" xml:space="preserve">照片预览</text>
+    <text key="PhoneCapture.048" xml:space="preserve">已找到页面边缘。可拖动四角进行调整。</text>
+    <text key="PhoneCapture.049" xml:space="preserve">未找到清晰的页面边缘。请拖动四角，或保留整张照片。</text>
+    <text key="PhoneCapture.050" xml:space="preserve">请检查全部四角。</text>
+    <text key="PhoneCapture.051" xml:space="preserve">已放弃照片。</text>
+    <text key="PhoneCapture.052" xml:space="preserve">正在矫正透视并增强图像…</text>
+    <text key="PhoneCapture.053" xml:space="preserve">矫正后的页面预览</text>
+    <text key="PhoneCapture.054" xml:space="preserve">请确认文字没有被裁掉。</text>
+    <text key="PhoneCapture.055" xml:space="preserve">正在连接…</text>
+    <text key="PhoneCapture.056" xml:space="preserve">连接成功，可以开始拍照。</text>
+    <text key="PhoneCapture.057" xml:space="preserve">尚未发送</text>
+    <text key="PhoneCapture.058" xml:space="preserve">继续编辑</text>
+    <text key="PhoneCapture.059" xml:space="preserve">向右旋转</text>
+    <text key="PhoneCapture.060" xml:space="preserve">请检查页面方向，必要时手动旋转。</text>
+    <text key="PhoneCapture.061" xml:space="preserve">已自动矫正页面方向，仍可手动旋转。</text>
+    <text key="PhoneCapture.062" xml:space="preserve">发送前请确认页面方向。</text>
+    <text key="PhoneCapture.063" xml:space="preserve">四角重叠或距离过近，请重新调整。</text>
+    <text key="PhoneCapture.064" xml:space="preserve">导入</text>
+    <text key="PhoneCapture.065" xml:space="preserve">电脑已接收：{0} / 12 个文件。待上传：{1} 个。</text>
+    <text key="PhoneCapture.066" xml:space="preserve">跳过此文件</text>
+    <text key="PhoneCapture.067" xml:space="preserve">重试此文件</text>
+    <text key="PhoneCapture.068" xml:space="preserve">每次最多选择 12 个文件。请先导入本批次，再开始下一批。</text>
+    <text key="PhoneCapture.069" xml:space="preserve">可以继续拍摄。</text>
+    <text key="PhoneCapture.070" xml:space="preserve">正在检查本机文档修复能力…</text>
+    <text key="PhoneCapture.071" xml:space="preserve">标准模式：DocScanner 展平、OpenCV 去阴影和轻度失焦恢复。可选 DocRes：855 MiB 模型权重，另需数 GB 的独立 Python 与 CUDA 依赖。下载保存在本机。</text>
+    <text key="PhoneCapture.072" xml:space="preserve">下载并安装 DocRes</text>
+    <text key="PhoneCapture.073" xml:space="preserve">启用可选 DocRes 修复</text>
+    <text key="PhoneCapture.074" xml:space="preserve">DocRes 已安装。启用后可在手机端选择神经网络修复。</text>
+    <text key="PhoneCapture.075" xml:space="preserve">本机满足 DocRes 要求。需主动下载后才能使用。</text>
+    <text key="PhoneCapture.076" xml:space="preserve">DocRes 需要专用显存严格大于 12 GiB 的 NVIDIA 独立显卡，以及已安装且可用的 CUDA 运行时。恰好 12 GiB 不符合要求。</text>
+    <text key="PhoneCapture.077" xml:space="preserve">取消 DocRes 下载</text>
+    <text key="PhoneCapture.078" xml:space="preserve">正在本机下载并检查 DocRes，可能需要数分钟…</text>
+    <text key="PhoneCapture.079" xml:space="preserve">已取消 DocRes 下载，仍可使用标准修复。</text>
+    <text key="PhoneCapture.080" xml:space="preserve">DocRes 安装失败。请检查诊断日志、磁盘空间与 CUDA 安装情况，仍可使用标准修复。</text>
+    <text key="PhoneCapture.081" xml:space="preserve">文档修复</text>
+    <text key="PhoneCapture.082" xml:space="preserve">标准（DocScanner + OpenCV）</text>
+    <text key="PhoneCapture.083" xml:space="preserve">DocRes（可选 CUDA）</text>
+    <text key="PhoneCapture.084" xml:space="preserve">在电脑端安装并启用可选 DocRes 后，即可在此使用。</text>
+    <text key="PhoneCapture.085" xml:space="preserve">DocRes 修复项目</text>
+    <text key="PhoneCapture.086" xml:space="preserve">展平弯曲页面</text>
+    <text key="PhoneCapture.087" xml:space="preserve">去除阴影</text>
+    <text key="PhoneCapture.088" xml:space="preserve">恢复轻微模糊</text>
+    <text key="PhoneCapture.089" xml:space="preserve">增强外观</text>
+    <text key="PhoneCapture.090" xml:space="preserve">取消处理</text>
+    <text key="PhoneCapture.091" xml:space="preserve">已取消处理。原照片与页角调整均已保留。</text>
+    <text key="PhoneCapture.092" xml:space="preserve">DocRes 无法处理此页。请选择标准修复后重试，并在电脑端检查 CUDA 显存与诊断日志。</text>
+    <text key="PhoneCapture.093" xml:space="preserve">DocScanner：正在展平页面…</text>
+    <text key="PhoneCapture.094" xml:space="preserve">OpenCV：正在去阴影与恢复轻微模糊…</text>
+    <text key="PhoneCapture.095" xml:space="preserve">DocRes：正在加载本地 CUDA 模型…</text>
+    <text key="PhoneCapture.096" xml:space="preserve">DocRes：正在展平页面</text>
+    <text key="PhoneCapture.097" xml:space="preserve">DocRes：正在去阴影</text>
+    <text key="PhoneCapture.098" xml:space="preserve">DocRes：正在恢复模糊</text>
+    <text key="PhoneCapture.099" xml:space="preserve">DocRes：正在增强外观</text>
+    <text key="PhoneCapture.100" xml:space="preserve">请至少选择一项 DocRes 修复任务。</text>
+    <text key="PhoneCapture.101" xml:space="preserve">不增强仍进行几何校正，但跳过所有光度修复任务。</text>
 </resources>

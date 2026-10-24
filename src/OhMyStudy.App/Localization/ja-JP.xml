@@ -790,4 +790,106 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0781" xml:space="preserve">更新を確認できませんでした。接続を確認して、後でもう一度お試しください。</text>
     <text key="S0782" xml:space="preserve">更新をダウンロードできませんでした。後でもう一度お試しください。</text>
     <text key="S0783" xml:space="preserve">更新をインストールしました。アプリを再起動して続行してください。</text>
+    <text key="PhoneCapture.000" xml:space="preserve">インポート元</text>
+    <text key="PhoneCapture.001" xml:space="preserve">このPCのファイルを選ぶか、QRコードを読み取ってスマートフォンで撮影します。</text>
+    <text key="PhoneCapture.002" xml:space="preserve">ファイルを選択</text>
+    <text key="PhoneCapture.003" xml:space="preserve">スマートフォンで撮影</text>
+    <text key="PhoneCapture.004" xml:space="preserve">PCをWi-Fiまたは有線LANに接続して再試行してください。</text>
+    <text key="PhoneCapture.005" xml:space="preserve">スマートフォンを同じWi-Fiに接続し、カメラでQRコードを読み取ります。アプリやアカウントは不要です。</text>
+    <text key="PhoneCapture.006" xml:space="preserve">PCのネットワーク</text>
+    <text key="PhoneCapture.007" xml:space="preserve">スキャンしてスマートフォンを接続</text>
+    <text key="PhoneCapture.008" xml:space="preserve">接続リンク</text>
+    <text key="PhoneCapture.009" xml:space="preserve">リンクをコピー</text>
+    <text key="PhoneCapture.010" xml:space="preserve">接続できない場合、Windowsの確認でプライベートネットワークを許可してください。ゲストWi-Fiを避け、テザリングや別のネットワークを試してください。HTTP接続は信頼できるネットワークで使用してください。</text>
+    <text key="PhoneCapture.011" xml:space="preserve">{0}ファイルを受信しました。撮影後に「インポート」を押してください。</text>
+    <text key="PhoneCapture.012" xml:space="preserve">接続待機中。コードの有効期限は{0:t}です。</text>
+    <text key="PhoneCapture.013" xml:space="preserve">スマートフォン撮影を開始できません。ネットワークを確認するか切り替えてください。</text>
+    <text key="PhoneCapture.014" xml:space="preserve">コードの期限が切れました。受信済みファイルをインポートするか、開き直して新しいコードを取得してください。</text>
+    <text key="PhoneCapture.015" xml:space="preserve">スマートフォンで撮影して取り込む</text>
+    <text key="PhoneCapture.016" xml:space="preserve">1ページずつ撮影し、四隅を確認してPCに送信します。</text>
+    <text key="PhoneCapture.017" xml:space="preserve">撮影する</text>
+    <text key="PhoneCapture.018" xml:space="preserve">画像またはPDFを選択</text>
+    <text key="PhoneCapture.019" xml:space="preserve">最大12ページ、1ファイル64 MB、1回256 MBまで。原本と処理後の画像を含みます。</text>
+    <text key="PhoneCapture.020" xml:space="preserve">ページの四隅を調整</text>
+    <text key="PhoneCapture.021" xml:space="preserve">写真全体を使用</text>
+    <text key="PhoneCapture.022" xml:space="preserve">画像補正</text>
+    <text key="PhoneCapture.023" xml:space="preserve">カラー復元</text>
+    <text key="PhoneCapture.024" xml:space="preserve">グレースケール復元</text>
+    <text key="PhoneCapture.025" xml:space="preserve">補正なし</text>
+    <text key="PhoneCapture.026" xml:space="preserve">写真を破棄</text>
+    <text key="PhoneCapture.027" xml:space="preserve">補正をプレビュー</text>
+    <text key="PhoneCapture.028" xml:space="preserve">補正後のページを確認</text>
+    <text key="PhoneCapture.029" xml:space="preserve">再調整</text>
+    <text key="PhoneCapture.030" xml:space="preserve">このページを送信</text>
+    <text key="PhoneCapture.031" xml:space="preserve">PCに送信済み</text>
+    <text key="PhoneCapture.032" xml:space="preserve">完了後、PCで「インポート」を押してください。認識には既存のモデル設定を使います。</text>
+    <text key="PhoneCapture.033" xml:space="preserve">一時接続は20分間有効です。この画面を開いたまま、信頼できるWi-Fiを使ってください。写真はローカルHTTPでPCに直接送られます。</text>
+    <text key="PhoneCapture.034" xml:space="preserve">接続が期限切れです。PCのQRコードを再度読み取ってください。</text>
+    <text key="PhoneCapture.035" xml:space="preserve">ファイルが64 MBを超えています。小さいファイルを選んでください。</text>
+    <text key="PhoneCapture.036" xml:space="preserve">アップロードまたは処理に失敗しました。サイズと形式を確認して再試行してください。</text>
+    <text key="PhoneCapture.037" xml:space="preserve">接続できません。PCをスリープさせず、Wi-Fiを確認してください。</text>
+    <text key="PhoneCapture.038" xml:space="preserve">左上の角</text>
+    <text key="PhoneCapture.039" xml:space="preserve">右上の角</text>
+    <text key="PhoneCapture.040" xml:space="preserve">右下の角</text>
+    <text key="PhoneCapture.041" xml:space="preserve">左下の角</text>
+    <text key="PhoneCapture.042" xml:space="preserve">削除</text>
+    <text key="PhoneCapture.043" xml:space="preserve">画像が4000万画素を超えています。小さい写真を選んでください。</text>
+    <text key="PhoneCapture.044" xml:space="preserve">この画像形式は非対応です。JPEGまたはPNGを選んでください。</text>
+    <text key="PhoneCapture.045" xml:space="preserve">PCにアップロード中…</text>
+    <text key="PhoneCapture.046" xml:space="preserve">送信しました。PCでインポートを確認してください。</text>
+    <text key="PhoneCapture.047" xml:space="preserve">写真のプレビュー</text>
+    <text key="PhoneCapture.048" xml:space="preserve">ページの端を検出しました。必要に応じて四隅をドラッグしてください。</text>
+    <text key="PhoneCapture.049" xml:space="preserve">ページの端を検出できません。四隅をドラッグするか写真全体を使用してください。</text>
+    <text key="PhoneCapture.050" xml:space="preserve">四隅を確認してください。</text>
+    <text key="PhoneCapture.051" xml:space="preserve">写真を破棄しました。</text>
+    <text key="PhoneCapture.052" xml:space="preserve">遠近補正と画像補正中…</text>
+    <text key="PhoneCapture.053" xml:space="preserve">補正後のプレビュー</text>
+    <text key="PhoneCapture.054" xml:space="preserve">文字が切れていないか確認してください。</text>
+    <text key="PhoneCapture.055" xml:space="preserve">接続中…</text>
+    <text key="PhoneCapture.056" xml:space="preserve">接続しました。撮影を始められます。</text>
+    <text key="PhoneCapture.057" xml:space="preserve">未送信</text>
+    <text key="PhoneCapture.058" xml:space="preserve">編集を続ける</text>
+    <text key="PhoneCapture.059" xml:space="preserve">右に回転</text>
+    <text key="PhoneCapture.060" xml:space="preserve">ページの向きを確認し、必要に応じて回転してください。</text>
+    <text key="PhoneCapture.061" xml:space="preserve">向きを自動補正しました。手動でも回転できます。</text>
+    <text key="PhoneCapture.062" xml:space="preserve">送信前にページの向きを確認してください。</text>
+    <text key="PhoneCapture.063" xml:space="preserve">四隅が重なっているか近すぎます。位置を調整してください。</text>
+    <text key="PhoneCapture.064" xml:space="preserve">インポート</text>
+    <text key="PhoneCapture.065" xml:space="preserve">PC受信済み：{0} / 12ファイル。アップロード待ち：{1}。</text>
+    <text key="PhoneCapture.066" xml:space="preserve">このファイルをスキップ</text>
+    <text key="PhoneCapture.067" xml:space="preserve">このファイルを再試行</text>
+    <text key="PhoneCapture.068" xml:space="preserve">1回最大12ファイルです。このバッチをインポートしてから次を始めてください。</text>
+    <text key="PhoneCapture.069" xml:space="preserve">続けて撮影できます。</text>
+    <text key="PhoneCapture.070" xml:space="preserve">Checking local document restoration capabilities…</text>
+    <text key="PhoneCapture.071" xml:space="preserve">Standard: DocScanner rectification, OpenCV shadow removal and mild defocus recovery. Optional DocRes: 855 MiB of weights plus several GB of isolated Python and CUDA dependencies. Downloads stay on this computer.</text>
+    <text key="PhoneCapture.072" xml:space="preserve">Download and install DocRes</text>
+    <text key="PhoneCapture.073" xml:space="preserve">Enable optional DocRes restoration</text>
+    <text key="PhoneCapture.074" xml:space="preserve">DocRes is installed. Enable it to select neural restoration on your phone.</text>
+    <text key="PhoneCapture.075" xml:space="preserve">DocRes is available for this computer. Download it explicitly to use it.</text>
+    <text key="PhoneCapture.076" xml:space="preserve">DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.</text>
+    <text key="PhoneCapture.077" xml:space="preserve">Cancel DocRes download</text>
+    <text key="PhoneCapture.078" xml:space="preserve">Downloading and checking DocRes locally. This may take several minutes…</text>
+    <text key="PhoneCapture.079" xml:space="preserve">DocRes download canceled. Standard restoration remains available.</text>
+    <text key="PhoneCapture.080" xml:space="preserve">DocRes installation failed. Check the diagnostic log, free disk space, and CUDA installation. Standard restoration remains available.</text>
+    <text key="PhoneCapture.081" xml:space="preserve">Document restoration</text>
+    <text key="PhoneCapture.082" xml:space="preserve">Standard (DocScanner + OpenCV)</text>
+    <text key="PhoneCapture.083" xml:space="preserve">DocRes (optional CUDA)</text>
+    <text key="PhoneCapture.084" xml:space="preserve">Install and enable optional DocRes on your computer to use it here.</text>
+    <text key="PhoneCapture.085" xml:space="preserve">DocRes tasks</text>
+    <text key="PhoneCapture.086" xml:space="preserve">Dewarp curved pages</text>
+    <text key="PhoneCapture.087" xml:space="preserve">Remove shadows</text>
+    <text key="PhoneCapture.088" xml:space="preserve">Recover mild blur</text>
+    <text key="PhoneCapture.089" xml:space="preserve">Enhance appearance</text>
+    <text key="PhoneCapture.090" xml:space="preserve">Cancel processing</text>
+    <text key="PhoneCapture.091" xml:space="preserve">Processing canceled. Your original photo and corner edits are preserved.</text>
+    <text key="PhoneCapture.092" xml:space="preserve">DocRes could not process this page. Select Standard restoration and retry. Check CUDA memory and the diagnostic log on your computer.</text>
+    <text key="PhoneCapture.093" xml:space="preserve">DocScanner: rectifying page…</text>
+    <text key="PhoneCapture.094" xml:space="preserve">OpenCV: removing shadows and recovering mild blur…</text>
+    <text key="PhoneCapture.095" xml:space="preserve">DocRes: loading local CUDA models…</text>
+    <text key="PhoneCapture.096" xml:space="preserve">DocRes: dewarping</text>
+    <text key="PhoneCapture.097" xml:space="preserve">DocRes: deshadowing</text>
+    <text key="PhoneCapture.098" xml:space="preserve">DocRes: deblurring</text>
+    <text key="PhoneCapture.099" xml:space="preserve">DocRes: appearance</text>
+    <text key="PhoneCapture.100" xml:space="preserve">Select at least one DocRes task.</text>
+    <text key="PhoneCapture.101" xml:space="preserve">No enhancement keeps geometric correction and skips all photometric tasks.</text>
 </resources>

@@ -504,7 +504,7 @@ public sealed partial class MainWindow : Window
         _openingFile = true;
         try
         {
-            if (_library is not null) await ImportFilesAsync(await PickFilesAsync());
+            if (_library is not null) await PickAndImportAsync();
             else
             {
                 var files = await PickFilesAsync();
