@@ -34,7 +34,7 @@ Typst 由应用生成，用户/模型文字转义，图路径为生成资源，�
 
 打印正文用 Windows NSimSun 重点支持中英，界面阅读默认使用界面无衬线字体，公式有独立轮廓。日韩界面不等于额外打印字体。
 
-结构/契约用文档和媒体测试，再看实际字形、分式、长公式、表格、裁图、分页换栏。打印机设置不属编译器。
+检查实际 PDF 输出的字形、分式、长公式、表格、裁图、分页换栏。打印机设置不属编译器。
 
 源码: [NativeQuestionPresenter.cs](../../src/OhMyStudy.App/Services/NativeQuestionPresenter.cs) · [VelociTexFormulaRenderer.cs](../../src/OhMyStudy.Documents/VelociTexFormulaRenderer.cs) · [TypstDocumentService.cs](../../src/OhMyStudy.Documents/TypstDocumentService.cs) · [MainWindow.Documents.cs](../../src/OhMyStudy.App/MainWindow.Documents.cs)
 

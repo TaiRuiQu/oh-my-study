@@ -8,7 +8,7 @@
 
 Domain defines what a valid document/question/grade means. Application controls when jobs run, pause, commit, and cancel. Infrastructure supplies SQLite, provider adapters, credentials, files, and processes. Documents handles rasterization, coordinates, formulas, and print generation. App translates interactions into service calls and hosts the Velopack update client. Packaging and release scripts live in `packaging/` and `.github/`; there is no separate Setup source project.
 
-This separation means an invalid score is rejected by a shared rule rather than only by a particular textbox. It also lets tests exercise provider and storage behavior without opening the WinUI workspace.
+This separation means an invalid score is rejected by a shared rule rather than only by a particular textbox, and provider and storage behavior stays independent of the WinUI workspace.
 
 ## Trace a user action
 

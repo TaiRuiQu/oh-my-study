@@ -48,4 +48,4 @@
 - Anthropic：[通用提示词最佳实践](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)、[Haiku 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5)、[Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)、[Opus 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5)，以及[Sonnet 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5-5)。
 - Google：[提示词设计策略](https://ai.google.dev/gemini-api/docs/prompting-strategies)与[函数调用最佳实践](https://ai.google.dev/gemini-api/docs/function-calling#best-practices)。
 
-这些配置是持续维护的模板，不代表已经证明识别准确率最优。回归测试使用合成响应，验证配置选择、业务约束不变、实际请求中的工具说明、任务完成流程和稳定的对话前缀。真实试卷的准确率与成本改善需要在所选供应商和模型上评估。仅在模型官方文档或实测行为提供依据时添加版本专用指引，其余版本保留系列通用配置。
+这些配置是持续维护的模板，不代表已经证明识别准确率最优。真实试卷的准确率与成本改善需要在所选供应商和模型上评估。仅在模型官方文档或实测行为提供依据时添加版本专用指引，其余版本保留系列通用配置。

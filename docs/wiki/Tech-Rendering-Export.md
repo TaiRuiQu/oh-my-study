@@ -36,7 +36,7 @@ The UI reads the completed PDF before writing the picker-selected destination. T
 
 Current printed prose typography targets Chinese/English with Windows NSimSun, while the reading view defaults to the interface sans-serif face; formula outlines use their own renderer. Japanese/Korean interface localization does not imply extra print-font coverage.
 
-For verification, use document/media tests for structure and rendering contracts, then inspect actual PDF output for glyphs, fractions, long equations, table widths, figure crops, and page/column breaks. Physical printer settings remain outside the compiler.
+For verification, inspect actual PDF output for glyphs, fractions, long equations, table widths, figure crops, and page/column breaks. Physical printer settings remain outside the compiler.
 
 Source: [NativeQuestionPresenter.cs](../../src/OhMyStudy.App/Services/NativeQuestionPresenter.cs) · [VelociTexFormulaRenderer.cs](../../src/OhMyStudy.Documents/VelociTexFormulaRenderer.cs) · [TypstDocumentService.cs](../../src/OhMyStudy.Documents/TypstDocumentService.cs) · [MainWindow.Documents.cs](../../src/OhMyStudy.App/MainWindow.Documents.cs)
 
