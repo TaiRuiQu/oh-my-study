@@ -2,23 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
     tags: ['**']
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: 'Existing source tag to publish as three variant releases (empty builds artifacts only)'
-        required: false
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.ref_type != 'tag' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -32,45 +23,20 @@ env:
   NUGET_PACKAGES: ${{ github.workspace }}/output/migration/nuget
 
 jobs:
-  compile:
-    name: Build application
-    if: github.event_name != 'push' || !github.event.deleted
-    runs-on: windows-2025
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          lfs: true
-      - name: Set up native build environment
-        uses: ./.github/actions/setup-native
-      - name: Restore locked solution
-        run: |
-          dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Prepare document dependencies
-        run: |
-          ./packaging/prepare-documents.ps1
-          ./packaging/prepare-webp.ps1
-      - name: Build application
-        run: |
-          dotnet build OhMyStudy.slnx -c Release --no-restore -warnaserror
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-  build:
-    name: Build ${{ matrix.variant }} portable and installer
-    needs: compile
-    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+  publish:
+    name: Publish ${{ matrix.variant }}
+    if: github.event.created && !github.event.deleted
     runs-on: windows-2025
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         variant: [aot, self-contained, framework-dependent]
+    permissions:
+      contents: write
     steps:
-      - name: Checkout source commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
           lfs: true
@@ -81,55 +47,25 @@ jobs:
           ./packaging/prepare-documents.ps1
           ./packaging/prepare-webp.ps1
           ./packaging/prepare-runtime.ps1
-      - name: Publish and package
+      - name: Build and package
         id: package
         env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG: ${{ github.ref_name }}
           BUILD_VARIANT: ${{ matrix.variant }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          $baseline = $null
-          if ($env:RELEASE_TAG -or $env:GITHUB_REF_TYPE -eq 'tag') {
-            $currentTag = if ($env:RELEASE_TAG) { $env:RELEASE_TAG } else { $env:GITHUB_REF_NAME }
-            $baseline = ./packaging/Get-VelopackBaseline.ps1 -Repository $env:GITHUB_REPOSITORY -Variant $env:BUILD_VARIANT -CurrentTag $currentTag -OutputDirectory "output/ci/baseline/$env:BUILD_VARIANT"
-          }
+          $baseline = ./packaging/Get-VelopackBaseline.ps1 -Repository $env:GITHUB_REPOSITORY -Variant $env:BUILD_VARIANT -CurrentTag $env:RELEASE_TAG -OutputDirectory "output/ci/baseline/$env:BUILD_VARIANT"
           ./packaging/Invoke-CI.ps1 -Phase Build -Variant $env:BUILD_VARIANT -BaselinePackage $baseline
       - name: Upload offline application
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: ${{ steps.package.outputs.artifact-name }}
           path: output/ci/artifacts/${{ matrix.variant }}/*
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
-
-  release:
-    name: Publish ${{ matrix.variant }} release
-    if: (github.event_name == 'push' && github.ref_type == 'tag' && !github.event.deleted) || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
-    needs: build
-    runs-on: windows-2025
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: [aot, self-contained, framework-dependent]
-    permissions:
-      contents: write
-    concurrency:
-      group: release-${{ inputs.release_tag || github.ref_name }}-${{ matrix.variant }}
-      cancel-in-progress: false
-    steps:
-      - name: Checkout release script
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Download variant package
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: OhMyStudy-win-x64-${{ matrix.variant }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: output/ci/artifacts/${{ matrix.variant }}
-      - name: Publish Velopack release with checksums
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: ./.github/scripts/Publish-Release.ps1 -Tag $env:RELEASE_TAG -Repository $env:GITHUB_REPOSITORY -Variant ${{ matrix.variant }} -AssetDirectory output/ci/artifacts/${{ matrix.variant }}

@@ -78,6 +78,6 @@ To delete study materials, confirm your backups and close the app first, then de
 
 Add a provider, key, and model in **Settings (设置)** and save, then import an exam. See the [Usage Guide](usage.md) for details.
 
-CI compiles the application and publishes the three distribution variants. It runs no automated tests, regressions, or lint. Local whitespace lint is limited to 30 seconds; review UI and PDF output visually before release.
+CI runs only when a new tag is pushed. Each publish job builds, packages, and releases its distribution variant directly. It runs no automated tests, regressions, or lint. Local whitespace lint is limited to 30 seconds; review UI and PDF output visually before release.
 
 [Wiki contents](wiki/Home.md)

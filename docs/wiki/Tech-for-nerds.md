@@ -33,7 +33,7 @@ Recognition, file upload, optional background embedding, and reranking have dist
 
 ## Build and visual review
 
-Use the SDK pinned in `global.json`. CI compiles the application and creates the three distribution variants; it runs no lint, tests, or regression suites.
+Use the SDK pinned in `global.json`. CI runs only for newly pushed tags and builds all three distribution variants inside their publish jobs; it runs no lint, tests, or regression suites.
 
 ```powershell
 dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode

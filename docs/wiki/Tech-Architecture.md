@@ -30,7 +30,7 @@ Native PDF, formula, print, imaging, and computation components must be packaged
 
 ## Build and review
 
-CI compiles the application and publishes Native AOT, self-contained, and framework-dependent packages. Automated tests, regression suites, smoke launch modes, and CI lint have been removed. Local whitespace lint has a 30-second limit. Review UI and PDF changes visually with realistic content.
+CI runs only for newly pushed tags. Each publish job directly builds, packages, and releases its Native AOT, self-contained, or framework-dependent variant. Automated tests, regression suites, smoke launch modes, and CI lint have been removed. Local whitespace lint has a 30-second limit. Review UI and PDF changes visually with realistic content.
 
 Source: [OhMyStudy.slnx](../../OhMyStudy.slnx) · [Directory.Packages.props](../../Directory.Packages.props) · [global.json](../../global.json) · [Invoke-CI.ps1](../../packaging/Invoke-CI.ps1)
 

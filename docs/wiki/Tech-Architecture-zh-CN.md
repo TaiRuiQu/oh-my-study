@@ -30,7 +30,7 @@ global.json 固定 SDK，包集中管理并按发布配置锁定。源生成 JSO
 
 ## 构建与检查
 
-CI 编译应用并发布 Native AOT、自包含及框架依赖三种包。自动测试、回归套件、冒烟启动模式和 CI Lint 已移除。本地空白检查的时间上限为 30 秒。界面和 PDF 改动使用真实内容进行视觉检查。
+CI 仅在推送新标签时触发，各 publish job 直接构建、打包并发布 Native AOT、自包含或框架依赖版本。自动测试、回归套件、冒烟启动模式和 CI Lint 已移除。本地空白检查的时间上限为 30 秒。界面和 PDF 改动使用真实内容进行视觉检查。
 
 源码: [OhMyStudy.slnx](../../OhMyStudy.slnx) · [Directory.Packages.props](../../Directory.Packages.props) · [global.json](../../global.json) · [Invoke-CI.ps1](../../packaging/Invoke-CI.ps1)
 

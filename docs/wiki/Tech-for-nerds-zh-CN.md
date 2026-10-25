@@ -33,7 +33,7 @@
 
 ## 构建与视觉检查
 
-使用 `global.json` 固定的 SDK。CI 只编译应用、构建三种发行包并发布，不运行 Lint、测试或回归套件。
+使用 `global.json` 固定的 SDK。CI 仅在推送新标签时触发，并在 publish job 中直接构建、打包和发布三种版本，不运行 Lint、测试或回归套件。
 
 ```powershell
 dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
