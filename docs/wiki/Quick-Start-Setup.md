@@ -14,6 +14,8 @@ Download from the project's Releases page. For a typical Windows 10/11 x64 compu
 
 Run `Setup.exe` for a one-click, per-user installation under `%LOCALAPPDATA%/TaiRuiQu.OhMyStudy`. With portable ZIP, extract the entire archive before running `OhMyStudy.App.exe`. Keeping only the EXE discards native document/computation components. Installation and opening saved materials do not require a model request.
 
+At startup, the app centers its window in the current screen's available work area and fits the saved window size within it. A previously maximized window opens maximized.
+
 ## Create the connection
 
 1. Open Settings and add a provider.

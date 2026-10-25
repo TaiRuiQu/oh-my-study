@@ -190,6 +190,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                     },
                     PageId = pageIndex >= 0 ? pageId : null,
                     Detail = "Processing",
+                    Code = call.Name is "python" or "shell" && call.Arguments.ValueKind == JsonValueKind.Object
+                        && call.Arguments.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String ? code.GetString()! : "",
                     PagesRead = viewed.Count,
                     QuestionsSaved = saved.Count
                 };
@@ -209,8 +211,14 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
                             result = await BatchAsync(call.Arguments, "pages", async page =>
                             {
                                 int imageIndex = attachments.Count;
-                                var metadata = await ReadPageAsync(input, page, viewed, attachments, workspace, cancellation).ConfigureAwait(false);
+                                var metadata = await ReadPageAsync(input, page, viewed, attachments, activity.Images, context, workspace, cancellation).ConfigureAwait(false);
                                 metadata["image_index"] = imageIndex;
+                                await context.ActivityAsync(activity with
+                                {
+                                    Images = activity.Images.ToList(),
+                                    PagesRead = viewed.Count,
+                                    ElapsedMs = stepClock.ElapsedMilliseconds
+                                }).ConfigureAwait(false);
                                 return metadata;
                             }).ConfigureAwait(false); break;
                         case "save_paper_info" when !referenceOnly:
@@ -378,7 +386,8 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         return batch;
     }
 
-    private async Task<JsonObject> ReadPageAsync(GradingInput input, JsonElement arguments, HashSet<string> viewed, List<Image> attachments, GradingWorkspace workspace, CancellationToken cancellationToken)
+    private async Task<JsonObject> ReadPageAsync(GradingInput input, JsonElement arguments, HashSet<string> viewed, List<Image> attachments,
+        List<JobActivityImage> activityImages, JobContext context, GradingWorkspace workspace, CancellationToken cancellationToken)
     {
         GradingTools.Fields(arguments, "page_id", "crop", "rotation");
         var id = arguments.GetProperty("page_id").GetString();
@@ -400,7 +409,7 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
         var image = await images.ReadAsync(asset.Bytes, crop, rotation, cancellationToken).ConfigureAwait(false);
         attachments.Add(image.Image);
         if (crop is null) viewed.Add(page.Id);
-        return new()
+        var result = new JsonObject
         {
             ["page_id"] = page.Id,
             ["rotation"] = rotation,
@@ -413,6 +422,18 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             ["source_height"] = page.Height,
             ["local_file"] = await workspace.WriteImageAsync(Convert.FromBase64String(image.Image.Base64), cancellationToken, image.Image.Mime).ConfigureAwait(false)
         };
+        var stored = await context.CommitAsync(token => library.SaveGradingImageAsync(context.JobId,
+            Convert.FromBase64String(image.Image.Base64), token)).ConfigureAwait(false);
+        activityImages.Add(new JobActivityImage
+        {
+            AssetId = stored.Id,
+            PageId = page.Id,
+            Crop = crop,
+            Rotation = rotation,
+            Width = image.Width,
+            Height = image.Height
+        });
+        return result;
     }
 
     // Omission means "no new information" on re-recognition; explicit empty values remain editable.

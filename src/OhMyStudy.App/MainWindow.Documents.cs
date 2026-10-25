@@ -71,7 +71,10 @@ public sealed partial class MainWindow
             bool includeAnswerSpace = version == ExamEdition.Questions && answerSpace.IsChecked == true;
             bool distributeAnswerSpace = includeAnswerSpace && distributeSpace.IsChecked == true;
             var printLabels = new ExamPrintLabels(UiText.Get("Class"), UiText.Get("Name"), UiText.Get("Student no."),
-                UiText.Get("({0:g} points)"), UiText.Get("Answers and explanations"));
+                UiText.Get("({0:g} points)"), UiText.Get("Answers and explanations"),
+                Answer: UiText.Get("Answer"), Explanation: UiText.Get("Explanation"), NotProvided: UiText.Get("Not provided"),
+                FormulaTooWide: UiText.Get("The formula exceeds the column width. Original formula:"),
+                TableColumns: UiText.Get("Table: columns {0}–{1}"), Row: UiText.Get("Row"), Column: UiText.Get("Column {0}"));
             if (version == ExamEdition.Questions && saved.Any(item => ContainsHandwrittenImage(item.Question)))
             { ViewModel.StatusMessage = UiText.Get("Some question images contain handwriting. Replace them with clean images before exporting a question paper."); return; }
             var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = title };
@@ -121,6 +124,20 @@ public sealed partial class MainWindow
             // The picker owns the destination; this is the first write of the complete verified PDF.
             await FileIO.WriteBytesAsync(file, bytes).AsTask(_lifetime.Token);
             ViewModel.StatusMessage = fallbackCount == 0 ? UiText.Get("PDF saved.") : UiText.Get("PDF saved. Some formulas were preserved as source text; please check them.");
+            try
+            {
+                var folder = await StorageFolder.GetFolderFromPathAsync(Path.GetDirectoryName(file.Path)!);
+                if (!await Windows.System.Launcher.LaunchFolderAsync(folder))
+                {
+                    AppLog.Failure("Export.OpenFolder", $"Could not open the PDF folder. PDF={file.Path}");
+                    ViewModel.StatusMessage += " " + UiText.Get("Could not open the PDF folder. Open the save location manually.");
+                }
+            }
+            catch (Exception error)
+            {
+                AppLog.Failure("Export.OpenFolder", $"PDF={file.Path}; {error}");
+                ViewModel.StatusMessage += " " + UiText.Get("Could not open the PDF folder. Open the save location manually.");
+            }
         }
         catch (OperationCanceledException) { if (!_closed) ViewModel.StatusMessage = UiText.Get("Export canceled."); }
         catch (InvalidDataException error) when (error.Message.Contains("question image", StringComparison.OrdinalIgnoreCase)

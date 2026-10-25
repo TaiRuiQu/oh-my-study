@@ -15,6 +15,7 @@ let reviewIndex = 0, reviewLayout = 'image', filterOpen = false, showOriginal = 
 let multiCapture = true, highResolution = false, defaultEnhancement = 'original';
 let defaultBackend = 'standard', defaultTasks = ['dewarping','deshadowing','appearance','deblurring'];
 let defaultProcessing = {crop:true,autoOrientation:true,shadows:true,deblur:true,appearance:true};
+let captureOptionsInitialized = false;
 let preparing = false, sending = false, capturing = false, editingBusy = false, connected = false, reordering = false;
 let pageDrag = null, pageSwipe = null;
 let stream = null, renderAbort = null, batchAbort = null, worker = null, cameraSequence = 0;
@@ -65,6 +66,7 @@ function updateActions() {
     $('resume-previews').hidden = preparing || !pending.some(item => item.state === 'local');
     $('capture-tab').disabled = editingBusy || sending || reordering; $('tray-tab').disabled = editingBusy || sending || reordering;
     $('capture-options').querySelectorAll('input,select,#reset-capture-processing').forEach(input => input.disabled = preparing || sending || reordering || editingBusy);
+    updateCropControls($('capture-processing'),preparing || sending || reordering || editingBusy);
 }
 function icon(name) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('class','icon'); svg.setAttribute('aria-hidden','true');
@@ -183,6 +185,17 @@ async function refresh() {
     const data = await (await api('/status')).json(); connection(true);
     const neuralReady = !!(data.restoration?.eligible && data.restoration.installed && data.restoration.enabled);
     $('docres-option').disabled = !neuralReady; $('capture-docres-option').disabled = !neuralReady; $('docres-availability').hidden = neuralReady;
+    if (!captureOptionsInitialized) {
+        captureOptionsInitialized = true;
+        const correction = data.files.find(info => !info.ready && !info.pdf && info.correction)?.correction;
+        if (correction) {
+            defaultBackend = correction.backend; defaultTasks = correction.tasks || defaultTasks;
+            $('capture-backend').value = defaultBackend;
+            $('capture-docres-tasks').querySelectorAll('input').forEach(input => input.checked = defaultTasks.includes(input.value));
+            $('capture-processing').hidden = defaultBackend === 'docres';
+            $('capture-docres-tasks').hidden = defaultBackend !== 'docres';
+        }
+    }
     for (const info of data.files) {
         let item = items.find(value => value.info?.id === info.id);
         if (!item) {
@@ -343,14 +356,30 @@ async function savePage() {
     if (!editing) { active = null; openTray(); return; }
     const crosses = corners.map((point,index) => { const q = corners[(index+1)%4], r = corners[(index+2)%4]; return (q[0]-point[0])*(r[1]-point[1])-(q[1]-point[1])*(r[0]-point[0]); });
     const area = Math.abs(corners.reduce((sum,point,index) => { const q = corners[(index+1)%4]; return sum+point[0]*q[1]-q[0]*point[1]; },0))/2;
+    updateCropControls($('standard-processing'));
     const processing = readProcessing($('standard-processing'));
     if ($('backend').value === 'standard' && processing.crop && !automaticCrop && (crosses.some(value => value < .001) || area < .01)) { message('Corners overlap or are too close. Adjust the four handles.',true); return; }
-    const item = active; item.correction = {corners:automaticCrop ? [] : corners.map(point => [...point]),rotation,enhancement:'original',backend:$('backend').value,tasks:[...$('docres-tasks').querySelectorAll('input:checked')].map(input => input.value),processing};
+    const item = active; item.correction = {corners:automaticCrop || processing.rectify ? [] : corners.map(point => [...point]),rotation,enhancement:'original',backend:$('backend').value,tasks:[...$('docres-tasks').querySelectorAll('input:checked')].map(input => input.value),processing};
+    const sharedRestoration = item.correction.backend === 'docres' || item.correction.backend !== defaultBackend;
+    if (sharedRestoration) {
+        captureOptionsInitialized = true;
+        defaultBackend = item.correction.backend; defaultTasks = [...item.correction.tasks];
+        $('capture-backend').value = defaultBackend;
+        $('capture-docres-tasks').querySelectorAll('input').forEach(input => input.checked = defaultTasks.includes(input.value));
+        $('capture-processing').hidden = defaultBackend === 'docres';
+        $('capture-docres-tasks').hidden = defaultBackend !== 'docres';
+        items.filter(page => page !== item && !page.sent && !page.pdf).forEach(page => {
+            page.correction = {...(page.correction || {corners:[],rotation:0,enhancement:defaultEnhancement,processing:{...defaultProcessing}}),backend:defaultBackend,tasks:[...defaultTasks]};
+            page.state = 'local'; page.error = '';
+        });
+    }
     detailBusy(true); message('Applying selected processing…'); renderAbort = new AbortController(); $('cancel-render').hidden = false;
     const stageTimer = setInterval(async () => { try { const stage = await (await api('/progress')).text(); if (stage && renderAbort && !renderAbort.signal.aborted) message(stage); } catch {} },1000);
-    try { await prepareItem(item,renderAbort.signal); await openDetail(item); }
+    let saved = false;
+    try { await prepareItem(item,renderAbort.signal); await openDetail(item); saved = true; }
     catch (error) { item.state = 'error'; item.error = t(error.name === 'AbortError' ? 'Processing canceled. Your original photo and corner edits are preserved.' : error.message); failure(error); }
     finally { clearInterval(stageTimer); renderAbort = null; $('cancel-render').hidden = true; detailBusy(false); }
+    if (saved && sharedRestoration) await prepareAll();
 }
 $('capture-tab').onclick = $('empty-camera').onclick = () => { active = null; show('capture'); message(''); };
 $('tray-tab').onclick = $('tray-shortcut').onclick = openTray;
@@ -361,6 +390,7 @@ $('select-all').onclick = () => { const pending = items.filter(item => !item.sen
 $('stop-processing').onclick = () => batchAbort?.abort(); $('cancel-render').onclick = () => renderAbort?.abort();
 $('resume-previews').onclick = prepareAll;
 $('backend').onchange = updateProcessingControls;
+$('standard-processing').onchange = updateProcessingControls;
 $('whole').onclick = () => { automaticCrop = false; $('standard-processing').querySelector('[data-process="crop"]').checked = false; corners = [[0,0],[1,0],[1,1],[0,1]]; draw(); };
 $('rotate').onclick = async () => { detailBusy(true); try { await rotatePhoto(); } catch (error) { failure(error); } finally { detailBusy(false); } };
 $('save-page').onclick = savePage;
@@ -387,26 +417,37 @@ function enableManualCrop() {
     const input = $('standard-processing').querySelector('[data-process="crop"]');
     if (input) input.checked = true;
 }
+function updateCropControls(fieldset,busy = false) {
+    const rectify = fieldset.querySelector('[data-process="rectify"]').checked;
+    const crop = fieldset.querySelector('[data-process="crop"]');
+    if (rectify) crop.checked = false;
+    crop.disabled = busy || rectify;
+    return rectify;
+}
 function updateProcessingControls() {
     const docres = $('backend').value === 'docres';
+    const rectify = updateCropControls($('standard-processing'),editingBusy);
+    if (rectify) { automaticCrop = true; corners = [[0,0],[1,0],[1,1],[0,1]]; draw(); }
     $('standard-processing').hidden = docres;
     $('docres-tasks').hidden = !docres;
     $('docres-direct').hidden = !docres;
-    $('outline').hidden = docres;
-    controls.forEach(button => button.hidden = docres);
+    $('outline').hidden = docres || rectify;
+    controls.forEach(button => button.hidden = docres || rectify);
     $('rotate').disabled = docres || editingBusy;
-    $('whole').disabled = docres || editingBusy;
+    $('whole').disabled = docres || rectify || editingBusy;
     if (active) $('photo').src = docres ? active.originalUrl || active.editorUrl : active.editorUrl;
 }
 function captureOptionsChanged() {
     if (preparing || sending || reordering || editingBusy) return Promise.resolve();
+    captureOptionsInitialized = true;
     defaultBackend = $('capture-backend').value || 'standard';
+    updateCropControls($('capture-processing'));
     defaultProcessing = readProcessing($('capture-processing'));
     defaultTasks = [...$('capture-docres-tasks').querySelectorAll('input:checked')].map(input => input.value);
     $('capture-processing').hidden = defaultBackend === 'docres';
     $('capture-docres-tasks').hidden = defaultBackend !== 'docres';
     items.filter(item => !item.sent && !item.pdf).forEach(item => {
-        item.correction = {...item.correction,corners:item.correction?.corners || [],rotation:item.correction?.rotation || 0,enhancement:'original',backend:defaultBackend,tasks:[...defaultTasks],processing:{...defaultProcessing}};
+        item.correction = {...item.correction,corners:defaultProcessing.rectify ? [] : item.correction?.corners || [],rotation:item.correction?.rotation || 0,enhancement:'original',backend:defaultBackend,tasks:[...defaultTasks],processing:{...defaultProcessing}};
         item.state = 'local'; item.error = '';
     });
     renderItems();

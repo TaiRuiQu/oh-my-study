@@ -984,4 +984,25 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="Export.StudentNumber" xml:space="preserve">학번</text>
     <text key="Export.Points" xml:space="preserve">({0:g}점)</text>
     <text key="Export.DistributeSpace" xml:space="preserve">페이지의 남은 공간을 균등 배분</text>
+    <text key="Export.OpenFolderFailed" xml:space="preserve">PDF가 저장된 폴더를 열 수 없습니다. 저장 위치를 직접 열어 주세요.</text>
+    <text key="Export.NotProvided" xml:space="preserve">제공되지 않음</text>
+    <text key="Export.FormulaTooWide" xml:space="preserve">수식이 단 너비를 초과합니다. 원본 수식:</text>
+    <text key="Export.TableColumns" xml:space="preserve">표: {0}–{1}열</text>
+    <text key="Export.Row" xml:space="preserve">행</text>
+    <text key="Export.Column" xml:space="preserve">{0}열</text>
+    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">복원 방식과 DocRes 작업은 전송하지 않은 모든 페이지와 이후 사진에 적용됩니다.</text>
+    <text key="Task.RunPython" xml:space="preserve">Python 실행</text>
+    <text key="Task.RunPowerShell" xml:space="preserve">PowerShell 실행</text>
+    <text key="Task.ShowDetails" xml:space="preserve">단계 세부 정보 표시</text>
+    <text key="Task.HideDetails" xml:space="preserve">단계 세부 정보 숨기기</text>
+    <text key="Task.PythonCode" xml:space="preserve">Python 코드</text>
+    <text key="Task.PowerShellCode" xml:space="preserve">PowerShell 코드</text>
+    <text key="Task.Output" xml:space="preserve">출력</text>
+    <text key="Task.ReadImage" xml:space="preserve">읽은 이미지</text>
+    <text key="Task.PageCrop" xml:space="preserve">{0}페이지 잘라낸 영역</text>
+    <text key="Task.ImagePreview" xml:space="preserve">이미지 미리보기</text>
+    <text key="Export.DefaultFigureWidth" xml:space="preserve">기본값(PDF: 최대 9 cm)</text>
+    <text key="Task.ImageRegion" xml:space="preserve">영역: 왼쪽 {0:0.#}%, 위쪽 {1:0.#}%, 너비 {2:0.#}%, 높이 {3:0.#}%</text>
+    <text key="Task.ImageRotation" xml:space="preserve">회전: {0}°</text>
+    <text key="Task.OriginalPagesRead" xml:space="preserve">원본 페이지를 읽었습니다</text>
 </resources>

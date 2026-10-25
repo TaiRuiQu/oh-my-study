@@ -227,7 +227,7 @@ public sealed class PhoneCaptureServer : IAsyncDisposable
                     byte[] body = await ReadBodyAsync(context.Request, 4096, canceled.Token).ConfigureAwait(false);
                     requestDetails += $"; Correction={System.Text.Encoding.UTF8.GetString(body)}";
                     var correction = JsonSerializer.Deserialize(body, PhoneCaptureJsonContext.Default.PhotoCorrection) ?? throw new InvalidDataException("Missing photo corners");
-                    if (correction.Backend == "standard" && correction.Processing?.Crop == true && (correction.Corners is null || correction.Corners.Length is not (0 or 4) || correction.Corners.Any(p => p is null || p.Length != 2))) throw new InvalidDataException("Use automatic cropping or select four photo corners");
+                    if (correction.Backend == "standard" && correction.Processing is { Crop: true, Rectify: false } && (correction.Corners is null || correction.Corners.Length is not (0 or 4) || correction.Corners.Any(p => p is null || p.Length != 2))) throw new InvalidDataException("Use automatic cropping or select four photo corners");
                     if (correction.Backend is not ("standard" or "docres") || correction.Enhancement is not ("original" or "color" or "gray")) throw new InvalidDataException("Unknown photo restoration mode");
                     if (correction.Tasks is not null && (correction.Tasks.Any(task => task is not ("dewarping" or "deshadowing" or "deblurring" or "appearance")) || correction.Tasks.Distinct().Count() != correction.Tasks.Length)) throw new InvalidDataException("Invalid DocRes restoration tasks");
                     byte[] processed = await _process(upload.Original, correction, canceled.Token).ConfigureAwait(false);

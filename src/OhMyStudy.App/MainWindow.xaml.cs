@@ -111,7 +111,9 @@ public sealed partial class MainWindow : Window
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { AppLog.Error("Window.RestoreBounds", error); }
         bool maximized = _windowBounds.Maximized;
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
-        AppWindow.Resize(new(Math.Min(_windowBounds.Width, area.Width), Math.Min(_windowBounds.Height, area.Height)));
+        int width = Math.Min(_windowBounds.Width, area.Width);
+        int height = Math.Min(_windowBounds.Height, area.Height);
+        AppWindow.MoveAndResize(new(area.X + (area.Width - width) / 2, area.Y + (area.Height - height) / 2, width, height));
         if (maximized && WindowPresenter is { } overlapped) overlapped.Maximize();
     }
 

@@ -49,27 +49,27 @@
       },
       "VelociTex.Core": {
         "type": "Direct",
-        "requested": "[1.0.0-preview6, )",
-        "resolved": "1.0.0-preview6",
-        "contentHash": "BgdQ/DgfexIHHj/1cX5o8gWMOWNAoC7A88UIejCTy42B4ART39uzwju7mqphdpYNFu3YnCN5mP5OyVZebAEu6w=="
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "U0T7JlGygCZ0BwgwSOvM/0IIXq3s6Gl+ILvlb77cQrTsWKLqwliE8pVAnHQFZh4VEFQ8CkFt+ZpzQaIOEzAOZQ=="
       },
       "VelociTex.Rendering.Direct2D": {
         "type": "Direct",
-        "requested": "[1.0.0-preview6, )",
-        "resolved": "1.0.0-preview6",
-        "contentHash": "xXIEy3/Vok0G4RHPRBfJetZtLjMpt/TZfKjQD1XNmFN4udSh3IzG868IFfGpQhaBFVGxP9ISmOHQ+JSdcEunLQ==",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "OgDM4Roe1k5P8+qW3lgvwkGd2Xn9TOmyrXMcb2O/SpvcOrsTE4+UmHNSq2JgZ9w3wgKcbJhKHZcpYWCgmjpmKA==",
         "dependencies": {
-          "VelociTex.Core": "1.0.0-preview6"
+          "VelociTex.Core": "1.0.0"
         }
       },
       "VelociTex.WinUI": {
         "type": "Direct",
-        "requested": "[1.0.0-preview6, )",
-        "resolved": "1.0.0-preview6",
-        "contentHash": "Y2CZfUilRtDa0d576wh0wWaBvrb81unoK8AsrTzrWGZ5bZo62els2UZE+M3ugjzd0RO3T5Ga5fJMOiyxVuqTSA==",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "8HMgujGOCxGabWxd20W1WQUQjaA/jLnfTSiXlVw5hkDjg2zFYYy+wjP3Dz4eGVlH5YWqTbJPpTLDvgqRgXBU/A==",
         "dependencies": {
           "Microsoft.WindowsAppSDK.WinUI": "2.3.9",
-          "VelociTex.Rendering.Direct2D": "1.0.0-preview6"
+          "VelociTex.Rendering.Direct2D": "1.0.0"
         }
       },
       "Velopack": {
@@ -263,8 +263,8 @@
           "Microsoft.ML.OnnxRuntime": "[1.23.2, )",
           "OpenCvSharp4": "[4.13.0.20260627, )",
           "OpenCvSharp4.runtime.win": "[4.13.0.20260627, )",
-          "VelociTex.Core": "[1.0.0-preview6, )",
-          "VelociTex.Rendering.Direct2D": "[1.0.0-preview6, )"
+          "VelociTex.Core": "[1.0.0, )",
+          "VelociTex.Rendering.Direct2D": "[1.0.0, )"
         }
       },
       "ohmystudy.domain": {
@@ -351,9 +351,9 @@
       },
       "VelociTex.Core": {
         "type": "Direct",
-        "requested": "[1.0.0-preview6, )",
-        "resolved": "1.0.0-preview6",
-        "contentHash": "BgdQ/DgfexIHHj/1cX5o8gWMOWNAoC7A88UIejCTy42B4ART39uzwju7mqphdpYNFu3YnCN5mP5OyVZebAEu6w=="
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "U0T7JlGygCZ0BwgwSOvM/0IIXq3s6Gl+ILvlb77cQrTsWKLqwliE8pVAnHQFZh4VEFQ8CkFt+ZpzQaIOEzAOZQ=="
       },
       "Microsoft.Web.WebView2": {
         "type": "Transitive",

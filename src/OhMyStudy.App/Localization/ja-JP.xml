@@ -984,4 +984,25 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="Export.StudentNumber" xml:space="preserve">出席番号</text>
     <text key="Export.Points" xml:space="preserve">（{0:g}点）</text>
     <text key="Export.DistributeSpace" xml:space="preserve">ページの残りの余白を均等に配分</text>
+    <text key="Export.OpenFolderFailed" xml:space="preserve">PDF の保存先フォルダーを開けませんでした。手動で開いてください。</text>
+    <text key="Export.NotProvided" xml:space="preserve">未入力</text>
+    <text key="Export.FormulaTooWide" xml:space="preserve">数式が段の幅を超えています。元の数式：</text>
+    <text key="Export.TableColumns" xml:space="preserve">表：列 {0}–{1}</text>
+    <text key="Export.Row" xml:space="preserve">行</text>
+    <text key="Export.Column" xml:space="preserve">列 {0}</text>
+    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">補正方法と DocRes の処理項目は、未送信の全ページと今後の写真に適用されます。</text>
+    <text key="Task.RunPython" xml:space="preserve">Python を実行</text>
+    <text key="Task.RunPowerShell" xml:space="preserve">PowerShell を実行</text>
+    <text key="Task.ShowDetails" xml:space="preserve">ステップの詳細を表示</text>
+    <text key="Task.HideDetails" xml:space="preserve">ステップの詳細を非表示</text>
+    <text key="Task.PythonCode" xml:space="preserve">Python コード</text>
+    <text key="Task.PowerShellCode" xml:space="preserve">PowerShell コード</text>
+    <text key="Task.Output" xml:space="preserve">出力</text>
+    <text key="Task.ReadImage" xml:space="preserve">読み取った画像</text>
+    <text key="Task.PageCrop" xml:space="preserve">{0} ページの切り抜き</text>
+    <text key="Task.ImagePreview" xml:space="preserve">画像プレビュー</text>
+    <text key="Export.DefaultFigureWidth" xml:space="preserve">既定（PDF：最大 9 cm）</text>
+    <text key="Task.ImageRegion" xml:space="preserve">領域：左 {0:0.#}%、上 {1:0.#}%、幅 {2:0.#}%、高さ {3:0.#}%</text>
+    <text key="Task.ImageRotation" xml:space="preserve">回転：{0}°</text>
+    <text key="Task.OriginalPagesRead" xml:space="preserve">元のページを読み取りました</text>
 </resources>

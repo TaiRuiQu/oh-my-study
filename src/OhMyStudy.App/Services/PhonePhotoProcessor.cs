@@ -63,7 +63,7 @@ public static class PhonePhotoProcessor
             {
                 var options = correction.Processing ?? new PhotoProcessingOptions();
                 if (correction.Rotation != 0) result = Rotate(result, correction.Rotation, cancellationToken);
-                if (options.Crop)
+                if (options.Crop && !options.Rectify)
                 {
                     var detection = correction.Corners.Length == 0
                         ? Detector.Value?.Detect(result, cancellationToken) ?? DocumentScanner.Detect(result.Bgra32, result.Width, result.Height, cancellationToken)

@@ -48,7 +48,7 @@ Set **Max output tokens (max_tokens)** per model to override the automatic limit
 
 Recognition selects a local model prompt profile once per task. Unknown versions use family guidance; unknown names use the generic study prompt. See [profiles and sources](../model-prompts.md).
 
-Recognition prompts prefer structured tables and Mermaid flowcharts over unclear crops, and Matplotlib-generated PNGs for simple geometry and diagrams. Generated content must retain original region evidence and visible data. Images and Mermaid blocks support a display width from 1–100 percent (default 100). Font directives and exact table merge markers preserve source typography and structure when needed.
+Recognition prompts prefer structured tables and Mermaid flowcharts over unclear crops, and Matplotlib-generated PNGs for simple geometry and diagrams. Generated content must retain original region evidence and visible data. Images and Mermaid blocks support an optional explicit display width from 1–100 percent. Omit it for the PDF default maximum of 9 cm, limited to the current column; explicit widths override the 9 cm default. Font directives and exact table merge markers preserve source typography and structure when needed.
 
 ## Codex mode
 

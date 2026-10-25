@@ -984,4 +984,25 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="Export.StudentNumber" xml:space="preserve">Student no.</text>
     <text key="Export.Points" xml:space="preserve">({0:g} points)</text>
     <text key="Export.DistributeSpace" xml:space="preserve">Distribute remaining space evenly</text>
+    <text key="Export.OpenFolderFailed" xml:space="preserve">Could not open the PDF folder. Open the save location manually.</text>
+    <text key="Export.NotProvided" xml:space="preserve">Not provided</text>
+    <text key="Export.FormulaTooWide" xml:space="preserve">The formula exceeds the column width. Original formula:</text>
+    <text key="Export.TableColumns" xml:space="preserve">Table: columns {0}–{1}</text>
+    <text key="Export.Row" xml:space="preserve">Row</text>
+    <text key="Export.Column" xml:space="preserve">Column {0}</text>
+    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">The restoration method and DocRes tasks apply to all unsent pages and future photos.</text>
+    <text key="Task.RunPython" xml:space="preserve">Run Python</text>
+    <text key="Task.RunPowerShell" xml:space="preserve">Run PowerShell</text>
+    <text key="Task.ShowDetails" xml:space="preserve">Show step details</text>
+    <text key="Task.HideDetails" xml:space="preserve">Hide step details</text>
+    <text key="Task.PythonCode" xml:space="preserve">Python code</text>
+    <text key="Task.PowerShellCode" xml:space="preserve">PowerShell code</text>
+    <text key="Task.Output" xml:space="preserve">Output</text>
+    <text key="Task.ReadImage" xml:space="preserve">Read image</text>
+    <text key="Task.PageCrop" xml:space="preserve">Page {0} crop</text>
+    <text key="Task.ImagePreview" xml:space="preserve">Image preview</text>
+    <text key="Export.DefaultFigureWidth" xml:space="preserve">Default (PDF: up to 9 cm)</text>
+    <text key="Task.ImageRegion" xml:space="preserve">Region: left {0:0.#}%, top {1:0.#}%, width {2:0.#}%, height {3:0.#}%</text>
+    <text key="Task.ImageRotation" xml:space="preserve">Rotation: {0}°</text>
+    <text key="Task.OriginalPagesRead" xml:space="preserve">Original pages read</text>
 </resources>

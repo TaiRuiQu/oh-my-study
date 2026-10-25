@@ -123,11 +123,23 @@ public sealed record JobActivity
     public required string Title { get; init; }
     public string Detail { get; init; } = "";
     public string Text { get; init; } = "";
+    public string Code { get; init; } = "";
+    public List<JobActivityImage> Images { get; init; } = [];
     public string State { get; init; } = "running";
     public string? PageId { get; init; }
     public int PagesRead { get; init; }
     public int QuestionsSaved { get; init; }
     public long ElapsedMs { get; init; }
+}
+
+public sealed record JobActivityImage
+{
+    public required string AssetId { get; init; }
+    public string? PageId { get; init; }
+    public Region? Crop { get; init; }
+    public ushort Rotation { get; init; }
+    public uint Width { get; init; }
+    public uint Height { get; init; }
 }
 
 public sealed class DomainValidationException(string message) : Exception(message)

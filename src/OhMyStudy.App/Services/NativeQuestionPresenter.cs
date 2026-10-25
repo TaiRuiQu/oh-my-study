@@ -374,7 +374,7 @@ public static class NativeQuestionPresenter
         }
     }
 
-    private static double ContentWidth(double availableWidth, int widthPercent) => Math.Max(1, Math.Floor(availableWidth * Math.Clamp(widthPercent, 1, 100) / 100d));
+    private static double ContentWidth(double availableWidth, int? widthPercent) => Math.Max(1, Math.Floor(availableWidth * Math.Clamp(widthPercent ?? 100, 1, 100) / 100d));
 
     private static async Task<UiImage> ImageAsync(byte[] png, string accessibleText, double availableWidth, CancellationToken cancellationToken)
     {

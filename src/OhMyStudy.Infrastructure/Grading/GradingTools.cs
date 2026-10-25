@@ -116,7 +116,7 @@ public static class GradingTools
             ["asset_id"] = String("Optional processed image asset ID returned by python or shell, or retained from this question. Displays the entire processed image; region still identifies original source evidence."),
             ["contains_handwriting"] = Describe(Bool(), "True if this image region contains handwriting."),
             ["caption"] = String("Brief description in Simplified Chinese; omit if unnecessary."),
-            ["width_percent"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100, ["default"] = 100 }, "Optional display width as a percentage of the available content width. 100 uses the full page content width; 50 uses half. Omit for 100. This does not change the source region.")
+            ["width_percent"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100 }, "Optional explicit display width as a percentage of the page content width, limited to the current column. Omit normally for the PDF default maximum of 9 cm. An explicit value overrides that default; 100 requests full content width and 50 requests half. This does not change the source region.")
         }, ["kind", "region"]);
         var mermaid = Object(new()
         {
@@ -124,7 +124,7 @@ public static class GradingTools
             ["region"] = Describe(Region(), "Original material region containing the flowchart evidence."),
             ["code"] = Describe(new JsonObject { ["type"] = "string", ["minLength"] = 1, ["maxLength"] = 32768 }, "Nonempty raw Mermaid flowchart code, at most 32768 characters. Use only flowchart TD|LR|BT|RL or graph with simple nodes and labeled arrows; no fences, subgraphs, styling, callbacks, HTML, Markdown-in-node, or other diagram types. Transcribe only visible evidence."),
             ["caption"] = Describe(new JsonObject { ["type"] = "string", ["default"] = "" }, "Optional brief description in Simplified Chinese; defaults to an empty string."),
-            ["width_percent"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100, ["default"] = 100 }, "Optional display width as a percentage of the available content width. 100 uses the full page content width; 50 uses half. Omit for 100.")
+            ["width_percent"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100 }, "Optional explicit display width as a percentage of the page content width, limited to the current column. Omit normally for the PDF default maximum of 9 cm. An explicit value overrides that default; 100 requests full content width and 50 requests half.")
         }, ["kind", "region", "code"]);
         JsonObject Content(string description) => Describe(Array(new JsonObject { ["anyOf"] = new JsonArray(text.DeepClone(), formula.DeepClone(), table.DeepClone(), image.DeepClone(), mermaid.DeepClone()) }), description);
         var attempt = Object(new()
@@ -145,7 +145,7 @@ public static class GradingTools
         var item = Object(new()
         {
             ["key"] = String("Nonempty stable item key, unique across all items of the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. References match this key."),
-            ["label"] = String("Printed subquestion label such as (1) or (2)(a), stored only here and not repeated at the start of prompt. Required when the question has several items; use an empty string for a question without subquestions."),
+            ["label"] = String("Subquestion label such as (1), (2), or (2)(a), without a trailing period. Keep meaningful nonnumeric source labels. Store it only here, not repeated at the start of prompt. Required when the question has several items; use an empty string for a question without subquestions."),
             ["prompt"] = Content("Content specific to this subquestion in reading order, excluding its leading subquestion label. Preserve numbers within the wording and internal references. Leave empty for a question without subquestions, whose whole text belongs in stem."),
             ["options"] = Describe(Array(String()), "Answer options for this item in printed order, including their labels; omit if unavailable."),
             ["points"] = Describe(Nullable(Number()), "Maximum points for this item. Prefer printed values. If absent, estimate using common scoring conventions and question difficulty; item allocations must agree with any known question or paper total. Explain estimated allocations and their basis in question.uncertainties. Use null if no reasonable estimate is available. Question totals are derived from item points."),
@@ -156,7 +156,7 @@ public static class GradingTools
         return Object(new()
         {
             ["draft_key"] = String("Nonempty stable question key, unique across the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. Coverage lists this key."),
-            ["number"] = String("Nonempty top-level question number, preserving the printed label. Store it only here, without repeating it at the start of stem."),
+            ["number"] = String("Nonempty top-level question number. For Arabic-digit numbers, use plain digits such as 1, 2, or 3, without a trailing period or surrounding punctuation. Preserve meaningful nonnumeric source identifiers such as Roman numerals. Store it only here, without repeating it at the start of stem."),
             ["subject"] = String("Subject label in Simplified Chinese; omit if unknown."),
             ["question_type"] = String("Question type in Simplified Chinese; omit if unknown."),
             ["stem"] = Content("Nonempty shared question text in reading order: the material, context, diagrams, and instructions that precede or apply to all items. Exclude the leading top-level question number; preserve numbers within the wording and internal references. A question without subquestions puts its whole text here."),

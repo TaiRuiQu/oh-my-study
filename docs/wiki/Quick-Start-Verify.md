@@ -16,6 +16,8 @@ Open the exam and choose View original. Locate in original jumps to the selected
 
 Check meaning, not only appearance. A missing minus sign changes a formula even if the layout looks convincing. For continued questions, verify all relevant pages and parts.
 
+Recognition stores Arabic-digit question numbers as plain digits, such as `1`, `2`, and `3`, and subquestion labels as `(1)`, `(2)`, without trailing periods. The question list also hides a trailing period on existing numeric labels; saved source identifiers, including Roman numerals, remain unchanged.
+
 ## A repeatable review order
 
 1. Confirm the question number, stem, and options.

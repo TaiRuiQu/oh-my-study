@@ -5,19 +5,19 @@ public enum ExamEdition { Questions, Answers }
 public enum ExamColumns { Default = 0, One = 1, Two = 2, Three = 3, Four = 4 }
 public sealed record ExamSegment(string Text, bool IsFormula = false, IReadOnlyList<IReadOnlyList<string>>? Rows = null,
     ExamImage? Image = null, ExamMermaid? Mermaid = null);
-public sealed record ExamImage(byte[] Bytes, string Caption = "", bool ContainsHandwriting = false, double WidthPercent = 100)
+public sealed record ExamImage(byte[] Bytes, string Caption = "", bool ContainsHandwriting = false, double? WidthPercent = null)
 {
-    private double widthPercent = ExamMediaWidth.Validate(WidthPercent);
-    public double WidthPercent
+    private double? widthPercent = ExamMediaWidth.Validate(WidthPercent);
+    public double? WidthPercent
     {
         get => widthPercent;
         init => widthPercent = ExamMediaWidth.Validate(value);
     }
 }
-public sealed record ExamMermaid(string Code, string Caption = "", double WidthPercent = 100)
+public sealed record ExamMermaid(string Code, string Caption = "", double? WidthPercent = null)
 {
-    private double widthPercent = ExamMediaWidth.Validate(WidthPercent);
-    public double WidthPercent
+    private double? widthPercent = ExamMediaWidth.Validate(WidthPercent);
+    public double? WidthPercent
     {
         get => widthPercent;
         init => widthPercent = ExamMediaWidth.Validate(value);
@@ -25,9 +25,9 @@ public sealed record ExamMermaid(string Code, string Caption = "", double WidthP
 }
 internal static class ExamMediaWidth
 {
-    internal static double Validate(double value)
+    internal static double? Validate(double? value)
     {
-        if (!double.IsFinite(value) || value is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(value), "The width percentage must be finite and between 1 and 100.");
+        if (value is { } width && (!double.IsFinite(width) || width is < 1 or > 100)) throw new ArgumentOutOfRangeException(nameof(value), "The width percentage must be finite and between 1 and 100.");
         return value;
     }
 }
@@ -46,7 +46,10 @@ public sealed record ExamQuestion(
     double? Points = null,
     string QuestionType = "");
 public sealed record ExamPrintLabels(string Class = "Class", string Name = "Name", string StudentNumber = "Student no.",
-    string Points = "({0:g} points)", string Answers = "Answers and explanations");
+    string Points = "({0:g} points)", string Answers = "Answers and explanations", string Answer = "Answer",
+    string Explanation = "Explanation", string NotProvided = "Not provided",
+    string FormulaTooWide = "The formula exceeds the column width. Original formula:",
+    string TableColumns = "Table: columns {0}–{1}", string Row = "Row", string Column = "Column {0}");
 public sealed record ExamDocument(string Title, IReadOnlyList<ExamQuestion> Questions, ExamPrintLabels? Labels = null);
 
 public sealed record TypesettingDiagnostic(int QuestionNumber, string Source, string Message);

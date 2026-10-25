@@ -356,7 +356,7 @@
     <text key="S0359" xml:space="preserve">阅读页面</text>
     <text key="S0360" xml:space="preserve">保存题目</text>
     <text key="S0361" xml:space="preserve">保存参考答案</text>
-    <text key="S0362" xml:space="preserve">运行辅助计算</text>
+    <text key="S0362" xml:space="preserve">运行 Python</text>
     <text key="S0363" xml:space="preserve">{0}（{1} 次）</text>
     <text key="S0364" xml:space="preserve">等待中</text>
     <text key="S0365" xml:space="preserve">正在识别</text>
@@ -627,7 +627,7 @@
     <text key="S0632" xml:space="preserve">题目已加入题库</text>
     <text key="S0633" xml:space="preserve">参考答案已保存</text>
     <text key="S0634" xml:space="preserve">页面覆盖与保存结果核对完成</text>
-    <text key="S0635" xml:space="preserve">辅助计算已完成</text>
+    <text key="S0635" xml:space="preserve">代码运行完成</text>
     <text key="S0636" xml:space="preserve">操作完成</text>
     <text key="S0637" xml:space="preserve">服务商不支持所选思考强度，请检查模型配置后重试。</text>
     <text key="S0638" xml:space="preserve">服务商拒绝了思考设置，请检查模型支持的思考方式后重试。</text>
@@ -984,4 +984,25 @@
     <text key="Export.StudentNumber" xml:space="preserve">学号</text>
     <text key="Export.Points" xml:space="preserve">（{0:g}分）</text>
     <text key="Export.DistributeSpace" xml:space="preserve">均分页面剩余空白</text>
+    <text key="Export.OpenFolderFailed" xml:space="preserve">无法打开 PDF 所在文件夹，请手动打开保存位置。</text>
+    <text key="Export.NotProvided" xml:space="preserve">未提供</text>
+    <text key="Export.FormulaTooWide" xml:space="preserve">公式超出栏宽，原始公式：</text>
+    <text key="Export.TableColumns" xml:space="preserve">表格：第 {0}–{1} 列</text>
+    <text key="Export.Row" xml:space="preserve">行</text>
+    <text key="Export.Column" xml:space="preserve">第 {0} 列</text>
+    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">修复方式和 DocRes 任务适用于所有未发送页面和后续照片。</text>
+    <text key="Task.RunPython" xml:space="preserve">运行 Python</text>
+    <text key="Task.RunPowerShell" xml:space="preserve">运行 PowerShell</text>
+    <text key="Task.ShowDetails" xml:space="preserve">显示步骤详情</text>
+    <text key="Task.HideDetails" xml:space="preserve">隐藏步骤详情</text>
+    <text key="Task.PythonCode" xml:space="preserve">Python 代码</text>
+    <text key="Task.PowerShellCode" xml:space="preserve">PowerShell 代码</text>
+    <text key="Task.Output" xml:space="preserve">输出</text>
+    <text key="Task.ReadImage" xml:space="preserve">读取图片</text>
+    <text key="Task.PageCrop" xml:space="preserve">第 {0} 页裁片</text>
+    <text key="Task.ImagePreview" xml:space="preserve">图片预览</text>
+    <text key="Export.DefaultFigureWidth" xml:space="preserve">默认（PDF：最大 9 cm）</text>
+    <text key="Task.ImageRegion" xml:space="preserve">区域：左 {0:0.#}%，上 {1:0.#}%，宽 {2:0.#}%，高 {3:0.#}%</text>
+    <text key="Task.ImageRotation" xml:space="preserve">旋转：{0}°</text>
+    <text key="Task.OriginalPagesRead" xml:space="preserve">已读取原始页面</text>
 </resources>

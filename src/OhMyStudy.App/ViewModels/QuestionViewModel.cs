@@ -24,7 +24,7 @@ public sealed partial class QuestionViewModel : ObservableObject, IQuestionPrevi
     {
         Saved = saved;
         _presentationJson = DomainJson.Serialize(saved.Question);
-        Number = int.TryParse(saved.Question.Number, out int n) ? n : 0;
+        Number = int.TryParse(DisplayNumber(saved.Question.Number), out int n) ? n : 0;
         PreviewText = Preview(saved.Question);
         _notes = saved.Question.Notes;
         IsIncorrect = saved.Question.IsMistake;
@@ -34,7 +34,7 @@ public sealed partial class QuestionViewModel : ObservableObject, IQuestionPrevi
 
     public SavedQuestion? Saved { get; private set; }
     public int Number { get; }
-    public string Label => Saved is { } saved ? UiText.Format("Question {0}", saved.Question.Number) : Number == 0 ? UiText.Get("Questions") : UiText.Format("Question {0}", Number);
+    public string Label => Saved is { } saved ? UiText.Format("Question {0}", DisplayNumber(saved.Question.Number)) : Number == 0 ? UiText.Get("Questions") : UiText.Format("Question {0}", Number);
     public string PreviewText { get; }
     public bool IsIncorrect { get; }
     public int Page { get; }
@@ -57,6 +57,14 @@ public sealed partial class QuestionViewModel : ObservableObject, IQuestionPrevi
     }
     public double SourceY => 228 + ((Number - 1) % 3) * 206;
     public static QuestionViewModel Empty() => new(0, "", false, 1);
+
+    internal static string DisplayNumber(string number)
+    {
+        string trimmed = number.Trim();
+        return trimmed.Length > 1 && trimmed[^1] is '.' or '．'
+            && trimmed.AsSpan(0, trimmed.Length - 1).IndexOfAnyExceptInRange('0', '9') < 0
+            ? trimmed[..^1] : number;
+    }
 
     internal static string Preview(Question question)
     {

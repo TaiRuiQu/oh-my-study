@@ -312,12 +312,12 @@ public sealed partial class MainWindow
             Height = ParseRequired(height.Text) / 100
         });
     }
-    private static NumberBox AddWidth(StackPanel panel, int value)
+    private static NumberBox AddWidth(StackPanel panel, int? value)
     {
-        var field = new NumberBox { Header = UiText.Get("Display width (%)"), Minimum = 1, Maximum = 100, Value = Math.Clamp(value, 1, 100), HorizontalAlignment = HorizontalAlignment.Stretch };
+        var field = new NumberBox { Header = UiText.Get("Display width (%)"), PlaceholderText = UiText.Get("Default (PDF: up to 9 cm)"), Minimum = 1, Maximum = 100, Value = value is { } width ? Math.Clamp(width, 1, 100) : double.NaN, HorizontalAlignment = HorizontalAlignment.Stretch };
         panel.Children.Add(field); return field;
     }
-    private static int ReadWidth(NumberBox field) => double.IsFinite(field.Value) ? (int)Math.Clamp(Math.Round(field.Value), 1, 100) : 100;
+    private static int? ReadWidth(NumberBox field) => double.IsFinite(field.Value) ? (int)Math.Clamp(Math.Round(field.Value), 1, 100) : null;
     private static TextBox AddText(StackPanel panel, string label, string value, bool multiline = false)
     {
         var field = new TextBox { Header = label, AcceptsReturn = multiline, Text = value, TextWrapping = TextWrapping.Wrap, MaxHeight = multiline ? 180 : 80 };

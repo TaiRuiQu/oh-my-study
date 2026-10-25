@@ -145,7 +145,8 @@ public sealed record ImageContent : Content
     public string? AssetId { get; init; }
     public bool ContainsHandwriting { get; init; }
     public string Caption { get; set; } = "";
-    public int WidthPercent { get; set; } = 100;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? WidthPercent { get; set; }
 }
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record MermaidContent : Content
@@ -153,7 +154,8 @@ public sealed record MermaidContent : Content
     public required Region Region { get; init; }
     public required string Code { get; init; }
     public string Caption { get; set; } = "";
-    public int WidthPercent { get; set; } = 100;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? WidthPercent { get; set; }
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

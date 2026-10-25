@@ -12,7 +12,7 @@ Text, formulas, tables, and image regions remain separate. Formula source is ret
 
 ## Native formula path
 
-VelociTex supports native formula reading and SVG generation for print. A formula conversion can fail or be too wide for the available column. The export path can retain source notation and issue diagnostics instead of silently deleting the expression.
+VelociTex 1.0.0 supports native formula reading and SVG generation for print. A formula conversion can fail or be too wide for the available column. The export path can retain source notation and issue diagnostics instead of silently deleting the expression.
 
 For screen reading, `FormulaLineBreaks` splits eligible expressions at top-level operators while keeping fenced/braced groups intact. Unsupported constructs remain whole, indivisible runs fit the available width, and copying uses the complete original formula source. This changes responsive reading, not the fixed PDF layout.
 

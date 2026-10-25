@@ -219,23 +219,23 @@ public sealed partial class MainWindow
         { TaskLog.Children.Remove(_taskSteps[stale].Root); _taskSteps.Remove(stale); }
         for (int i = 0; i < entries.Count; i++)
         {
-            var (activity, time, tooltip) = entries[i];
+            var (activity, time, tooltip, members) = entries[i];
             if (!_taskSteps.TryGetValue(activity.Key, out var view))
-            { view = new TaskLogEntryView(); _taskSteps.Add(activity.Key, view); }
+            { view = new TaskLogEntryView(this); _taskSteps.Add(activity.Key, view); }
             if (i >= TaskLog.Children.Count || !ReferenceEquals(TaskLog.Children[i], view.Root))
             { TaskLog.Children.Remove(view.Root); TaskLog.Children.Insert(i, view.Root); }
-            view.Update(activity, activity.State, time, TaskBrush, tooltip);
+            view.Update(activity, activity.State, time, TaskBrush, tooltip, members);
         }
         if (follow) { _taskFollowLatest = true; ScrollToLatestTaskStep(); }
         ApplyTaskLayout();
     }
 
-    private static List<(JobActivity Activity, ulong Time, string? Tooltip)> GroupTaskLogActivities(IReadOnlyList<(JobActivity Activity, ulong Time)> activities)
+    private static List<(JobActivity Activity, ulong Time, string? Tooltip, IReadOnlyList<JobActivity> Members)> GroupTaskLogActivities(IReadOnlyList<(JobActivity Activity, ulong Time)> activities)
     {
         // Empty successful model turns are bookkeeping, not readable content. They
         // must not split a run of tools, even when the calls came from many turns.
         activities = activities.Where(item => item.Activity.Kind != "model" || item.Activity.State != "completed" || !string.IsNullOrWhiteSpace(item.Activity.Text)).ToArray();
-        var entries = new List<(JobActivity Activity, ulong Time, string? Tooltip)>();
+        var entries = new List<(JobActivity Activity, ulong Time, string? Tooltip, IReadOnlyList<JobActivity> Members)>();
         for (int start = 0; start < activities.Count;)
         {
             var (first, time) = activities[start];
@@ -244,7 +244,7 @@ public sealed partial class MainWindow
             if (first.State == "completed" && first.Kind is not ("model" or "state"))
                 while (end < activities.Count && activities[end].Activity.Kind == first.Kind && activities[end].Activity.State == "completed") end++;
             int count = end - start;
-            if (count == 1) entries.Add((first, time, null));
+            if (count == 1) entries.Add((first, time, null, [first]));
             else
             {
                 var members = activities.Skip(start).Take(count).Select(item => item.Activity).ToArray();
@@ -253,11 +253,12 @@ public sealed partial class MainWindow
                     "read_page" or "read_pages" => UiText.Get("Read pages"),
                     "save_question" or "save_questions" => UiText.Get("Save questions"),
                     "save_references" => UiText.Get("Save reference answers"),
-                    "python" or "shell" => UiText.Get("Run calculations"),
+                    "python" => UiText.Get("Run Python"),
+                    "shell" => UiText.Get("Run PowerShell"),
                     _ => UiText.ActivityText(first.Title)
                 };
                 entries.Add((first with { Title = UiText.Format("{0} (×{1})", title, count), Detail = "", Text = "", ElapsedMs = members.Sum(item => item.ElapsedMs) }, time,
-                    string.Join("\n", members.Select(item => UiText.ActivityText(item.Title) + (string.IsNullOrWhiteSpace(item.Detail) ? "" : ": " + UiText.ActivityText(item.Detail))))));
+                    string.Join("\n", members.Select(item => UiText.ActivityText(item.Title) + (string.IsNullOrWhiteSpace(item.Detail) ? "" : ": " + UiText.ActivityText(item.Detail)))), members));
             }
             start = end;
         }
@@ -380,83 +381,4 @@ public sealed partial class MainWindow
     private static string TaskStateGlyph(JobState state) => state switch
     { JobState.Completed => "\uE73E", JobState.Failed or JobState.Interrupted => "\uE7BA", JobState.Cancelled => "\uE711", JobState.WaitingPermission => "\uE8D7", _ => "\uE916" };
 
-    private sealed class TaskLogEntryView
-    {
-        public Grid Root { get; } = new() { ColumnSpacing = 8, Padding = new Thickness(0, 0, 0, 12) };
-        private readonly FontIcon _icon = new() { FontSize = 14, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 4, 0, 0) };
-        private readonly TextBlock _heading = new() { FontFamily = new FontFamily(UiText.InterfaceFontFamily), FontWeight = Microsoft.UI.Text.FontWeights.Normal, TextWrapping = TextWrapping.Wrap, FontSize = 14, LineHeight = 22 };
-        private readonly Run _title = new();
-        private readonly Run _state = new();
-        private readonly TextBlock _detail = new() { FontFamily = new FontFamily(UiText.InterfaceFontFamily), FontWeight = Microsoft.UI.Text.FontWeights.Normal, TextWrapping = TextWrapping.Wrap, FontSize = 16, LineHeight = 26, Margin = new Thickness(0, 6, 0, 0) };
-        private readonly TextBlock _output = new() { FontFamily = new FontFamily(UiText.InterfaceFontFamily), FontWeight = Microsoft.UI.Text.FontWeights.Normal, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, FontSize = 16, LineHeight = 26, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 6, 0, 0) };
-        private readonly FontIcon _errorChevron = new() { Glyph = "\uE76C", FontSize = 12 };
-        private readonly ToggleButton _errorToggle = new() { Width = 28, Height = 28, Padding = new Thickness(4), BorderThickness = new Thickness(0), Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), VerticalAlignment = VerticalAlignment.Top, Visibility = Visibility.Collapsed };
-        private readonly TextBlock _errorDetails = new() { FontFamily = new FontFamily(UiText.InterfaceFontFamily), TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true, FontSize = 14, LineHeight = 22, Visibility = Visibility.Collapsed, Margin = new Thickness(24, 6, 0, 0) };
-        public bool OutputFitsContent => _output.ActualHeight > 0 && Math.Abs(_output.ActualHeight + _output.Margin.Top + _output.Margin.Bottom - _output.DesiredSize.Height) < 1;
-        public bool OutputHasTrailingBlankLines => _output.Text.EndsWith("\n", StringComparison.Ordinal);
-        public bool OutputVisible => _output.Visibility == Visibility.Visible;
-        public double OutputTrailingSpace => Root.ActualHeight - _output.TransformToVisual(Root).TransformPoint(new(0, _output.ActualHeight)).Y;
-        public string Title => _title.Text;
-        public string Heading => _heading.Text;
-        public bool DetailVisible => _detail.Visibility == Visibility.Visible;
-        public bool ErrorDetailsAvailable => _errorToggle.Visibility == Visibility.Visible;
-        public bool ErrorDetailsVisible => _errorDetails.Visibility == Visibility.Visible;
-        public string ErrorDetails => _errorDetails.Text;
-        public TaskLogEntryView()
-        {
-            Root.ColumnDefinitions.Add(new() { Width = new GridLength(16) });
-            Root.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
-            Root.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
-            for (int i = 0; i < 4; i++) Root.RowDefinitions.Add(new() { Height = GridLength.Auto });
-            Root.Children.Add(_icon);
-            _heading.Inlines.Add(_title); _heading.Inlines.Add(_state);
-            Grid.SetColumn(_heading, 1); Root.Children.Add(_heading);
-            Grid.SetRow(_detail, 1); Grid.SetColumnSpan(_detail, 3); Root.Children.Add(_detail);
-            Grid.SetRow(_output, 2); Grid.SetColumnSpan(_output, 3); Root.Children.Add(_output);
-            _errorToggle.Content = _errorChevron;
-            _errorToggle.Checked += (_, _) => ApplyErrorExpansion();
-            _errorToggle.Unchecked += (_, _) => ApplyErrorExpansion();
-            Grid.SetColumn(_errorToggle, 2); Root.Children.Add(_errorToggle);
-            Grid.SetRow(_errorDetails, 3); Grid.SetColumnSpan(_errorDetails, 3); Root.Children.Add(_errorDetails);
-        }
-        private void ApplyErrorExpansion()
-        {
-            bool expanded = _errorToggle.IsChecked == true;
-            _errorChevron.Glyph = expanded ? "\uE70D" : "\uE76C";
-            _errorDetails.Visibility = expanded && ErrorDetailsAvailable ? Visibility.Visible : Visibility.Collapsed;
-            AutomationProperties.SetName(_errorToggle, UiText.Get(expanded ? "Hide error details" : "Show error details"));
-        }
-        public void Update(JobActivity step, string state, ulong time, Func<string, Brush> brush, string? tooltip = null)
-        {
-            bool model = step.Kind == "model";
-            bool error = state is "failed" or "cancelled";
-            bool executionError = error && step.Kind is "python" or "shell";
-            var secondary = brush("TaskSecondaryBrush");
-            _icon.Foreground = error ? brush("TaskErrorBrush") : secondary;
-            _icon.Glyph = error ? "\uE7BA" : step.Kind switch
-            { "model" => "\uE945", "read_page" or "read_pages" => "\uE8A5", "save_question" or "save_questions" => "\uE74E", "save_references" => "\uE8F1", "finish" => "\uE73E", "python" or "shell" => "\uE8EF", _ => "\uE9F9" };
-            string output = model ? step.Text.TrimEnd() : "";
-            string stateLabel = state switch { "completed" => UiText.Get("Completed"), "failed" => UiText.Get("Failed"), "cancelled" => UiText.Get("Canceled"), "waiting" => UiText.Get("Awaiting confirmation"), _ => UiText.Get("In progress") };
-            _title.Text = (model ? UiText.Get("Recognition") : UiText.ActivityText(step.Title)) + (model && step.Text.Length >= 16000 ? UiText.Get(" (output excerpt)") : "");
-            _state.Text = state == "completed" ? "" : "  " + stateLabel;
-            _heading.Foreground = secondary;
-            _state.Foreground = error ? brush("TaskErrorBrush") : secondary;
-            _detail.Text = UiText.ActivityText(step.Detail);
-            _detail.Foreground = error ? brush("TaskErrorBrush") : secondary;
-            _detail.Visibility = !executionError && (error || model && output.Length == 0) && !string.IsNullOrWhiteSpace(step.Detail) ? Visibility.Visible : Visibility.Collapsed;
-            _errorDetails.Text = executionError ? (string.IsNullOrWhiteSpace(step.Text) ? UiText.ActivityText(step.Detail) : step.Text.TrimEnd()) : "";
-            _errorDetails.Foreground = brush("TaskErrorBrush");
-            _errorToggle.Foreground = secondary;
-            _errorToggle.Visibility = executionError && _errorDetails.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-            if (!executionError) _errorToggle.IsChecked = false;
-            ApplyErrorExpansion();
-            if (_output.Text != output) _output.Text = output;
-            _output.Visibility = output.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-            // Short actions read as log lines; model replies read as continuous prose.
-            Root.Padding = new Thickness(0, 0, 0, 8);
-            ToolTipService.SetToolTip(_heading, tooltip ?? (model && step.Text.Length >= 16000 ? UiText.Get("Output excerpt") : null));
-            AutomationProperties.SetHelpText(Root, tooltip ?? "");
-            AutomationProperties.SetName(Root, _title.Text + (state == "completed" ? "" : "，" + stateLabel));
-        }
-    }
 }

@@ -8,7 +8,7 @@ public sealed class QuestionSummaryViewModel(QuestionSummary summary) : IQuestio
 {
     public QuestionSummary Summary { get; } = summary;
     public string Id => Summary.Id;
-    public string Title => UiText.Format("Question {0}", Summary.Number);
+    public string Title => UiText.Format("Question {0}", QuestionViewModel.DisplayNumber(Summary.Number));
     public string Exam => Summary.DocumentName;
     public string Details => string.Join(" · ", new[] { Summary.Subject, Summary.QuestionType, Summary.ItemCount > 1 ? UiText.Format("{0} parts", Summary.ItemCount) : "" }.Where(text => !string.IsNullOrWhiteSpace(text)));
     public Visibility DetailsVisibility => Details.Length == 0 ? Visibility.Collapsed : Visibility.Visible;

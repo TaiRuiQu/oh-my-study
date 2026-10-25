@@ -109,7 +109,7 @@ public static class GradingValidation
         }
     }
 
-    private static void ValidateWidth(int widthPercent) => Require(widthPercent is >= 1 and <= 100, "Content width_percent must be an integer from 1 to 100");
+    private static void ValidateWidth(int? widthPercent) => Require(widthPercent is null or >= 1 and <= 100, "Content width_percent must be omitted or an integer from 1 to 100");
 
     public static List<string> ItemKeys(Question question) => question.Items.Select(item => item.Key).ToList();
     public static bool IsWrongQuestion(Question question) => question.IsMistake;

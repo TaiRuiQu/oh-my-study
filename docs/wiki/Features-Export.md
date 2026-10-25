@@ -23,7 +23,7 @@ Student-attempt text is not the answer key. A recognized answer still needs huma
 
 A4 is portrait with one column by default; A3 landscape defaults to two columns. You can choose one to four columns independently of paper size. Every page has ruled Class, Name, and Student no. fields in its header. Question spacing is compact. Four options use one row when they fit, otherwise two rows of two, or one option per row when necessary. The image illustrates their organization, not the exact pagination of your question set. Longer questions, large diagrams, and mathematical expressions affect breaks.
 
-Produce separate question and answer files rather than expecting one export to create both. The save dialog defaults to the exam name as the PDF filename; you can change it before saving. Printing itself happens in a PDF reader, where printer paper/scaling must also match your intention.
+Produce separate question and answer files rather than expecting one export to create both. The save dialog defaults to the exam name as the PDF filename; you can change it before saving. After a successful export, the app opens the folder containing the saved PDF. PDF labels, including answers and explanations, follow the selected interface language. Printing itself happens in a PDF reader, where printer paper/scaling must also match your intention.
 
 PDF layout removes extra spaces between Chinese text and inline formulas while retaining English word spacing and explicit spacing inside formulas. Stored question text remains unchanged.
 
@@ -36,6 +36,8 @@ Enable **Distribute remaining space evenly** to share unused space in each page 
 ## Handle figures responsibly
 
 Image blocks use managed generated images when provided, otherwise crops from managed source pages. Check that the crop includes axis labels, units, and legends without bringing in neighboring answers. The export deduplicates identical decoded image payloads and enforces an aggregate budget.
+
+Figures stay below the corresponding question text in reading order. In a multicolumn layout, their width is limited to the current column, so they do not float to the top of the page. Figure captions are hidden in exported PDFs by default; saved captions remain available in the library. Figures without an explicit width are at most 9 cm wide. Explicit image or Mermaid widths override this default and remain limited to the current column. Clear the display-width field in the question editor to restore the default.
 
 Question-edition export blocks figures marked as handwriting-containing, including items. This prevents knowingly carrying student work into a clean practice sheet. A false flag does not clean pixels: use a source region that actually lacks the unwanted writing. If no clean source exists, revise the content deliberately rather than claiming the app removes handwriting.
 

@@ -44,7 +44,7 @@ public sealed partial class TypstDocumentService
 
     public async Task<ExamExportResult> ExportExamAsync(ExamDocument document, ExamPaper paper, ExamEdition edition,
         string outputDirectory, CancellationToken cancellationToken = default, ExamColumns columns = ExamColumns.Default,
-        bool includeAnswerSpace = false, bool distributeAnswerSpace = false)
+        bool includeAnswerSpace = false, bool distributeAnswerSpace = false, bool showImageCaptions = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (document.Questions.Count is 0 or > 500) throw new ArgumentOutOfRangeException(nameof(document), "The question count must be between 1 and 500. ");
@@ -75,7 +75,8 @@ public sealed partial class TypstDocumentService
             .Append(", margin: (x: 17mm, top: 25mm, bottom: 17mm), header: exam-header, header-ascent: 5mm, footer: context align(center, text(size: 9pt)[#counter(page).display(\"1 / 1\", both: true)]))\n");
         source.Append("#set text(top-edge: 0.88em, bottom-edge: 0.32em)\n#set par(leading: 0.35em, spacing: 0pt, first-line-indent: 0pt)\n#set block(above: 0pt, below: 0pt)\n");
         source.Append(ExamLayoutTemplate);
-        source.Append("#let fit-formula(pic, original) = layout(size => { if measure(pic).width > size.width { block(breakable: true)[#text(size: 9pt, \"The formula exceeds the column width. Original formula:\") #linebreak() #text(original)] } else { align(center, pic) } })\n");
+        source.Append("#let fit-formula(pic, original) = layout(size => { if measure(pic).width > size.width { block(breakable: true)[#text(size: 9pt, ")
+            .Append(Quote(labels.FormulaTooWide)).Append(") #linebreak() #text(original)] } else { align(center, pic) } })\n");
         source.Append("#align(center, text(size: 18pt, weight: \"bold\", ").Append(Quote(document.Title)).Append("))\n");
         if (edition == ExamEdition.Answers)
             source.Append("#align(center, text(size: 10pt, ").Append(Quote(labels.Answers)).Append("))\n");
@@ -83,7 +84,7 @@ public sealed partial class TypstDocumentService
         if (columnCount > 1) source.Append("#columns(").Append(columnCount).Append(", gutter: 12mm)[\n");
         long totalText = document.Title.Length;
         int nodes = 0;
-        var assets = new ExportAssets(directory, edition, cancellationToken, fullWidthMillimetres, columnWidthMillimetres, columnCount);
+        var assets = new ExportAssets(directory, edition, cancellationToken, fullWidthMillimetres, columnWidthMillimetres, labels, showImageCaptions);
         foreach (var question in document.Questions)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -97,8 +98,8 @@ public sealed partial class TypstDocumentService
             AppendOptions(source, question.Options, diagnostics, question.Number, assets, ref totalText);
             if (edition == ExamEdition.Answers)
             {
-                AppendTextBlock(source, "Answer: " + (question.Answer ?? "Not provided"), diagnostics, question.Number, assets, ref totalText);
-                if (question.Explanation is { Length: > 0 }) AppendTextBlock(source, "Explanation: " + question.Explanation, diagnostics, question.Number, assets, ref totalText);
+                AppendTextBlock(source, labels.Answer + ": " + (question.Answer ?? labels.NotProvided), diagnostics, question.Number, assets, ref totalText);
+                if (question.Explanation is { Length: > 0 }) AppendTextBlock(source, labels.Explanation + ": " + question.Explanation, diagnostics, question.Number, assets, ref totalText);
             }
             AppendParts(source, question.Parts, 0, edition, includeAnswerSpace, labels, question.QuestionType,
                 diagnostics, question.Number, assets, ref totalText, ref nodes, cancellationToken);
@@ -203,8 +204,8 @@ public sealed partial class TypstDocumentService
             AppendOptions(source, part.Options, diagnostics, question, assets, ref total);
             if (edition == ExamEdition.Answers)
             {
-                AppendTextBlock(source, "Answer: " + (part.Answer ?? "Not provided"), diagnostics, question, assets, ref total);
-                if (part.Explanation is { Length: > 0 }) AppendTextBlock(source, "Explanation: " + part.Explanation, diagnostics, question, assets, ref total);
+                AppendTextBlock(source, labels.Answer + ": " + (part.Answer ?? labels.NotProvided), diagnostics, question, assets, ref total);
+                if (part.Explanation is { Length: > 0 }) AppendTextBlock(source, labels.Explanation + ": " + part.Explanation, diagnostics, question, assets, ref total);
             }
             else if (blank > 0) AppendBlank(source, blank, assets);
             AppendParts(source, part.Parts, depth + 1, edition, includeAnswerSpace, labels, type,
@@ -337,23 +338,21 @@ public sealed partial class TypstDocumentService
                 AppendFormula(source, segment.Text, diagnostics, question, assets, true);
             }
             else AppendTextBlock(source, segment.Text + (index == 0 && suffix is { Length: > 0 } ? " " + suffix : ""), diagnostics, question, assets, ref total,
-                index == 0 ? prefix : null, stickLast && index == segments.Count - 1);
+                index == 0 ? prefix : null, stickLast && index == segments.Count - 1
+                    || index + 1 < segments.Count && (segments[index + 1].Image is not null || segments[index + 1].Mermaid is not null));
             source.Append("#exam-mark(\"end\")\n");
         }
     }
 
-    private static void AppendVisual(StringBuilder source, string asset, double widthPercent, string caption, ExportAssets assets,
+    private static void AppendVisual(StringBuilder source, string asset, double? widthPercent, string caption, ExportAssets assets,
         List<TypesettingDiagnostic> diagnostics, int question, ref long total)
     {
-        double widthMillimetres = assets.FullWidthMillimetres * widthPercent / 100;
-        bool spanning = assets.ColumnCount > 1 && widthMillimetres > assets.ColumnWidthMillimetres + 0.01;
-        if (spanning) source.Append("#place(top + center, scope: \"parent\", float: true, clearance: 2mm)[\n");
+        double widthMillimetres = Math.Min(widthPercent is { } width ? assets.FullWidthMillimetres * width / 100 : 90, assets.ColumnWidthMillimetres);
         source.Append("#align(center, block(breakable: false)[#layout(size => { let pic = image(").Append(Quote(asset))
             .Append(", width: ").Append(widthMillimetres.ToString("0.###", CultureInfo.InvariantCulture))
             .Append("mm); if measure(pic).height > 150mm { image(").Append(Quote(asset))
             .Append(", height: 150mm) } else { pic } })])\n");
-        if (caption.Length > 0) AppendTextBlock(source, caption, diagnostics, question, assets, ref total);
-        if (spanning) source.Append("]\n");
+        if (assets.ShowImageCaptions && caption.Length > 0) AppendTextBlock(source, caption, diagnostics, question, assets, ref total);
     }
 
     private static void AppendTable(StringBuilder source, IReadOnlyList<IReadOnlyList<string>> rows,
@@ -371,12 +370,13 @@ public sealed partial class TypstDocumentService
             int width = end - start;
             bool wide = columns > 6;
             if (wide) source.Append("#block(sticky: true)[#text(size: 9pt, ")
-                .Append(Quote($"Table: columns {start + 1}–{end}")).Append(")]\n");
+                .Append(Quote(string.Format(CultureInfo.InvariantCulture, assets.Labels.TableColumns, start + 1, end))).Append(")]\n");
             source.Append("#table(columns: (").Append(wide ? "auto, " : "").Append(string.Join(", ", Enumerable.Repeat("1fr", width))).Append(",), inset: 5pt, stroke: 0.4pt + rgb(\"aaaaaa\"),\n");
             if (wide)
             {
-                source.Append("table.header(repeat: true, [Row], ");
-                for (int column = start; column < end; column++) source.Append("[#text(").Append(Quote($"Column {column + 1}")).Append(")], ");
+                source.Append("table.header(repeat: true, [#text(").Append(Quote(assets.Labels.Row)).Append(")], ");
+                for (int column = start; column < end; column++) source.Append("[#text(")
+                    .Append(Quote(string.Format(CultureInfo.InvariantCulture, assets.Labels.Column, column + 1))).Append(")], ");
                 source.Append("),\n");
             }
             foreach (var cell in cells.Where(cell => cell.Column >= start && cell.Column < end))
@@ -399,12 +399,13 @@ public sealed partial class TypstDocumentService
     }
 
     private sealed class ExportAssets(string directory, ExamEdition edition, CancellationToken token,
-        double fullWidthMillimetres, double columnWidthMillimetres, int columnCount)
+        double fullWidthMillimetres, double columnWidthMillimetres, ExamPrintLabels labels, bool showImageCaptions)
     {
         internal double ColumnWidthPoints { get; } = columnWidthMillimetres * 72 / 25.4;
         internal double FullWidthMillimetres { get; } = fullWidthMillimetres;
         internal double ColumnWidthMillimetres { get; } = columnWidthMillimetres;
-        internal int ColumnCount { get; } = columnCount;
+        internal ExamPrintLabels Labels { get; } = labels;
+        internal bool ShowImageCaptions { get; } = showImageCaptions;
         internal int BlankCount { get; set; }
         private readonly HashSet<string> written = new(StringComparer.Ordinal);
         private long bytes;
