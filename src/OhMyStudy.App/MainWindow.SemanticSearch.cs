@@ -77,7 +77,7 @@ public sealed partial class MainWindow
         var scope = await library.QueryQuestionsAsync(query with { Search = null, Limit = 1 }, _lifetime.Token);
         if (!_semanticBankResults.TryGetValue(_bankSection, out var result) || result.Request != SemanticRequest) return new([], 0, scope.Total);
         var summaries = await library.ReadRankedQuestionsAsync(result.Matches.Select(match => match.QuestionId).ToList(), query, _lifetime.Token);
-        SetSemanticFeedback(UiText.Get("Showing up to 50 questions ranked by meaning. Change the query or filters and search again to refresh."));
+        SetSemanticFeedback(UiText.Get("Showing up to 50 questions ranked by meaning."));
         return new(summaries, summaries.Count, scope.Total);
     }
 

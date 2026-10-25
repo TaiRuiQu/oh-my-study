@@ -12,6 +12,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using OhMyStudy.App.Diagnostics;
+using OhMyStudy.App.Services;
+using OhMyStudy.Documents;
 using VelociTex;
 using VelociTex.Rendering.Direct2D;
 using Windows.ApplicationModel.DataTransfer;
@@ -22,7 +24,7 @@ namespace OhMyStudy.App.Controls;
 /// <summary>Host-owned DirectWrite paragraph layout with native formula inline objects.</summary>
 internal sealed unsafe partial class NativeFormulaParagraph : Grid
 {
-    internal readonly record struct Part(string Text, MathDocument? Formula, string? OriginalFormula = null)
+    internal readonly record struct Part(string Text, MathDocument? Formula, string? OriginalFormula = null, DocumentFont Font = DocumentFont.Default)
     {
         internal string FormulaSource => OriginalFormula ?? Formula!.Source;
     }
@@ -79,24 +81,33 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
     private void TryRebuild()
     {
         try { Rebuild(); }
-        catch (Exception error) { AppLog.Error("Question.NativeParagraph", error); Release(); Children.Clear(); Children.Add(new TextBlock { Text = _source, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = !_preview, FontSize = _fontSize }); }
+        catch (Exception error) { AppLog.Error("Question.NativeParagraph", error); Release(); Children.Clear(); Children.Add(new TextBlock { Text = _source, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = !_preview, FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(NativeFormulaReadingSession.ReadingFontFamily(DocumentFont.Default)), FontSize = _fontSize }); }
     }
     private void TryRedraw() { try { Redraw(); } catch (Exception error) { AppLog.Error("Question.NativeParagraph", error); TryRebuild(); } }
     private void BuildLayout()
     {
         Guid iid = new("b859ee5a-d838-4b5b-a2e8-1adc7d93db48"); nint factory = 0, format = 0, layout = 0; Check(DWriteCreateFactory(0, &iid, &factory)); _factory = factory;
-        fixed (char* family = UiText.ReadingFontFamily) fixed (char* locale = UiText.Language)
+        fixed (char* family = NativeFormulaReadingSession.ReadingFontFamily(DocumentFont.Default)) fixed (char* locale = UiText.Language)
             Check(((delegate* unmanaged[Stdcall]<nint, char*, nint, uint, uint, uint, float, char*, nint*, int>)Slot(_factory, 15))(_factory, family, 0, 400, 0, 5, (float)_fontSize, locale, &format));
         _format = format;
-        StringBuilder text = new(); var ranges = new List<(int Position, MathDocument Document)>();
+        StringBuilder text = new(); var ranges = new List<(int Position, MathDocument Document)>(); var fonts = new List<(int Position, int Length, DocumentFont Font)>();
         foreach (var part in _parts)
         {
-            if (part.Formula is null) text.Append(part.Text);
+            if (part.Formula is null)
+            {
+                if (part.Text.Length > 0) fonts.Add((text.Length, part.Text.Length, part.Font));
+                text.Append(part.Text);
+            }
             else { ranges.Add((text.Length, part.Formula)); text.Append('\uFFFC'); }
         }
         string value = text.ToString(); if (value.Length == 0) value = " ";
         const double surfacePadding = 2;
         fixed (char* characters = value) Check(((delegate* unmanaged[Stdcall]<nint, char*, uint, nint, float, float, nint*, int>)Slot(_factory, 18))(_factory, characters, (uint)value.Length, _format, (float)Math.Max(1, _availableWidth - surfacePadding), 32768, &layout)); _layout = layout;
+        foreach (var range in fonts)
+        {
+            fixed (char* family = NativeFormulaReadingSession.ReadingFontFamily(range.Font))
+                Check(((delegate* unmanaged[Stdcall]<nint, char*, TextRange, int>)Slot(_layout, 31))(_layout, family, new((uint)range.Position, (uint)range.Length)));
+        }
         _handle = GCHandle.Alloc(this);
         foreach (var range in ranges)
         {

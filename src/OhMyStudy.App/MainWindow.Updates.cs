@@ -18,7 +18,6 @@ public sealed partial class MainWindow
             ?? typeof(App).Assembly.GetName().Version?.ToString() ?? UiText.Get("Unknown");
         var feedback = new TextBlock { TextWrapping = TextWrapping.Wrap };
         var content = new StackPanel { Spacing = 12 };
-        content.Children.Add(new TextBlock { Text = UiText.Get("Organize materials, review mistakes, and study with ease."), TextWrapping = TextWrapping.Wrap });
         content.Children.Add(new TextBlock { Text = UiText.Format("Version {0}", version), Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["QuietTextStyle"] });
         content.Children.Add(feedback);
         var dialog = new ContentDialog

@@ -5,6 +5,9 @@ $ErrorActionPreference = 'Stop'
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $forbiddenExtensions = @('.rs','.ts','.tsx','.js','.jsx','.mjs','.cjs')
 $forbiddenNames = @('Cargo.toml','Cargo.lock','package.json','package-lock.json','yarn.lock','pnpm-lock.yaml')
+$mobileScripts = @('capture.js','paper-detector.js','paper-worker.js') | ForEach-Object {
+    [IO.Path]::GetFullPath((Join-Path $workspace "src/OhMyStudy.App/MobileCapture/$_"))
+}
 $sourceCount = 0
 $projectCount = 0
 $queue = [Collections.Generic.Queue[string]]::new()
@@ -17,7 +20,7 @@ while ($queue.Count -gt 0) {
             $queue.Enqueue($entry.FullName)
             continue
         }
-        if ($entry.Extension -in $forbiddenExtensions -or $entry.Name -in $forbiddenNames) {
+        if (($entry.Extension -in $forbiddenExtensions -or $entry.Name -in $forbiddenNames) -and $entry.FullName -notin $mobileScripts) {
             throw "Legacy implementation file outside .reference: $($entry.FullName)"
         }
         if ($entry.Extension -eq '.cs') { $sourceCount++ }

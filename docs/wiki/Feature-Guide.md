@@ -22,6 +22,6 @@ Question pages show a shared stem followed by flat, independently graded items. 
 
 Recognition uses batched page reads and question saves. Failed or interrupted tasks can be retried with rollback checks; Re-recognize preserves current results for a new run. Save edits and notes before exporting question and answer editions separately on A4 portrait or A3 landscape. Export is local; AI recognition and meaning search send data to configured services and may incur charges.
 
-The default code execution mode runs on the host without per-call approval. Change it to Ask every time or Run in sandbox before submitting new tasks. Files API support defaults off; compatible uploads use one-hour expiration and task-end deletion attempts. See the models and tasks chapters for details.
+The default code execution mode runs on the host without per-call approval. Change it to Ask every time or Run in sandbox before submitting new tasks. Files API support defaults off; compatible uploads use one-hour expiration and task-end deletion attempts. Codex mode also defaults off and, for Responses providers, sends a stable `prompt_cache_key` on new tasks. See the models and tasks chapters for details.
 
 The library is local and currently uses schema v6. Back up the complete folder after exit before upgrading or broad reprocessing. Keys stay in Windows Credential Manager. See [installation](../installation.md), [usage](../usage.md), and [model prompt profiles](../model-prompts.md).

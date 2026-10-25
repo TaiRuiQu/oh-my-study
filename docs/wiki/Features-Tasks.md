@@ -8,7 +8,7 @@ One AI task runs at a time. Select a task to inspect state, page reads, saved-qu
 
 Successful tools show their names. Running, waiting, and failed tools show their state; expand failed Python/PowerShell entries to copy actual output. Two consecutive text-only replies trigger continuation prompts; a third fails because prose cannot save questions.
 
-Temporary network/stream/service/rate-limit failures retry the current round up to four attempts, normally after 1, 2, and 4 seconds. Retry-After can extend a wait to 30 seconds. Completed rounds/tools are retained, incomplete responses are not executed, and missing attempt usage makes estimates unknown.
+Temporary network/stream/service/rate-limit failures retry the current round up to four attempts, normally after 1, 2, and 4 seconds. Retry-After can extend a wait to 30 seconds. Completed rounds/tools are retained, incomplete responses are not executed, and a round whose retry usage was not reported stays out of the cost total.
 
 ## Cancel, retry, or re-recognize
 

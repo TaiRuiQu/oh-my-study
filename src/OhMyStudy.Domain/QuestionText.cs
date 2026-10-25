@@ -19,8 +19,9 @@ public static class QuestionText
     {
         TextContent text => text.Text,
         FormulaContent formula => Delimit(formula.Latex),
-        TableContent table => " " + string.Join("　", table.Rows.Take(2).SelectMany(row => row)),
+        TableContent table => " " + string.Join("　", table.Rows.Take(2).SelectMany(row => row).Where(cell => cell.Trim() is not "^" and not "<" and not ">")),
         ImageContent image => image.Caption,
+        MermaidContent mermaid => mermaid.Caption,
         _ => ""
     }));
 
@@ -73,6 +74,7 @@ public static class QuestionText
         FormulaContent formula => formula.Latex,
         TableContent table => string.Join("\n", table.Rows.Select(row => string.Join("  ", row))),
         ImageContent image => image.Caption,
+        MermaidContent mermaid => string.Join("\n", new[] { mermaid.Caption, mermaid.Code }.Where(text => !string.IsNullOrWhiteSpace(text))),
         _ => ""
     }));
 

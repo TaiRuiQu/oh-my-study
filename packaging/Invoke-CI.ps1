@@ -50,6 +50,17 @@ try {
             & (Join-Path $PSScriptRoot 'tests/Test-VelopackBaseline.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-ReleasePayload.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-ScannerAssets.ps1')
+            & (Join-Path $PSScriptRoot 'tests/Test-PhoneCaptureMobile.ps1')
+            $docresPython = Join-Path $workspace 'output/migration/toolchain/runtime/python/python.exe'
+            if (-not (Test-Path -LiteralPath $docresPython -PathType Leaf)) {
+                $found = Get-Command python -ErrorAction SilentlyContinue
+                if (-not $found) { throw 'Python is required to check DocRes install archive cleanup. Prepare the private runtime or install Python.' }
+                $docresPython = $found.Source
+            }
+            & $docresPython (Join-Path $PSScriptRoot 'tests/Test-DocResInstall.py')
+            if ($LASTEXITCODE -ne 0) { throw 'DocRes install archive cleanup check failed' }
+            & $docresPython (Join-Path $PSScriptRoot 'tests/Test-DocResPipeline.py')
+            if ($LASTEXITCODE -ne 0) { throw 'DocRes optional task pipeline check failed' }
             Invoke-Dotnet @('build','OhMyStudy.slnx','-c','Release','--no-restore','-warnaserror')
         }
         'Test' {

@@ -5,6 +5,9 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
     <SelfContained>true</SelfContained>
+    <!-- Keep Debug/explicit non-AOT restores separate from the Release graph. -->
+    <NuGetLockFilePath Condition="'$(PublishAot)' == 'true'">packages.aot.lock.json</NuGetLockFilePath>
+    <NuGetLockFilePath Condition="'$(PublishAot)' != 'true'">packages.lock.json</NuGetLockFilePath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/OhMyStudy.App/Localization/UiText.cs" Link="Localization/UiText.cs" />

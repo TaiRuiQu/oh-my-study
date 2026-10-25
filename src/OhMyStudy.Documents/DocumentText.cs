@@ -2,7 +2,9 @@ using System.Text;
 
 namespace OhMyStudy.Documents;
 
-public sealed record DocumentTextRun(string Text, bool IsFormula, bool IsDisplay = false);
+public enum DocumentFont { Default, Serif, SansSerif, Kai }
+
+public sealed record DocumentTextRun(string Text, bool IsFormula, bool IsDisplay = false, DocumentFont Font = DocumentFont.Default);
 
 /// <summary>Shared literal/math boundaries and wrapping for native reading and fixed PDF templates.</summary>
 public static class DocumentText
@@ -15,7 +17,7 @@ public static class DocumentText
             && leading[1] is '.' or ')' or '．' or '、' or '）';
         if (!text.Contains('\\') && !text.Contains('^') && !text.Contains('_') && !text.Contains('$') && !option) return text;
         var result = new StringBuilder(text.Length);
-        foreach (var run in Split(text))
+        foreach (var run in SplitMath(text))
         {
             if (run.IsFormula)
             {
@@ -73,7 +75,9 @@ public static class DocumentText
         or '|' or '!' or '.' or ',' or ';' or ':' or '%' or '$' or '\'' or '．' or '、' or '）'
         or >= '\u0370' and <= '\u03ff' or >= '\u2200' and <= '\u22ff';
 
-    public static IReadOnlyList<DocumentTextRun> Split(string text)
+    public static IReadOnlyList<DocumentTextRun> Split(string text) => ApplyFonts(SplitMath(text));
+
+    private static IReadOnlyList<DocumentTextRun> SplitMath(string text)
     {
         var runs = new List<DocumentTextRun>();
         int plain = 0, backslashes = 0;
@@ -108,6 +112,105 @@ public static class DocumentText
         if (runs.Count == 0) runs.Add(new(text, false));
         return runs;
     }
+
+    private static IReadOnlyList<DocumentTextRun> ApplyFonts(IReadOnlyList<DocumentTextRun> mathRuns)
+    {
+        var tokens = new List<FontToken>();
+        foreach (var run in mathRuns)
+        {
+            if (run.IsFormula)
+            {
+                tokens.Add(new(run.Text, FontTokenKind.Formula, run.IsDisplay, DocumentFont.Default));
+                continue;
+            }
+            int plain = 0;
+            for (int index = 0; index < run.Text.Length;)
+            {
+                if (!TryFontDirective(run.Text, index, out var kind, out var font, out int length)) { index++; continue; }
+                if (index > plain) tokens.Add(new(run.Text[plain..index], FontTokenKind.Text, false, DocumentFont.Default));
+                tokens.Add(new(run.Text.Substring(index, length), kind, false, font));
+                index += length;
+                plain = index;
+            }
+            if (plain < run.Text.Length) tokens.Add(new(run.Text[plain..], FontTokenKind.Text, false, DocumentFont.Default));
+        }
+        if (tokens.Count == 0) return [new("", false)];
+        var matched = new bool[tokens.Count];
+        var openings = new Stack<int>();
+        for (int index = 0; index < tokens.Count; index++)
+        {
+            if (tokens[index].Kind == FontTokenKind.Open) openings.Push(index);
+            else if (tokens[index].Kind == FontTokenKind.Close && openings.Count > 0)
+            {
+                matched[index] = true;
+                matched[openings.Pop()] = true;
+            }
+        }
+        var runs = new List<DocumentTextRun>();
+        var fonts = new Stack<DocumentFont>();
+        var current = DocumentFont.Default;
+        void Add(string text, bool formula, bool display)
+        {
+            if (!formula && runs.Count > 0 && runs[^1] is { IsFormula: false } previous && previous.Font == current)
+                runs[^1] = previous with { Text = previous.Text + text };
+            else runs.Add(new(text, formula, display, current));
+        }
+        for (int index = 0; index < tokens.Count; index++)
+        {
+            var token = tokens[index];
+            if (matched[index] && token.Kind == FontTokenKind.Open)
+            {
+                fonts.Push(current);
+                current = token.Font;
+            }
+            else if (matched[index] && token.Kind == FontTokenKind.Close) current = fonts.Pop();
+            else Add(token.Text, token.Kind == FontTokenKind.Formula, token.IsDisplay);
+        }
+        return runs;
+    }
+
+    private static bool TryFontDirective(string text, int index, out FontTokenKind kind, out DocumentFont font, out int length)
+    {
+        kind = FontTokenKind.Text;
+        font = DocumentFont.Default;
+        length = 0;
+        var rest = text.AsSpan(index);
+        if (rest.StartsWith("{font:sans-serif}", StringComparison.Ordinal))
+        {
+            kind = FontTokenKind.Open;
+            font = DocumentFont.SansSerif;
+            length = 17;
+            return true;
+        }
+        if (rest.StartsWith("{font:sans}", StringComparison.Ordinal))
+        {
+            kind = FontTokenKind.Open;
+            font = DocumentFont.SansSerif;
+            length = 11;
+            return true;
+        }
+        if (rest.StartsWith("{font:serif}", StringComparison.Ordinal))
+        {
+            kind = FontTokenKind.Open;
+            font = DocumentFont.Serif;
+            length = 12;
+            return true;
+        }
+        if (rest.StartsWith("{font:kai}", StringComparison.Ordinal))
+        {
+            kind = FontTokenKind.Open;
+            font = DocumentFont.Kai;
+            length = 10;
+            return true;
+        }
+        if (!rest.StartsWith("{/font}", StringComparison.Ordinal)) return false;
+        kind = FontTokenKind.Close;
+        length = 7;
+        return true;
+    }
+
+    private enum FontTokenKind { Text, Formula, Open, Close }
+    private readonly record struct FontToken(string Text, FontTokenKind Kind, bool IsDisplay, DocumentFont Font);
 
     private static bool IsEscaped(string text, int index)
     {

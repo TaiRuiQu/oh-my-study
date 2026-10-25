@@ -140,9 +140,12 @@ try {
             }
         }
     }
-    $nativeRuntime=Join-Path $env:NUGET_PACKAGES 'microsoft.netcore.app.runtime.nativeaot.win-x64/10.0.13'
-    $runtimeNotice=Join-Path $notices 'dotnet-nativeaot-10.0.13'; New-Item -ItemType Directory -Path $runtimeNotice -Force | Out-Null
-    foreach ($name in @('LICENSE.TXT','THIRD-PARTY-NOTICES.TXT')) { Copy-Item -LiteralPath (Join-Path $nativeRuntime $name) -Destination $runtimeNotice }
+    # Only the Native AOT variant redistributes the native AOT runtime, so only it ships those notices.
+    if ($profile.nativeAot) {
+        $nativeRuntime=Join-Path $env:NUGET_PACKAGES 'microsoft.netcore.app.runtime.nativeaot.win-x64/10.0.13'
+        $runtimeNotice=Join-Path $notices 'dotnet-nativeaot-10.0.13'; New-Item -ItemType Directory -Path $runtimeNotice -Force | Out-Null
+        foreach ($name in @('LICENSE.TXT','THIRD-PARTY-NOTICES.TXT')) { Copy-Item -LiteralPath (Join-Path $nativeRuntime $name) -Destination $runtimeNotice }
+    }
     @'
 Oh My Study: GPL-3.0-or-later. The complete license is included as LICENSE.
 The working-tree source snapshot is source/source-snapshot.zip. Existing supplied publishes require source-correspondence review.

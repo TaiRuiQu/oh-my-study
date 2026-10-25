@@ -160,7 +160,6 @@
                             <StackPanel x:Name="PaperEmpty" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
                                 <FontIcon Glyph="&#xE8A5;" FontSize="32" />
                                 <TextBlock TextWrapping="Wrap" x:Name="PaperEmptyTitle" Text="{l:Text Key=S0303}" FontSize="20" HorizontalAlignment="Center" />
-                                <TextBlock x:Name="PaperEmptyMessage" Text="{l:Text Key=S0305}" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -233,7 +232,6 @@
                             <StackPanel x:Name="BankEmpty" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" MaxWidth="380" Visibility="Collapsed">
                                 <FontIcon x:Name="BankEmptyIcon" Glyph="&#xE8F1;" FontSize="32" />
                                 <TextBlock x:Name="BankEmptyTitle" TextWrapping="Wrap" FontSize="20" HorizontalAlignment="Center" TextAlignment="Center" />
-                                <TextBlock x:Name="BankEmptyMessage" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                             <ProgressRing x:Name="BankProgress" IsActive="False" Visibility="Collapsed" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="{l:Text Key=S0530}" />
                         </Grid>
@@ -273,10 +271,10 @@
 
                             </StackPanel>
                         </ScrollViewer>
-                            <controls:ColumnSplitter Grid.Row="1" Orientation="Horizontal" MinimumBefore="120" MinimumAfter="180" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                            <controls:ColumnSplitter Grid.Row="1" Orientation="Horizontal" MinimumBefore="120" MinimumAfter="180" AutomationProperties.Name="{l:Text Key=S0740}" />
                                 <Border x:Name="QuestionPageNotes" Grid.Row="2" Padding="32,8,32,16">
                                     <Grid RowSpacing="10"><Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                        <TextBox x:Name="PageNotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                        <TextBox x:Name="PageNotesEditor" Header="{l:Text Key=S0663}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"
                                             Text="{x:Bind ViewModel.OpenQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         <Button Grid.Row="1" HorizontalAlignment="Left" Content="{l:Text Key=S0664}" Click="SaveOpenQuestion_Click" IsEnabled="{x:Bind ViewModel.OpenQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
                                     </Grid>
@@ -344,14 +342,14 @@
                                     <Button x:Name="NextPdfPage" Content="{l:Text Key=S0504}" Click="NextPdfPage_Click" AutomationProperties.Name="{l:Text Key=S0505}" />
                                     <Button x:Name="CancelPreview" Content="{l:Text Key=S0506}" Click="CancelPreview_Click" IsEnabled="False" />
                                 </StackPanel>
-                                <Button Grid.Row="1" Click="FitPage_Click" Content="{l:Text Key=S0507}" ToolTipService.ToolTip="{l:Text Key=S0508}" />
+                                <Button Grid.Row="1" Click="FitPage_Click" Content="{l:Text Key=S0507}" />
                                 <Slider x:Name="ZoomSlider" Grid.Row="1" Grid.Column="1" Minimum="25" Maximum="400" Value="65" StepFrequency="5" Width="130"
                                     HorizontalAlignment="Right" VerticalAlignment="Center" ValueChanged="ZoomSlider_ValueChanged" AutomationProperties.Name="{l:Text Key=S0509}" />
                                 <TextBlock x:Name="ZoomLabel" Grid.Row="1" Grid.Column="2" Text="65%" Width="44" VerticalAlignment="Center" TextAlignment="Right" Style="{StaticResource QuietTextStyle}" />
                             </Grid>
                         </Grid>
                     </Border>
-                    <controls:ColumnSplitter x:Name="WorkspaceSplitter" Grid.Column="1" MinimumBefore="280" MinimumAfter="320" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                    <controls:ColumnSplitter x:Name="WorkspaceSplitter" Grid.Column="1" MinimumBefore="280" MinimumAfter="320" AutomationProperties.Name="{l:Text Key=S0740}" />
                     <Border x:Name="QuestionPane" Grid.Column="2" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}">
                         <Grid x:Name="QuestionLayout" SizeChanged="QuestionLayout_SizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition x:Name="QuestionListColumn" Width="320" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -379,7 +377,7 @@
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
-                            <controls:ColumnSplitter x:Name="QuestionColumnSplitter" Grid.Column="1" Grid.RowSpan="4" AutomationProperties.Name="{l:Text Key=S0691}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                            <controls:ColumnSplitter x:Name="QuestionColumnSplitter" Grid.Column="1" Grid.RowSpan="4" AutomationProperties.Name="{l:Text Key=S0691}" />
                             <Grid x:Name="QuestionDetailLayout" Grid.Column="2" Grid.RowSpan="4" Visibility="Collapsed">
                                 <Grid.RowDefinitions><RowDefinition Height="*" MinHeight="100" /><RowDefinition Height="12" /><RowDefinition Height="140" MinHeight="140" /></Grid.RowDefinitions>
                             <ScrollViewer x:Name="QuestionDetail" BorderBrush="{ThemeResource WorkspaceBorderBrush}" Padding="24,20" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
@@ -395,10 +393,10 @@
 
                                 </StackPanel>
                             </ScrollViewer>
-                                <controls:ColumnSplitter Grid.Row="1" Orientation="Horizontal" MinimumBefore="100" MinimumAfter="140" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                                <controls:ColumnSplitter Grid.Row="1" Orientation="Horizontal" MinimumBefore="100" MinimumAfter="140" AutomationProperties.Name="{l:Text Key=S0740}" />
                                     <Border Grid.Row="2" Padding="24,8,24,16">
                                         <Grid RowSpacing="10"><Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                            <TextBox x:Name="NotesEditor" Header="{l:Text Key=S0663}" PlaceholderText="{l:Text Key=S0515}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                            <TextBox x:Name="NotesEditor" Header="{l:Text Key=S0663}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" VerticalAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto"
                                                 Text="{x:Bind ViewModel.SelectedQuestion.Notes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             <Button Grid.Row="1" HorizontalAlignment="Left" x:Name="SaveNotesButton" Content="{l:Text Key=S0664}" Click="SaveSelectedNotes_Click" IsEnabled="{x:Bind ViewModel.SelectedQuestion.IsDirty, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" />
                                         </Grid>
@@ -407,7 +405,6 @@
                             <StackPanel x:Name="EmptyQuestionState" Grid.ColumnSpan="3" Grid.RowSpan="4" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="24">
                                 <FontIcon Glyph="&#xE8F1;" FontSize="36" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock TextWrapping="Wrap" x:Name="EmptyQuestionTitle" Text="{l:Text Key=S0014}" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
-                                <TextBlock x:Name="EmptyQuestionMessage" Text="{l:Text Key=S0018}" TextWrapping="Wrap" TextAlignment="Center" Style="{StaticResource QuietTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -439,7 +436,7 @@
                         </Grid>
                     </Border>
                     <ComboBox x:Name="TaskCompactPicker" Visibility="Collapsed" HorizontalAlignment="Stretch" SelectionChanged="TaskCompactPicker_SelectionChanged" AutomationProperties.Name="{l:Text Key=S0518}" />
-                    <controls:ColumnSplitter x:Name="TaskColumnSplitter" Grid.Column="1" MinimumBefore="220" MinimumAfter="360" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                    <controls:ColumnSplitter x:Name="TaskColumnSplitter" Grid.Column="1" MinimumBefore="220" MinimumAfter="360" AutomationProperties.Name="{l:Text Key=S0740}" />
                     <Border x:Name="TaskDetail" Grid.Column="2" SizeChanged="TasksPanel_SizeChanged" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" MinHeight="120" /><RowDefinition Height="12" /><RowDefinition Height="*" MinHeight="140" /></Grid.RowDefinitions>
@@ -495,7 +492,7 @@
                                     </Grid>
                                 </StackPanel>
                             </ScrollViewer>
-                            <controls:ColumnSplitter x:Name="TaskSummarySplitter" Grid.Row="1" Orientation="Horizontal" MinimumBefore="120" MinimumAfter="140" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                            <controls:ColumnSplitter x:Name="TaskSummarySplitter" Grid.Row="1" Orientation="Horizontal" MinimumBefore="120" MinimumAfter="140" AutomationProperties.Name="{l:Text Key=S0740}" />
                             <Border Grid.Row="2">
                                 <Grid RowSpacing="12" Padding="24,16,24,0">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -509,7 +506,6 @@
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="300" Margin="24">
                             <Border Background="{ThemeResource TaskAccentBackgroundBrush}" CornerRadius="24" Width="88" Height="88"><FontIcon Glyph="&#xE9F9;" FontSize="38" Foreground="{ThemeResource TaskAccentBrush}" /></Border>
                             <TextBlock Text="{l:Text Key=S0533}" Style="{StaticResource SubtitleTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" />
-                            <TextBlock Text="{l:Text Key=S0534}" Style="{StaticResource QuietTextStyle}" TextAlignment="Center" TextWrapping="Wrap" />
                             <Button FontSize="16" Content="{l:Text Key=S0202}" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
@@ -529,7 +525,7 @@
                                     <Button Grid.Row="2" Content="{l:Text Key=S0538}" Click="NewProvider_Click" HorizontalAlignment="Stretch" />
                                 </Grid>
                             </Border>
-                            <controls:ColumnSplitter x:Name="ProviderSplitter" Grid.Column="1" MinimumBefore="180" MinimumAfter="420" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+                            <controls:ColumnSplitter x:Name="ProviderSplitter" Grid.Column="1" MinimumBefore="180" MinimumAfter="420" AutomationProperties.Name="{l:Text Key=S0740}" />
                             <StackPanel x:Name="ProviderDetails" Grid.Column="2" Spacing="16">
                                 <Border x:Name="ProviderSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                                     <StackPanel Spacing="14">
@@ -538,14 +534,16 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                             <TextBox x:Name="ProviderName" Header="{l:Text Key=S0540}" PlaceholderText="{l:Text Key=S0541}" />
-                                            <ComboBox x:Name="ProtocolPicker" Grid.Column="1" Header="{l:Text Key=S0542}" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                            <ComboBox x:Name="ProtocolPicker" Grid.Column="1" Header="{l:Text Key=S0542}" SelectedIndex="0" HorizontalAlignment="Stretch" SelectionChanged="ProtocolPicker_SelectionChanged">
                                                 <ComboBoxItem Content="OpenAI Responses" /><ComboBoxItem Content="Anthropic Messages" />
                                             </ComboBox>
                                             <TextBox x:Name="ProviderUrl" Grid.Row="1" Header="{l:Text Key=S0543}" PlaceholderText="https://…" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" />
                                             <PasswordBox x:Name="ProviderKey" Grid.Row="1" Grid.Column="1" Header="{l:Text Key=S0544}" PlaceholderText="{l:Text Key=S0545}" />
                                         </Grid>
-                                        <CheckBox x:Name="ProviderFilesApi" Content="{l:Text Key=S0754}" />
-                                        <TextBlock Text="{l:Text Key=S0755}" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Spacing="24">
+                                            <CheckBox x:Name="ProviderFilesApi" Content="{l:Text Key=S0754}" />
+                                            <CheckBox x:Name="ProviderCodexMode" Content="{l:Text Key=S0784}" />
+                                        </StackPanel>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <Button Content="{l:Text Key=S0065}" Click="SaveProvider_Click" Style="{StaticResource AccentButtonStyle}" />
                                             <Button x:Name="DeleteProviderButton" Content="{l:Text Key=S0546}" Click="DeleteProvider_Click" IsEnabled="False" />
@@ -591,7 +589,6 @@
                                             <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0559}" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                             <VariableSizedWrapGrid x:Name="ModelThinkingOptions" Orientation="Horizontal" MaximumRowsOrColumns="7" />
                                             <TextBox x:Name="ModelThinkingBudget" Header="{l:Text Key=S0560}" PlaceholderText="{l:Text Key=S0561}" />
-                                            <TextBlock Text="{l:Text Key=S0562}" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
                                             <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0563}" Style="{StaticResource BodyStrongTextBlockStyle}" />
                                             <Grid x:Name="ModelPriceFields" ColumnSpacing="16">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="96" /></Grid.ColumnDefinitions>
@@ -611,7 +608,7 @@
                                                 <Button x:Name="DeleteModelButton" Content="{l:Text Key=S0572}" Click="DeleteModel_Click" IsEnabled="False" />
                                             </StackPanel>
                                         </StackPanel>
-                                        <TextBlock x:Name="ModelFeedback" Text="{l:Text Key=S0164}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                                        <TextBlock x:Name="ModelFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -705,6 +702,6 @@
                 </Grid>
             </Grid>
         </NavigationView>
-        <controls:ColumnSplitter x:Name="NavigationSplitter" Grid.Row="1" Width="12" HorizontalAlignment="Left" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0740}" ToolTipService.ToolTip="{l:Text Key=S0741}" />
+        <controls:ColumnSplitter x:Name="NavigationSplitter" Grid.Row="1" Width="12" HorizontalAlignment="Left" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0740}" />
     </Grid>
 </Window>

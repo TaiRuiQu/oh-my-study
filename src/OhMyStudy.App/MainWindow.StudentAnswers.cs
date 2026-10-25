@@ -26,7 +26,6 @@ public sealed partial class MainWindow
         try
         {
             var fields = new StackPanel { Spacing = 12, MinWidth = 320, MaxWidth = 560 };
-            fields.Children.Add(new TextBlock { Text = UiText.Get("Enter the student's own work. Recognize again to grade it and analyze mistakes."), TextWrapping = TextWrapping.Wrap });
             var entries = new Dictionary<string, TextBox>(StringComparer.Ordinal);
             foreach (var item in saved.Question.Items)
             {

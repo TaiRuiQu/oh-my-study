@@ -156,7 +156,10 @@ internal static class MessagesSdkRegression
             using var client = new ProviderClient(http, Protocol.Messages, endpoint);
             await client.CallAsync(new("synthetic-key"), Options() with { Model = Model.Manual(model), SessionId = "synthetic-task-1" }, ProviderProtocol.Initial(Protocol.Messages, "Synthetic session", []), []);
         }
+        var messages = ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { PromptCacheKey = "synthetic-exam-1" }, ProviderProtocol.Initial(Protocol.Messages, "Synthetic session", []), []);
+        Require(messages["prompt_cache_key"] is null, "Messages does not send the Responses cache key");
         await Reject(() => Task.FromResult(ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { Extra = new() { ["session_id"] = Json("\"x\"") } }, [], [])), ErrorKind.InvalidRequest);
+        await Reject(() => Task.FromResult(ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { Extra = new() { ["prompt_cache_key"] = Json("\"x\"") } }, [], [])), ErrorKind.InvalidRequest);
         await Reject(() => Task.FromResult(ProviderProtocol.BuildRequest(Protocol.Messages, Options() with { SessionId = new string('a', 257) }, [], [])), ErrorKind.InvalidRequest);
     }
 

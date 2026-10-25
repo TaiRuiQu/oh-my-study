@@ -15,13 +15,8 @@
     <text key="S0012" xml:space="preserve">아직 오답이 없습니다</text>
     <text key="S0013" xml:space="preserve">문제 인식 중</text>
     <text key="S0014" xml:space="preserve">아직 문제가 없습니다</text>
-    <text key="S0015" xml:space="preserve">채점 후 복습할 문제가 여기에 표시됩니다.</text>
-    <text key="S0016" xml:space="preserve">인식된 문제가 자동으로 표시됩니다. 작업에서 진행 상황을 확인하세요.</text>
-    <text key="S0017" xml:space="preserve">이 시험에서 인식된 문제가 없습니다. 위에서 다시 인식하세요.</text>
-    <text key="S0018" xml:space="preserve">시험에서 PDF나 이미지를 가져오면 인식된 문제가 문제 은행에 추가됩니다.</text>
     <text key="S0019" xml:space="preserve">환율 {0}: 1 미국 달러 = {1:0.####} 위안</text>
     <text key="S0020" xml:space="preserve"> (캐시)</text>
-    <text key="S0021" xml:space="preserve">위안화 예상 금액을 보려면 통화를 선택하세요.</text>
     <text key="S0022" xml:space="preserve">환율을 가져올 수 없습니다. 위안화 예상 금액은 표시할 수 없으며 원래 가격은 유지됩니다.</text>
     <text key="S0023" xml:space="preserve">설정 안 됨</text>
     <text key="S0024" xml:space="preserve">위안화 예상: 캐시 미적중 {0}    적중 {1}    캐시 쓰기 {2}    출력 {3}</text>
@@ -71,7 +66,6 @@
     <text key="S0068" xml:space="preserve">현재 이 컴퓨터에서 인쇄할 수 없습니다.</text>
     <text key="S0069" xml:space="preserve">인쇄 준비 중…</text>
     <text key="S0070" xml:space="preserve">인쇄 창을 열 수 없습니다. 프린터를 확인하세요.</text>
-    <text key="S0071" xml:space="preserve">인쇄 창에서 프린터와 용지를 선택하세요.</text>
     <text key="S0072" xml:space="preserve">인쇄를 준비하지 못했습니다. 원본과 프린터를 확인하고 다시 시도하세요.</text>
     <text key="S0073" xml:space="preserve">프린터로 보냈습니다.</text>
     <text key="S0074" xml:space="preserve">인쇄를 취소했습니다.</text>
@@ -139,7 +133,6 @@
     <text key="S0136" xml:space="preserve">회전을 저장하지 못했습니다. 작업이 끝난 후 다시 시도하세요.</text>
     <text key="S0137" xml:space="preserve">저장 위치에 접근할 수 없습니다.</text>
     <text key="S0138" xml:space="preserve">취소를 완료하지 못했습니다. 나중에 다시 시도하세요.</text>
-    <text key="S0139" xml:space="preserve">가져온 자료가 여기에 표시됩니다.</text>
     <text key="S0140" xml:space="preserve">이전 버전 자료를 찾았습니다</text>
     <text key="S0141" xml:space="preserve">더 보기 메뉴에서 가져올 수 있습니다. 원본은 유지됩니다.</text>
     <text key="S0142" xml:space="preserve">자료실을 열 수 없습니다. 저장 위치를 확인하거나 설정에서 기존 자료실을 선택하세요.</text>
@@ -151,7 +144,7 @@
     <text key="S0148" xml:space="preserve">한 번에 최대 12페이지를 가져올 수 있습니다.</text>
     <text key="S0149" xml:space="preserve">가져오는 중…</text>
     <text key="S0150" xml:space="preserve">파일당 64 MB, 한 번에 총 256 MB까지 가능합니다. 나누어 다시 시도하세요.</text>
-    <text key="S0151" xml:space="preserve">참고 답안을 추가했습니다. 다시 정리할 수 있습니다.</text>
+    <text key="S0151" xml:space="preserve">참고 답안을 추가했습니다.</text>
     <text key="S0152" xml:space="preserve">가져오기를 취소했습니다.</text>
     <text key="S0153" xml:space="preserve">시험을 가져와 인식을 시작했습니다. 문제 은행을 다시 열어 새로 고치세요.</text>
     <text key="S0154" xml:space="preserve">시험을 저장했지만 인식을 시작하지 못했습니다. 시험에서 다시 인식하세요.</text>
@@ -163,8 +156,7 @@
     <text key="S0160" xml:space="preserve">가져오지 못했습니다. 파일을 다시 선택하고 시도하세요.</text>
     <text key="S0161" xml:space="preserve">먼저 자료를 선택하세요.</text>
     <text key="S0162" xml:space="preserve">파일을 열 수 없습니다. 다시 시도하세요.</text>
-    <text key="S0163" xml:space="preserve">아직 모델이 없습니다. 목록을 가져오거나 직접 추가하세요.</text>
-    <text key="S0164" xml:space="preserve">모델을 추가하기 전에 제공업체를 저장하세요.</text>
+    <text key="S0163" xml:space="preserve">모델 없음.</text>
     <text key="S0165" xml:space="preserve">먼저 사용 가능한 자료실을 선택하세요.</text>
     <text key="S0166" xml:space="preserve">모델이 있는 제공업체의 프로토콜은 바꿀 수 없습니다. 새 제공업체를 추가하세요.</text>
     <text key="S0167" xml:space="preserve">저장했지만 이전 키를 정리하지 못했습니다. 나중에 다시 저장하세요.</text>
@@ -309,8 +301,6 @@
     <text key="S0302" xml:space="preserve">시험: {0} / {1}개</text>
     <text key="S0303" xml:space="preserve">아직 시험이 없습니다</text>
     <text key="S0304" xml:space="preserve">시험을 찾지 못했습니다</text>
-    <text key="S0305" xml:space="preserve">PDF나 시험 이미지를 가져와 시작하세요.</text>
-    <text key="S0306" xml:space="preserve">다른 검색어나 과목을 사용하세요.</text>
     <text key="S0307" xml:space="preserve">시험을 열 수 없습니다. 나중에 다시 시도하세요.</text>
     <text key="S0308" xml:space="preserve">제목</text>
     <text key="S0309" xml:space="preserve">예: 수학, 국어, 영어</text>
@@ -405,7 +395,6 @@
     <text key="S0398" xml:space="preserve">페이지 크기가 올바르지 않습니다. </text>
     <text key="S0399" xml:space="preserve">예제 자료</text>
     <text key="S0400" xml:space="preserve">보고 편집할 수 있지만 변경 사항은 저장되지 않습니다.</text>
-    <text key="S0401" xml:space="preserve">자료를 정리하고 오답을 복습하며 편하게 공부하세요.</text>
     <text key="S0402" xml:space="preserve">확인</text>
     <text key="S0403" xml:space="preserve">Windows에서 인쇄를 지원하지 않는다고 보고했습니다. 네이티브 API만 검증했으며 시스템 또는 실제 인쇄는 검증하지 않았습니다.</text>
     <text key="S0404" xml:space="preserve">스크린샷에는 절대 경로가 필요합니다.</text>
@@ -521,7 +510,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0512" xml:space="preserve">문제 내용</text>
     <text key="S0513" xml:space="preserve">정답</text>
     <text key="S0514" xml:space="preserve">메모</text>
-    <text key="S0515" xml:space="preserve">이해한 내용이나 복습 메모 기록</text>
     <text key="S0516" xml:space="preserve">최근 작업</text>
     <text key="S0517" xml:space="preserve">작업 목록</text>
     <text key="S0518" xml:space="preserve">작업 선택</text>
@@ -539,8 +527,7 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0530" xml:space="preserve">작업 처리 중</text>
     <text key="S0531" xml:space="preserve">최신 기록으로 스크롤</text>
     <text key="S0532" xml:space="preserve">최신</text>
-    <text key="S0533" xml:space="preserve">인식 진행 상황 확인</text>
-    <text key="S0534" xml:space="preserve">시험을 가져온 후 읽기, 인식, 저장의 각 단계를 여기서 확인하세요.</text>
+    <text key="S0533" xml:space="preserve">작업 없음</text>
     <text key="S0535" xml:space="preserve">모델</text>
     <text key="S0536" xml:space="preserve">제공업체</text>
     <text key="S0537" xml:space="preserve">제공업체 목록</text>
@@ -568,7 +555,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0559" xml:space="preserve">추론 강도 옵션</text>
     <text key="S0560" xml:space="preserve">추론 예산</text>
     <text key="S0561" xml:space="preserve">설정하지 않으려면 비워 두세요</text>
-    <text key="S0562" xml:space="preserve">지원하는 추론 강도만 선택하세요. 이미지와 도구 기능이 확인되지 않았으면 설정하지 마세요.</text>
     <text key="S0563" xml:space="preserve">가격</text>
     <text key="S0564" xml:space="preserve">입력 (캐시 미적중)</text>
     <text key="S0565" xml:space="preserve">입력 (캐시 적중)</text>
@@ -680,7 +666,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0671" xml:space="preserve">문제를 불러올 수 없습니다. 잠시 후 다시 시도하세요.</text>
     <text key="S0672" xml:space="preserve">문제: {0} / {1}개</text>
     <text key="S0673" xml:space="preserve">문제를 찾을 수 없습니다</text>
-    <text key="S0674" xml:space="preserve">다른 키워드, 과목 또는 채점 결과로 시도해 보세요.</text>
     <text key="S0675" xml:space="preserve">이 문제는 더 이상 존재하지 않습니다.</text>
     <text key="S0676" xml:space="preserve">학습 항목</text>
     <text key="S0677" xml:space="preserve">하위 문제 {0}개</text>
@@ -698,7 +683,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0689" xml:space="preserve">Search</text>
     <text key="S0690" xml:space="preserve">취소</text>
     <text key="S0691" xml:space="preserve">Resize question list</text>
-    <text key="S0692" xml:space="preserve">Drag left or right, or use the arrow keys to resize</text>
     <text key="S0693" xml:space="preserve">Meaning search models</text>
     <text key="S0694" xml:space="preserve">Embedding and reranker connections are independent of recognition providers. Each Base URL is used as entered, with /embeddings or /rerank appended. Include /v1 if your service requires it.</text>
     <text key="S0695" xml:space="preserve">Embedding model</text>
@@ -716,9 +700,8 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0707" xml:space="preserve">Local index cleared. The next meaning search will rebuild it after confirmation.</text>
     <text key="S0708" xml:space="preserve">Could not clear the search index. Try again.</text>
     <text key="S0709" xml:space="preserve">Describe the question or concept</text>
-    <text key="S0710" xml:space="preserve">Describe what you want to find, then press Search or Enter. Model calls require confirmation.</text>
     <text key="S0711" xml:space="preserve">Search canceled. Completed embeddings are kept locally.</text>
-    <text key="S0712" xml:space="preserve">Showing up to 50 questions ranked by meaning. Change the query or filters and search again to refresh.</text>
+    <text key="S0712" xml:space="preserve">의미 관련도순으로 최대 50개 문제를 표시합니다.</text>
     <text key="S0713" xml:space="preserve">Configure an embedding Base URL and model name in Settings first.</text>
     <text key="S0714" xml:space="preserve">Describe the question or concept first.</text>
     <text key="S0715" xml:space="preserve">Preparing local search index…</text>
@@ -732,7 +715,7 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0723" xml:space="preserve">Preparing embeddings: {0} / {1}</text>
     <text key="S0724" xml:space="preserve">The search vectors or model response are inconsistent. Clear the local search index in Settings and try again.</text>
     <text key="S0725" xml:space="preserve">Meaning search failed. Check the search models in Settings and try again.</text>
-    <text key="S0726" xml:space="preserve">Filters changed. Press Search to refresh meaning results.</text>
+    <text key="S0726" xml:space="preserve">검색 결과가 최신 상태가 아닙니다.</text>
     <text key="S0727" xml:space="preserve">The embedding response is invalid. Check the endpoint and model.</text>
     <text key="S0728" xml:space="preserve">The reranker response is invalid. Check the endpoint and model, or clear the reranker configuration.</text>
     <text key="S0729" xml:space="preserve">The search model key is unavailable. Enter it again in Settings.</text>
@@ -747,7 +730,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0738" xml:space="preserve">API 유형</text>
     <text key="S0739" xml:space="preserve">OpenAI 호환</text>
     <text key="S0740" xml:space="preserve">영역 크기 조절</text>
-    <text key="S0741" xml:space="preserve">드래그하거나 화살표 키로 조절합니다. Home/End는 최소/최대 크기로 조절합니다.</text>
     <text key="S0742" xml:space="preserve">새 문제 텍스트는 자동 인덱싱을 위해 {0}에 전송되며 {1}을 사용합니다. 추가 요금이 발생할 수 있습니다.</text>
     <text key="S0743" xml:space="preserve">최대 출력 토큰 수 (max_tokens)</text>
     <text key="S0744" xml:space="preserve">비워 두면 자동 설정</text>
@@ -761,7 +743,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0752" xml:space="preserve">이 작업에는 다시 시도를 위한 복구 기록이 없습니다. 시험에서 다시 인식을 사용하여 저장된 결과를 유지하세요.</text>
     <text key="S0753" xml:space="preserve">이 작업이 저장한 문제가 수동 편집되었습니다. 시험에서 다시 인식을 사용하여 편집 내용을 유지하세요.</text>
     <text key="S0754" xml:space="preserve">Files API 지원</text>
-    <text key="S0755" xml:space="preserve">파일 업로드 및 이미지 파일 ID를 지원하는 제공업체에서만 활성화하세요. 파일은 1시간 후 만료되며 작업이 끝나면 삭제됩니다.</text>
     <text key="S0756" xml:space="preserve">이미지를 제공업체의 Files API에 업로드한 후 파일 ID로 참조합니다. 파일은 1시간 후 만료되며 작업이 끝나면 삭제됩니다. 저장소 또는 모델 요금이 발생할 수 있습니다.</text>
     <text key="S0757" xml:space="preserve">제공업체의 Files API에 이미지 업로드 중</text>
     <text key="S0758" xml:space="preserve">제공업체가 Files API 작업을 거부했습니다. Files API 지원 여부, 파일 권한 및 만료 매개변수를 확인하세요.</text>
@@ -771,7 +752,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0762" xml:space="preserve">학생 답안 업로드</text>
     <text key="S0763" xml:space="preserve">학생 답안 입력</text>
     <text key="S0764" xml:space="preserve">오답 원인 분석</text>
-    <text key="S0765" xml:space="preserve">학생이 직접 작성한 풀이를 입력하세요. 저장 후 다시 인식하면 채점하고 오답 원인을 분석합니다.</text>
     <text key="S0766" xml:space="preserve">학생 답안을 추가했습니다. 다시 인식하여 채점하세요.</text>
     <text key="S0767" xml:space="preserve">학생 답안이 변경되었습니다. 다시 인식하여 채점하세요.</text>
     <text key="S0768" xml:space="preserve">결과 확인</text>
@@ -790,23 +770,30 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="S0781" xml:space="preserve">업데이트를 확인할 수 없습니다. 연결을 확인하고 나중에 다시 시도하세요.</text>
     <text key="S0782" xml:space="preserve">업데이트를 다운로드할 수 없습니다. 나중에 다시 시도하세요.</text>
     <text key="S0783" xml:space="preserve">업데이트를 설치했습니다. 계속하려면 앱을 다시 시작하세요.</text>
+    <text key="S0784" xml:space="preserve">Codex 모드</text>
+    <text key="S0785" xml:space="preserve">A4 세로</text>
+    <text key="S0786" xml:space="preserve">단 수</text>
+    <text key="S0787" xml:space="preserve">다이어그램</text>
+    <text key="S0788" xml:space="preserve">표시 너비(%)</text>
+    <text key="S0789" xml:space="preserve">Mermaid 코드</text>
+    <text key="S0790" xml:space="preserve">다이어그램 캡션</text>
+    <text key="S0791" xml:space="preserve">다이어그램 추가</text>
+    <text key="S0792" xml:space="preserve">다이어그램 문제</text>
     <text key="PhoneCapture.000" xml:space="preserve">가져오기 위치</text>
-    <text key="PhoneCapture.001" xml:space="preserve">컴퓨터의 파일을 선택하거나 QR 코드를 스캔해 휴대폰으로 촬영하세요.</text>
     <text key="PhoneCapture.002" xml:space="preserve">파일 선택</text>
     <text key="PhoneCapture.003" xml:space="preserve">휴대폰으로 촬영</text>
     <text key="PhoneCapture.004" xml:space="preserve">컴퓨터를 Wi-Fi 또는 이더넷에 연결한 후 다시 시도하세요.</text>
-    <text key="PhoneCapture.005" xml:space="preserve">휴대폰을 같은 Wi-Fi에 연결한 후 카메라로 QR 코드를 스캔하세요. 앱이나 계정은 필요하지 않습니다.</text>
+    <text key="PhoneCapture.005" xml:space="preserve">휴대폰과 컴퓨터가 같은 Wi-Fi에 연결되어 있어야 합니다.</text>
     <text key="PhoneCapture.006" xml:space="preserve">컴퓨터 네트워크</text>
     <text key="PhoneCapture.007" xml:space="preserve">스캔하여 휴대폰 연결</text>
     <text key="PhoneCapture.008" xml:space="preserve">연결 링크</text>
     <text key="PhoneCapture.009" xml:space="preserve">링크 복사</text>
     <text key="PhoneCapture.010" xml:space="preserve">연결이 안 되면 Windows에서 개인 네트워크 통신을 허용하세요. 게스트 Wi-Fi 대신 휴대폰 핫스팟이나 다른 네트워크를 사용하세요. 로컬 HTTP는 신뢰할 수 있는 네트워크에서 사용하세요.</text>
-    <text key="PhoneCapture.011" xml:space="preserve">파일 {0}개를 받았습니다. 촬영이 끝나면 가져오기를 누르세요.</text>
+    <text key="PhoneCapture.011" xml:space="preserve">파일 {0}개를 받았습니다.</text>
     <text key="PhoneCapture.012" xml:space="preserve">휴대폰 연결 대기 중. 코드 만료 시간: {0:t}.</text>
     <text key="PhoneCapture.013" xml:space="preserve">휴대폰 촬영을 시작할 수 없습니다. 네트워크를 확인하거나 다른 네트워크를 선택하세요.</text>
     <text key="PhoneCapture.014" xml:space="preserve">코드가 만료되었습니다. 받은 파일을 가져오거나 창을 다시 열어 새 코드를 받으세요.</text>
     <text key="PhoneCapture.015" xml:space="preserve">휴대폰으로 촬영하여 가져오기</text>
-    <text key="PhoneCapture.016" xml:space="preserve">한 페이지씩 촬영하고 모서리를 확인한 후 컴퓨터로 전송하세요.</text>
     <text key="PhoneCapture.017" xml:space="preserve">사진 촬영</text>
     <text key="PhoneCapture.018" xml:space="preserve">이미지 또는 PDF 선택</text>
     <text key="PhoneCapture.019" xml:space="preserve">최대 12페이지, 파일당 64 MB, 가져오기당 256 MB. 원본과 처리된 이미지 모두 포함됩니다.</text>
@@ -822,7 +809,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.029" xml:space="preserve">다시 조정</text>
     <text key="PhoneCapture.030" xml:space="preserve">이 페이지 전송</text>
     <text key="PhoneCapture.031" xml:space="preserve">컴퓨터로 전송됨</text>
-    <text key="PhoneCapture.032" xml:space="preserve">촬영이 끝나면 컴퓨터에서 가져오기를 누르세요. 기존 모델 설정으로 인식합니다.</text>
     <text key="PhoneCapture.033" xml:space="preserve">임시 연결은 20분간 유지됩니다. 창을 열어 두고 신뢰할 수 있는 Wi-Fi를 사용하세요. 사진은 로컬 HTTP로 컴퓨터에 직접 전송됩니다.</text>
     <text key="PhoneCapture.034" xml:space="preserve">연결이 만료되었습니다. 컴퓨터의 QR 코드를 다시 스캔하세요.</text>
     <text key="PhoneCapture.035" xml:space="preserve">파일이 64 MB를 초과합니다. 더 작은 파일을 선택하세요.</text>
@@ -838,7 +824,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.045" xml:space="preserve">컴퓨터로 업로드 중…</text>
     <text key="PhoneCapture.046" xml:space="preserve">전송했습니다. 컴퓨터에서 가져오기를 확인하세요.</text>
     <text key="PhoneCapture.047" xml:space="preserve">사진 미리 보기</text>
-    <text key="PhoneCapture.048" xml:space="preserve">페이지 가장자리를 찾았습니다. 필요하면 네 모서리를 드래그하세요.</text>
     <text key="PhoneCapture.049" xml:space="preserve">뚜렷한 페이지 가장자리를 찾지 못했습니다. 네 모서리를 조정하거나 전체 사진을 사용하세요.</text>
     <text key="PhoneCapture.050" xml:space="preserve">네 모서리를 모두 확인하세요.</text>
     <text key="PhoneCapture.051" xml:space="preserve">사진을 버렸습니다.</text>
@@ -846,13 +831,10 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.053" xml:space="preserve">보정된 페이지 미리 보기</text>
     <text key="PhoneCapture.054" xml:space="preserve">잘린 글자가 없는지 확인하세요.</text>
     <text key="PhoneCapture.055" xml:space="preserve">연결 중…</text>
-    <text key="PhoneCapture.056" xml:space="preserve">연결되었습니다. 촬영을 시작하세요.</text>
     <text key="PhoneCapture.057" xml:space="preserve">아직 전송하지 않음</text>
     <text key="PhoneCapture.058" xml:space="preserve">계속 편집</text>
     <text key="PhoneCapture.059" xml:space="preserve">오른쪽으로 회전</text>
-    <text key="PhoneCapture.060" xml:space="preserve">페이지 방향을 확인하고 필요하면 회전하세요.</text>
-    <text key="PhoneCapture.061" xml:space="preserve">페이지 방향을 자동으로 보정했습니다. 수동 회전도 가능합니다.</text>
-    <text key="PhoneCapture.062" xml:space="preserve">전송 전에 페이지 방향을 확인하세요.</text>
+    <text key="PhoneCapture.061" xml:space="preserve">페이지 방향을 자동으로 보정했습니다.</text>
     <text key="PhoneCapture.063" xml:space="preserve">모서리가 겹치거나 너무 가깝습니다. 네 모서리를 조정하세요.</text>
     <text key="PhoneCapture.064" xml:space="preserve">가져오기</text>
     <text key="PhoneCapture.065" xml:space="preserve">컴퓨터 수신: {0} / 12개. 업로드 대기: {1}개.</text>
@@ -860,44 +842,141 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.067" xml:space="preserve">이 파일 다시 시도</text>
     <text key="PhoneCapture.068" xml:space="preserve">세션당 최대 12개 파일입니다. 현재 묶음을 가져온 후 다음을 시작하세요.</text>
     <text key="PhoneCapture.069" xml:space="preserve">계속 촬영할 수 있습니다.</text>
-    <text key="PhoneCapture.070" xml:space="preserve">Checking local document restoration capabilities…</text>
-    <text key="PhoneCapture.071" xml:space="preserve">Standard: DocScanner rectification, OpenCV shadow removal and mild defocus recovery. Optional DocRes: 855 MiB of weights plus several GB of isolated Python and CUDA dependencies. Downloads stay on this computer.</text>
-    <text key="PhoneCapture.072" xml:space="preserve">Download and install DocRes</text>
-    <text key="PhoneCapture.073" xml:space="preserve">Enable optional DocRes restoration</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocRes is installed. Enable it to select neural restoration on your phone.</text>
-    <text key="PhoneCapture.075" xml:space="preserve">DocRes is available for this computer. Download it explicitly to use it.</text>
-    <text key="PhoneCapture.076" xml:space="preserve">DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.</text>
-    <text key="PhoneCapture.077" xml:space="preserve">Cancel DocRes download</text>
-    <text key="PhoneCapture.078" xml:space="preserve">Downloading and checking DocRes locally. This may take several minutes…</text>
-    <text key="PhoneCapture.079" xml:space="preserve">DocRes download canceled. Standard restoration remains available.</text>
-    <text key="PhoneCapture.080" xml:space="preserve">DocRes installation failed. Check the diagnostic log, free disk space, and CUDA installation. Standard restoration remains available.</text>
-    <text key="PhoneCapture.081" xml:space="preserve">Document restoration</text>
-    <text key="PhoneCapture.082" xml:space="preserve">Standard (DocScanner + OpenCV)</text>
-    <text key="PhoneCapture.083" xml:space="preserve">DocRes (optional CUDA)</text>
-    <text key="PhoneCapture.084" xml:space="preserve">Install and enable optional DocRes on your computer to use it here.</text>
-    <text key="PhoneCapture.085" xml:space="preserve">DocRes tasks</text>
-    <text key="PhoneCapture.086" xml:space="preserve">Dewarp curved pages</text>
-    <text key="PhoneCapture.087" xml:space="preserve">Remove shadows</text>
-    <text key="PhoneCapture.088" xml:space="preserve">Recover mild blur</text>
-    <text key="PhoneCapture.089" xml:space="preserve">Enhance appearance</text>
-    <text key="PhoneCapture.090" xml:space="preserve">Cancel processing</text>
-    <text key="PhoneCapture.091" xml:space="preserve">Processing canceled. Your original photo and corner edits are preserved.</text>
-    <text key="PhoneCapture.092" xml:space="preserve">DocRes could not process this page. Select Standard restoration and retry. Check CUDA memory and the diagnostic log on your computer.</text>
-    <text key="PhoneCapture.093" xml:space="preserve">DocScanner: rectifying page…</text>
-    <text key="PhoneCapture.094" xml:space="preserve">OpenCV: removing shadows and recovering mild blur…</text>
-    <text key="PhoneCapture.095" xml:space="preserve">DocRes: loading local CUDA models…</text>
-    <text key="PhoneCapture.096" xml:space="preserve">DocRes: dewarping</text>
-    <text key="PhoneCapture.097" xml:space="preserve">DocRes: deshadowing</text>
-    <text key="PhoneCapture.098" xml:space="preserve">DocRes: deblurring</text>
-    <text key="PhoneCapture.099" xml:space="preserve">DocRes: appearance</text>
-    <text key="PhoneCapture.100" xml:space="preserve">Select at least one DocRes task.</text>
-    <text key="PhoneCapture.101" xml:space="preserve">No enhancement keeps geometric correction and skips all photometric tasks.</text>
-    <text key="PhoneCapture.102" xml:space="preserve">Downloading {0}… {1}%</text>
-    <text key="PhoneCapture.103" xml:space="preserve">Downloading dependencies… {0}%</text>
-    <text key="PhoneCapture.104" xml:space="preserve">Downloading {0}…</text>
-    <text key="PhoneCapture.105" xml:space="preserve">Downloading dependencies…</text>
-    <text key="PhoneCapture.106" xml:space="preserve">Installing isolated CUDA runtime and PyTorch; this can download several GB.</text>
-    <text key="PhoneCapture.107" xml:space="preserve">Checking weights and running CUDA inference on the selected physical device.</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocRes installation verified. Enable it explicitly to use it.</text>
-    <text key="PhoneCapture.109" xml:space="preserve">DocRes download progress</text>
+    <text key="PhoneCapture.070" xml:space="preserve">로컬 문서 복원 기능을 확인하는 중…</text>
+    <text key="PhoneCapture.071" xml:space="preserve">표준: DocScanner 보정, OpenCV 그림자 제거 및 완만한 초점 흐림 복구. 선택적 DocRes: 모델 가중치 855 MiB 외에 격리된 Python 및 CUDA 의존성에 수 GB가 필요합니다. 다운로드는 이 컴퓨터에 보관됩니다.</text>
+    <text key="PhoneCapture.072" xml:space="preserve">DocRes 다운로드 및 설치</text>
+    <text key="PhoneCapture.073" xml:space="preserve">선택적 DocRes 복원 사용</text>
+    <text key="PhoneCapture.074" xml:space="preserve">DocRes가 설치되어 있습니다.</text>
+    <text key="PhoneCapture.075" xml:space="preserve">이 컴퓨터에서 DocRes를 사용할 수 있습니다.</text>
+    <text key="PhoneCapture.076" xml:space="preserve">DocRes에는 전용 VRAM이 12 GiB를 초과하는 NVIDIA 독립 GPU와 정상 작동하는 설치된 CUDA 런타임이 필요합니다. 정확히 12 GiB는 조건을 충족하지 않습니다.</text>
+    <text key="PhoneCapture.077" xml:space="preserve">DocRes 다운로드 취소</text>
+    <text key="PhoneCapture.078" xml:space="preserve">DocRes를 로컬로 다운로드하고 확인하는 중입니다. 시간이 오래 걸릴 수 있습니다…</text>
+    <text key="PhoneCapture.079" xml:space="preserve">DocRes 다운로드를 취소했습니다. 표준 복원은 계속 사용할 수 있습니다.</text>
+    <text key="PhoneCapture.080" xml:space="preserve">DocRes 설치에 실패했습니다. 진단 로그, 디스크 여유 공간, CUDA 설치 상태를 확인하세요. 표준 복원은 계속 사용할 수 있습니다.</text>
+    <text key="PhoneCapture.081" xml:space="preserve">문서 복원</text>
+    <text key="PhoneCapture.082" xml:space="preserve">표준(DocScanner + OpenCV)</text>
+    <text key="PhoneCapture.083" xml:space="preserve">DocRes(선택적 CUDA)</text>
+    <text key="PhoneCapture.084" xml:space="preserve">이 컴퓨터에 선택적 DocRes를 설치하고 사용하면 여기에서 쓸 수 있습니다.</text>
+    <text key="PhoneCapture.085" xml:space="preserve">DocRes 작업</text>
+    <text key="PhoneCapture.086" xml:space="preserve">움푹한 페이지 펼치기</text>
+    <text key="PhoneCapture.087" xml:space="preserve">그림자 제거</text>
+    <text key="PhoneCapture.088" xml:space="preserve">완만한 흐림 복구</text>
+    <text key="PhoneCapture.089" xml:space="preserve">외관 개선</text>
+    <text key="PhoneCapture.090" xml:space="preserve">처리 취소</text>
+    <text key="PhoneCapture.091" xml:space="preserve">처리를 취소했습니다. 원본 사진과 모서리 편집은 유지됩니다.</text>
+    <text key="PhoneCapture.092" xml:space="preserve">DocRes가 이 페이지를 처리하지 못했습니다. 표준 복원을 선택하고 다시 시도하세요. 컴퓨터의 CUDA 메모리와 진단 로그를 확인하세요.</text>
+    <text key="PhoneCapture.093" xml:space="preserve">DocScanner: 페이지 펼치는 중…</text>
+    <text key="PhoneCapture.094" xml:space="preserve">OpenCV: 그림자 제거 및 완만한 흐림 복구 중…</text>
+    <text key="PhoneCapture.095" xml:space="preserve">DocRes: 로컬 CUDA 모델 불러오는 중…</text>
+    <text key="PhoneCapture.096" xml:space="preserve">DocRes: 펼치기</text>
+    <text key="PhoneCapture.097" xml:space="preserve">DocRes: 그림자 제거</text>
+    <text key="PhoneCapture.098" xml:space="preserve">DocRes: 흐림 제거</text>
+    <text key="PhoneCapture.099" xml:space="preserve">DocRes: 외관 개선</text>
+    <text key="PhoneCapture.100" xml:space="preserve">DocRes 작업을 하나 이상 선택하세요.</text>
+    <text key="PhoneCapture.101" xml:space="preserve">"강화 없음"은 기하 보정을 유지하고 모든 광도 작업을 건너뜁니다.</text>
+    <text key="PhoneCapture.102" xml:space="preserve">{0} 다운로드 중… {1}%</text>
+    <text key="PhoneCapture.103" xml:space="preserve">의존성 다운로드 중… {0}%</text>
+    <text key="PhoneCapture.104" xml:space="preserve">{0} 다운로드 중…</text>
+    <text key="PhoneCapture.105" xml:space="preserve">의존성 다운로드 중…</text>
+    <text key="PhoneCapture.106" xml:space="preserve">격리된 CUDA 런타임과 PyTorch를 설치하는 중입니다. 수 GB를 다운로드할 수 있습니다.</text>
+    <text key="PhoneCapture.107" xml:space="preserve">가중치를 확인하고 선택한 물리 장치에서 CUDA 추론을 실행하는 중입니다.</text>
+    <text key="PhoneCapture.108" xml:space="preserve">DocRes 설치를 검증했습니다.</text>
+    <text key="PhoneCapture.109" xml:space="preserve">DocRes 다운로드 진행률</text>
+    <text key="PhoneCapture.Batch.000" xml:space="preserve">촬영</text>
+    <text key="PhoneCapture.Batch.001" xml:space="preserve">검토</text>
+    <text key="PhoneCapture.Batch.002" xml:space="preserve">페이지 스캔</text>
+    <text key="PhoneCapture.Batch.004" xml:space="preserve">카메라 켜기</text>
+    <text key="PhoneCapture.Batch.005" xml:space="preserve">기본 카메라 사용</text>
+    <text key="PhoneCapture.Batch.007" xml:space="preserve">사진 / 파일</text>
+    <text key="PhoneCapture.Batch.008" xml:space="preserve">검토를 열기 전까지 사진은 휴대폰에만 보관됩니다.</text>
+    <text key="PhoneCapture.Batch.009" xml:space="preserve">페이지 검토</text>
+    <text key="PhoneCapture.Batch.010" xml:space="preserve">전체 선택</text>
+    <text key="PhoneCapture.Batch.011" xml:space="preserve">전체 선택 해제</text>
+    <text key="PhoneCapture.Batch.013" xml:space="preserve">페이지 없음</text>
+    <text key="PhoneCapture.Batch.015" xml:space="preserve">사진 촬영</text>
+    <text key="PhoneCapture.Batch.016" xml:space="preserve">연결 및 제한</text>
+    <text key="PhoneCapture.Batch.017" xml:space="preserve">검토를 열면 원본을 PC로 직접 보내 로컬에서 보정합니다. 확인한 페이지만 가져올 수 있습니다.</text>
+    <text key="PhoneCapture.Batch.018" xml:space="preserve">페이지를 열어 두세요. 새로고침하면 전송 전 사진이 사라집니다. 연결은 20분간 유효합니다.</text>
+    <text key="PhoneCapture.Batch.019" xml:space="preserve">선택한 페이지 전송</text>
+    <text key="PhoneCapture.Batch.020" xml:space="preserve">검토로 돌아가기</text>
+    <text key="PhoneCapture.Batch.021" xml:space="preserve">모서리 조정</text>
+    <text key="PhoneCapture.Batch.022" xml:space="preserve">완료</text>
+    <text key="PhoneCapture.Batch.023" xml:space="preserve">촬영 탐색</text>
+    <text key="PhoneCapture.Batch.024" xml:space="preserve">카메라 미리보기</text>
+    <text key="PhoneCapture.Batch.025" xml:space="preserve">촬영한 페이지</text>
+    <text key="PhoneCapture.Batch.026" xml:space="preserve">미리보기 진행률</text>
+    <text key="PhoneCapture.Batch.027" xml:space="preserve">PC 연결됨</text>
+    <text key="PhoneCapture.Batch.028" xml:space="preserve">연결할 수 없음</text>
+    <text key="PhoneCapture.Batch.029" xml:space="preserve">검토 ({0})</text>
+    <text key="PhoneCapture.Batch.030" xml:space="preserve">{0}페이지 전송</text>
+    <text key="PhoneCapture.Batch.031" xml:space="preserve">전송 중…</text>
+    <text key="PhoneCapture.Batch.032" xml:space="preserve">{0}페이지 선택 · {1}페이지 준비됨</text>
+    <text key="PhoneCapture.Batch.034" xml:space="preserve">미리보기 대기</text>
+    <text key="PhoneCapture.Batch.035" xml:space="preserve">원본 전송 중…</text>
+    <text key="PhoneCapture.Batch.036" xml:space="preserve">페이지 보정 중…</text>
+    <text key="PhoneCapture.Batch.037" xml:space="preserve">전송 준비됨</text>
+    <text key="PhoneCapture.Batch.038" xml:space="preserve">확인 필요</text>
+    <text key="PhoneCapture.Batch.039" xml:space="preserve">{0}페이지 검토</text>
+    <text key="PhoneCapture.Batch.040" xml:space="preserve">{0}페이지 선택</text>
+    <text key="PhoneCapture.Batch.041" xml:space="preserve">{0}페이지 삭제</text>
+    <text key="PhoneCapture.Batch.042" xml:space="preserve">PC에 전송됨 ({0})</text>
+    <text key="PhoneCapture.Batch.043" xml:space="preserve">전체 크기가 256MB를 초과합니다. 일부 페이지를 삭제하세요.</text>
+    <text key="PhoneCapture.Batch.044" xml:space="preserve">검토할 페이지 {0}개</text>
+    <text key="PhoneCapture.Batch.045" xml:space="preserve">미리보기 준비 중 {0} / {1}</text>
+    <text key="PhoneCapture.Batch.046" xml:space="preserve">일부 페이지를 처리하지 못했습니다. 재시도하거나 선택을 해제하세요.</text>
+    <text key="PhoneCapture.Batch.048" xml:space="preserve">연속 촬영에는 신뢰할 수 있는 HTTPS가 필요합니다. 기본 카메라 또는 파일 선택을 사용하세요.</text>
+    <text key="PhoneCapture.Batch.049" xml:space="preserve">카메라 권한이 거부되었습니다. 브라우저에서 허용하거나 기본 카메라를 사용하세요.</text>
+    <text key="PhoneCapture.Batch.050" xml:space="preserve">카메라를 시작할 수 없습니다. 다른 카메라 앱을 닫고 재시도하세요.</text>
+    <text key="PhoneCapture.Batch.051" xml:space="preserve">카메라가 시작 중입니다. 잠시 후 다시 촬영하세요.</text>
+    <text key="PhoneCapture.Batch.053" xml:space="preserve">조정하기 전에 미리보기를 준비하거나 다시 시도하세요.</text>
+    <text key="PhoneCapture.Batch.054" xml:space="preserve">{0}페이지</text>
+    <text key="PhoneCapture.Batch.055" xml:space="preserve">미리보기 저장</text>
+    <text key="PhoneCapture.Batch.056" xml:space="preserve">휴대폰 연결 방식</text>
+    <text key="PhoneCapture.Batch.057" xml:space="preserve">연속 촬영 (실험적 HTTPS)</text>
+    <text key="PhoneCapture.Batch.058" xml:space="preserve">기본 카메라 및 파일 (HTTP)</text>
+    <text key="PhoneCapture.Batch.059" xml:space="preserve">실험적 HTTPS는 공개된 eMudhra 발급자 인증서를 사용합니다. 폐기 또는 인증서 투명성 요구로 차단되면 기본 카메라 및 파일 (HTTP)을 선택하세요.</text>
+    <text key="PhoneCapture.Batch.060" xml:space="preserve">미리보기 준비</text>
+    <text key="PhoneCapture.Reference.000" xml:space="preserve">촬영 가이드 전환</text>
+    <text key="PhoneCapture.Reference.001" xml:space="preserve">한 페이지</text>
+    <text key="PhoneCapture.Reference.002" xml:space="preserve">여러 페이지</text>
+    <text key="PhoneCapture.Reference.003" xml:space="preserve">문서 스캔</text>
+    <text key="PhoneCapture.Reference.004" xml:space="preserve">고화질</text>
+    <text key="PhoneCapture.Reference.005" xml:space="preserve">로컬 처리</text>
+    <text key="PhoneCapture.Reference.006" xml:space="preserve">추가 설정</text>
+    <text key="PhoneCapture.Reference.007" xml:space="preserve">최근 스캔</text>
+    <text key="PhoneCapture.Reference.008" xml:space="preserve">전체 도구</text>
+    <text key="PhoneCapture.Reference.009" xml:space="preserve">PDF 가져오기</text>
+    <text key="PhoneCapture.Reference.010" xml:space="preserve">사진 가져오기</text>
+    <text key="PhoneCapture.Reference.011" xml:space="preserve">이미지</text>
+    <text key="PhoneCapture.Reference.012" xml:space="preserve">페이지</text>
+    <text key="PhoneCapture.Reference.013" xml:space="preserve">전송</text>
+    <text key="PhoneCapture.Reference.014" xml:space="preserve">전송 ({0})</text>
+    <text key="PhoneCapture.Reference.015" xml:space="preserve">이 페이지 선택</text>
+    <text key="PhoneCapture.Reference.016" xml:space="preserve">원본</text>
+    <text key="PhoneCapture.Reference.017" xml:space="preserve">이전 페이지</text>
+    <text key="PhoneCapture.Reference.018" xml:space="preserve">다음 페이지</text>
+    <text key="PhoneCapture.Reference.019" xml:space="preserve">계속 촬영</text>
+    <text key="PhoneCapture.Reference.020" xml:space="preserve">필터</text>
+    <text key="PhoneCapture.Reference.021" xml:space="preserve">자르기 및 회전</text>
+    <text key="PhoneCapture.Reference.022" xml:space="preserve">미리보기</text>
+    <text key="PhoneCapture.Reference.023" xml:space="preserve">촬영 설정</text>
+    <text key="PhoneCapture.Reference.024" xml:space="preserve">스캔</text>
+    <text key="PhoneCapture.Reference.025" xml:space="preserve">PDF</text>
+    <text key="PhoneCapture.Reference.026" xml:space="preserve">사진</text>
+    <text key="PhoneCapture.Reference.027" xml:space="preserve">복원</text>
+    <text key="PhoneCapture.Reference.028" xml:space="preserve">자르기</text>
+    <text key="PhoneCapture.Processing.000" xml:space="preserve">모서리 감지 및 자르기</text>
+    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner 왜곡 보정</text>
+    <text key="PhoneCapture.Processing.002" xml:space="preserve">자동 방향 보정</text>
+    <text key="PhoneCapture.Processing.003" xml:space="preserve">회색조</text>
+    <text key="PhoneCapture.Processing.004" xml:space="preserve">펴기 및 왜곡 보정 (선택)</text>
+    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocRes는 원본에 선택한 모델 작업만 실행합니다.</text>
+    <text key="PhoneCapture.Processing.006" xml:space="preserve">모두 끄기</text>
+    <text key="PhoneCapture.Processing.007" xml:space="preserve">각 처리 기능은 개별적으로 끌 수 있습니다.</text>
+    <text key="PhoneCapture.Processing.009" xml:space="preserve">선택한 처리 실행 중…</text>
+    <text key="PhoneCapture.Processing.010" xml:space="preserve">미리보기 생성 중…</text>
+    <text key="PhoneCapture.Camera.HighResolutionUnavailable" xml:space="preserve">이 브라우저는 고해상도 촬영을 지원하지 않습니다. 원본 해상도로 촬영하려면 시스템 카메라를 사용하세요.</text>
+    <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">고해상도 촬영에 실패하여 일반 사진을 저장했습니다.</text>
+    <text key="PhoneCapture.Processing.Global" xml:space="preserve">변경 사항은 전송하지 않은 모든 페이지와 이후 사진에 적용됩니다.</text>
+    <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">페이지 순서가 변경되었습니다.</text>
 </resources>

@@ -82,7 +82,8 @@ internal sealed class NativeReadingSession(double width, bool preview = false, E
             if (block is TextContent text) yield return text.Text;
             else if (block is TableContent table)
                 foreach (var row in table.Rows)
-                    foreach (var cell in row) yield return cell;
+                    foreach (var cell in row)
+                        if (cell.Trim() is not "^" and not "<" and not ">") yield return cell;
         }
     }
 

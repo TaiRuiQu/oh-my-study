@@ -58,7 +58,7 @@
             <SolidColorBrush x:Key="SourceHighlightBorderBrush" Color="{ThemeResource SystemColorHighlightColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
-    <!-- Interface text stays non-serif; only printed output uses 新宋体 (NSimSun).
+    <!-- Interface and reading text stay non-serif by default; explicit serif spans and printed output use 新宋体 (NSimSun).
          These keys are redefined here because this dictionary is merged after XamlControlsResources,
          where the framework fixes FontFamily to XamlAutoFontFamily. Redefining them applies the
          interface family to every existing usage without touching each control. -->

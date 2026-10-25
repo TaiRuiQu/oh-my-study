@@ -61,7 +61,10 @@ public sealed partial class QuestionViewModel : ObservableObject, IQuestionPrevi
     internal static string Preview(Question question)
     {
         string text = QuestionText.Preview(question);
-        if (string.IsNullOrWhiteSpace(text) && question.Stem.Concat(question.Items.SelectMany(item => item.Prompt)).Any(content => content is ImageContent)) return UiText.Get("Image question");
+        var contents = question.Stem.Concat(question.Items.SelectMany(item => item.Prompt)).ToList();
+        if (string.IsNullOrWhiteSpace(text) && contents.OfType<MermaidContent>().FirstOrDefault() is { } diagram)
+            return string.IsNullOrWhiteSpace(diagram.Caption) ? UiText.Get("Diagram question") : diagram.Caption;
+        if (string.IsNullOrWhiteSpace(text) && contents.Any(content => content is ImageContent)) return UiText.Get("Image question");
         return string.IsNullOrWhiteSpace(text) ? UiText.Get("No question content yet") : text;
     }
 }

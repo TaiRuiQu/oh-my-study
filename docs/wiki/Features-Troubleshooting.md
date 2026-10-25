@@ -22,7 +22,7 @@ Start with the displayed error and last activity. Keep originals and saved work 
 
 ## Missing cost is not a free call
 
-Check rates, currency, and reported bucket counts. A provider can omit statistics that the estimator needs. Keep missing distinct from explicit zero and consult the provider's own usage/billing for actual charges.
+Check rates, currency, and reported bucket counts. A missing output count omits that charge. A request that still cannot be priced is left out of the task total. Keep a missing count distinct from an explicit zero. The provider's own usage and bill remain the actual charges, and a partial total can leave some requests out.
 
 ## Appearance and language
 

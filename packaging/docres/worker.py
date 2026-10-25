@@ -1,7 +1,9 @@
 import argparse
+import ast
 import ctypes
 import json
 import sys
+import types
 from pathlib import Path
 
 import cv2
@@ -78,104 +80,37 @@ def mask_prompt(image, model, device):
     return masked, prompt.astype(np.float32), base
 
 
-def dewarp(image, model, mask, device, pre_cropped=False):
-    height, width = image.shape[:2]
-    if pre_cropped:
-        border = max(1, round(max(width, height) * 0.10))
-        image = cv2.copyMakeBorder(image, border, border, border, border, cv2.BORDER_CONSTANT, value=(0, 0, 0))
-    masked, prompt, base = mask_prompt(image, mask, device)
-    small = cv2.resize(masked, (256, 256)).astype(np.float32) / 255
-    tensor = torch.from_numpy(np.concatenate((small, prompt), -1).transpose(2, 0, 1).copy()).unsqueeze(0).to(device)
-    with torch.inference_mode():
-        prediction = model.float()(tensor)[0, :2].permute(1, 2, 0).cpu().numpy() + base
-    if not np.isfinite(prediction).all():
-        raise RuntimeError("DocRes returned a nonfinite dewarping grid")
-    for _ in range(15):
-        prediction = cv2.blur(prediction, (3, 3), borderType=cv2.BORDER_REPLICATE)
-    source_height, source_width = image.shape[:2]
-    grid = (cv2.resize(prediction, (width, height)) * (source_width, source_height)).astype(np.float32)
-    return cv2.remap(image, grid[:, :, 0], grid[:, :, 1], cv2.INTER_LINEAR)
+def official_functions(root, device, mask):
+    source = root / "source/DocRes-d3e3a18c7c7ad10e4615ca2eb6a10f83128d8560"
+    namespace = {"cv2": cv2, "np": np, "torch": torch, "DEVICE": device}
+    modules = [
+        (source / "data/preprocess/crop_merge_image.py", {"stride_integral"}),
+        (source / "utils.py", {"getBasecoord"}),
+        (source / "inference.py", {"deshadow_prompt", "deblur_prompt", "appearance_prompt", "dewarping", "deshadowing", "appearance", "deblurring"}),
+    ]
+    for path, names in modules:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        definitions = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names]
+        if {node.name for node in definitions} != names:
+            raise RuntimeError("The pinned official DocRes inference functions are incomplete")
+        exec(compile(ast.Module(body=definitions, type_ignores=[]), str(path), "exec"), namespace)
+    namespace["utils"] = types.SimpleNamespace(getBasecoord=namespace["getBasecoord"])
+    namespace["dewarp_prompt"] = lambda image: mask_prompt(image, mask, device)[:2]
+    return namespace
 
 
-def background_prompt(image, appearance):
-    height, width = image.shape[:2]
-    small = cv2.resize(image, (1024, 1024))
-    planes = []
-    for plane in cv2.split(small):
-        background = cv2.medianBlur(cv2.dilate(plane, np.ones((7, 7), np.uint8)), 21)
-        if appearance:
-            background = cv2.normalize(255 - cv2.absdiff(plane, background), None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-        planes.append(background)
-    return cv2.resize(cv2.merge(planes), (width, height))
-
-
-def padded(image):
-    height, width = image.shape[:2]
-    top, left = (-height) % 8, (-width) % 8
-    return cv2.copyMakeBorder(image, top, 0, left, 0, cv2.BORDER_REPLICATE), top, left
-
-
-def predict(image, prompt, model, device):
-    combined = np.concatenate((image, prompt), -1).astype(np.float32) / 255
-    tensor = torch.from_numpy(combined.transpose(2, 0, 1).copy()).unsqueeze(0).half().to(device)
-    with torch.inference_mode():
-        result = model.half()(tensor).clamp(0, 1)[0].permute(1, 2, 0).float().cpu().numpy()
-    if not np.isfinite(result).all():
-        raise RuntimeError("DocRes returned nonfinite pixels")
-    return (result * 255).astype(np.uint8)
-
-
-def photometric(image, model, device, appearance):
-    height, width = image.shape[:2]
-    prompt = background_prompt(image, appearance)
-    if max(width, height) < 1600:
-        combined, top, left = padded(np.concatenate((image, prompt), -1))
-        return predict(combined[:, :, :3], combined[:, :, 3:], model, device)[top:, left:]
-    small = cv2.resize(np.concatenate((image, prompt), -1), (1600, 1600))
-    prediction = predict(small[:, :, :3], small[:, :, 3:], model, device)
-    prediction[prediction == 0] = 1
-    ratio = cv2.resize(image, (1600, 1600)).astype(np.float32) / prediction.astype(np.float32)
-    ratio = cv2.resize(ratio, (width, height))
-    return np.clip(image.astype(np.float32) / np.maximum(ratio, .00001), 0, 255).astype(np.uint8)
-
-
-def deblur_prompt(image):
-    x = cv2.convertScaleAbs(cv2.Sobel(image, cv2.CV_16S, 1, 0))
-    y = cv2.convertScaleAbs(cv2.Sobel(image, cv2.CV_16S, 0, 1))
-    return cv2.cvtColor(cv2.cvtColor(cv2.addWeighted(x, .5, y, .5, 0), cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)
-
-
-def positions(length, tile, overlap):
-    points = list(range(0, max(1, length - tile + 1), tile - overlap))
-    if points[-1] != max(0, length - tile):
-        points.append(max(0, length - tile))
-    return points
-
-
-def deblur(image, model, device):
-    height, width = image.shape[:2]
-    tile, overlap = 768, 96
-    result = np.zeros(image.shape, np.float32)
-    weights = np.zeros((height, width, 1), np.float32)
-    for top in positions(height, tile, overlap):
-        for left in positions(width, tile, overlap):
-            crop = image[top:top + tile, left:left + tile]
-            block, pad_y, pad_x = padded(crop)
-            prediction = predict(block, deblur_prompt(block), model, device)[pad_y:, pad_x:]
-            h, w = crop.shape[:2]
-            vertical, horizontal = np.ones(h, np.float32), np.ones(w, np.float32)
-            if top > 0:
-                vertical[:min(overlap, h)] = np.linspace(.01, 1, min(overlap, h))
-            if top + h < height:
-                vertical[-min(overlap, h):] = np.linspace(1, .01, min(overlap, h))
-            if left > 0:
-                horizontal[:min(overlap, w)] = np.linspace(.01, 1, min(overlap, w))
-            if left + w < width:
-                horizontal[-min(overlap, w):] = np.linspace(1, .01, min(overlap, w))
-            weight = (vertical[:, None] * horizontal[None, :])[..., None]
-            result[top:top + h, left:left + w] += prediction * weight
-            weights[top:top + h, left:left + w] += weight
-    return np.clip(result / np.maximum(weights, .00001), 0, 255).astype(np.uint8)
+def restore_official(original, output, tasks, model, functions, progress=print):
+    current = Path(original)
+    result = None
+    for task in ["dewarping", "deshadowing", "appearance", "deblurring"]:
+        if task not in tasks:
+            continue
+        progress(task, flush=True)
+        _, _, _, result = functions[task](model, str(current))
+        current = Path(output).parent / ("stage-" + task + ".png")
+        if not cv2.imwrite(str(current), result):
+            raise RuntimeError("Could not save the official DocRes task result")
+    return result
 
 
 def main():
@@ -195,25 +130,32 @@ def main():
         torch.cuda.synchronize(device)
         print(json.dumps({"device": str(device), "selfTest": "passed"}), flush=True)
         return
-    width, height = request["width"], request["height"]
-    if width < 2 or height < 2 or width * height > 40000000:
-        raise ValueError("Invalid restoration image dimensions")
-    image = np.fromfile(request["input"], np.uint8).reshape(height, width, 4)[:, :, :3].copy()
     tasks = request["tasks"]
     if not tasks or len(set(tasks)) != len(tasks) or any(task not in ["dewarping", "deshadowing", "deblurring", "appearance"] for task in tasks):
         raise ValueError("Invalid DocRes restoration tasks")
-    for task in ["dewarping", "deshadowing", "deblurring", "appearance"]:
-        if task not in tasks:
-            continue
-        print(task, flush=True)
-        if task == "dewarping":
-            image = dewarp(image, model, mask, device, request.get("preCropped", False))
-        elif task == "deblurring":
-            image = deblur(image, model, device)
-        else:
-            image = photometric(image, model, device, task == "appearance")
-    output = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
-    output.tofile(request["output"])
+    encoded = request.get("encoded", False)
+    original = Path(request["input"])
+    if encoded:
+        image = cv2.imread(str(original))
+        if image is None:
+            raise ValueError("Could not decode the original photo")
+        height, width = image.shape[:2]
+    else:
+        width, height = request["width"], request["height"]
+    if width < 2 or height < 2 or width * height > 40000000:
+        raise ValueError("Invalid restoration image dimensions")
+    if not encoded:
+        image = np.fromfile(original, np.uint8).reshape(height, width, 4)[:, :, :3].copy()
+        original = Path(request["output"]).parent / "original.png"
+        if not cv2.imwrite(str(original), image):
+            raise RuntimeError("Could not encode the restoration input")
+    functions = official_functions(args.root, device, mask)
+    result = restore_official(original, request["output"], tasks, model, functions)
+    if encoded:
+        if not cv2.imwrite(request["output"], result):
+            raise RuntimeError("Could not encode the official DocRes result")
+    else:
+        cv2.cvtColor(result, cv2.COLOR_BGR2BGRA).tofile(request["output"])
 
 
 if __name__ == "__main__":

@@ -15,13 +15,8 @@
     <text key="S0012" xml:space="preserve">No mistakes yet</text>
     <text key="S0013" xml:space="preserve">Recognizing questions</text>
     <text key="S0014" xml:space="preserve">No questions yet</text>
-    <text key="S0015" xml:space="preserve">Questions to review after grading will appear here.</text>
-    <text key="S0016" xml:space="preserve">Recognized questions appear here automatically. Check progress in Tasks.</text>
-    <text key="S0017" xml:space="preserve">No questions were recognized in this exam. Try recognition again above.</text>
-    <text key="S0018" xml:space="preserve">Import a PDF or image in Exams. Recognized questions join your question bank automatically.</text>
     <text key="S0019" xml:space="preserve">Exchange rate {0}: USD 1 = CNY {1:0.####}</text>
     <text key="S0020" xml:space="preserve"> (cached)</text>
-    <text key="S0021" xml:space="preserve">Select a currency to see the CNY estimate.</text>
     <text key="S0022" xml:space="preserve">Exchange rate unavailable. CNY estimate cannot be shown; original prices are preserved.</text>
     <text key="S0023" xml:space="preserve">Not set</text>
     <text key="S0024" xml:space="preserve">CNY estimate: uncached {0}    cached {1}    cache write {2}    output {3}</text>
@@ -71,7 +66,6 @@
     <text key="S0068" xml:space="preserve">Printing is currently unavailable on this computer.</text>
     <text key="S0069" xml:space="preserve">Preparing to printâ€¦</text>
     <text key="S0070" xml:space="preserve">Could not open the print dialog. Check your printer.</text>
-    <text key="S0071" xml:space="preserve">Choose a printer and paper size in the print dialog.</text>
     <text key="S0072" xml:space="preserve">Could not prepare printing. Check the original and printer, then retry.</text>
     <text key="S0073" xml:space="preserve">Sent to printer.</text>
     <text key="S0074" xml:space="preserve">Printing canceled.</text>
@@ -139,7 +133,6 @@
     <text key="S0136" xml:space="preserve">Rotation could not be saved. Wait for the task to finish and retry.</text>
     <text key="S0137" xml:space="preserve">The save location is inaccessible.</text>
     <text key="S0138" xml:space="preserve">Cancellation did not finish. Try again later.</text>
-    <text key="S0139" xml:space="preserve">Imported materials will appear here.</text>
     <text key="S0140" xml:space="preserve">Legacy materials found</text>
     <text key="S0141" xml:space="preserve">Import them from the More menu. The originals will be preserved.</text>
     <text key="S0142" xml:space="preserve">Could not open the library. Check its location or select an existing library in Settings.</text>
@@ -151,7 +144,7 @@
     <text key="S0148" xml:space="preserve">Import up to 12 pages at a time.</text>
     <text key="S0149" xml:space="preserve">Importingâ€¦</text>
     <text key="S0150" xml:space="preserve">Files must be at most 64 MB each and 256 MB per import. Split them and retry.</text>
-    <text key="S0151" xml:space="preserve">Reference answers added. You can organize them again.</text>
+    <text key="S0151" xml:space="preserve">Reference answers added.</text>
     <text key="S0152" xml:space="preserve">Import canceled.</text>
     <text key="S0153" xml:space="preserve">Exam imported and recognition started. Reopen the question bank to refresh it.</text>
     <text key="S0154" xml:space="preserve">Exam saved, but recognition could not start. Start recognition again in Exams.</text>
@@ -163,8 +156,7 @@
     <text key="S0160" xml:space="preserve">Import failed. Select the file again and retry.</text>
     <text key="S0161" xml:space="preserve">Select a material first.</text>
     <text key="S0162" xml:space="preserve">Could not open the file. Try again.</text>
-    <text key="S0163" xml:space="preserve">No models yet. Fetch the list or add one manually.</text>
-    <text key="S0164" xml:space="preserve">Save the provider before adding models.</text>
+    <text key="S0163" xml:space="preserve">No models yet.</text>
     <text key="S0165" xml:space="preserve">Select an available library first.</text>
     <text key="S0166" xml:space="preserve">A provider with existing models cannot change protocol. Add a new provider.</text>
     <text key="S0167" xml:space="preserve">Saved, but the old key could not be removed. Save again later.</text>
@@ -309,8 +301,6 @@ Arguments: {3}</text>
     <text key="S0302" xml:space="preserve">Exams: {0} / {1}</text>
     <text key="S0303" xml:space="preserve">No exams yet</text>
     <text key="S0304" xml:space="preserve">No exams found</text>
-    <text key="S0305" xml:space="preserve">Import a PDF or exam image to get started.</text>
-    <text key="S0306" xml:space="preserve">Try another keyword or subject.</text>
     <text key="S0307" xml:space="preserve">Could not open the exam. Try again later.</text>
     <text key="S0308" xml:space="preserve">Title</text>
     <text key="S0309" xml:space="preserve">e.g. Mathematics, Chinese, English</text>
@@ -405,7 +395,6 @@ Arguments: {3}</text>
     <text key="S0398" xml:space="preserve">Invalid page dimensions. </text>
     <text key="S0399" xml:space="preserve">Sample materials</text>
     <text key="S0400" xml:space="preserve">You can view and edit this sample. Changes will not be saved.</text>
-    <text key="S0401" xml:space="preserve">Organize materials, review mistakes, and study with ease.</text>
     <text key="S0402" xml:space="preserve">Got it</text>
     <text key="S0403" xml:space="preserve">Windows reports printing is unavailable; only native API checks ran, not system or physical printing verification.</text>
     <text key="S0404" xml:space="preserve">An absolute path is required for screenshots.</text>
@@ -521,7 +510,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0512" xml:space="preserve">Question content</text>
     <text key="S0513" xml:space="preserve">Answer</text>
     <text key="S0514" xml:space="preserve">Notes</text>
-    <text key="S0515" xml:space="preserve">Record your understanding or review reminders</text>
     <text key="S0516" xml:space="preserve">Recent tasks</text>
     <text key="S0517" xml:space="preserve">Task list</text>
     <text key="S0518" xml:space="preserve">Select a task</text>
@@ -539,8 +527,7 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0530" xml:space="preserve">Task processing</text>
     <text key="S0531" xml:space="preserve">Scroll to latest entry</text>
     <text key="S0532" xml:space="preserve">Latest</text>
-    <text key="S0533" xml:space="preserve">Follow recognition progress</text>
-    <text key="S0534" xml:space="preserve">After importing an exam, see each reading, recognition, and saving step here.</text>
+    <text key="S0533" xml:space="preserve">No tasks yet</text>
     <text key="S0535" xml:space="preserve">Models</text>
     <text key="S0536" xml:space="preserve">Providers</text>
     <text key="S0537" xml:space="preserve">Provider list</text>
@@ -568,7 +555,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0559" xml:space="preserve">Reasoning effort options</text>
     <text key="S0560" xml:space="preserve">Reasoning budget</text>
     <text key="S0561" xml:space="preserve">Leave blank to omit</text>
-    <text key="S0562" xml:space="preserve">Select only supported reasoning levels. Leave image and tool capabilities unset if unverified.</text>
     <text key="S0563" xml:space="preserve">Pricing</text>
     <text key="S0564" xml:space="preserve">Input (uncached)</text>
     <text key="S0565" xml:space="preserve">Input (cached)</text>
@@ -680,7 +666,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0671" xml:space="preserve">Could not load questions. Try again later.</text>
     <text key="S0672" xml:space="preserve">Questions: {0} / {1}</text>
     <text key="S0673" xml:space="preserve">No questions found</text>
-    <text key="S0674" xml:space="preserve">Try another keyword, subject, or result filter.</text>
     <text key="S0675" xml:space="preserve">This question no longer exists.</text>
     <text key="S0676" xml:space="preserve">Topics</text>
     <text key="S0677" xml:space="preserve">{0} parts</text>
@@ -698,7 +683,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0689" xml:space="preserve">Search</text>
     <text key="S0690" xml:space="preserve">Cancel</text>
     <text key="S0691" xml:space="preserve">Resize question list</text>
-    <text key="S0692" xml:space="preserve">Drag left or right, or use the arrow keys to resize</text>
     <text key="S0693" xml:space="preserve">Meaning search models</text>
     <text key="S0694" xml:space="preserve">Embedding and reranker connections are independent of recognition providers. Each Base URL is used as entered, with /embeddings or /rerank appended. Include /v1 if your service requires it.</text>
     <text key="S0695" xml:space="preserve">Embedding model</text>
@@ -716,9 +700,8 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0707" xml:space="preserve">Local index cleared. The next meaning search will rebuild it after confirmation.</text>
     <text key="S0708" xml:space="preserve">Could not clear the search index. Try again.</text>
     <text key="S0709" xml:space="preserve">Describe the question or concept</text>
-    <text key="S0710" xml:space="preserve">Describe what you want to find, then press Search or Enter. Model calls require confirmation.</text>
     <text key="S0711" xml:space="preserve">Search canceled. Completed embeddings are kept locally.</text>
-    <text key="S0712" xml:space="preserve">Showing up to 50 questions ranked by meaning. Change the query or filters and search again to refresh.</text>
+    <text key="S0712" xml:space="preserve">Showing up to 50 questions ranked by meaning.</text>
     <text key="S0713" xml:space="preserve">Configure an embedding Base URL and model name in Settings first.</text>
     <text key="S0714" xml:space="preserve">Describe the question or concept first.</text>
     <text key="S0715" xml:space="preserve">Preparing local search indexâ€¦</text>
@@ -732,7 +715,7 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0723" xml:space="preserve">Preparing embeddings: {0} / {1}</text>
     <text key="S0724" xml:space="preserve">The search vectors or model response are inconsistent. Clear the local search index in Settings and try again.</text>
     <text key="S0725" xml:space="preserve">Meaning search failed. Check the search models in Settings and try again.</text>
-    <text key="S0726" xml:space="preserve">Filters changed. Press Search to refresh meaning results.</text>
+    <text key="S0726" xml:space="preserve">Search results are out of date.</text>
     <text key="S0727" xml:space="preserve">The embedding response is invalid. Check the endpoint and model.</text>
     <text key="S0728" xml:space="preserve">The reranker response is invalid. Check the endpoint and model, or clear the reranker configuration.</text>
     <text key="S0729" xml:space="preserve">The search model key is unavailable. Enter it again in Settings.</text>
@@ -747,7 +730,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0738" xml:space="preserve">API type</text>
     <text key="S0739" xml:space="preserve">OpenAI-compatible</text>
     <text key="S0740" xml:space="preserve">Resize regions</text>
-    <text key="S0741" xml:space="preserve">Drag to resize, or use arrow keys; Home/End set the minimum/maximum.</text>
     <text key="S0742" xml:space="preserve">New question text will also be sent to {0} using {1} for automatic indexing. Additional charges may apply.</text>
     <text key="S0743" xml:space="preserve">Max output tokens (max_tokens)</text>
     <text key="S0744" xml:space="preserve">Automatic when empty</text>
@@ -761,7 +743,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0752" xml:space="preserve">This task predates retry recovery records. Use Recognize again in Exams to preserve its saved results.</text>
     <text key="S0753" xml:space="preserve">Questions saved by this task were edited. Use Recognize again in Exams to preserve your edits.</text>
     <text key="S0754" xml:space="preserve">Support Files API</text>
-    <text key="S0755" xml:space="preserve">Enable only if the provider supports file uploads and image file IDs. Files expire after 1 hour and are deleted when the task ends.</text>
     <text key="S0756" xml:space="preserve">Images will be uploaded to the provider Files API and referenced by file ID. Files expire after 1 hour and are deleted when the task ends. Provider storage or model charges may apply.</text>
     <text key="S0757" xml:space="preserve">Uploading images to the provider Files API</text>
     <text key="S0758" xml:space="preserve">The provider rejected a Files API operation. Check Support Files API and the provider&apos;s file permissions or expiration support.</text>
@@ -771,7 +752,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0762" xml:space="preserve">Upload student answers</text>
     <text key="S0763" xml:space="preserve">Enter student answer</text>
     <text key="S0764" xml:space="preserve">Error analysis</text>
-    <text key="S0765" xml:space="preserve">Enter the student&apos;s own work. Recognize again to grade it and analyze mistakes.</text>
     <text key="S0766" xml:space="preserve">Student answers added. Recognize again to grade them.</text>
     <text key="S0767" xml:space="preserve">Student answer changed; recognize again to grade it.</text>
     <text key="S0768" xml:space="preserve">Confirm result</text>
@@ -790,23 +770,30 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="S0781" xml:space="preserve">Could not check for updates. Check your connection and try again later.</text>
     <text key="S0782" xml:space="preserve">Could not download the update. Try again later.</text>
     <text key="S0783" xml:space="preserve">Update installed. Restart the application to continue.</text>
+    <text key="S0784" xml:space="preserve">Codex mode</text>
+    <text key="S0785" xml:space="preserve">A4 portrait</text>
+    <text key="S0786" xml:space="preserve">Columns</text>
+    <text key="S0787" xml:space="preserve">Diagram</text>
+    <text key="S0788" xml:space="preserve">Display width (%)</text>
+    <text key="S0789" xml:space="preserve">Mermaid code</text>
+    <text key="S0790" xml:space="preserve">Diagram caption</text>
+    <text key="S0791" xml:space="preserve">Add diagram</text>
+    <text key="S0792" xml:space="preserve">Diagram question</text>
     <text key="PhoneCapture.000" xml:space="preserve">Import from</text>
-    <text key="PhoneCapture.001" xml:space="preserve">Choose files on this computer or scan a QR code to take photos with your phone.</text>
     <text key="PhoneCapture.002" xml:space="preserve">Choose files</text>
     <text key="PhoneCapture.003" xml:space="preserve">Take photos with phone</text>
     <text key="PhoneCapture.004" xml:space="preserve">Connect this computer to Wi-Fi or Ethernet, then try phone capture again.</text>
-    <text key="PhoneCapture.005" xml:space="preserve">Connect your phone to the same Wi-Fi, then scan this code with its camera. No app or account is needed.</text>
+    <text key="PhoneCapture.005" xml:space="preserve">Phone and computer must use the same Wi-Fi network.</text>
     <text key="PhoneCapture.006" xml:space="preserve">Computer network</text>
     <text key="PhoneCapture.007" xml:space="preserve">Scan to connect your phone</text>
     <text key="PhoneCapture.008" xml:space="preserve">Connection link</text>
     <text key="PhoneCapture.009" xml:space="preserve">Copy link</text>
     <text key="PhoneCapture.010" xml:space="preserve">Cannot connect? Allow Oh My Study on private networks if Windows asks. Avoid guest Wi-Fi; try a phone hotspot or select another computer network above. Local HTTP is intended for trusted networks.</text>
-    <text key="PhoneCapture.011" xml:space="preserve">Received {0} files. Finish taking photos, then click Import.</text>
+    <text key="PhoneCapture.011" xml:space="preserve">Received {0} files.</text>
     <text key="PhoneCapture.012" xml:space="preserve">Waiting for your phone. This code expires at {0:t}.</text>
     <text key="PhoneCapture.013" xml:space="preserve">Could not start phone capture. Check your network or select another network above.</text>
     <text key="PhoneCapture.014" xml:space="preserve">This code has expired. Import received files, or close and reopen phone capture for a new code.</text>
     <text key="PhoneCapture.015" xml:space="preserve">Take photos with your phone</text>
-    <text key="PhoneCapture.016" xml:space="preserve">Photograph one page at a time. Check the corners before sending it to your computer.</text>
     <text key="PhoneCapture.017" xml:space="preserve">Take a photo</text>
     <text key="PhoneCapture.018" xml:space="preserve">Choose images or PDF</text>
     <text key="PhoneCapture.019" xml:space="preserve">Up to 12 pages, 64 MB per file, 256 MB per import. Originals and processed copies both count toward the limit.</text>
@@ -822,7 +809,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="PhoneCapture.029" xml:space="preserve">Adjust again</text>
     <text key="PhoneCapture.030" xml:space="preserve">Send this page</text>
     <text key="PhoneCapture.031" xml:space="preserve">Sent to computer</text>
-    <text key="PhoneCapture.032" xml:space="preserve">When finished, click Import on your computer. Recognition uses your existing model settings.</text>
     <text key="PhoneCapture.033" xml:space="preserve">This temporary connection lasts 20 minutes. Keep this window open and use a trusted Wi-Fi network. Photos travel directly to your computer over local HTTP.</text>
     <text key="PhoneCapture.034" xml:space="preserve">Connection expired. Scan the QR code on your computer again.</text>
     <text key="PhoneCapture.035" xml:space="preserve">The file exceeds 64 MB. Choose a smaller file.</text>
@@ -838,7 +824,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="PhoneCapture.045" xml:space="preserve">Uploading to computerâ€¦</text>
     <text key="PhoneCapture.046" xml:space="preserve">Sent. Confirm the import on your computer.</text>
     <text key="PhoneCapture.047" xml:space="preserve">Photo preview</text>
-    <text key="PhoneCapture.048" xml:space="preserve">Page edges found. Drag the four handles if needed.</text>
     <text key="PhoneCapture.049" xml:space="preserve">No clear page edges found. Drag the four handles or use the full photo.</text>
     <text key="PhoneCapture.050" xml:space="preserve">Check all four corners.</text>
     <text key="PhoneCapture.051" xml:space="preserve">Photo discarded.</text>
@@ -846,13 +831,10 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="PhoneCapture.053" xml:space="preserve">Corrected page preview</text>
     <text key="PhoneCapture.054" xml:space="preserve">Check that no text was cut off.</text>
     <text key="PhoneCapture.055" xml:space="preserve">Connectingâ€¦</text>
-    <text key="PhoneCapture.056" xml:space="preserve">Connected. You can start taking photos.</text>
     <text key="PhoneCapture.057" xml:space="preserve">Not sent yet</text>
     <text key="PhoneCapture.058" xml:space="preserve">Continue editing</text>
     <text key="PhoneCapture.059" xml:space="preserve">Rotate right</text>
-    <text key="PhoneCapture.060" xml:space="preserve">Check the page direction. Rotate it if needed.</text>
-    <text key="PhoneCapture.061" xml:space="preserve">Page direction corrected automatically. You can still rotate it.</text>
-    <text key="PhoneCapture.062" xml:space="preserve">Check the page direction before sending.</text>
+    <text key="PhoneCapture.061" xml:space="preserve">Page direction corrected automatically.</text>
     <text key="PhoneCapture.063" xml:space="preserve">Corners overlap or are too close. Adjust the four handles.</text>
     <text key="PhoneCapture.064" xml:space="preserve">Import</text>
     <text key="PhoneCapture.065" xml:space="preserve">On computer: {0} / 12 files. Waiting to upload: {1}.</text>
@@ -864,8 +846,8 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="PhoneCapture.071" xml:space="preserve">Standard: DocScanner rectification, OpenCV shadow removal and mild defocus recovery. Optional DocRes: 855 MiB of weights plus several GB of isolated Python and CUDA dependencies. Downloads stay on this computer.</text>
     <text key="PhoneCapture.072" xml:space="preserve">Download and install DocRes</text>
     <text key="PhoneCapture.073" xml:space="preserve">Enable optional DocRes restoration</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocRes is installed. Enable it to select neural restoration on your phone.</text>
-    <text key="PhoneCapture.075" xml:space="preserve">DocRes is available for this computer. Download it explicitly to use it.</text>
+    <text key="PhoneCapture.074" xml:space="preserve">DocRes is installed.</text>
+    <text key="PhoneCapture.075" xml:space="preserve">DocRes is available for this computer.</text>
     <text key="PhoneCapture.076" xml:space="preserve">DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.</text>
     <text key="PhoneCapture.077" xml:space="preserve">Cancel DocRes download</text>
     <text key="PhoneCapture.078" xml:space="preserve">Downloading and checking DocRes locally. This may take several minutesâ€¦</text>
@@ -898,6 +880,103 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="PhoneCapture.105" xml:space="preserve">Downloading dependenciesâ€¦</text>
     <text key="PhoneCapture.106" xml:space="preserve">Installing isolated CUDA runtime and PyTorch; this can download several GB.</text>
     <text key="PhoneCapture.107" xml:space="preserve">Checking weights and running CUDA inference on the selected physical device.</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocRes installation verified. Enable it explicitly to use it.</text>
+    <text key="PhoneCapture.108" xml:space="preserve">DocRes installation verified.</text>
     <text key="PhoneCapture.109" xml:space="preserve">DocRes download progress</text>
+    <text key="PhoneCapture.Batch.000" xml:space="preserve">Camera</text>
+    <text key="PhoneCapture.Batch.001" xml:space="preserve">Review</text>
+    <text key="PhoneCapture.Batch.002" xml:space="preserve">Scan your pages</text>
+    <text key="PhoneCapture.Batch.004" xml:space="preserve">Enable camera</text>
+    <text key="PhoneCapture.Batch.005" xml:space="preserve">Use system camera</text>
+    <text key="PhoneCapture.Batch.007" xml:space="preserve">Files</text>
+    <text key="PhoneCapture.Batch.008" xml:space="preserve">Photos stay on your phone until you open Review.</text>
+    <text key="PhoneCapture.Batch.009" xml:space="preserve">Review pages</text>
+    <text key="PhoneCapture.Batch.010" xml:space="preserve">Select all</text>
+    <text key="PhoneCapture.Batch.011" xml:space="preserve">Deselect all</text>
+    <text key="PhoneCapture.Batch.013" xml:space="preserve">No pages yet</text>
+    <text key="PhoneCapture.Batch.015" xml:space="preserve">Take photos</text>
+    <text key="PhoneCapture.Batch.016" xml:space="preserve">Connection and limits</text>
+    <text key="PhoneCapture.Batch.017" xml:space="preserve">Opening Review sends originals directly to this computer for local correction. Only confirmed pages can be imported.</text>
+    <text key="PhoneCapture.Batch.018" xml:space="preserve">Keep this page open. Unsaved photos are lost if you reload. The connection lasts 20 minutes.</text>
+    <text key="PhoneCapture.Batch.019" xml:space="preserve">Send selected pages</text>
+    <text key="PhoneCapture.Batch.020" xml:space="preserve">Back to review</text>
+    <text key="PhoneCapture.Batch.021" xml:space="preserve">Adjust corners</text>
+    <text key="PhoneCapture.Batch.022" xml:space="preserve">Done</text>
+    <text key="PhoneCapture.Batch.023" xml:space="preserve">Capture navigation</text>
+    <text key="PhoneCapture.Batch.024" xml:space="preserve">Camera preview</text>
+    <text key="PhoneCapture.Batch.025" xml:space="preserve">Captured pages</text>
+    <text key="PhoneCapture.Batch.026" xml:space="preserve">Preview progress</text>
+    <text key="PhoneCapture.Batch.027" xml:space="preserve">Connected to computer</text>
+    <text key="PhoneCapture.Batch.028" xml:space="preserve">Connection unavailable</text>
+    <text key="PhoneCapture.Batch.029" xml:space="preserve">Review ({0})</text>
+    <text key="PhoneCapture.Batch.030" xml:space="preserve">Send {0} pages</text>
+    <text key="PhoneCapture.Batch.031" xml:space="preserve">Sendingâ€¦</text>
+    <text key="PhoneCapture.Batch.032" xml:space="preserve">{0} selected Â· {1} ready</text>
+    <text key="PhoneCapture.Batch.034" xml:space="preserve">Waiting for preview</text>
+    <text key="PhoneCapture.Batch.035" xml:space="preserve">Uploading originalâ€¦</text>
+    <text key="PhoneCapture.Batch.036" xml:space="preserve">Correcting pageâ€¦</text>
+    <text key="PhoneCapture.Batch.037" xml:space="preserve">Ready to send</text>
+    <text key="PhoneCapture.Batch.038" xml:space="preserve">Needs attention</text>
+    <text key="PhoneCapture.Batch.039" xml:space="preserve">Review page {0}</text>
+    <text key="PhoneCapture.Batch.040" xml:space="preserve">Select page {0}</text>
+    <text key="PhoneCapture.Batch.041" xml:space="preserve">Remove page {0}</text>
+    <text key="PhoneCapture.Batch.042" xml:space="preserve">On computer ({0})</text>
+    <text key="PhoneCapture.Batch.043" xml:space="preserve">The batch exceeds 256 MB. Remove some pages and try again.</text>
+    <text key="PhoneCapture.Batch.044" xml:space="preserve">{0} pages in review</text>
+    <text key="PhoneCapture.Batch.045" xml:space="preserve">Preparing preview {0} of {1}</text>
+    <text key="PhoneCapture.Batch.046" xml:space="preserve">Some pages need attention. Retry or deselect them.</text>
+    <text key="PhoneCapture.Batch.048" xml:space="preserve">Continuous capture requires trusted HTTPS. Use system camera or choose files on this connection.</text>
+    <text key="PhoneCapture.Batch.049" xml:space="preserve">Camera access was denied. Allow camera access in your browser, or use system camera.</text>
+    <text key="PhoneCapture.Batch.050" xml:space="preserve">Camera unavailable. Close other camera apps and retry, or use system camera.</text>
+    <text key="PhoneCapture.Batch.051" xml:space="preserve">Camera is starting. Try again in a moment.</text>
+    <text key="PhoneCapture.Batch.053" xml:space="preserve">Prepare or retry this preview before adjusting it.</text>
+    <text key="PhoneCapture.Batch.054" xml:space="preserve">Page {0}</text>
+    <text key="PhoneCapture.Batch.055" xml:space="preserve">Save preview</text>
+    <text key="PhoneCapture.Batch.056" xml:space="preserve">Phone connection</text>
+    <text key="PhoneCapture.Batch.057" xml:space="preserve">Continuous camera (experimental HTTPS)</text>
+    <text key="PhoneCapture.Batch.058" xml:space="preserve">System camera and files (HTTP)</text>
+    <text key="PhoneCapture.Batch.059" xml:space="preserve">Experimental HTTPS uses the disclosed eMudhra issuer. Browsers may reject this revoked chain or require Certificate Transparency. If it cannot open, choose System camera and files (HTTP).</text>
+    <text key="PhoneCapture.Batch.060" xml:space="preserve">Prepare previews</text>
+    <text key="PhoneCapture.Reference.000" xml:space="preserve">Toggle framing guides</text>
+    <text key="PhoneCapture.Reference.001" xml:space="preserve">Single page</text>
+    <text key="PhoneCapture.Reference.002" xml:space="preserve">Multiple pages</text>
+    <text key="PhoneCapture.Reference.003" xml:space="preserve">Scan documents</text>
+    <text key="PhoneCapture.Reference.004" xml:space="preserve">High resolution</text>
+    <text key="PhoneCapture.Reference.005" xml:space="preserve">Local processing</text>
+    <text key="PhoneCapture.Reference.006" xml:space="preserve">More settings</text>
+    <text key="PhoneCapture.Reference.007" xml:space="preserve">Recent scans</text>
+    <text key="PhoneCapture.Reference.008" xml:space="preserve">Tools</text>
+    <text key="PhoneCapture.Reference.009" xml:space="preserve">Import PDF</text>
+    <text key="PhoneCapture.Reference.010" xml:space="preserve">Import photos</text>
+    <text key="PhoneCapture.Reference.011" xml:space="preserve">Image</text>
+    <text key="PhoneCapture.Reference.012" xml:space="preserve">Pages</text>
+    <text key="PhoneCapture.Reference.013" xml:space="preserve">Send</text>
+    <text key="PhoneCapture.Reference.014" xml:space="preserve">Send ({0})</text>
+    <text key="PhoneCapture.Reference.015" xml:space="preserve">Select this page</text>
+    <text key="PhoneCapture.Reference.016" xml:space="preserve">Original</text>
+    <text key="PhoneCapture.Reference.017" xml:space="preserve">Previous page</text>
+    <text key="PhoneCapture.Reference.018" xml:space="preserve">Next page</text>
+    <text key="PhoneCapture.Reference.019" xml:space="preserve">Continue shooting</text>
+    <text key="PhoneCapture.Reference.020" xml:space="preserve">Filters</text>
+    <text key="PhoneCapture.Reference.021" xml:space="preserve">Crop and rotate</text>
+    <text key="PhoneCapture.Reference.022" xml:space="preserve">Preview</text>
+    <text key="PhoneCapture.Reference.023" xml:space="preserve">Scan settings</text>
+    <text key="PhoneCapture.Reference.024" xml:space="preserve">Scans</text>
+    <text key="PhoneCapture.Reference.025" xml:space="preserve">PDF</text>
+    <text key="PhoneCapture.Reference.026" xml:space="preserve">Photos</text>
+    <text key="PhoneCapture.Reference.027" xml:space="preserve">Restore</text>
+    <text key="PhoneCapture.Reference.028" xml:space="preserve">Crop</text>
+    <text key="PhoneCapture.Processing.000" xml:space="preserve">Detect corners and crop</text>
+    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner dewarping</text>
+    <text key="PhoneCapture.Processing.002" xml:space="preserve">Automatic orientation</text>
+    <text key="PhoneCapture.Processing.003" xml:space="preserve">Grayscale</text>
+    <text key="PhoneCapture.Processing.004" xml:space="preserve">Dewarp curved pages (optional)</text>
+    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocRes receives the original photo directly. Only selected model tasks run.</text>
+    <text key="PhoneCapture.Processing.006" xml:space="preserve">Turn off all processing</text>
+    <text key="PhoneCapture.Processing.007" xml:space="preserve">Each processing step can be turned off.</text>
+    <text key="PhoneCapture.Processing.009" xml:space="preserve">Applying selected processingâ€¦</text>
+    <text key="PhoneCapture.Processing.010" xml:space="preserve">Generating previewâ€¦</text>
+    <text key="PhoneCapture.Camera.HighResolutionUnavailable" xml:space="preserve">High-resolution capture is unavailable in this browser. Use system camera for full-resolution photos.</text>
+    <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">High-resolution capture failed. A standard photo was saved.</text>
+    <text key="PhoneCapture.Processing.Global" xml:space="preserve">Changes apply to all unsent pages and future photos.</text>
+    <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">Page order updated.</text>
 </resources>

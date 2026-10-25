@@ -38,7 +38,7 @@ public sealed partial class MainWindow
         double? read = double.TryParse(ModelPriceCacheRead.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var r) && double.IsFinite(r) && r >= 0 ? r : null;
         double? write = double.TryParse(ModelPriceCacheWrite.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var w) && double.IsFinite(w) && w >= 0 ? w : null;
         if (input is null && output is null && read is null && write is null) { ModelCnyPreview.Text = ""; return; }
-        if (SelectedCurrency.Length == 0) { ModelCnyPreview.Text = UiText.Get("Select a currency to see the CNY estimate."); return; }
+        if (SelectedCurrency.Length == 0) { ModelCnyPreview.Text = ""; return; }
         bool usd = SelectedCurrency == "USD";
         var rate = usd ? await GetCnyRateAsync() : null;
         if (_closed || generation != _pricePreviewGeneration) return;

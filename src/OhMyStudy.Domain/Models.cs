@@ -19,6 +19,8 @@ public sealed record Provider : IJsonOnDeserialized
     public required string BaseUrl { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool SupportsFilesApi { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool CodexMode { get; init; }
     public string? KeyRef { get; init; }
     // This is a credential-store observation; persisted or caller-supplied JSON cannot assert it.
     [JsonConverter(typeof(IgnoredInputBooleanConverter))]
@@ -126,6 +128,7 @@ public sealed record Region
 [JsonDerivedType(typeof(FormulaContent), "formula")]
 [JsonDerivedType(typeof(TableContent), "table")]
 [JsonDerivedType(typeof(ImageContent), "image")]
+[JsonDerivedType(typeof(MermaidContent), "mermaid")]
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public abstract record Content;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -142,6 +145,15 @@ public sealed record ImageContent : Content
     public string? AssetId { get; init; }
     public bool ContainsHandwriting { get; init; }
     public string Caption { get; set; } = "";
+    public int WidthPercent { get; set; } = 100;
+}
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record MermaidContent : Content
+{
+    public required Region Region { get; init; }
+    public required string Code { get; init; }
+    public string Caption { get; set; } = "";
+    public int WidthPercent { get; set; } = 100;
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

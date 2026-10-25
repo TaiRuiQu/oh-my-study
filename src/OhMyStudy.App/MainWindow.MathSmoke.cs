@@ -58,12 +58,24 @@ public sealed partial class MainWindow
             Show(table); await Capture("table-parts");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(460, 960)); await Capture("table-compact");
             AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 960));
+            var modelContent = question with
+            {
+                Stem = [new TextContent { Text = "默认无衬线；{font:sans}无衬线{/font}；{font:kai}楷体{/font}；{font:serif}指定衬线{/font}。" },
+                    new TextContent { Text = @"混排：{font:sans}无衬线 \(x^2\){/font}；{font:kai}楷体 \(y^2\){/font}。" },
+                    new TableContent { Rows = [["表头", "合并表头", "<"], ["内容", "^", "^"], ["下一行", "数值", "文本"]] },
+                    new MermaidContent { Region = new Region { PageId = "synthetic", X = 0, Y = 0, Width = 1, Height = 1 }, Code = "flowchart LR\nA[识别题目] --> B{需要流程图}\nB -- 是 --> C[生成 Mermaid]\nB -- 否 --> D[保留文本]", Caption = "由模型生成的流程图", WidthPercent = 50 }]
+            };
+            Show(modelContent); await Capture("model-content");
+            RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("model-content-dark");
+            RootGrid.RequestedTheme = ElementTheme.Light;
+            for (int attempt = 0; attempt < 50 && NativeFormulaReadingSession.PendingFormulaCount > 0; attempt++) await Task.Delay(100);
             long invalidBeforeBlank = NativeFormulaReadingSession.InvalidFormulas;
             Show(WithBody(question with { Number = "14" }, [new TextContent
             {
                 Text = @"已知函数 $f(x)=\cos x+\frac12\cos 2x+\frac13\cos 3x$，则 $f(x)$ 的最小值为\(______\)。"
             }]));
             await Capture("legacy-answer-blank");
+            for (int attempt = 0; attempt < 50 && NativeFormulaReadingSession.PendingFormulaCount > 0; attempt++) await Task.Delay(100);
             if (NativeFormulaReadingSession.InvalidFormulas != invalidBeforeBlank)
                 throw new InvalidOperationException("Legacy answer blank or dollar formula failed to render.");
             evidence.Add("legacy-answer-blank=PASS");

@@ -1,207 +1,281 @@
 <!doctype html>
 <html lang="en">
+<head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#171a20">
 <title>Oh My Study</title>
 <style>
-:root{font-family:system-ui,"Microsoft YaHei UI",sans-serif;color:#202734;background:#f8f9fc;--accent:#087f79;--surface:#fff;--border:#cbd2dc;--muted:#53637b;--error:#b42318;color-scheme:light dark}
-*{box-sizing:border-box}body{margin:0}main{max-width:640px;margin:auto;padding:24px 20px 48px}h1{font-size:1.75rem;line-height:1.25;margin:24px 0 12px}h2{font-size:1.2rem;margin:28px 0 12px}p{line-height:1.6;margin:12px 0;color:var(--muted)}button,select,input{font:inherit;accent-color:var(--accent)}button,.file-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;padding:12px 16px;cursor:pointer;text-align:center}button:hover,.file-button:hover{border-color:var(--accent)}button:disabled{opacity:.55;cursor:wait}.primary{background:var(--accent);border-color:var(--accent);color:white;font-weight:600}.actions{display:flex;gap:12px;flex-wrap:wrap}.actions>*{flex:1}.file-button input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}.file-button{position:relative}.file-button:focus-within,button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}::selection{background:#b9ebe2;color:#202734}#status{min-height:26px;overflow-wrap:anywhere}#status.error{color:var(--error)}.brand{font-weight:650;color:var(--accent)}.limits{font-size:.875rem}#editor{position:relative;background:#17191d;line-height:0;margin:16px 0 24px;touch-action:pan-y}#photo{width:100%;height:auto;display:block}#outline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.corner{position:absolute;width:44px;height:44px;min-height:44px;padding:0;border:0;background:transparent;transform:translate(-50%,-50%);touch-action:none}.corner::after{content:"";width:18px;height:18px;background:white;border:3px solid #087f79;border-radius:50%;box-shadow:0 2px 5px #0008}.corner:focus-visible{outline:3px solid white}.settings{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}select{min-height:44px;max-width:100%;border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--surface);color:inherit}#result{max-width:100%;max-height:65vh;object-fit:contain;display:block;margin:16px auto}ol{padding:0;list-style:none}li{display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);padding:12px 0}li span{flex:1;overflow-wrap:anywhere}li button{flex:none;padding:8px 12px;min-height:44px}.progress{height:3px;background:var(--accent);transform-origin:left;animation:working 1.2s ease-in-out infinite}[hidden]{display:none!important}@keyframes working{0%,100%{transform:scaleX(.25)}50%{transform:scaleX(1)}}@media(prefers-reduced-motion:reduce){.progress{animation:none}}@media(prefers-color-scheme:dark){:root{color:#edf0f5;background:#171a20;--accent:#70d6cc;--surface:#262b33;--border:#414852;--muted:#b7c0cc;--error:#ffb4ab}.primary{color:#171a20}}@media(max-width:360px){main{padding:16px}.actions{gap:8px}.actions>*{flex-basis:100%}}
+@font-face { font-family:"Study Sans"; font-style:normal; font-weight:100 900; font-display:swap; src:url("data:font/woff2;base64,__CAPTURE_FONT__") format("woff2"); }
+:root { font-family:"Study Sans","Microsoft YaHei UI",sans-serif; font-synthesis:none; line-height:1.5; color:#242529; background:#f1f2f7; color-scheme:light; --accent:#2454ff; --soft:#e9edff; --surface:#fff; --canvas:#f1f2f7; --border:#daddE5; --muted:#787a82; --error:#c42b31; }
+html:lang(ja) { font-family:"Yu Gothic UI",system-ui,sans-serif; }
+html:lang(ko) { font-family:"Malgun Gothic",system-ui,sans-serif; }
+* { box-sizing:border-box; scrollbar-width:thin; scrollbar-color:#c7c9d2 transparent; }
+body { margin:0; }
+button,select,input { font:inherit; accent-color:var(--accent); }
+button,.file-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; border:0; padding:8px 12px; border-radius:12px; color:inherit; background:transparent; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+button:active,.file-button:active { opacity:.65; }
+button:disabled { opacity:.35; cursor:default; }
+button:focus-visible,.file-button:focus-within,input:focus-visible,select:focus-visible,summary:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+button:hover:not(:disabled) { background:#00000006; }
+.primary { background:var(--accent); color:white; font-weight:650; }
+.primary:hover:not(:disabled) { background:#1746ec; }
+.icon { width:26px; height:26px; fill:none; flex:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.icon-button { width:44px; padding:8px; flex:none; }
+.file-button { position:relative; overflow:hidden; }
+.file-button input { position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+[hidden] { display:none!important; }
+::selection { background:#dce4ff; color:#17245c; }
+main { max-width:600px; min-height:100svh; margin:auto; background:var(--canvas); }
+h1,h2,p { margin:0; }
+h1 { font-size:24px; letter-spacing:-.025em; }
+h2 { font-size:20px; }
+p { line-height:1.5; }
+.hint { font-size:12px; color:var(--muted); }
+#status { position:fixed; z-index:20; top:76px; left:50%; transform:translateX(-50%); width:max-content; max-width:min(92%,560px); border-radius:12px; padding:8px 14px; background:#fff; color:#42444b; box-shadow:0 4px 20px #00000012; font-size:12px; overflow-wrap:anywhere; }
+#status:empty { display:none; }
+#status.error { color:var(--error); }
+body[data-view="capture"],body[data-view="capture"] main { background:#000; color:#fff; }
+body[data-view="capture"] main { height:100svh; height:100dvh; overflow:hidden; }
+body[data-view="capture"] #status { top:calc(env(safe-area-inset-top) + 76px); color:white; background:#252525e6; }
+body[data-view="capture"] #status.error { color:#ffb8bc; }
+#capture { height:100svh; height:100dvh; display:grid; grid-template-rows:minmax(180px,1fr) 126px; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+.viewfinder { position:relative; min-height:0; overflow:hidden; background:#171717; }
+#live { width:100%; height:100%; display:block; object-fit:cover; }
+.capture-modes { position:absolute; z-index:3; top:22px; left:50%; transform:translateX(-50%); display:flex; padding:4px; border-radius:12px; background:#1e1e1ebd; white-space:nowrap; }
+.capture-modes button { min-height:36px; font-size:16px; color:white; padding:8px 12px; border-radius:8px; }
+.capture-modes button[aria-pressed="true"] { background:var(--accent); }
+.frame { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.frame polygon { fill:none; stroke:#4266ff; stroke-width:2; stroke-linejoin:round; }
+.thirds { position:absolute; inset:0; pointer-events:none; }
+.thirds i { position:absolute; opacity:.18; background:white; }
+.thirds i:nth-child(1),.thirds i:nth-child(2) { top:0; bottom:0; width:1px; left:33.333%; }
+.thirds i:nth-child(2) { left:66.666%; }
+.thirds i:nth-child(3),.thirds i:nth-child(4) { left:0; right:0; height:1px; top:33.333%; }
+.thirds i:nth-child(4) { top:66.666%; }
+.camera-empty { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:70px 36px; text-align:center; }
+.camera-empty h1 { font-size:22px; }
+.camera-empty .hint { color:#b7b7bc; max-width:28ch; }
+.camera-empty .primary { min-height:46px; padding:10px 22px; border-radius:24px; }
+.camera-empty .file-button { color:white; font-size:13px; }
+.camera-side-tools { position:absolute; right:9px; top:74px; display:flex; flex-direction:column; gap:12px; color:white; }
+.camera-side-tools button { display:flex; align-items:center; flex-direction:column; gap:4px; padding:4px; font-size:11px; text-shadow:0 1px 4px #000; min-width:54px; }
+.hd-icon { font-size:12px; border:2px solid currentColor; border-radius:3px; padding:0 3px; line-height:17px; font-weight:750; }
+#hd-camera[aria-pressed="false"] .hd-icon { text-decoration:line-through; opacity:.5; }
+.camera-side-tools .icon { width:25px; height:25px; }
+.capture-flash { position:absolute; inset:0; background:white; opacity:0; pointer-events:none; }
+.capture-flash.flash { animation:shutter .22s ease-out; }
+@keyframes shutter { from { opacity:.65; } to { opacity:0; } }
+.filmstrip { position:absolute; display:flex; right:14px; bottom:18px; gap:4px; max-width:45%; overflow:hidden; }
+.filmstrip button { min-height:48px; width:38px; padding:2px; flex:none; background:#fff; border-radius:5px; }
+.filmstrip img { width:100%; height:44px; object-fit:cover; }
+.camera-controls { display:grid; grid-template-columns:1fr 1fr 82px 1fr 1fr; gap:2px; align-items:center; padding:0 12px 14px; }
+.camera-controls button,.camera-controls .file-button { display:flex; flex-direction:column; justify-content:center; color:white; gap:9px; padding:6px 0; min-width:0; font-size:12px; white-space:nowrap; border-radius:8px; }
+.camera-controls .icon { width:27px; height:27px; stroke-width:1.9; }
+#shutter { width:72px; height:72px; justify-self:center; padding:4px; border:4px solid white; border-radius:50%; }
+#shutter span { width:56px; height:56px; border-radius:50%; background:#343434; }
+#shutter:not(:disabled):active span { background:#7b7b7b; }
+.camera-controls .count { position:absolute; background:var(--accent); border-radius:10px; padding:1px 5px; font-size:10px; transform:translate(16px,-28px); min-width:17px; }
+.review-header { height:76px; display:flex; align-items:center; gap:8px; padding:14px 13px 12px; }
+.review-header>.icon-button { background:#fff; border-radius:50%; width:38px; min-height:38px; padding:8px; }
+.review-formats { display:flex; flex:1; align-items:center; gap:2px; padding:4px; background:white; border-radius:28px; min-width:0; }
+.review-formats button { min-height:32px; border-radius:22px; color:#666870; font-size:16px; padding:5px 12px; }
+.review-formats button[aria-pressed="true"] { color:var(--accent); background:#eef1ff; font-weight:700; }
+#send-batch { min-width:70px; min-height:38px; padding:7px 16px; border-radius:24px; font-size:16px; white-space:nowrap; }
+#tray { min-height:100svh; padding-bottom:230px; overflow-x:clip; }
+.review-stage { position:relative; margin:0 22px; height:calc(100svh - 310px); height:calc(100dvh - 310px); min-height:250px; display:flex; align-items:flex-start; justify-content:center; touch-action:none; overflow:hidden; user-select:none; transition:transform .16s ease-out; }
+.review-stage.swiping { transition:none; }
+#tray-result { display:block; width:100%; height:100%; object-fit:contain; object-position:center top; transform-origin:0 0; -webkit-user-drag:none; }
+.large-selection { position:absolute; z-index:1; top:9px; left:9px; width:30px; height:30px; background:#7779; border-radius:8px; display:grid; place-items:center; cursor:pointer; }
+.large-selection input { width:22px; height:22px; margin:0; cursor:pointer; accent-color:var(--accent); }
+#pdf-preview { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:14px; color:#7c7e86; }
+#pdf-preview .icon { width:72px; height:72px; }
+.empty { text-align:center; padding:90px 24px; }
+.empty>.icon { width:60px; height:60px; color:#93969f; margin-bottom:18px; }
+.empty p { margin:12px 0 24px; color:#8a8c95; font-size:14px; }
+.empty .primary { border-radius:24px; padding:10px 22px; }
+.batch-state { position:absolute; z-index:2; top:95px; left:50%; transform:translateX(-50%); width:min(calc(100% - 72px),480px); background:#ffffffed; border-radius:12px; padding:10px 12px; box-shadow:0 4px 20px #0001; }
+.batch-state>div { display:flex; align-items:center; justify-content:space-between; }
+.batch-state button { min-height:28px; font-size:12px; padding:3px 6px; color:var(--accent); }
+progress { width:100%; height:4px; margin-top:6px; accent-color:var(--accent); }
+#resume-previews { display:flex; margin:12px auto; background:white; color:var(--accent); }
+.grid-toolbar { display:flex; align-items:center; justify-content:space-between; padding:0 20px 8px; font-size:13px; color:var(--muted); }
+.grid-toolbar button { font-size:13px; color:var(--accent); }
+.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 12px; padding:0 20px 20px; margin:0; list-style:none; }
+.page { min-width:0; position:relative; }
+.page.dragging { z-index:8; }
+.page.dragging .page-image { overflow:visible; }
+.page.dragging .page-preview { position:relative; z-index:9; background:#e6e7ee; box-shadow:0 8px 24px #0003; opacity:.9; pointer-events:none; }
+.page.drag-target .page-image { outline:3px solid var(--accent); outline-offset:3px; }
+.page-image { position:relative; background:#e6e7ee; border-radius:10px; overflow:hidden; aspect-ratio:3/4; }
+.page-preview { display:flex; width:100%; height:100%; padding:8px; user-select:none; -webkit-touch-callout:none; }
+.page-preview img { width:100%; height:100%; object-fit:contain; }
+.page-preview>.icon { width:48px; height:48px; color:var(--muted); }
+.page-check { position:absolute; top:0; right:0; display:grid; place-items:center; width:44px; height:44px; cursor:pointer; }
+.page-check input { appearance:none; width:24px; height:24px; margin:0; border-radius:50%; border:1.5px solid #9296a0; background:white; }
+.page-check input:checked { border-color:var(--accent); background:var(--accent); }
+.page-check .icon { position:absolute; width:17px; height:17px; color:white; pointer-events:none; }
+.page-check input:not(:checked)+.icon { display:none; }
+.page-index { position:absolute; left:8px; top:8px; background:#fffe; color:#242529; border-radius:5px; padding:3px 6px; font-size:11px; pointer-events:none; }
+.page-meta { display:flex; align-items:center; justify-content:space-between; gap:4px; }
+.page-label { min-width:0; }
+.page-name { font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.page-state { display:block; color:#82858e; font-size:11px; }
+.page-state.error,.page-error { color:var(--error); }
+.page-error { font-size:11px; }
+.page-meta .icon-button { width:40px; }
+.retry { color:var(--accent); font-size:12px; }
+.review-dock { position:fixed; z-index:5; left:50%; bottom:0; transform:translateX(-50%); width:min(100%,600px); padding:0 13px max(12px,env(safe-area-inset-bottom)); background:var(--canvas); }
+.page-navigation { display:flex; align-items:center; justify-content:space-between; height:63px; gap:8px; }
+.page-navigation .compare { padding-left:0; color:#555860; font-size:12px; }
+.page-navigation .compare[aria-pressed="true"] { color:var(--accent); }
+.pager { display:flex; align-items:center; gap:8px; font-size:17px; font-variant-numeric:tabular-nums; }
+.pager button { width:28px; min-height:28px; padding:4px; border-radius:50%; background:white; color:#606776; }
+.pager .next .icon { transform:rotate(180deg); }
+.pager .icon { width:19px; height:19px; }
+.continue-camera { font-size:15px; font-weight:600; padding-right:0; gap:3px; }
+.continue-camera .icon { width:24px; height:24px; }
+.review-tools { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); background:white; border-radius:15px; padding:15px 6px 10px; }
+.review-tools button { min-width:0; flex-direction:column; gap:10px; font-size:12px; white-space:nowrap; padding:8px 2px; }
+.review-tools .icon { width:28px; height:28px; }
+.review-tabs { display:flex; align-items:center; justify-content:space-between; height:58px; padding:0 6px; gap:6px; }
+.review-tabs button { position:relative; min-height:48px; font-size:15px; font-weight:600; padding:8px 12px; }
+.review-tabs button[aria-pressed="true"] { color:var(--accent); }
+.review-tabs button[aria-pressed="true"]::after { content:""; position:absolute; width:16px; height:4px; bottom:0; left:calc(50% - 8px); background:var(--accent); }
+.review-tabs .icon-button { border-left:1px solid #daddE5; border-radius:0; }
+#selection-summary { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.filter-presets { display:flex; gap:8px; padding:8px 0; }
+.filter-presets button { flex:1; background:#fff; border-radius:12px; font-size:12px; padding:10px 6px; }
+.filter-presets button[aria-pressed="true"] { color:var(--accent); outline:1.5px solid var(--accent); outline-offset:-1.5px; }
+.sent { margin:16px 22px; color:#747781; font-size:12px; }
+.sent summary { min-height:44px; padding:12px 0; }
+.sent p { margin-bottom:10px; }
+.sent ol { padding:0; list-style:none; }
+.sent li { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 0; overflow-wrap:anywhere; }
+#detail { padding-bottom:100px; }
+.detail-top { height:76px; display:flex; align-items:center; gap:12px; padding:14px 18px; }
+.detail-top h1 { flex:1; font-size:18px; }
+.detail-content { padding:0 24px 24px; }
+#result { display:block; width:100%; max-height:60svh; object-fit:contain; }
+#editor { position:relative; background:#171717; line-height:0; margin:14px 0; touch-action:pan-y; }
+#photo { width:100%; height:auto; display:block; }
+#outline { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.corner { position:absolute; width:44px; height:44px; min-height:44px; padding:0; transform:translate(-50%,-50%); touch-action:none; }
+.corner::after { content:""; width:17px; height:17px; background:white; border:2px solid var(--accent); border-radius:50%; box-shadow:0 2px 6px #0005; }
+.settings { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:14px 0; font-size:14px; }
+.settings button { background:white; border-radius:24px; }
+select { min-height:44px; max-width:100%; background:white; color:#242529; border:0; border-radius:12px; padding:8px 12px; }
+.advanced { margin-top:16px; border-top:1px solid var(--border); font-size:14px; }
+.advanced summary { padding:14px 0; min-height:44px; cursor:pointer; }
+fieldset { border:0; padding:0; margin:12px 0; }
+fieldset label { display:flex; align-items:center; min-height:44px; gap:10px; font-size:14px; }
+fieldset input { width:22px; height:22px; }
+.bottom-bar { position:fixed; z-index:5; bottom:0; left:50%; transform:translateX(-50%); width:min(100%,600px); padding:14px 20px max(16px,env(safe-area-inset-bottom)); background:var(--canvas); }
+.detail-actions { display:flex; gap:10px; }
+.detail-actions>* { flex:1; border-radius:24px; background:white; }
+.detail-actions>.primary { background:var(--accent); }
+#cancel-render { display:block; color:var(--accent); margin:6px auto 0; }
+dialog { border:0; padding:22px; width:min(calc(100% - 24px),560px); margin:auto auto 12px; border-radius:22px; background:#f5f6fb; color:#242529; }
+dialog::backdrop { background:#0007; }
+.sheet-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.sheet-header h2 { font-size:18px; }
+.connection-help { font-size:12px; color:#737680; }
+.review-header>.icon-button { width:40px; height:40px; min-height:40px; }
+.review-header>.icon-button .icon { width:24px; height:24px; }
+.review-formats { height:40px; }
+.review-formats button { height:32px; min-height:32px; line-height:22px; padding-top:5px; padding-bottom:5px; font-weight:500; }
+.review-formats button[aria-pressed="true"] { font-weight:600; }
+#send-batch { height:40px; min-height:40px; line-height:24px; font-weight:600; }
+.review-tools button { display:grid; grid-template-rows:32px 20px; justify-items:center; align-content:center; row-gap:8px; min-height:76px; padding:8px 2px; font-size:13px; line-height:20px; font-weight:450; }
+.review-tools .icon { width:30px; height:30px; align-self:center; }
+.camera-controls>button:not(#shutter),.camera-controls>.file-button { display:grid; grid-template-rows:32px 20px; justify-items:center; align-content:center; row-gap:8px; min-height:76px; line-height:20px; font-weight:450; }
+.camera-controls .icon { align-self:center; }
+.pager { line-height:32px; }
+.pager button { width:32px; height:32px; min-height:32px; }
+.page-navigation .compare,.continue-camera { height:40px; line-height:24px; align-items:center; }
+.review-tabs button { line-height:24px; font-weight:500; }
+.processing-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px 12px; }
+.processing-options label { font-size:13px; line-height:20px; }
+.processing-options input { flex:none; width:20px; height:20px; }
+:root { --muted:#626672; }
+.page-state,.connection-help,.sent,.empty p { color:#626672; }
+@media(max-width:360px) { .review-header { padding-left:9px; padding-right:9px; gap:5px; } .review-formats button { font-size:14px; padding:5px 10px; } #send-batch { min-width:64px; padding:7px 12px; } .camera-controls { padding-left:6px; padding-right:6px; } .camera-controls button,.camera-controls .file-button { font-size:11px; } .continue-camera { font-size:13px; } .page-navigation .compare { font-size:11px; } }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
+@media(forced-colors:active) { button,input,.file-button { border:1px solid ButtonText; } .page-check input { appearance:auto; } .page-check .icon { display:none; } }
 </style>
+</head>
+<body data-view="capture">
+<svg hidden xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H4a1 1 0 0 0-1 1v4m13-5h4a1 1 0 0 1 1 1v4M3 16v4a1 1 0 0 0 1 1h4m8 0h4a1 1 0 0 0 1-1v-4M8 7h8v10H8zM10 10h4m-4 3h4"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="m8 5 1-2h6l1 2h4a2 2 0 0 1 2 2v12H2V7a2 2 0 0 1 2-2z"/><circle cx="12" cy="12" r="4"/></symbol>
+<symbol id="i-gallery" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/></symbol>
+<symbol id="i-stack" viewBox="0 0 24 24"><rect x="7" y="3" width="14" height="16" rx="2"/><path d="M3 7v14h14M11 8h6m-6 4h6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4m0-16v9m-3-6 3-3 3 3"/></symbol>
+<symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 10a8 8 0 1 0-1 7M20 3v7h-7"/></symbol>
+
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="15" y="3" width="6" height="6" rx="1.5"/><rect x="3" y="15" width="6" height="6" rx="1.5"/><rect x="15" y="15" width="6" height="6" rx="1.5"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 5h6l3 3h9v13H3z"/></symbol>
+<symbol id="i-pdf" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5zM14 3v6h5"/><path d="M8 14h2v2H8v3m4-5v5h2v-5zm5 0h-1v5m0-3h2"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="m7 3-5 9 5 9h10l5-9-5-9z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></symbol>
+<symbol id="i-compare" viewBox="0 0 24 24"><path d="M12 3v18M9 5H3v14h6m6-14h6v4m0 3v3m0 3v1h-6"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><circle cx="9" cy="8" r="5"/><circle cx="6.5" cy="15.5" r="5"/><circle cx="15.5" cy="15.5" r="5"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 2c0 7-2 9-9 9 7 0 9 2 9 9 0-7 2-9 9-9-7 0-9-2-9-9zm8 13c0 3-1 4-4 4 3 0 4 1 4 4 0-3 1-4 4-4-3 0-4-1-4-4z"/></symbol>
+<symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v16h16M2 6h16v16M9 3h8a4 4 0 0 1 4 4m-1-6 2 3-4 1"/></symbol>
+</defs></svg>
 <main>
-<div class="brand">Oh My Study</div>
-<h1 data-text="Take photos with your phone"></h1>
-<p data-text="Photograph one page at a time. Check the corners before sending it to your computer."></p>
-<div id="busy" class="progress" hidden></div>
 <p id="status" role="status" aria-live="polite"></p>
-<p id="batch-progress" class="limits" role="status" aria-live="polite"></p>
-<div id="batch-retry" class="actions" hidden><button id="skip-file" data-text="Skip this file"></button><button id="retry-file" class="primary" data-text="Retry this file"></button></div>
-<section id="pick">
-<div class="actions">
-<label class="file-button primary"><span data-text="Take a photo"></span><input id="camera" type="file" accept="image/*" capture="environment"></label>
-<label class="file-button"><span data-text="Choose images or PDF"></span><input id="files" type="file" accept="image/*,application/pdf,.pdf" multiple></label>
+<section id="capture">
+<div class="viewfinder">
+<video id="live" autoplay playsinline muted data-aria="Camera preview"></video>
+<div class="thirds" aria-hidden="true"><i></i><i></i><i></i><i></i></div><svg id="framing-guides" class="frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" hidden><polygon id="live-boundary" vector-effect="non-scaling-stroke"/></svg>
+<div class="capture-modes"><button id="single-mode" aria-pressed="false" data-text="Single page"></button><button id="multi-mode" aria-pressed="true" data-text="Multiple pages"></button></div>
+<div id="camera-empty" class="camera-empty"><h1 data-text="Scan documents"></h1><button id="start-camera" class="primary"><svg class="icon" aria-hidden="true"><use href="#i-camera"/></svg><span data-text="Enable camera"></span></button><label class="file-button"><span data-text="Use system camera"></span><input id="camera" type="file" accept="image/*" capture="environment" data-aria="Use system camera"></label></div>
+<div class="camera-side-tools"><button id="hd-camera" aria-pressed="false"><span class="hd-icon">HD</span><span data-text="High resolution"></span></button><button id="camera-settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span data-text="More settings"></span></button></div>
+<div id="flash" class="capture-flash"></div>
+<div id="filmstrip" class="filmstrip" data-aria="Captured pages"></div>
 </div>
-<p class="limits" data-text="Up to 12 pages, 64 MB per file, 256 MB per import. Originals and processed copies both count toward the limit."></p>
+<div class="camera-controls">
+<button id="tray-shortcut"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span id="shortcut-label" data-text="Scans"></span><span id="tray-count" class="count" hidden>0</span></button>
+<button id="camera-tools"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg><span data-text="Tools"></span></button>
+<button id="shutter" disabled data-aria="Take a photo"><span></span></button>
+<label class="file-button"><svg class="icon" aria-hidden="true"><use href="#i-pdf"/></svg><span data-text="PDF"></span><input id="pdf-files" type="file" accept="application/pdf,.pdf" multiple data-aria="Import PDF"></label>
+<label class="file-button"><svg class="icon" aria-hidden="true"><use href="#i-gallery"/></svg><span data-text="Photos"></span><input id="files" type="file" accept="image/*" multiple data-aria="Import photos"></label>
+</div>
 </section>
-<section id="review" hidden>
-<h2 data-text="Adjust page corners"></h2>
-<p id="detection"></p>
-<div id="editor"><img id="photo" alt=""><svg id="outline" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon id="polygon" fill="#087f7920" stroke="#70d6cc" stroke-width="0.6" vector-effect="non-scaling-stroke"></polygon></svg></div>
-<p id="direction"></p>
-<p class="limits" data-text="No enhancement keeps geometric correction and skips all photometric tasks."></p>
-<div class="settings"><label for="backend" data-text="Document restoration"></label><select id="backend"><option value="standard" data-text="Standard (DocScanner + OpenCV)"></option><option id="docres-option" value="docres" disabled data-text="DocRes (optional CUDA)"></option></select></div>
-<p id="docres-availability" class="limits" data-text="Install and enable optional DocRes on your computer to use it here."></p>
-<fieldset id="docres-tasks" hidden><legend data-text="DocRes tasks"></legend><label><input type="checkbox" value="dewarping" checked><span data-text="Dewarp curved pages"></span></label><br><label><input type="checkbox" value="deshadowing" checked><span data-text="Remove shadows"></span></label><br><label><input type="checkbox" value="deblurring"><span data-text="Recover mild blur"></span></label><br><label><input type="checkbox" value="appearance"><span data-text="Enhance appearance"></span></label></fieldset>
-<div class="settings"><button id="rotate" data-text="Rotate right"></button><button id="whole" data-text="Use full photo"></button><label for="enhancement" data-text="Enhancement"></label><select id="enhancement"><option value="color" data-text="Color restoration"></option><option value="gray" data-text="Grayscale restoration"></option><option value="original" data-text="No enhancement"></option></select></div>
-<div class="actions"><button id="cancel" data-text="Discard photo"></button><button id="render" class="primary" data-text="Preview correction"></button></div>
-<button id="stop-processing" hidden data-text="Cancel processing"></button>
+<section id="tray" hidden>
+<header class="review-header"><button id="capture-tab" class="icon-button" data-aria="Camera"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button><div class="review-formats"><button id="image-view" aria-pressed="true" data-text="Image"></button><button id="tray-tab" aria-pressed="false" data-text="Pages"></button></div><button id="send-batch" class="primary" disabled><span id="send-label" data-text="Send"></span></button></header>
+<div id="empty-tray" class="empty"><svg class="icon" aria-hidden="true"><use href="#i-stack"/></svg><h2 data-text="No pages yet"></h2><button id="empty-camera" class="primary" data-text="Take photos"></button></div>
+<div id="batch-state" class="batch-state" hidden><div><span id="batch-progress" class="hint" role="status"></span><button id="stop-processing" data-text="Cancel processing"></button></div><progress id="progress" max="12" value="0" data-aria="Preview progress"></progress></div>
+<button id="resume-previews" hidden data-text="Prepare previews"></button>
+<div id="review-stage" class="review-stage" hidden><img id="tray-result" alt="" draggable="false" hidden><label class="large-selection"><input id="current-selected" type="checkbox" data-aria="Select this page"></label><div id="pdf-preview" hidden><svg class="icon" aria-hidden="true"><use href="#i-pdf"/></svg><span data-text="PDF"></span></div></div>
+<div id="grid-toolbar" class="grid-toolbar" hidden><span id="grid-summary"></span><button id="select-all" data-text="Select all"></button></div><ol id="pages" class="grid" hidden></ol>
+<details id="sent" class="sent" hidden><summary id="sent-count"></summary><ol id="sent-list"></ol></details>
+<footer id="review-dock" class="review-dock">
+<div class="page-navigation"><button id="compare-source" class="compare" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-compare"/></svg><span data-text="Original"></span></button><div class="pager"><button id="previous-page" data-aria="Previous page"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button><span id="page-position">0/0</span><button id="next-page" class="next" data-aria="Next page"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button></div><button id="continue-camera" class="continue-camera"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span data-text="Continue shooting"></span></button></div>
+<div id="filter-presets" class="filter-presets" hidden><button data-filter="color" data-text="Color restoration"></button><button data-filter="gray" data-text="Grayscale restoration"></button><button data-filter="original" data-text="No enhancement"></button></div>
+<div class="review-tools"><button id="filter-tool"><svg class="icon" aria-hidden="true"><use href="#i-filter"/></svg><span data-text="Filters"></span></button><button id="restoration-tool"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg><span data-text="Restore"></span></button><button id="edit-page"><svg class="icon" aria-hidden="true"><use href="#i-crop"/></svg><span data-text="Crop"></span></button><button id="delete-page"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg><span data-text="Remove"></span></button></div>
+<div class="review-tabs"><button id="preview-tab" aria-pressed="true" data-text="Preview"></button><button id="filter-tab" aria-pressed="false" data-text="Filters"></button><button id="pages-tab" aria-pressed="false" data-text="Pages"></button><button id="review-options" class="icon-button" data-aria="Connection and limits"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></button></div>
+<p id="selection-summary" role="status"></p>
+</footer>
 </section>
-<section id="confirm" hidden><h2 data-text="Check the corrected page"></h2><img id="result" alt=""><div class="actions"><button id="back" data-text="Adjust again"></button><button id="accept" class="primary" data-text="Send this page"></button></div></section>
-<section><h2 data-text="Sent to computer"></h2><p data-text="When finished, click Import on your computer. Recognition uses your existing model settings."></p><ol id="queue"></ol></section>
-<p class="limits" data-text="This temporary connection lasts 20 minutes. Keep this window open and use a trusted Wi-Fi network. Photos travel directly to your computer over local HTTP."></p>
+<section id="detail" hidden>
+<div class="detail-top"><button id="detail-back" class="icon-button" data-aria="Back to review"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button><h1 id="detail-title" data-text="Crop and rotate"></h1></div>
+<div class="detail-content"><img id="result" alt="" hidden><div id="review" hidden>
+<div id="editor"><img id="photo" alt=""><svg id="outline" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon id="polygon" fill="#2454ff15" stroke="#2454ff" stroke-width=".6" vector-effect="non-scaling-stroke"/></svg></div>
+<div class="settings"><button id="rotate"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg><span data-text="Rotate right"></span></button><button id="whole" data-text="Use full photo"></button></div>
+<details id="advanced-restoration" class="advanced"><summary data-text="Document restoration"></summary><div class="settings"><label for="backend" data-text="Document restoration"></label><select id="backend"><option value="standard" data-text="Standard (DocScanner + OpenCV)"></option><option id="docres-option" value="docres" disabled data-text="DocRes (optional CUDA)"></option></select></div><p id="docres-availability" class="hint" data-text="Install and enable optional DocRes on your computer to use it here."></p><fieldset id="standard-processing" class="processing-options"><label><input type="checkbox" data-process="crop"><span data-text="Detect corners and crop"></span></label><label><input type="checkbox" data-process="rectify"><span data-text="DocScanner dewarping"></span></label><label><input type="checkbox" data-process="autoOrientation"><span data-text="Automatic orientation"></span></label><label><input type="checkbox" data-process="shadows"><span data-text="Remove shadows"></span></label><label><input type="checkbox" data-process="deblur"><span data-text="Recover mild blur"></span></label><label><input type="checkbox" data-process="appearance"><span data-text="Enhance appearance"></span></label><label><input type="checkbox" data-process="grayscale"><span data-text="Grayscale"></span></label></fieldset><p id="docres-direct" class="hint" hidden data-text="DocRes receives the original photo directly. Only selected model tasks run."></p><fieldset id="docres-tasks" class="processing-options" hidden><label><input type="checkbox" value="dewarping"><span data-text="Dewarp curved pages (optional)"></span></label><label><input type="checkbox" value="deshadowing"><span data-text="Remove shadows"></span></label><label><input type="checkbox" value="deblurring"><span data-text="Recover mild blur"></span></label><label><input type="checkbox" value="appearance"><span data-text="Enhance appearance"></span></label></fieldset><button id="reset-page-processing" data-text="Turn off all processing"></button></details>
+</div></div>
+<footer class="bottom-bar"><div class="detail-actions"><button id="discard" data-text="Discard photo"></button><button id="save-page" class="primary" data-text="Save preview"></button></div><button id="cancel-render" hidden data-text="Cancel processing"></button></footer>
+</section>
+<dialog id="capture-options"><div class="sheet-header"><h2 data-text="Scan settings"></h2><button id="close-options" class="icon-button" data-aria="Done"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><p class="connection-help" data-text="Changes apply to all unsent pages and future photos."></p><div class="settings"><label for="capture-backend" data-text="Document restoration"></label><select id="capture-backend"><option value="standard" data-text="Standard (DocScanner + OpenCV)"></option><option id="capture-docres-option" value="docres" disabled data-text="DocRes (optional CUDA)"></option></select></div><fieldset id="capture-processing" class="processing-options"><label><input type="checkbox" data-process="crop"><span data-text="Detect corners and crop"></span></label><label><input type="checkbox" data-process="rectify"><span data-text="DocScanner dewarping"></span></label><label><input type="checkbox" data-process="autoOrientation"><span data-text="Automatic orientation"></span></label><label><input type="checkbox" data-process="shadows"><span data-text="Remove shadows"></span></label><label><input type="checkbox" data-process="deblur"><span data-text="Recover mild blur"></span></label><label><input type="checkbox" data-process="appearance"><span data-text="Enhance appearance"></span></label><label><input type="checkbox" data-process="grayscale"><span data-text="Grayscale"></span></label></fieldset><fieldset id="capture-docres-tasks" class="processing-options" hidden><label><input type="checkbox" value="dewarping"><span data-text="Dewarp curved pages (optional)"></span></label><label><input type="checkbox" value="deshadowing"><span data-text="Remove shadows"></span></label><label><input type="checkbox" value="deblurring"><span data-text="Recover mild blur"></span></label><label><input type="checkbox" value="appearance"><span data-text="Enhance appearance"></span></label></fieldset><button id="reset-capture-processing" data-text="Turn off all processing"></button><p class="connection-help" data-text="Each processing step can be turned off."></p><p class="connection-help" data-text="Opening Review sends originals directly to this computer for local correction. Only confirmed pages can be imported."></p><p class="connection-help" data-text="Up to 12 pages, 64 MB per file, 256 MB per import. Originals and processed copies both count toward the limit."></p><p class="connection-help" data-text="Keep this page open. Unsaved photos are lost if you reload. The connection lasts 20 minutes."></p></dialog>
 </main>
-<script>
-const strings = __CAPTURE_TEXT__;
-const t = value => strings[value] || value;
-document.documentElement.lang = __CAPTURE_LANGUAGE__;
-document.querySelectorAll('[data-text]').forEach(element => element.textContent = t(element.dataset.text));
-document.title = t('Take photos with your phone') + ' · Oh My Study';
-const $ = id => document.getElementById(id);
-const token = location.hash.slice(1);
-let active = null, corners = [], rotation = 0, processing = false, previewUrl = null, resultUrl = null;
-let pendingFiles = [], uploadedDraft = null, receivedCount = 0;
-let renderAbort = null;
-const controls = [];
-function message(value, error = false) { $('status').textContent = t(value); $('status').classList.toggle('error', error); }
-function batchProgress() { $('batch-progress').textContent = t('On computer: {0} / 12 files. Waiting to upload: {1}.').replace('{0}',receivedCount).replace('{1}',pendingFiles.length); }
-function busy(value) { processing = value; $('busy').hidden = !value; document.querySelectorAll('button,input,select').forEach(element => element.disabled = element.id === 'stop-processing' ? false : value || (active && element.dataset.photoId === active.id)); }
-async function api(path, options = {}) {
-    let response;
-    try { response = await fetch(path, {...options, headers: {...options.headers, 'X-Capture-Token': token}}); }
-    catch(error) { if(error.name === 'AbortError') throw new Error(t('Processing canceled. Your original photo and corner edits are preserved.')); throw new Error(t('Could not connect. Keep your computer awake and check Wi-Fi.')); }
-    if (!response.ok) {
-        if (response.status === 401 || response.status === 410) throw new Error(t('Connection expired. Scan the QR code on your computer again.'));
-        if (response.status === 413) throw new Error(t('The file exceeds 64 MB. Choose a smaller file.'));
-        if (response.status === 422) throw new Error(t('DocRes could not process this page. Select Standard restoration and retry. Check CUDA memory and the diagnostic log on your computer.'));
-        throw new Error(t('Upload or processing failed. Check the file size and format, then retry.'));
-    }
-    return response;
-}
-function failure(error) { message(error.message || t('Could not connect. Keep your computer awake and check Wi-Fi.'), true); }
-function show(id) { ['pick','review','confirm'].forEach(name => $(name).hidden = name !== id); }
-function draw() {
-    $('polygon').setAttribute('points', corners.map(p => `${p[0] * 100},${p[1] * 100}`).join(' '));
-    controls.forEach((button, i) => { button.style.left = corners[i][0] * 100 + '%'; button.style.top = corners[i][1] * 100 + '%'; });
-}
-for (let index = 0; index < 4; index++) {
-    const button = document.createElement('button');
-    button.className = 'corner';
-    button.setAttribute('aria-label', t(['Top left corner','Top right corner','Bottom right corner','Bottom left corner'][index]));
-    let dragging = false;
-    const move = event => { const rect = $('editor').getBoundingClientRect(); corners[index] = [Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))]; draw(); };
-    button.onpointerdown = event => { if (processing) return; dragging = true; button.setPointerCapture(event.pointerId); move(event); };
-    button.onpointermove = event => { if (dragging) move(event); };
-    button.onpointerup = button.onpointercancel = () => dragging = false;
-    button.onkeydown = event => { const delta = event.shiftKey ? .025 : .005; if (!event.key.startsWith('Arrow')) return; event.preventDefault(); if(event.key==='ArrowLeft') corners[index][0]-=delta; if(event.key==='ArrowRight') corners[index][0]+=delta; if(event.key==='ArrowUp') corners[index][1]-=delta; if(event.key==='ArrowDown') corners[index][1]+=delta; corners[index]=corners[index].map(v=>Math.max(0,Math.min(1,v))); draw(); };
-    controls.push(button); $('editor').append(button);
-}
-async function refresh() {
-    const data = await (await api('/status')).json();
-    const neuralReady = !!(data.restoration && data.restoration.eligible && data.restoration.installed && data.restoration.enabled);
-    $('docres-option').disabled = !neuralReady;
-    $('docres-availability').hidden = neuralReady;
-    if(!neuralReady && $('backend').value === 'docres') { $('backend').value = 'standard'; $('docres-tasks').hidden = true; }
-    receivedCount = data.files.length; batchProgress();
-    $('queue').replaceChildren();
-    data.files.forEach((file,index) => {
-        const row = document.createElement('li'), name = document.createElement('span'), remove = document.createElement('button');
-        name.textContent = `${index+1}. ${file.name}` + (file.ready ? '' : ' · ' + t('Not sent yet')); remove.textContent = t('Remove');
-        if (!file.ready && !active) {
-            const resume = document.createElement('button'); resume.textContent = t('Continue editing');
-            resume.onclick = async () => { busy(true); try { await openPhoto(file); } catch(error) { failure(error); } finally { busy(false); } };
-            row.append(resume);
-        }
-        remove.onclick = async () => { busy(true); try { await api('/remove/'+file.id,{method:'POST'}); await refresh(); } catch(error) { failure(error); } finally { busy(false); } };
-        remove.dataset.photoId = file.id;
-        if(active && file.id===active.id) remove.disabled=true;
-        row.prepend(name); row.append(remove); $('queue').append(row);
-    });
-}
-async function openPhoto(info) {
-    const blob = await (await api('/image/'+info.id)).blob();
-    active = info; corners = info.corners.map(p=>[...p]); rotation = info.rotation;
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = URL.createObjectURL(blob);
-    $('photo').src = previewUrl; $('photo').alt = t('Photo preview');
-    $('detection').textContent = t(info.detected ? 'Page edges found. Drag the four handles if needed.' : 'No clear page edges found. Drag the four handles or use the full photo.');
-    $('direction').textContent = t(info.orientationConfidence < .8 ? 'Check the page direction. Rotate it if needed.' : info.rotation ? 'Page direction corrected automatically. You can still rotate it.' : 'Check the page direction before sending.');
-    show('review'); draw(); message('Check all four corners.');
-}
-async function normalized(file) {
-    if (['image/jpeg','image/png','image/webp'].includes(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name)) return file;
-    const url = URL.createObjectURL(file);
-    try {
-        const image = new Image(); image.src = url; await image.decode();
-        const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-        if (canvas.width * canvas.height > 40000000) throw new Error(t('The image exceeds 40 million pixels. Choose a smaller photo.'));
-        canvas.getContext('2d').drawImage(image,0,0);
-        const blob = await new Promise(resolve => canvas.toBlob(resolve,'image/jpeg',.96));
-        if (!blob) throw new Error(t('This image format is not supported. Choose JPEG or PNG.'));
-        return new File([blob],file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'});
-    } finally { URL.revokeObjectURL(url); }
-}
-async function nextFile() {
-    if (active || pendingFiles.length === 0) return;
-    let failed = false;
-    $('batch-retry').hidden = true;
-    busy(true);
-    try {
-        if(uploadedDraft){await openPhoto(uploadedDraft);uploadedDraft=null;pendingFiles.shift();batchProgress();return;}
-        let file = pendingFiles[0];
-        if (file.size > 64*1024*1024) throw new Error(t('The file exceeds 64 MB. Choose a smaller file.'));
-        message('Uploading to computer…'); $('status').textContent += ' ' + file.name;
-        if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) file = await normalized(file);
-        const info = await (await api('/upload?name='+encodeURIComponent(file.name),{method:'POST',body:file})).json();
-        receivedCount++; batchProgress();
-        if (info.pdf) { pendingFiles.shift(); batchProgress(); message('Sent. Confirm the import on your computer.'); await refresh(); }
-        else {
-            uploadedDraft = info;
-            await openPhoto(info);
-            uploadedDraft=null; pendingFiles.shift(); batchProgress();
-        }
-    } catch(error) { failed = true; $('batch-retry').hidden = false; failure(error); }
-    finally { busy(false); }
-    if (!active && !failed && pendingFiles.length) await nextFile();
-}
-function choose(input) {
-    const selected = [...input.files]; input.value='';
-    if(receivedCount+pendingFiles.length+selected.length>12){message('Choose up to 12 files per session. Import this batch before starting another.',true);return;}
-    pendingFiles.push(...selected); batchProgress(); nextFile();
-}
-$('retry-file').onclick = () => nextFile();
-$('skip-file').onclick = async () => {
-    busy(true);
-    try { if(uploadedDraft) await api('/remove/'+uploadedDraft.id,{method:'POST'}); uploadedDraft=null; pendingFiles.shift(); $('batch-retry').hidden=true; await refresh(); }
-    catch(error){failure(error);return;} finally{busy(false);}
-    if(pendingFiles.length) await nextFile(); else message('Ready for more photos.');
-};
-$('camera').onchange = event => choose(event.target);
-$('files').onchange = event => choose(event.target);
-$('backend').onchange = () => $('docres-tasks').hidden = $('backend').value !== 'docres';
-$('stop-processing').onclick = () => renderAbort?.abort();
-$('whole').onclick = () => { corners = [[0,0],[1,0],[1,1],[0,1]]; draw(); };
-$('rotate').onclick = async () => {
-    busy(true);
-    try {
-        const image = $('photo'); await image.decode();
-        const canvas = document.createElement('canvas'); canvas.width = image.naturalHeight; canvas.height = image.naturalWidth;
-        const context = canvas.getContext('2d'); context.translate(canvas.width/2,canvas.height/2); context.rotate(Math.PI/2); context.drawImage(image,-image.naturalWidth/2,-image.naturalHeight/2);
-        const blob = await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
-        if(!blob) throw new Error(t('Upload or processing failed. Check the file size and format, then retry.'));
-        const old = previewUrl; previewUrl = URL.createObjectURL(blob); image.src = previewUrl; await image.decode(); if(old) URL.revokeObjectURL(old);
-        corners = [corners[3],corners[0],corners[1],corners[2]].map(p=>[1-p[1],p[0]]); rotation=(rotation+90)%360; draw();
-    } catch(error) { failure(error); } finally { busy(false); }
-};
-$('cancel').onclick = async () => { busy(true); try { await api('/remove/'+active.id,{method:'POST'}); active=null; show('pick'); message('Photo discarded.'); } catch(error) { failure(error); } finally { busy(false); } if(!active) await nextFile(); };
-$('render').onclick = async () => {
-    if($('backend').value === 'docres' && !$('docres-tasks').querySelector('input:checked')) { message('Select at least one DocRes task.',true); return; }
-    const crosses = corners.map((p,i)=>{const q=corners[(i+1)%4],r=corners[(i+2)%4];return (q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]);});
-    const area = Math.abs(corners.reduce((sum,p,i)=>{const q=corners[(i+1)%4];return sum+p[0]*q[1]-q[0]*p[1];},0))/2;
-    if(crosses.some(value=>value<.001)||area<.01){message('Corners overlap or are too close. Adjust the four handles.',true);return;}
-    busy(true); message('Correcting perspective and enhancing…');
-    renderAbort = new AbortController(); $('stop-processing').hidden = false;
-    const thisRender = renderAbort;
-    const stageTimer = setInterval(async()=>{try { const stage = await (await api('/progress')).text(); if(stage && renderAbort === thisRender && !thisRender.signal.aborted) message(stage); } catch {}},750);
-    try {
-        const response = await api('/render/'+active.id,{method:'POST',signal:renderAbort.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({corners,enhancement:$('enhancement').value,rotation,backend:$('backend').value,tasks:[...$('docres-tasks').querySelectorAll('input:checked')].map(input=>input.value)})});
-        if(resultUrl) URL.revokeObjectURL(resultUrl);
-        resultUrl=URL.createObjectURL(await response.blob()); $('result').src=resultUrl; $('result').alt=t('Corrected page preview'); show('confirm'); message('Check that no text was cut off.');
-    } catch(error) { failure(error); } finally { clearInterval(stageTimer); renderAbort=null; $('stop-processing').hidden=true; busy(false); }
-};
-$('back').onclick = () => { show('review'); message('Check all four corners.'); };
-$('accept').onclick = async () => { busy(true); try { await api('/accept/'+active.id,{method:'POST'}); active=null; show('pick'); await refresh(); message('Sent. Confirm the import on your computer.'); } catch(error) { failure(error); } finally { busy(false); } if(!active) await nextFile(); };
-message('Connecting…');
-refresh().then(()=>message('Connected. You can start taking photos.')).catch(failure);
-setInterval(()=>{if(!processing) refresh().catch(failure);},10000);
-</script>
+<script id="capture-configuration" type="application/json">{"strings":__CAPTURE_TEXT__,"language":__CAPTURE_LANGUAGE__}</script>
+<script type="module" src="/capture.js"></script>
+</body>
 </html>

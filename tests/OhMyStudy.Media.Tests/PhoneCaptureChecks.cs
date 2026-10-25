@@ -13,7 +13,53 @@ internal static class PhoneCaptureChecks
 {
     public static async Task RunAsync(Func<string, Func<Task>, Task> check)
     {
+        await PhoneCaptureProtocolChecks.RunAsync(check);
+        await check("phone_all_processing_off_preserves_original_pixels_and_geometry", async () =>
+        {
+            const int width = 96, height = 64;
+            var pixels = new byte[width * height * 4];
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+            {
+                int p = (y * width + x) * 4;
+                pixels[p] = (byte)(x * 2); pixels[p + 1] = (byte)(y * 3); pixels[p + 2] = (byte)(x + y); pixels[p + 3] = 255;
+            }
+            byte[] original = await NativeImageCodec.EncodePngAsync(pixels, width, height, default);
+            var images = new NativePageImages();
+            var corners = new[] { new[] { .2, .2 }, new[] { .8, .2 }, new[] { .8, .8 }, new[] { .2, .8 } };
+            foreach (var correction in new[]
+            {
+                new PhotoCorrection(corners, "original", Processing: new()),
+                new PhotoCorrection([], "gray", 90, "docres", [], new(Crop: true, Rectify: true, Grayscale: true))
+            })
+            {
+                byte[] output = await PhonePhotoProcessor.ProcessAsync(original, correction, default);
+                var raster = await images.RasterForUiAsync(output, 1000);
+                Require(raster.Width == width && raster.Height == height && raster.Bgra32.SequenceEqual(pixels));
+            }
+            var preview = await PhonePhotoProcessor.PreviewAsync(original, default);
+            Require(!preview.Detected && preview.Rotation == 0 && preview.Corners[0].SequenceEqual(new double[] { 0, 0 }));
+            byte[] cropped = await PhonePhotoProcessor.ProcessAsync(original, new(corners, "original", Processing: new(Crop: true)), default);
+            var croppedRaster = await images.RasterForUiAsync(cropped, 1000);
+            Require(croppedRaster.Width < width && croppedRaster.Height < height);
+        });
         await DocumentRestorationChecks.RunAsync(check);
+        await check("phone_standard_pipeline_detects_crops_orients_then_restores", async () =>
+        {
+            var raster = Paper();
+            byte[] original = await NativeImageCodec.EncodePngAsync(raster.Bgra32, (uint)raster.Width, (uint)raster.Height, default);
+            string model = Path.Combine(AppContext.BaseDirectory, "native", "scanner", "docaligner-lcnet.onnx");
+            using var detector = new NeuralPageDetector(model);
+            var detection = detector.Detect(raster);
+            var expected = detection.Detected ? DocumentScanner.Process(raster.Bgra32, raster.Width, raster.Height, detection.Corners, "original", maximumDimension: int.MaxValue) : raster;
+            using var orientation = new NeuralDocumentOrientation(Path.Combine(AppContext.BaseDirectory, "native", "scanner", "document-orientation.onnx"));
+            var direction = orientation.Detect(expected);
+            var rotated = NativeImageCodec.Rotate(expected.Bgra32, (uint)expected.Width, (uint)expected.Height, direction.Rotation, default);
+            expected = ClassicalDocumentRestoration.Restore(new(rotated.Pixels, (int)rotated.Width, (int)rotated.Height), shadows: true, deblur: true, appearance: true);
+            byte[] processed = await PhonePhotoProcessor.ProcessAsync(original, new([], "original", Processing: new(Crop: true, AutoOrientation: true, Shadows: true, Deblur: true, Appearance: true)), default);
+            var actual = await new NativePageImages().RasterForUiAsync(processed, 1200);
+            Require(actual.Width == expected.Width && actual.Height == expected.Height && actual.Bgra32.SequenceEqual(expected.Bgra32));
+            Require((await new NativePageImages().RasterForUiAsync(original, 1200)).Bgra32.SequenceEqual(raster.Bgra32));
+        });
         await check("scan_detects_skewed_page", () =>
         {
             var raster = Paper();
@@ -74,7 +120,7 @@ internal static class PhoneCaptureChecks
             Require(pending.Files.Count == 1 && !pending.Files[0].Ready && pending.Files[0].Corners?.Length == 4);
             Require((await client.GetAsync("/image/" + info.Id)).IsSuccessStatusCode);
             var correction = new PhotoCorrection(info.Corners!, "color", info.Rotation);
-            foreach (var invalidMode in new[] { correction with { Backend = "unknown" }, correction with { Backend = "docres", Tasks = [] }, correction with { Backend = "docres", Tasks = ["binarization"] } })
+            foreach (var invalidMode in new[] { correction with { Backend = "unknown" }, correction with { Backend = "docres", Tasks = ["binarization"] } })
             {
                 var rejected = await client.PostAsync("/render/" + info.Id, new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(invalidMode, PhoneCaptureJsonContext.Default.PhotoCorrection)));
                 Require(rejected.StatusCode == HttpStatusCode.BadRequest);
@@ -92,10 +138,15 @@ internal static class PhoneCaptureChecks
             Require(invalid.StatusCode == HttpStatusCode.BadRequest && errors.Count == 1);
             for (int i = 0; i < 12; i++) Require((await client.PostAsync("/upload?name=paper.pdf", new ByteArrayContent("%PDF-synthetic"u8.ToArray()))).IsSuccessStatusCode);
             Require((await client.PostAsync("/upload?name=extra.pdf", new ByteArrayContent("%PDF-synthetic"u8.ToArray()))).StatusCode == HttpStatusCode.BadRequest);
-            Require(server.Accepted.Count == 12);
+            Require(server.Accepted.Count == 0 && server.UploadedCount == 12);
+            var staged = JsonSerializer.Deserialize(await client.GetByteArrayAsync("/status"), PhoneCaptureJsonContext.Default.PhoneCaptureStatus)!;
+            var selection = new PhoneCaptureSelection(staged.Files.Select(file => file.Id).ToArray());
+            Require((await client.PostAsync("/accept-batch", new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(selection, PhoneCaptureJsonContext.Default.PhoneCaptureSelection)))).IsSuccessStatusCode);
             string removedId = server.Accepted[0].Id;
             Require((await client.PostAsync("/remove/" + removedId, null)).IsSuccessStatusCode);
             Require((await client.PostAsync("/upload?name=last.pdf", new ByteArrayContent("%PDF-synthetic"u8.ToArray()))).IsSuccessStatusCode);
+            staged = JsonSerializer.Deserialize(await client.GetByteArrayAsync("/status"), PhoneCaptureJsonContext.Default.PhoneCaptureStatus)!;
+            Require((await client.PostAsync("/accept/" + staged.Files[^1].Id, null)).IsSuccessStatusCode);
             Require((await server.TakeFilesAsync())[^1].Name == "last.pdf");
         });
         await check("phone_capture_progress_and_cancel_preserve_pending_original", async () =>
@@ -126,24 +177,44 @@ internal static class PhoneCaptureChecks
         });
     }
 
-    public static async Task<int> PreviewAsync()
+    private static IReadOnlyDictionary<string, byte[]> PhoneCaptureScripts()
+    {
+        var scripts = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (string name in new[] { "capture.js", "paper-detector.js", "paper-worker.js" })
+        {
+            using var resource = typeof(PhoneCaptureChecks).Assembly.GetManifestResourceStream("PhoneCapture.Script." + name)!;
+            byte[] bytes = new byte[checked((int)resource.Length)];
+            resource.ReadExactly(bytes);
+            scripts.Add("/" + name, bytes);
+        }
+        return scripts;
+    }
+
+    public static async Task<int> PreviewAsync(bool https = false)
     {
         string output = Path.Combine(Environment.CurrentDirectory, "output", "phone-capture-preview");
         Directory.CreateDirectory(output);
+        UiText.Initialize(Path.Combine(output, "language.local"), "en-US", Environment.GetEnvironmentVariable("OHMYSTUDY_CAPTURE_PREVIEW_LANGUAGE"));
         using var template = typeof(PhoneCaptureChecks).Assembly.GetManifestResourceStream("PhoneCapture.html")!;
         using var reader = new StreamReader(template);
+        using var font = typeof(PhoneCaptureChecks).Assembly.GetManifestResourceStream("PhoneCapture.Font")!;
+        using var fontBytes = new MemoryStream();
+        await font.CopyToAsync(fontBytes);
         using var catalog = typeof(UiText).Assembly.GetManifestResourceStream("OhMyStudy.App.Localization.en-US.xml")!;
         var translations = XDocument.Load(catalog).Root!.Elements("text").Where(e => ((string)e.Attribute("key")!).StartsWith("PhoneCapture.", StringComparison.Ordinal))
-            .ToDictionary(e => e.Value, e => e.Value);
+            .ToDictionary(e => e.Value, e => UiText.GetByKey((string)e.Attribute("key")!));
         string html = (await reader.ReadToEndAsync()).Replace("__CAPTURE_TEXT__", JsonSerializer.Serialize(translations, PhoneCaptureJsonContext.Default.DictionaryStringString), StringComparison.Ordinal)
-            .Replace("__CAPTURE_LANGUAGE__", "\"en-US\"", StringComparison.Ordinal);
-        await using var server = new PhoneCaptureServer(PhonePhotoProcessor.AnalyzeAsync, PhonePhotoProcessor.ProcessAsync, error => Console.Error.WriteLine(error));
-        await server.StartAsync(IPAddress.Loopback, html);
+            .Replace("__CAPTURE_FONT__", Convert.ToBase64String(fontBytes.ToArray()), StringComparison.Ordinal)
+            .Replace("__CAPTURE_LANGUAGE__", JsonSerializer.Serialize(UiText.Language, PhoneCaptureJsonContext.Default.String), StringComparison.Ordinal);
+        await using var server = new PhoneCaptureServer(PhonePhotoProcessor.AnalyzeAsync, PhonePhotoProcessor.ProcessAsync, error => Console.Error.WriteLine(error), preview: PhonePhotoProcessor.PreviewAsync, scripts: PhoneCaptureScripts());
+        using var certificate = https ? new PhoneCaptureCertificate(IPAddress.Loopback) : null;
+        await server.StartAsync(IPAddress.Loopback, html, certificate: certificate?.Certificate, chain: certificate?.Chain);
         await File.WriteAllTextAsync(Path.Combine(output, "url.txt"), server.Url);
+        await File.WriteAllTextAsync(Path.Combine(output, "http-url.txt"), server.HttpUrl);
         var raster = Paper();
         await File.WriteAllBytesAsync(Path.Combine(output, "paper.png"), await NativeImageCodec.EncodePngAsync(raster.Bgra32, (uint)raster.Width, (uint)raster.Height, default));
-        Console.WriteLine("Phone capture preview is running on loopback for five minutes.");
-        await Task.Delay(TimeSpan.FromMinutes(5));
+        Console.WriteLine("Phone capture preview is running on loopback for twenty minutes.");
+        await Task.Delay(TimeSpan.FromMinutes(20));
         return 0;
     }
 

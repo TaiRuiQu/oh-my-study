@@ -7,7 +7,7 @@ namespace OhMyStudy.Documents;
 
 public sealed record DocResStatus(bool Eligible, bool Installed, bool Enabled, string Reason);
 public readonly record struct DocResInstallProgress(long Current, long Total, string Name);
-internal sealed record DocResRequest(string Input, string Output, int Width, int Height, int DeviceIndex, string[] Tasks, bool PreCropped);
+internal sealed record DocResRequest(string Input, string Output, int Width, int Height, int DeviceIndex, string[] Tasks, bool Encoded);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(DocResRequest))]
@@ -76,7 +76,31 @@ public static class DocResRestoration
         if (!Status().Installed) throw new InvalidDataException("DocRes installation did not pass its CUDA self-test.");
     }
 
-    public static async Task<ScanRaster> RestoreAsync(ScanRaster raster, string[] tasks, CancellationToken cancellationToken, Action<string>? progress = null, bool preCropped = false)
+    public static async Task<byte[]> RestoreOriginalAsync(byte[] original, string[] tasks, CancellationToken cancellationToken, Action<string>? progress = null)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (tasks.Length == 0 || tasks.Any(task => task is not ("dewarping" or "deshadowing" or "deblurring" or "appearance")) || tasks.Distinct().Count() != tasks.Length)
+            throw new InvalidDataException("Select valid DocRes restoration tasks");
+        var status = Status();
+        if (!status.Eligible || !status.Installed || !status.Enabled) throw new InvalidOperationException("DocRes is unavailable. Install and enable DocRes on this computer. " + status.Reason);
+        var gpu = DocumentRestorationGpu.Probe(RuntimeLibrary).Device ?? throw new InvalidOperationException("The selected CUDA device is no longer available.");
+        string temporary = Path.Combine(Root, "work", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temporary);
+        try
+        {
+            string input = Path.Combine(temporary, "original.img"), output = Path.Combine(temporary, "output.png"), request = Path.Combine(temporary, "request.json");
+            await File.WriteAllBytesAsync(input, original, cancellationToken).ConfigureAwait(false);
+            var data = new DocResRequest(input, output, 0, 0, gpu.Index, tasks, true);
+            await File.WriteAllTextAsync(request, JsonSerializer.Serialize(data, DocResJsonContext.Default.DocResRequest), cancellationToken).ConfigureAwait(false);
+            await RunAsync(Python, ["-I", "-B", "-X", "utf8", Path.Combine(Scripts, "worker.py"), "--root", Root, "--request", request], progress, cancellationToken).ConfigureAwait(false);
+            byte[] bytes = await File.ReadAllBytesAsync(output, cancellationToken).ConfigureAwait(false);
+            if (!bytes.AsSpan().StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })) throw new InvalidDataException("DocRes returned an invalid PNG");
+            return bytes;
+        }
+        finally { Directory.Delete(temporary, true); }
+    }
+
+    public static async Task<ScanRaster> RestoreAsync(ScanRaster raster, string[] tasks, CancellationToken cancellationToken, Action<string>? progress = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (tasks.Length == 0 || tasks.Any(t => t is not ("dewarping" or "deshadowing" or "deblurring" or "appearance")) || tasks.Distinct().Count() != tasks.Length)
@@ -90,7 +114,7 @@ public static class DocResRestoration
         {
             string input = Path.Combine(temporary, "input.bgra"), output = Path.Combine(temporary, "output.bgra"), request = Path.Combine(temporary, "request.json");
             await File.WriteAllBytesAsync(input, raster.Bgra32, cancellationToken).ConfigureAwait(false);
-            var data = new DocResRequest(input, output, raster.Width, raster.Height, gpu.Index, tasks, preCropped);
+            var data = new DocResRequest(input, output, raster.Width, raster.Height, gpu.Index, tasks, false);
             await File.WriteAllTextAsync(request, JsonSerializer.Serialize(data, DocResJsonContext.Default.DocResRequest), cancellationToken).ConfigureAwait(false);
             await RunAsync(Python, ["-I", "-B", "-X", "utf8", Path.Combine(Scripts, "worker.py"), "--root", Root, "--request", request], progress, cancellationToken).ConfigureAwait(false);
             byte[] bytes = await File.ReadAllBytesAsync(output, cancellationToken).ConfigureAwait(false);

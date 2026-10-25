@@ -15,13 +15,8 @@
     <text key="S0012" xml:space="preserve">間違えた問題はまだありません</text>
     <text key="S0013" xml:space="preserve">問題を認識中</text>
     <text key="S0014" xml:space="preserve">問題はまだありません</text>
-    <text key="S0015" xml:space="preserve">採点後に復習が必要な問題がここに表示されます。</text>
-    <text key="S0016" xml:space="preserve">認識された問題は自動で表示されます。進捗はタスクで確認できます。</text>
-    <text key="S0017" xml:space="preserve">この試験の問題はまだ認識されていません。上部から再認識できます。</text>
-    <text key="S0018" xml:space="preserve">試験ページで PDF や画像をインポートすると、認識された問題が問題集に追加されます。</text>
     <text key="S0019" xml:space="preserve">為替レート {0}：1 米ドル = {1:0.####} 人民元</text>
     <text key="S0020" xml:space="preserve">（キャッシュ）</text>
-    <text key="S0021" xml:space="preserve">通貨を選択すると人民元換算を表示します。</text>
     <text key="S0022" xml:space="preserve">為替レートを取得できません。人民元換算は表示できませんが、元の価格は保持されています。</text>
     <text key="S0023" xml:space="preserve">未設定</text>
     <text key="S0024" xml:space="preserve">人民元換算：未キャッシュ {0}    キャッシュ {1}    書き込み {2}    出力 {3}</text>
@@ -71,7 +66,6 @@
     <text key="S0068" xml:space="preserve">このコンピューターでは現在印刷できません。</text>
     <text key="S0069" xml:space="preserve">印刷を準備中…</text>
     <text key="S0070" xml:space="preserve">印刷画面を開けません。プリンターを確認してください。</text>
-    <text key="S0071" xml:space="preserve">印刷画面でプリンターと用紙を選択してください。</text>
     <text key="S0072" xml:space="preserve">印刷を準備できません。原本とプリンターを確認してください。</text>
     <text key="S0073" xml:space="preserve">プリンターに送信しました。</text>
     <text key="S0074" xml:space="preserve">印刷をキャンセルしました。</text>
@@ -139,7 +133,6 @@
     <text key="S0136" xml:space="preserve">回転を保存できません。タスク終了後に再試行してください。</text>
     <text key="S0137" xml:space="preserve">保存先にアクセスできません。</text>
     <text key="S0138" xml:space="preserve">キャンセルが完了しませんでした。後で再試行してください。</text>
-    <text key="S0139" xml:space="preserve">インポートした資料がここに表示されます。</text>
     <text key="S0140" xml:space="preserve">旧バージョンの資料が見つかりました</text>
     <text key="S0141" xml:space="preserve">「その他」からインポートできます。元の資料は保持されます。</text>
     <text key="S0142" xml:space="preserve">ライブラリを開けません。保存先を確認するか、設定で既存のライブラリを選択してください。</text>
@@ -151,7 +144,7 @@
     <text key="S0148" xml:space="preserve">一度に 12 ページまでインポートできます。</text>
     <text key="S0149" xml:space="preserve">インポート中…</text>
     <text key="S0150" xml:space="preserve">1 ファイル 64 MB、合計 256 MB が上限です。分割して再試行してください。</text>
-    <text key="S0151" xml:space="preserve">参考解答を追加しました。再整理できます。</text>
+    <text key="S0151" xml:space="preserve">参考解答を追加しました。</text>
     <text key="S0152" xml:space="preserve">インポートをキャンセルしました。</text>
     <text key="S0153" xml:space="preserve">試験を取り込み、認識を開始しました。問題集を開き直して更新してください。</text>
     <text key="S0154" xml:space="preserve">試験を保存しましたが、認識を開始できませんでした。試験から再認識してください。</text>
@@ -163,8 +156,7 @@
     <text key="S0160" xml:space="preserve">インポートできません。ファイルを選択し直してください。</text>
     <text key="S0161" xml:space="preserve">先に資料を選択してください。</text>
     <text key="S0162" xml:space="preserve">ファイルを開けません。再試行してください。</text>
-    <text key="S0163" xml:space="preserve">モデルがありません。一覧を取得するか手動で追加してください。</text>
-    <text key="S0164" xml:space="preserve">モデルを追加する前にプロバイダーを保存してください。</text>
+    <text key="S0163" xml:space="preserve">モデルはありません。</text>
     <text key="S0165" xml:space="preserve">先に利用できるライブラリを選択してください。</text>
     <text key="S0166" xml:space="preserve">モデルがあるプロバイダーの接続方式は変更できません。新規に追加してください。</text>
     <text key="S0167" xml:space="preserve">保存しましたが、古いキーを削除できません。後で再度保存してください。</text>
@@ -309,8 +301,6 @@
     <text key="S0302" xml:space="preserve">試験：{0} / {1} 件</text>
     <text key="S0303" xml:space="preserve">試験はまだありません</text>
     <text key="S0304" xml:space="preserve">試験が見つかりません</text>
-    <text key="S0305" xml:space="preserve">PDF や試験画像をインポートして始めましょう。</text>
-    <text key="S0306" xml:space="preserve">別のキーワードや科目をお試しください。</text>
     <text key="S0307" xml:space="preserve">試験を開けません。後で再試行してください。</text>
     <text key="S0308" xml:space="preserve">タイトル</text>
     <text key="S0309" xml:space="preserve">例：数学、国語、英語</text>
@@ -405,7 +395,6 @@
     <text key="S0398" xml:space="preserve">ページサイズが無効です。 </text>
     <text key="S0399" xml:space="preserve">サンプル資料</text>
     <text key="S0400" xml:space="preserve">表示と編集ができますが、変更は保存されません。</text>
-    <text key="S0401" xml:space="preserve">資料を整理し、間違えた問題を復習して、学習をもっと快適に。</text>
     <text key="S0402" xml:space="preserve">わかりました</text>
     <text key="S0403" xml:space="preserve">Windows が印刷非対応を報告しています。ネイティブ API のみ確認し、システム・実機の印刷は未検証です。</text>
     <text key="S0404" xml:space="preserve">スクリーンショットには絶対パスが必要です。</text>
@@ -521,7 +510,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0512" xml:space="preserve">問題の内容</text>
     <text key="S0513" xml:space="preserve">解答</text>
     <text key="S0514" xml:space="preserve">メモ</text>
-    <text key="S0515" xml:space="preserve">理解したことや復習のヒントを記録</text>
     <text key="S0516" xml:space="preserve">最近のタスク</text>
     <text key="S0517" xml:space="preserve">タスク一覧</text>
     <text key="S0518" xml:space="preserve">タスクを選択</text>
@@ -539,8 +527,7 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0530" xml:space="preserve">タスク処理中</text>
     <text key="S0531" xml:space="preserve">最新の記録へスクロール</text>
     <text key="S0532" xml:space="preserve">最新</text>
-    <text key="S0533" xml:space="preserve">認識の進捗をいつでも確認</text>
-    <text key="S0534" xml:space="preserve">試験の取り込み後、読み取り・認識・保存の各ステップを確認できます。</text>
+    <text key="S0533" xml:space="preserve">タスクはありません</text>
     <text key="S0535" xml:space="preserve">モデル</text>
     <text key="S0536" xml:space="preserve">プロバイダー</text>
     <text key="S0537" xml:space="preserve">プロバイダー一覧</text>
@@ -568,7 +555,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0559" xml:space="preserve">思考の強度オプション</text>
     <text key="S0560" xml:space="preserve">思考の予算</text>
     <text key="S0561" xml:space="preserve">空欄で未設定</text>
-    <text key="S0562" xml:space="preserve">対応する思考強度のみを選択し、画像やツールの機能が未確認の場合は未設定にしてください。</text>
     <text key="S0563" xml:space="preserve">料金</text>
     <text key="S0564" xml:space="preserve">入力（未キャッシュ）</text>
     <text key="S0565" xml:space="preserve">入力（キャッシュ）</text>
@@ -680,7 +666,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0671" xml:space="preserve">問題を読み込めませんでした。しばらくしてから再試行してください。</text>
     <text key="S0672" xml:space="preserve">問題：{0} / {1} 問</text>
     <text key="S0673" xml:space="preserve">問題が見つかりません</text>
-    <text key="S0674" xml:space="preserve">別のキーワード、科目、採点結果でお試しください。</text>
     <text key="S0675" xml:space="preserve">この問題はもう存在しません。</text>
     <text key="S0676" xml:space="preserve">学習項目</text>
     <text key="S0677" xml:space="preserve">小問 {0} 個</text>
@@ -698,7 +683,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0689" xml:space="preserve">Search</text>
     <text key="S0690" xml:space="preserve">キャンセル</text>
     <text key="S0691" xml:space="preserve">Resize question list</text>
-    <text key="S0692" xml:space="preserve">Drag left or right, or use the arrow keys to resize</text>
     <text key="S0693" xml:space="preserve">Meaning search models</text>
     <text key="S0694" xml:space="preserve">Embedding and reranker connections are independent of recognition providers. Each Base URL is used as entered, with /embeddings or /rerank appended. Include /v1 if your service requires it.</text>
     <text key="S0695" xml:space="preserve">Embedding model</text>
@@ -716,9 +700,8 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0707" xml:space="preserve">Local index cleared. The next meaning search will rebuild it after confirmation.</text>
     <text key="S0708" xml:space="preserve">Could not clear the search index. Try again.</text>
     <text key="S0709" xml:space="preserve">Describe the question or concept</text>
-    <text key="S0710" xml:space="preserve">Describe what you want to find, then press Search or Enter. Model calls require confirmation.</text>
     <text key="S0711" xml:space="preserve">Search canceled. Completed embeddings are kept locally.</text>
-    <text key="S0712" xml:space="preserve">Showing up to 50 questions ranked by meaning. Change the query or filters and search again to refresh.</text>
+    <text key="S0712" xml:space="preserve">意味の関連度順に最大50問を表示しています。</text>
     <text key="S0713" xml:space="preserve">Configure an embedding Base URL and model name in Settings first.</text>
     <text key="S0714" xml:space="preserve">Describe the question or concept first.</text>
     <text key="S0715" xml:space="preserve">Preparing local search index…</text>
@@ -732,7 +715,7 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0723" xml:space="preserve">Preparing embeddings: {0} / {1}</text>
     <text key="S0724" xml:space="preserve">The search vectors or model response are inconsistent. Clear the local search index in Settings and try again.</text>
     <text key="S0725" xml:space="preserve">Meaning search failed. Check the search models in Settings and try again.</text>
-    <text key="S0726" xml:space="preserve">Filters changed. Press Search to refresh meaning results.</text>
+    <text key="S0726" xml:space="preserve">検索結果は未更新です。</text>
     <text key="S0727" xml:space="preserve">The embedding response is invalid. Check the endpoint and model.</text>
     <text key="S0728" xml:space="preserve">The reranker response is invalid. Check the endpoint and model, or clear the reranker configuration.</text>
     <text key="S0729" xml:space="preserve">The search model key is unavailable. Enter it again in Settings.</text>
@@ -747,7 +730,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0738" xml:space="preserve">API の種類</text>
     <text key="S0739" xml:space="preserve">OpenAI 互換</text>
     <text key="S0740" xml:space="preserve">領域のサイズを調整</text>
-    <text key="S0741" xml:space="preserve">ドラッグまたは矢印キーで調整。Home/End で最小/最大にします。</text>
     <text key="S0742" xml:space="preserve">新しい問題文は自動インデックス作成のため {0} に送信され、{1} を使用します。追加料金が発生する場合があります。</text>
     <text key="S0743" xml:space="preserve">最大出力トークン数（max_tokens）</text>
     <text key="S0744" xml:space="preserve">空欄で自動設定</text>
@@ -761,7 +743,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0752" xml:space="preserve">このタスクには再試行用の復元記録がありません。試験の「再認識」を使用して保存済みの結果を保持してください。</text>
     <text key="S0753" xml:space="preserve">このタスクが保存した問題は手動編集されています。試験の「再認識」を使用して編集内容を保持してください。</text>
     <text key="S0754" xml:space="preserve">Files API に対応</text>
-    <text key="S0755" xml:space="preserve">ファイルのアップロードと画像ファイル ID に対応したプロバイダーでのみ有効にしてください。ファイルは 1 時間後に期限切れとなり、タスク終了時に削除されます。</text>
     <text key="S0756" xml:space="preserve">画像をプロバイダーの Files API にアップロードし、以後はファイル ID で参照します。ファイルは 1 時間後に期限切れとなり、タスク終了時に削除されます。保存やモデルの料金が発生する場合があります。</text>
     <text key="S0757" xml:space="preserve">プロバイダーの Files API に画像をアップロード中</text>
     <text key="S0758" xml:space="preserve">プロバイダーが Files API 操作を拒否しました。Files API への対応、ファイル権限、有効期限パラメーターを確認してください。</text>
@@ -771,7 +752,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0762" xml:space="preserve">生徒の解答をアップロード</text>
     <text key="S0763" xml:space="preserve">生徒の解答を入力</text>
     <text key="S0764" xml:space="preserve">誤答の原因分析</text>
-    <text key="S0765" xml:space="preserve">生徒自身の解答を入力してください。保存後に再認識すると、採点と誤答の原因分析を行えます。</text>
     <text key="S0766" xml:space="preserve">生徒の解答を追加しました。再認識して採点してください。</text>
     <text key="S0767" xml:space="preserve">生徒の解答が変更されました。再認識して採点してください。</text>
     <text key="S0768" xml:space="preserve">結果を確認</text>
@@ -790,23 +770,30 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="S0781" xml:space="preserve">更新を確認できませんでした。接続を確認して、後でもう一度お試しください。</text>
     <text key="S0782" xml:space="preserve">更新をダウンロードできませんでした。後でもう一度お試しください。</text>
     <text key="S0783" xml:space="preserve">更新をインストールしました。アプリを再起動して続行してください。</text>
+    <text key="S0784" xml:space="preserve">Codex モード</text>
+    <text key="S0785" xml:space="preserve">A4 縦</text>
+    <text key="S0786" xml:space="preserve">段数</text>
+    <text key="S0787" xml:space="preserve">図</text>
+    <text key="S0788" xml:space="preserve">表示幅（%）</text>
+    <text key="S0789" xml:space="preserve">Mermaid コード</text>
+    <text key="S0790" xml:space="preserve">図のキャプション</text>
+    <text key="S0791" xml:space="preserve">図を追加</text>
+    <text key="S0792" xml:space="preserve">図の問題</text>
     <text key="PhoneCapture.000" xml:space="preserve">インポート元</text>
-    <text key="PhoneCapture.001" xml:space="preserve">このPCのファイルを選ぶか、QRコードを読み取ってスマートフォンで撮影します。</text>
     <text key="PhoneCapture.002" xml:space="preserve">ファイルを選択</text>
     <text key="PhoneCapture.003" xml:space="preserve">スマートフォンで撮影</text>
     <text key="PhoneCapture.004" xml:space="preserve">PCをWi-Fiまたは有線LANに接続して再試行してください。</text>
-    <text key="PhoneCapture.005" xml:space="preserve">スマートフォンを同じWi-Fiに接続し、カメラでQRコードを読み取ります。アプリやアカウントは不要です。</text>
+    <text key="PhoneCapture.005" xml:space="preserve">スマートフォンとPCを同じWi-Fiに接続してください。</text>
     <text key="PhoneCapture.006" xml:space="preserve">PCのネットワーク</text>
     <text key="PhoneCapture.007" xml:space="preserve">スキャンしてスマートフォンを接続</text>
     <text key="PhoneCapture.008" xml:space="preserve">接続リンク</text>
     <text key="PhoneCapture.009" xml:space="preserve">リンクをコピー</text>
     <text key="PhoneCapture.010" xml:space="preserve">接続できない場合、Windowsの確認でプライベートネットワークを許可してください。ゲストWi-Fiを避け、テザリングや別のネットワークを試してください。HTTP接続は信頼できるネットワークで使用してください。</text>
-    <text key="PhoneCapture.011" xml:space="preserve">{0}ファイルを受信しました。撮影後に「インポート」を押してください。</text>
+    <text key="PhoneCapture.011" xml:space="preserve">{0}件のファイルを受信しました。</text>
     <text key="PhoneCapture.012" xml:space="preserve">接続待機中。コードの有効期限は{0:t}です。</text>
     <text key="PhoneCapture.013" xml:space="preserve">スマートフォン撮影を開始できません。ネットワークを確認するか切り替えてください。</text>
     <text key="PhoneCapture.014" xml:space="preserve">コードの期限が切れました。受信済みファイルをインポートするか、開き直して新しいコードを取得してください。</text>
     <text key="PhoneCapture.015" xml:space="preserve">スマートフォンで撮影して取り込む</text>
-    <text key="PhoneCapture.016" xml:space="preserve">1ページずつ撮影し、四隅を確認してPCに送信します。</text>
     <text key="PhoneCapture.017" xml:space="preserve">撮影する</text>
     <text key="PhoneCapture.018" xml:space="preserve">画像またはPDFを選択</text>
     <text key="PhoneCapture.019" xml:space="preserve">最大12ページ、1ファイル64 MB、1回256 MBまで。原本と処理後の画像を含みます。</text>
@@ -822,7 +809,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.029" xml:space="preserve">再調整</text>
     <text key="PhoneCapture.030" xml:space="preserve">このページを送信</text>
     <text key="PhoneCapture.031" xml:space="preserve">PCに送信済み</text>
-    <text key="PhoneCapture.032" xml:space="preserve">完了後、PCで「インポート」を押してください。認識には既存のモデル設定を使います。</text>
     <text key="PhoneCapture.033" xml:space="preserve">一時接続は20分間有効です。この画面を開いたまま、信頼できるWi-Fiを使ってください。写真はローカルHTTPでPCに直接送られます。</text>
     <text key="PhoneCapture.034" xml:space="preserve">接続が期限切れです。PCのQRコードを再度読み取ってください。</text>
     <text key="PhoneCapture.035" xml:space="preserve">ファイルが64 MBを超えています。小さいファイルを選んでください。</text>
@@ -838,7 +824,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.045" xml:space="preserve">PCにアップロード中…</text>
     <text key="PhoneCapture.046" xml:space="preserve">送信しました。PCでインポートを確認してください。</text>
     <text key="PhoneCapture.047" xml:space="preserve">写真のプレビュー</text>
-    <text key="PhoneCapture.048" xml:space="preserve">ページの端を検出しました。必要に応じて四隅をドラッグしてください。</text>
     <text key="PhoneCapture.049" xml:space="preserve">ページの端を検出できません。四隅をドラッグするか写真全体を使用してください。</text>
     <text key="PhoneCapture.050" xml:space="preserve">四隅を確認してください。</text>
     <text key="PhoneCapture.051" xml:space="preserve">写真を破棄しました。</text>
@@ -846,13 +831,10 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.053" xml:space="preserve">補正後のプレビュー</text>
     <text key="PhoneCapture.054" xml:space="preserve">文字が切れていないか確認してください。</text>
     <text key="PhoneCapture.055" xml:space="preserve">接続中…</text>
-    <text key="PhoneCapture.056" xml:space="preserve">接続しました。撮影を始められます。</text>
     <text key="PhoneCapture.057" xml:space="preserve">未送信</text>
     <text key="PhoneCapture.058" xml:space="preserve">編集を続ける</text>
     <text key="PhoneCapture.059" xml:space="preserve">右に回転</text>
-    <text key="PhoneCapture.060" xml:space="preserve">ページの向きを確認し、必要に応じて回転してください。</text>
-    <text key="PhoneCapture.061" xml:space="preserve">向きを自動補正しました。手動でも回転できます。</text>
-    <text key="PhoneCapture.062" xml:space="preserve">送信前にページの向きを確認してください。</text>
+    <text key="PhoneCapture.061" xml:space="preserve">ページの向きを自動補正しました。</text>
     <text key="PhoneCapture.063" xml:space="preserve">四隅が重なっているか近すぎます。位置を調整してください。</text>
     <text key="PhoneCapture.064" xml:space="preserve">インポート</text>
     <text key="PhoneCapture.065" xml:space="preserve">PC受信済み：{0} / 12ファイル。アップロード待ち：{1}。</text>
@@ -860,44 +842,141 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.067" xml:space="preserve">このファイルを再試行</text>
     <text key="PhoneCapture.068" xml:space="preserve">1回最大12ファイルです。このバッチをインポートしてから次を始めてください。</text>
     <text key="PhoneCapture.069" xml:space="preserve">続けて撮影できます。</text>
-    <text key="PhoneCapture.070" xml:space="preserve">Checking local document restoration capabilities…</text>
-    <text key="PhoneCapture.071" xml:space="preserve">Standard: DocScanner rectification, OpenCV shadow removal and mild defocus recovery. Optional DocRes: 855 MiB of weights plus several GB of isolated Python and CUDA dependencies. Downloads stay on this computer.</text>
-    <text key="PhoneCapture.072" xml:space="preserve">Download and install DocRes</text>
-    <text key="PhoneCapture.073" xml:space="preserve">Enable optional DocRes restoration</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocRes is installed. Enable it to select neural restoration on your phone.</text>
-    <text key="PhoneCapture.075" xml:space="preserve">DocRes is available for this computer. Download it explicitly to use it.</text>
-    <text key="PhoneCapture.076" xml:space="preserve">DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.</text>
-    <text key="PhoneCapture.077" xml:space="preserve">Cancel DocRes download</text>
-    <text key="PhoneCapture.078" xml:space="preserve">Downloading and checking DocRes locally. This may take several minutes…</text>
-    <text key="PhoneCapture.079" xml:space="preserve">DocRes download canceled. Standard restoration remains available.</text>
-    <text key="PhoneCapture.080" xml:space="preserve">DocRes installation failed. Check the diagnostic log, free disk space, and CUDA installation. Standard restoration remains available.</text>
-    <text key="PhoneCapture.081" xml:space="preserve">Document restoration</text>
-    <text key="PhoneCapture.082" xml:space="preserve">Standard (DocScanner + OpenCV)</text>
-    <text key="PhoneCapture.083" xml:space="preserve">DocRes (optional CUDA)</text>
-    <text key="PhoneCapture.084" xml:space="preserve">Install and enable optional DocRes on your computer to use it here.</text>
-    <text key="PhoneCapture.085" xml:space="preserve">DocRes tasks</text>
-    <text key="PhoneCapture.086" xml:space="preserve">Dewarp curved pages</text>
-    <text key="PhoneCapture.087" xml:space="preserve">Remove shadows</text>
-    <text key="PhoneCapture.088" xml:space="preserve">Recover mild blur</text>
-    <text key="PhoneCapture.089" xml:space="preserve">Enhance appearance</text>
-    <text key="PhoneCapture.090" xml:space="preserve">Cancel processing</text>
-    <text key="PhoneCapture.091" xml:space="preserve">Processing canceled. Your original photo and corner edits are preserved.</text>
-    <text key="PhoneCapture.092" xml:space="preserve">DocRes could not process this page. Select Standard restoration and retry. Check CUDA memory and the diagnostic log on your computer.</text>
-    <text key="PhoneCapture.093" xml:space="preserve">DocScanner: rectifying page…</text>
-    <text key="PhoneCapture.094" xml:space="preserve">OpenCV: removing shadows and recovering mild blur…</text>
-    <text key="PhoneCapture.095" xml:space="preserve">DocRes: loading local CUDA models…</text>
-    <text key="PhoneCapture.096" xml:space="preserve">DocRes: dewarping</text>
-    <text key="PhoneCapture.097" xml:space="preserve">DocRes: deshadowing</text>
-    <text key="PhoneCapture.098" xml:space="preserve">DocRes: deblurring</text>
-    <text key="PhoneCapture.099" xml:space="preserve">DocRes: appearance</text>
-    <text key="PhoneCapture.100" xml:space="preserve">Select at least one DocRes task.</text>
-    <text key="PhoneCapture.101" xml:space="preserve">No enhancement keeps geometric correction and skips all photometric tasks.</text>
-    <text key="PhoneCapture.102" xml:space="preserve">Downloading {0}… {1}%</text>
-    <text key="PhoneCapture.103" xml:space="preserve">Downloading dependencies… {0}%</text>
-    <text key="PhoneCapture.104" xml:space="preserve">Downloading {0}…</text>
-    <text key="PhoneCapture.105" xml:space="preserve">Downloading dependencies…</text>
-    <text key="PhoneCapture.106" xml:space="preserve">Installing isolated CUDA runtime and PyTorch; this can download several GB.</text>
-    <text key="PhoneCapture.107" xml:space="preserve">Checking weights and running CUDA inference on the selected physical device.</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocRes installation verified. Enable it explicitly to use it.</text>
-    <text key="PhoneCapture.109" xml:space="preserve">DocRes download progress</text>
+    <text key="PhoneCapture.070" xml:space="preserve">ローカルの文書修復機能を検査しています…</text>
+    <text key="PhoneCapture.071" xml:space="preserve">標準：DocScanner による補正、OpenCV による影除去と軽度のぼけ回復。任意の DocRes：モデル重み 855 MiB に加え、分離された Python と CUDA 依存関係に数 GB 必要です。ダウンロードはこのコンピューターに保持されます。</text>
+    <text key="PhoneCapture.072" xml:space="preserve">DocRes をダウンロードしてインストール</text>
+    <text key="PhoneCapture.073" xml:space="preserve">任意の DocRes 修復を有効にする</text>
+    <text key="PhoneCapture.074" xml:space="preserve">DocResはインストール済みです。</text>
+    <text key="PhoneCapture.075" xml:space="preserve">このPCではDocResを利用できます。</text>
+    <text key="PhoneCapture.076" xml:space="preserve">DocRes には専用 VRAM が 12 GiB を超える NVIDIA 独立 GPU と、正常に動作するインストール済み CUDA ランタイムが必要です。ちょうど 12 GiB では対象外です。</text>
+    <text key="PhoneCapture.077" xml:space="preserve">DocRes のダウンロードをキャンセル</text>
+    <text key="PhoneCapture.078" xml:space="preserve">DocRes をローカルにダウンロードして検査しています。しばらく時間がかかる場合があります…</text>
+    <text key="PhoneCapture.079" xml:space="preserve">DocRes のダウンロードをキャンセルしました。標準修復は引き続き利用できます。</text>
+    <text key="PhoneCapture.080" xml:space="preserve">DocRes のインストールに失敗しました。診断ログ、ディスクの空き容量、CUDA のインストール状況を確認してください。標準修復は引き続き利用できます。</text>
+    <text key="PhoneCapture.081" xml:space="preserve">文書修復</text>
+    <text key="PhoneCapture.082" xml:space="preserve">標準（DocScanner + OpenCV）</text>
+    <text key="PhoneCapture.083" xml:space="preserve">DocRes（任意の CUDA）</text>
+    <text key="PhoneCapture.084" xml:space="preserve">このコンピューターで任意の DocRes をインストールして有効にすると、ここで使用できます。</text>
+    <text key="PhoneCapture.085" xml:space="preserve">DocRes タスク</text>
+    <text key="PhoneCapture.086" xml:space="preserve">曲がったページ会展平</text>
+    <text key="PhoneCapture.087" xml:space="preserve">影を除去</text>
+    <text key="PhoneCapture.088" xml:space="preserve">軽度のぼけを回復</text>
+    <text key="PhoneCapture.089" xml:space="preserve">外観を強調</text>
+    <text key="PhoneCapture.090" xml:space="preserve">処理をキャンセル</text>
+    <text key="PhoneCapture.091" xml:space="preserve">処理をキャンセルしました。元の写真と角点の編集は保持されます。</text>
+    <text key="PhoneCapture.092" xml:space="preserve">DocRes はこのページを処理できませんでした。標準修復を選択して再試行してください。コンピューターの CUDA メモリと診断ログを確認してください。</text>
+    <text key="PhoneCapture.093" xml:space="preserve">DocScanner：ページ会展平中…</text>
+    <text key="PhoneCapture.094" xml:space="preserve">OpenCV：影除去と軽度のぼけ回復中…</text>
+    <text key="PhoneCapture.095" xml:space="preserve">DocRes：ローカル CUDA モデルを読み込み中…</text>
+    <text key="PhoneCapture.096" xml:space="preserve">DocRes：会展平</text>
+    <text key="PhoneCapture.097" xml:space="preserve">DocRes：影除去</text>
+    <text key="PhoneCapture.098" xml:space="preserve">DocRes：ぼけ除去</text>
+    <text key="PhoneCapture.099" xml:space="preserve">DocRes：外観強調</text>
+    <text key="PhoneCapture.100" xml:space="preserve">DocRes タスクを 1 つ以上選択してください。</text>
+    <text key="PhoneCapture.101" xml:space="preserve">「不增强」は幾何補正を保持し、すべての光度タスクをスキップします。</text>
+    <text key="PhoneCapture.102" xml:space="preserve">{0} をダウンロード中… {1}%</text>
+    <text key="PhoneCapture.103" xml:space="preserve">依存関係をダウンロード中… {0}%</text>
+    <text key="PhoneCapture.104" xml:space="preserve">{0} をダウンロード中…</text>
+    <text key="PhoneCapture.105" xml:space="preserve">依存関係をダウンロード中…</text>
+    <text key="PhoneCapture.106" xml:space="preserve">分離された CUDA ランタイムと PyTorch をインストールしています。数 GB のダウンロードが必要になる場合があります。</text>
+    <text key="PhoneCapture.107" xml:space="preserve">重みを確認し、選択した物理デバイスで CUDA 推論を実行しています。</text>
+    <text key="PhoneCapture.108" xml:space="preserve">DocResのインストールを検証しました。</text>
+    <text key="PhoneCapture.109" xml:space="preserve">DocRes のダウンロード進捗</text>
+    <text key="PhoneCapture.Batch.000" xml:space="preserve">撮影</text>
+    <text key="PhoneCapture.Batch.001" xml:space="preserve">確認</text>
+    <text key="PhoneCapture.Batch.002" xml:space="preserve">ページをスキャン</text>
+    <text key="PhoneCapture.Batch.004" xml:space="preserve">カメラを起動</text>
+    <text key="PhoneCapture.Batch.005" xml:space="preserve">端末のカメラを使う</text>
+    <text key="PhoneCapture.Batch.007" xml:space="preserve">写真・ファイル</text>
+    <text key="PhoneCapture.Batch.008" xml:space="preserve">確認画面を開くまでは端末内に保存。</text>
+    <text key="PhoneCapture.Batch.009" xml:space="preserve">ページを確認</text>
+    <text key="PhoneCapture.Batch.010" xml:space="preserve">すべて選択</text>
+    <text key="PhoneCapture.Batch.011" xml:space="preserve">選択をすべて解除</text>
+    <text key="PhoneCapture.Batch.013" xml:space="preserve">ページはありません</text>
+    <text key="PhoneCapture.Batch.015" xml:space="preserve">撮影する</text>
+    <text key="PhoneCapture.Batch.016" xml:space="preserve">接続と制限</text>
+    <text key="PhoneCapture.Batch.017" xml:space="preserve">確認画面を開くと原本をPCに直接送り、ローカルで補正します。確定したページのみ取り込めます。</text>
+    <text key="PhoneCapture.Batch.018" xml:space="preserve">このページを開いたままにしてください。再読み込みで未送信の写真が失われます。接続は20分間有効です。</text>
+    <text key="PhoneCapture.Batch.019" xml:space="preserve">選択したページを送信</text>
+    <text key="PhoneCapture.Batch.020" xml:space="preserve">確認に戻る</text>
+    <text key="PhoneCapture.Batch.021" xml:space="preserve">四隅を調整</text>
+    <text key="PhoneCapture.Batch.022" xml:space="preserve">完了</text>
+    <text key="PhoneCapture.Batch.023" xml:space="preserve">撮影ナビゲーション</text>
+    <text key="PhoneCapture.Batch.024" xml:space="preserve">カメラプレビュー</text>
+    <text key="PhoneCapture.Batch.025" xml:space="preserve">撮影済みページ</text>
+    <text key="PhoneCapture.Batch.026" xml:space="preserve">プレビューの進行状況</text>
+    <text key="PhoneCapture.Batch.027" xml:space="preserve">PCに接続済み</text>
+    <text key="PhoneCapture.Batch.028" xml:space="preserve">接続できません</text>
+    <text key="PhoneCapture.Batch.029" xml:space="preserve">確認 ({0})</text>
+    <text key="PhoneCapture.Batch.030" xml:space="preserve">{0}ページを送信</text>
+    <text key="PhoneCapture.Batch.031" xml:space="preserve">送信中…</text>
+    <text key="PhoneCapture.Batch.032" xml:space="preserve">{0}ページ選択 · {1}ページ準備完了</text>
+    <text key="PhoneCapture.Batch.034" xml:space="preserve">プレビュー待ち</text>
+    <text key="PhoneCapture.Batch.035" xml:space="preserve">原本を転送中…</text>
+    <text key="PhoneCapture.Batch.036" xml:space="preserve">補正中…</text>
+    <text key="PhoneCapture.Batch.037" xml:space="preserve">送信できます</text>
+    <text key="PhoneCapture.Batch.038" xml:space="preserve">確認が必要です</text>
+    <text key="PhoneCapture.Batch.039" xml:space="preserve">{0}ページ目を確認</text>
+    <text key="PhoneCapture.Batch.040" xml:space="preserve">{0}ページ目を選択</text>
+    <text key="PhoneCapture.Batch.041" xml:space="preserve">{0}ページ目を削除</text>
+    <text key="PhoneCapture.Batch.042" xml:space="preserve">PCに送信済み ({0})</text>
+    <text key="PhoneCapture.Batch.043" xml:space="preserve">合計が256 MBを超えています。ページを減らしてください。</text>
+    <text key="PhoneCapture.Batch.044" xml:space="preserve">確認待ち {0}ページ</text>
+    <text key="PhoneCapture.Batch.045" xml:space="preserve">プレビュー作成中 {0} / {1}</text>
+    <text key="PhoneCapture.Batch.046" xml:space="preserve">一部のページで問題が発生しました。再試行または選択解除してください。</text>
+    <text key="PhoneCapture.Batch.048" xml:space="preserve">連続撮影には信頼されたHTTPSが必要です。端末のカメラかファイル選択を使用してください。</text>
+    <text key="PhoneCapture.Batch.049" xml:space="preserve">カメラが許可されていません。ブラウザーで許可するか、端末のカメラを使用してください。</text>
+    <text key="PhoneCapture.Batch.050" xml:space="preserve">カメラを起動できません。他のカメラアプリを閉じて再試行してください。</text>
+    <text key="PhoneCapture.Batch.051" xml:space="preserve">カメラを起動中です。少し待ってください。</text>
+    <text key="PhoneCapture.Batch.053" xml:space="preserve">調整する前にプレビューを作成または再試行してください。</text>
+    <text key="PhoneCapture.Batch.054" xml:space="preserve">{0}ページ目</text>
+    <text key="PhoneCapture.Batch.055" xml:space="preserve">プレビューを保存</text>
+    <text key="PhoneCapture.Batch.056" xml:space="preserve">端末の接続方法</text>
+    <text key="PhoneCapture.Batch.057" xml:space="preserve">連続撮影（実験的HTTPS）</text>
+    <text key="PhoneCapture.Batch.058" xml:space="preserve">端末カメラ・ファイル（HTTP）</text>
+    <text key="PhoneCapture.Batch.059" xml:space="preserve">実験的HTTPSは公開されたeMudhra証明書を使用します。失効や証明書透明性により拒否される場合は、端末カメラ・ファイル（HTTP）を選択してください。</text>
+    <text key="PhoneCapture.Batch.060" xml:space="preserve">プレビューを作成</text>
+    <text key="PhoneCapture.Reference.000" xml:space="preserve">ガイドを切り替え</text>
+    <text key="PhoneCapture.Reference.001" xml:space="preserve">1ページ</text>
+    <text key="PhoneCapture.Reference.002" xml:space="preserve">複数ページ</text>
+    <text key="PhoneCapture.Reference.003" xml:space="preserve">書類スキャン</text>
+    <text key="PhoneCapture.Reference.004" xml:space="preserve">高画質</text>
+    <text key="PhoneCapture.Reference.005" xml:space="preserve">ローカル処理</text>
+    <text key="PhoneCapture.Reference.006" xml:space="preserve">その他の設定</text>
+    <text key="PhoneCapture.Reference.007" xml:space="preserve">最近のスキャン</text>
+    <text key="PhoneCapture.Reference.008" xml:space="preserve">ツール</text>
+    <text key="PhoneCapture.Reference.009" xml:space="preserve">PDF読込</text>
+    <text key="PhoneCapture.Reference.010" xml:space="preserve">写真を読込</text>
+    <text key="PhoneCapture.Reference.011" xml:space="preserve">画像</text>
+    <text key="PhoneCapture.Reference.012" xml:space="preserve">ページ</text>
+    <text key="PhoneCapture.Reference.013" xml:space="preserve">送信</text>
+    <text key="PhoneCapture.Reference.014" xml:space="preserve">送信 ({0})</text>
+    <text key="PhoneCapture.Reference.015" xml:space="preserve">このページを選択</text>
+    <text key="PhoneCapture.Reference.016" xml:space="preserve">原本</text>
+    <text key="PhoneCapture.Reference.017" xml:space="preserve">前のページ</text>
+    <text key="PhoneCapture.Reference.018" xml:space="preserve">次のページ</text>
+    <text key="PhoneCapture.Reference.019" xml:space="preserve">撮影を続ける</text>
+    <text key="PhoneCapture.Reference.020" xml:space="preserve">フィルター</text>
+    <text key="PhoneCapture.Reference.021" xml:space="preserve">切り抜き・回転</text>
+    <text key="PhoneCapture.Reference.022" xml:space="preserve">プレビュー</text>
+    <text key="PhoneCapture.Reference.023" xml:space="preserve">撮影設定</text>
+    <text key="PhoneCapture.Reference.024" xml:space="preserve">スキャン</text>
+    <text key="PhoneCapture.Reference.025" xml:space="preserve">PDF</text>
+    <text key="PhoneCapture.Reference.026" xml:space="preserve">写真</text>
+    <text key="PhoneCapture.Reference.027" xml:space="preserve">復元</text>
+    <text key="PhoneCapture.Reference.028" xml:space="preserve">切抜</text>
+    <text key="PhoneCapture.Processing.000" xml:space="preserve">四隅を検出して切り抜く</text>
+    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner ゆがみ補正</text>
+    <text key="PhoneCapture.Processing.002" xml:space="preserve">向きを自動補正</text>
+    <text key="PhoneCapture.Processing.003" xml:space="preserve">グレースケール</text>
+    <text key="PhoneCapture.Processing.004" xml:space="preserve">ゆがみ補正（任意）</text>
+    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocResは原本を直接処理し、選択したタスクのみ実行します。</text>
+    <text key="PhoneCapture.Processing.006" xml:space="preserve">すべて無効</text>
+    <text key="PhoneCapture.Processing.007" xml:space="preserve">各処理は個別にオフにできます。</text>
+    <text key="PhoneCapture.Processing.009" xml:space="preserve">選択した処理を実行中…</text>
+    <text key="PhoneCapture.Processing.010" xml:space="preserve">プレビュー作成中…</text>
+    <text key="PhoneCapture.Camera.HighResolutionUnavailable" xml:space="preserve">このブラウザーは高解像度撮影に対応していません。元の解像度で撮影するには、システムカメラを使用してください。</text>
+    <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">高解像度撮影に失敗したため、通常の写真を保存しました。</text>
+    <text key="PhoneCapture.Processing.Global" xml:space="preserve">変更は未送信の全ページと今後の写真に適用されます。</text>
+    <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">ページの順序を更新しました。</text>
 </resources>

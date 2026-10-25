@@ -70,12 +70,14 @@ public sealed record RequestOptions
     public required bool AllowUnknownCapabilities { get; init; }
     public required Dictionary<string, JsonElement> Extra { get; init; }
     public string? SessionId { get; init; }
+    public string? PromptCacheKey { get; init; }
 
     public void Validate(Protocol protocol, bool vision, bool tools)
     {
         DomainValidationException.Require(Enum.IsDefined(protocol), "unknown protocol");
         DomainValidationException.Require(!string.IsNullOrWhiteSpace(Model.Id) && MaxOutputTokens > 0, "model and positive token limit are required");
         DomainValidationException.Require(SessionId is null || SessionId.Length is > 0 and <= 256, "invalid session identifier");
+        DomainValidationException.Require(PromptCacheKey is null || PromptCacheKey.Length is > 0 and <= 256, "invalid prompt cache key");
         ValidateCapability(vision, Model.Capabilities.Vision, "vision");
         ValidateCapability(tools, Model.Capabilities.Tools, "tools");
         if (Thinking is not { } thinking) return;

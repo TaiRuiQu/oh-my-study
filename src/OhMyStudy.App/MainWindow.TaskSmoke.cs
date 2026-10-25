@@ -174,10 +174,14 @@ public sealed partial class MainWindow
             runner.Mode = "unpriced";
             var unpriced = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input);
             await Wait(unpriced.Id, j => j.State.IsTerminal()); _selectedTaskId = unpriced.Id; await RefreshTasksAsync();
-            Check(TaskUsage.Text == "—" && TaskRateNote.Text == "价格或用量不完整，暂无法估算费用。", "incomplete-prices-do-not-show-partial-total");
+            Check(TaskUsage.Text.Contains("32.68", StringComparison.Ordinal) && TaskRateNote.Text.Contains("7.12", StringComparison.Ordinal) && !TaskRateNote.Text.Contains("暂无法估算", StringComparison.Ordinal), "partial-prices-sum-known-calls");
             Check(TaskInputUncached.Text == "缓存未命中 33,550", "cache-misses-derived-without-provider-uncached-field");
             TaskUsage_Click(TaskUsageButton, new RoutedEventArgs()); await Capture("usage-unknown");
             RootGrid.RequestedTheme = ElementTheme.Dark; await Capture("usage-unknown-dark"); RootGrid.RequestedTheme = ElementTheme.Light; TaskUsageFlyout.Hide();
+            runner.Mode = "all-unpriced";
+            var allUnpriced = await _jobs.SubmitAsync(DiagnosticKind.Grading, policy, input);
+            await Wait(allUnpriced.Id, j => j.State.IsTerminal()); _selectedTaskId = allUnpriced.Id; await RefreshTasksAsync();
+            Check(TaskUsage.Text == "—" && TaskRateNote.Text == "价格或用量不完整，暂无法估算费用。", "every-call-unpriced-stays-unknown");
             exit = 0;
             if (Environment.GetCommandLineArgs().Contains("--inspect-ui", StringComparer.Ordinal))
             { await File.WriteAllLinesAsync(reportPath, checks.Prepend("PASS")); AppWindow.Show(); Activate(); await Task.Delay(TimeSpan.FromMinutes(10)); }
@@ -223,11 +227,11 @@ public sealed partial class MainWindow
         public async Task RunAsync(Job job, JobContext context)
         {
             string mode = Mode; Update = context;
-            if (mode is "complete" or "running" or "unpriced" && Library is not null)
+            if (mode is "complete" or "running" or "unpriced" or "all-unpriced" && Library is not null)
             {
                 await Library.BeginGradingAsync(job);
-                await Library.RecordModelCallAsync(job.Id, 1, ModelCall(668420, 21880, 655360, mode == "unpriced" ? null : 3.41), CancellationToken.None);
-                await Library.RecordModelCallAsync(job.Id, 2, ModelCall(467530, 27749, 447040, 4.59), CancellationToken.None);
+                await Library.RecordModelCallAsync(job.Id, 1, ModelCall(668420, 21880, 655360, mode is "unpriced" or "all-unpriced" ? null : 3.41), CancellationToken.None);
+                await Library.RecordModelCallAsync(job.Id, 2, ModelCall(467530, 27749, 447040, mode == "all-unpriced" ? null : 4.59), CancellationToken.None);
             }
             await context.ActivityAsync(new JobActivity { Key = "model-1", Kind = "model", Title = "第 1 轮识别", Detail = "已生成 4 项操作", Text = "已找到 4 页试题。我将先读取原件，再保存识别出的题目，并核对跨页内容。", State = "completed", ElapsedMs = 2300 });
             for (int i = 1; i <= 4; i++)
@@ -236,7 +240,7 @@ public sealed partial class MainWindow
                 await context.ActivityAsync(new JobActivity { Key = "read-" + i, Kind = "read_page", Title = $"阅读第 {i} 页", Detail = "已读取原件", Text = i == 1 ? "原件已读取，可以继续识别题目。" : "", State = "completed", PagesRead = i, ElapsedMs = 120 });
             }
             await context.ActivityAsync(new JobActivity { Key = "save-1", Kind = "save_question", Title = "保存题目", Detail = "3 道题目已加入题库", State = "completed", PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 80 });
-            if (mode is "complete" or "unpriced") return;
+            if (mode is "complete" or "unpriced" or "all-unpriced") return;
             await context.ActivityAsync(new JobActivity { Key = "model-2", Kind = "model", Title = "第 2 轮识别", Detail = "正在接收模型响应", Text = "正在核对第 4 页的跨页题目。", PagesRead = 4, QuestionsSaved = 3, ElapsedMs = 3200 });
             if (mode == "error")
             {

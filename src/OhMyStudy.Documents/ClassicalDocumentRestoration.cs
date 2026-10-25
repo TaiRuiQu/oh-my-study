@@ -5,7 +5,7 @@ namespace OhMyStudy.Documents;
 
 public static class ClassicalDocumentRestoration
 {
-    public static ScanRaster Restore(ScanRaster raster, bool grayscale = false, CancellationToken cancellationToken = default)
+    public static ScanRaster Restore(ScanRaster raster, bool grayscale = false, CancellationToken cancellationToken = default, bool shadows = true, bool deblur = true, bool appearance = false)
     {
         if (raster.Width < 2 || raster.Height < 2 || (long)raster.Width * raster.Height > 40_000_000 || raster.Bgra32.LongLength != (long)raster.Width * raster.Height * 4)
             throw new InvalidDataException("Invalid restoration image dimensions");
@@ -47,14 +47,14 @@ public static class ClassicalDocumentRestoration
             for (int x = 0; x < raster.Width; x++)
             {
                 int i = y * raster.Width + x;
-                double gain = Math.Clamp(target / Math.Max(24d, paper[i]), 1, 1.6);
+                double gain = shadows ? Math.Clamp(target / Math.Max(24d, paper[i]), 1, 1.6) : 1;
                 corrected[i] = (float)Math.Min(255, luminance[i] * gain);
             }
         }
         using var observed = Mat.FromPixelData(raster.Height, raster.Width, MatType.CV_32FC1, corrected);
         using var estimate = observed.Clone();
         Cv2.MeanStdDev(observed, out _, out Scalar deviation);
-        if (deviation.Val0 > .5)
+        if (deblur && deviation.Val0 > .5)
         {
             using var blurred = new Mat();
             using var denominator = new Mat();
@@ -83,6 +83,7 @@ public static class ClassicalDocumentRestoration
             {
                 int i = y * raster.Width + x, p = i * 4;
                 double value = Math.Clamp(corrected[i] * .4 + restored[i] * .6, 0, 255);
+                if (appearance) value = Math.Clamp((value - 128) * 1.08 + 128, 0, 255);
                 double gain = Math.Clamp(value / Math.Max(1d, luminance[i]), .8, 1.8);
                 for (int c = 0; c < 3; c++) output[p + c] = (byte)Math.Clamp(Math.Round(grayscale ? value : raster.Bgra32[p + c] * gain), 0, 255);
                 output[p + 3] = 255;

@@ -21,7 +21,6 @@ public sealed partial class MainWindow
         {
             XamlRoot = RootGrid.XamlRoot,
             Title = UiText.Get("Import from"),
-            Content = UiText.Get("Choose files on this computer or scan a QR code to take photos with your phone."),
             PrimaryButtonText = UiText.Get("Choose files"),
             SecondaryButtonText = UiText.Get("Take photos with phone"),
             CloseButtonText = UiText.Get("Cancel")
@@ -62,7 +61,7 @@ public sealed partial class MainWindow
         async Task RefreshRestorationAsync()
         {
             var capability = await Task.Run(DocResRestoration.Status);
-            restorationStatus.Text = capability.Eligible ? UiText.Get(capability.Installed ? "DocRes is installed. Enable it to select neural restoration on your phone." : "DocRes is available for this computer. Download it explicitly to use it.") : UiText.Get("DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.");
+            restorationStatus.Text = capability.Eligible ? UiText.Get(capability.Installed ? "DocRes is installed." : "DocRes is available for this computer.") : UiText.Get("DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.");
             installRestoration.IsEnabled = capability.Eligible && !capability.Installed;
             enableRestoration.IsEnabled = capability.Eligible && capability.Installed;
             enableRestoration.IsChecked = capability.Enabled;
@@ -108,7 +107,7 @@ public sealed partial class MainWindow
                         }
                         else if (text is "Installing isolated CUDA runtime and PyTorch; this can download several GB."
                             or "Checking weights and running CUDA inference on the selected physical device."
-                            or "DocRes installation verified. Enable it explicitly to use it.")
+                            or "DocRes installation verified.")
                         {
                             downloadProgress.IsIndeterminate = true;
                             restorationStatus.Text = UiText.Get(text);
@@ -152,7 +151,7 @@ public sealed partial class MainWindow
                 var capability = await Task.Run(DocResRestoration.Status);
                 installRestoration.IsEnabled = capability.Eligible && !capability.Installed;
                 enableRestoration.IsEnabled = capability.Eligible && capability.Installed;
-                if (capability.Installed) restorationStatus.Text = UiText.Get("DocRes is installed. Enable it to select neural restoration on your phone.");
+                if (capability.Installed) restorationStatus.Text = UiText.Get("DocRes is installed.");
             }
         };
         enableRestoration.Click += (_, _) =>
@@ -162,11 +161,24 @@ public sealed partial class MainWindow
         };
         panel.Children.Add(new TextBlock
         {
-            Text = UiText.Get("Connect your phone to the same Wi-Fi, then scan this code with its camera. No app or account is needed."),
+            Text = UiText.Get("Phone and computer must use the same Wi-Fi network."),
             TextWrapping = TextWrapping.Wrap
         });
         var network = new ComboBox { Header = UiText.Get("Computer network"), ItemsSource = networks, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
         panel.Children.Add(network);
+        var connectionMode = new ComboBox
+        {
+            Header = UiText.Get("Phone connection"),
+            ItemsSource = new[] { UiText.Get("Continuous camera (experimental HTTPS)"), UiText.Get("System camera and files (HTTP)") },
+            SelectedIndex = 0,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        panel.Children.Add(connectionMode);
+        panel.Children.Add(new TextBlock
+        {
+            Text = UiText.Get("Experimental HTTPS uses the disclosed eMudhra issuer. Browsers may reject this revoked chain or require Certificate Transparency. If it cannot open, choose System camera and files (HTTP)."),
+            TextWrapping = TextWrapping.Wrap
+        });
         var qr = new Microsoft.UI.Xaml.Controls.Image { Width = 240, Height = 240, HorizontalAlignment = HorizontalAlignment.Center };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(qr, UiText.Get("Scan to connect your phone"));
         panel.Children.Add(qr);
@@ -201,7 +213,21 @@ public sealed partial class MainWindow
             IsPrimaryButtonEnabled = false
         };
         PhoneCaptureServer? server = null;
+        PhoneCaptureCertificate? certificate = null;
         bool finished = false, switching = false;
+        async Task UpdateLinkAsync()
+        {
+            if (server is null) return;
+            link.Text = connectionMode.SelectedIndex == 0 ? server.Url : server.HttpUrl;
+            byte[] png = PngByteQRCodeHelper.GetQRCode(link.Text, QRCodeGenerator.ECCLevel.M, 6);
+            using var stream = await NativeImageCodec.OpenAsync(png, _lifetime.Token);
+            var bitmap = new BitmapImage(); await bitmap.SetSourceAsync(stream); qr.Source = bitmap;
+        }
+        connectionMode.SelectionChanged += async (_, _) =>
+        {
+            try { await UpdateLinkAsync(); }
+            catch (Exception error) { AppLog.Error("PhoneCapture.Link", error); }
+        };
         async Task StartAsync()
         {
             if (switching || finished) return;
@@ -209,11 +235,13 @@ public sealed partial class MainWindow
             try
             {
                 if (server is not null) await server.DisposeAsync();
+                certificate?.Dispose();
+                certificate = new PhoneCaptureCertificate(((PhoneNetwork)network.SelectedItem).Address);
                 server = new(PhonePhotoProcessor.AnalyzeAsync, PhonePhotoProcessor.ProcessAsync, error => AppLog.Error("PhoneCapture.Request", error), () =>
                 {
                     var capability = DocResRestoration.Status();
                     return new(capability.Eligible, capability.Installed, capability.Enabled);
-                }, () => PhonePhotoProcessor.ProcessingStage);
+                }, () => PhonePhotoProcessor.ProcessingStage, preview: PhonePhotoProcessor.PreviewAsync, scripts: PhoneCaptureScripts());
                 var current = server;
                 server.Changed += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -221,13 +249,10 @@ public sealed partial class MainWindow
                     var files = current.Accepted;
                     dialog.IsPrimaryButtonEnabled = files.Count > 0;
                     network.IsEnabled = current.UploadedCount == 0;
-                    received.Text = UiText.Format("Received {0} files. Finish taking photos, then click Import.", files.Count) + "\n" + string.Join("\n", files.Select(file => file.Name));
+                    received.Text = UiText.Format("Received {0} files.", files.Count) + "\n" + string.Join("\n", files.Select(file => file.Name));
                 });
-                await server.StartAsync(((PhoneNetwork)network.SelectedItem).Address, html, _lifetime.Token);
-                link.Text = server.Url;
-                byte[] png = PngByteQRCodeHelper.GetQRCode(server.Url, QRCodeGenerator.ECCLevel.M, 6);
-                using var stream = await NativeImageCodec.OpenAsync(png, _lifetime.Token);
-                var bitmap = new BitmapImage(); await bitmap.SetSourceAsync(stream); qr.Source = bitmap;
+                await server.StartAsync(((PhoneNetwork)network.SelectedItem).Address, html, _lifetime.Token, certificate.Certificate, certificate.Chain);
+                await UpdateLinkAsync();
                 status.Text = UiText.Format("Waiting for your phone. This code expires at {0:t}.", server.ExpiresAt.LocalDateTime);
                 copy.IsEnabled = true;
                 AppLog.Info("PhoneCapture.Start", $"Address={((PhoneNetwork)network.SelectedItem).Address}; Expires={server.ExpiresAt:O}");
@@ -263,8 +288,22 @@ public sealed partial class MainWindow
             finished = true; timer.Stop();
             if (restorationDownload is not null) await restorationDownload.CancelAsync();
             if (server is not null) await server.DisposeAsync();
+            certificate?.Dispose();
             AppLog.Info("PhoneCapture.Stop", "Temporary phone capture session closed");
         }
+    }
+
+    private static IReadOnlyDictionary<string, byte[]> PhoneCaptureScripts()
+    {
+        var scripts = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (string name in new[] { "capture.js", "paper-detector.js", "paper-worker.js" })
+        {
+            using var resource = typeof(MainWindow).Assembly.GetManifestResourceStream("OhMyStudy.App.MobileCapture." + name)!;
+            byte[] bytes = new byte[checked((int)resource.Length)];
+            resource.ReadExactly(bytes);
+            scripts.Add("/" + name, bytes);
+        }
+        return scripts;
     }
 
     private static async Task<string> PhoneCaptureHtmlAsync()
@@ -272,6 +311,10 @@ public sealed partial class MainWindow
         using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("OhMyStudy.App.MobileCapture.html")!;
         using var reader = new StreamReader(stream);
         string html = await reader.ReadToEndAsync();
+        using var font = typeof(MainWindow).Assembly.GetManifestResourceStream("OhMyStudy.App.MobileCapture.Font")!;
+        using var fontBytes = new MemoryStream();
+        await font.CopyToAsync(fontBytes);
+        html = html.Replace("__CAPTURE_FONT__", Convert.ToBase64String(fontBytes.ToArray()), StringComparison.Ordinal);
         using var catalog = typeof(MainWindow).Assembly.GetManifestResourceStream("OhMyStudy.App.Localization.en-US.xml")!;
         var translations = XDocument.Load(catalog).Root!.Elements("text")
             .Where(element => ((string)element.Attribute("key")!).StartsWith("PhoneCapture.", StringComparison.Ordinal))

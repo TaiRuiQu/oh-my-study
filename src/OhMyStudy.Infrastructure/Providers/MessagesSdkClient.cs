@@ -19,7 +19,7 @@ namespace OhMyStudy.Infrastructure.Providers;
 internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyDictionary<string, string> headers)
 {
     private static readonly string[] ReservedKeys =
-        ["model", "messages", "max_tokens", "stream", "tools", "thinking", "output_config", "cache_control", "session_id"];
+        ["model", "messages", "max_tokens", "stream", "tools", "thinking", "output_config", "cache_control", "session_id", "prompt_cache_key"];
     private readonly bool _openRouter = OpenRouter.IsEndpoint(baseUri);
 
     public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress, CancellationToken cancellationToken)

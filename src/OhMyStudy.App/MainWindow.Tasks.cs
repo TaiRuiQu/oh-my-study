@@ -182,7 +182,7 @@ public sealed partial class MainWindow
         TaskPermissionButton.Visibility = selected.PendingPermission is null ? Visibility.Collapsed : Visibility.Visible;
         ulong inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0;
         bool inputKnown = true, outputKnown = true, cacheKnown = true, cacheWriteKnown = true;
-        double cost = 0; bool priced = calls.Count > 0;
+        double cost = 0; int pricedCalls = 0;
         foreach (var call in calls)
         {
             if (call.TryGetProperty("usage", out var usage))
@@ -193,8 +193,9 @@ public sealed partial class MainWindow
                 if (usage.TryGetProperty("cache_write", out var w) && w.ValueKind == System.Text.Json.JsonValueKind.Number && w.TryGetUInt64(out var wi)) cacheWriteTokens += wi; else cacheWriteKnown = false;
             }
             if (!call.TryGetProperty("usage", out _)) { inputKnown = false; outputKnown = false; cacheKnown = false; cacheWriteKnown = false; }
-            if (call.TryGetProperty("estimated_cost", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Number && c.TryGetDouble(out var amount)) cost += amount; else priced = false;
+            if (call.TryGetProperty("estimated_cost", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Number && c.TryGetDouble(out var amount)) { cost += amount; pricedCalls++; }
         }
+        bool priced = pricedCalls > 0;
         TaskInputUsage.Text = inputKnown ? UiText.Format("Input {0:N0}", inputTokens) : UiText.Get("Input usage not provided"); TaskOutputUsage.Text = outputKnown ? UiText.Format("Output {0:N0}", outputTokens) : UiText.Get("Output usage not provided");
         TaskInputUncached.Text = inputKnown && cacheKnown && cacheReadTokens <= inputTokens ? UiText.Format("Uncached {0:N0}", inputTokens - cacheReadTokens) : UiText.Get("Uncached usage not provided");
         TaskInputCached.Text = cacheKnown ? UiText.Format("Cache read {0:N0}", cacheReadTokens) : UiText.Get("Cache read usage not provided");

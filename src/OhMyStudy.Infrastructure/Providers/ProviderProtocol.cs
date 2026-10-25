@@ -156,16 +156,27 @@ public static class ProviderProtocol
         catch (OverflowException) { return null; }
     }
 
-    /// <summary>Four disjoint token buckets at configured per-million rates. Unknown is never free.</summary>
     public static decimal? EstimateCost(Usage usage, decimal? inputPerMillion, decimal? outputPerMillion,
         decimal? cacheReadPerMillion = null, decimal? cacheWritePerMillion = null)
     {
         if (inputPerMillion < 0 || outputPerMillion < 0 || cacheReadPerMillion < 0 || cacheWritePerMillion < 0)
             throw Invalid("prices must be nonnegative");
         if (usage.InputUncached is not { } input || usage.CacheRead is not { } read || usage.CacheWrite is not { } write
-            || usage.Output is not { } output || usage.Input is { } total && (decimal)input + read + write != total) return null;
-        static decimal? Charge(ulong tokens, decimal? rate) => tokens == 0 ? 0 : rate * tokens / 1_000_000m;
-        try { return Charge(input, inputPerMillion) + Charge(read, cacheReadPerMillion) + Charge(write, cacheWritePerMillion) + Charge(output, outputPerMillion); }
+            || usage.Input is { } total && (decimal)input + read + write != total) return null;
+        static bool Charge(ulong tokens, decimal? rate, ref decimal sum)
+        {
+            if (tokens == 0) return true;
+            if (rate is null) return false;
+            sum += rate.Value * tokens / 1_000_000m;
+            return true;
+        }
+        try
+        {
+            decimal sum = 0;
+            if (!Charge(input, inputPerMillion, ref sum) || !Charge(read, cacheReadPerMillion, ref sum) || !Charge(write, cacheWritePerMillion, ref sum)) return null;
+            if (usage.Output is { } output && !Charge(output, outputPerMillion, ref sum)) return null;
+            return sum;
+        }
         catch (OverflowException) { return null; }
     }
 

@@ -19,6 +19,7 @@ TestResults/
 /output/
 /tmp/
 /.artifacts/
+/.impeccable/review/
 **/__pycache__/
 
 # Operating system files

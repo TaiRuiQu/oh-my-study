@@ -169,7 +169,6 @@ public sealed partial class MainWindow
         PaperEmpty.Visibility = _filteredPapers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         PaperList.Visibility = _filteredPapers.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         PaperEmptyTitle.Text = _papers.Count == 0 ? UiText.Get("No exams yet") : UiText.Get("No exams found");
-        PaperEmptyMessage.Text = _papers.Count == 0 ? UiText.Get("Import a PDF or exam image to get started.") : UiText.Get("Try another keyword or subject.");
     }
 
     private async void PaperList_ItemClick(object sender, ItemClickEventArgs e)

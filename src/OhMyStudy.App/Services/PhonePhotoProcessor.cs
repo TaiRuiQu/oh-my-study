@@ -18,6 +18,13 @@ public static class PhonePhotoProcessor
     private static readonly Lazy<NeuralDocumentOrientation> Orientation = new(() =>
         new(Path.Combine(AppContext.BaseDirectory, "native", "scanner", "document-orientation.onnx")));
 
+    public static Task<PhonePhotoAnalysis> PreviewAsync(byte[] bytes, CancellationToken cancellationToken) => NativeImageWork.RunAsync(async () =>
+    {
+        var raster = await DecodeAsync(bytes, 1200, cancellationToken).ConfigureAwait(false);
+        byte[] png = await NativeImageCodec.EncodePngAsync(raster.Bgra32, (uint)raster.Width, (uint)raster.Height, cancellationToken).ConfigureAwait(false);
+        return new PhonePhotoAnalysis(png, [[0, 0], [1, 0], [1, 1], [0, 1]], false);
+    }, cancellationToken);
+
     public static Task<PhonePhotoAnalysis> AnalyzeAsync(byte[] bytes, CancellationToken cancellationToken) => NativeImageWork.RunAsync(async () =>
     {
         var raster = await DecodeAsync(bytes, 1200, cancellationToken).ConfigureAwait(false);
@@ -38,47 +45,44 @@ public static class PhonePhotoProcessor
         Volatile.Write(ref _processingStage, "");
         try
         {
-            var raster = Rotate(await DecodeAsync(bytes, int.MaxValue, cancellationToken).ConfigureAwait(false), correction.Rotation, cancellationToken);
-            var result = DocumentScanner.Process(raster.Bgra32, raster.Width, raster.Height,
-                correction.Corners.Select(p => new ScanPoint(p[0], p[1])).ToArray(), "original", cancellationToken, int.MaxValue);
-            if (correction.Enhancement is not ("original" or "color" or "gray")) throw new InvalidDataException("Unknown photo enhancement mode");
             if (correction.Backend is not ("standard" or "docres")) throw new InvalidDataException("Unknown photo restoration backend");
-            string[] tasks = correction.Tasks ?? ["dewarping", "deshadowing", "deblurring", "appearance"];
-            if (correction.Backend == "docres" && tasks.Length == 0) throw new InvalidDataException("Select at least one DocRes restoration task");
-            if (tasks.Any(task => task is not ("dewarping" or "deshadowing" or "deblurring" or "appearance")) || tasks.Distinct().Count() != tasks.Length) throw new InvalidDataException("Invalid DocRes restoration tasks");
-            if (correction.Enhancement == "original") tasks = tasks.Where(task => task == "dewarping").ToArray();
-            if (correction.Backend == "standard")
-            {
-                Volatile.Write(ref _processingStage, "DocScanner: rectifying page…");
-                result = Rectifier.Value.Rectify(result, cancellationToken);
-                if (correction.Enhancement != "original")
-                {
-                    Volatile.Write(ref _processingStage, "OpenCV: removing shadows and recovering mild blur…");
-                    result = ClassicalDocumentRestoration.Restore(result, correction.Enhancement == "gray", cancellationToken);
-                }
-            }
-            else
+            if (correction.Backend == "docres" && correction.Tasks is { Length: > 0 } tasks)
             {
                 try
                 {
-                    if (!tasks.Contains("dewarping", StringComparer.Ordinal))
-                    {
-                        Volatile.Write(ref _processingStage, "DocScanner: rectifying page…");
-                        result = Rectifier.Value.Rectify(result, cancellationToken);
-                    }
-                    if (tasks.Length > 0)
-                    {
-                        Volatile.Write(ref _processingStage, "DocRes: loading local CUDA models…");
-                        result = await DocResRestoration.RestoreAsync(result, tasks, cancellationToken, stage => Volatile.Write(ref _processingStage, "DocRes: " + stage), preCropped: true).ConfigureAwait(false);
-                    }
-                    if (correction.Enhancement == "gray")
-                        for (int i = 0; i < result.Bgra32.Length; i += 4)
-                            result.Bgra32[i] = result.Bgra32[i + 1] = result.Bgra32[i + 2] = (byte)((result.Bgra32[i] * 29 + result.Bgra32[i + 1] * 150 + result.Bgra32[i + 2] * 77) >> 8);
+                    Volatile.Write(ref _processingStage, "DocRes: loading local CUDA models…");
+                    return await DocResRestoration.RestoreOriginalAsync(bytes, tasks, cancellationToken, stage => Volatile.Write(ref _processingStage, "DocRes: " + stage)).ConfigureAwait(false);
                 }
                 catch (Exception error) when (error is not OperationCanceledException)
                 {
-                    throw new PhotoRestorationException("DocRes restoration failed. Select standard restoration to continue safely.", error);
+                    throw new PhotoRestorationException("DocRes restoration failed. The original photo is preserved.", error);
                 }
+            }
+            var result = await DecodeAsync(bytes, int.MaxValue, cancellationToken).ConfigureAwait(false);
+            if (correction.Backend == "standard")
+            {
+                var options = correction.Processing ?? new PhotoProcessingOptions();
+                if (correction.Rotation != 0) result = Rotate(result, correction.Rotation, cancellationToken);
+                if (options.Crop)
+                {
+                    var detection = correction.Corners.Length == 0
+                        ? Detector.Value?.Detect(result, cancellationToken) ?? DocumentScanner.Detect(result.Bgra32, result.Width, result.Height, cancellationToken)
+                        : new ScanDetection(correction.Corners.Select(point => new ScanPoint(point[0], point[1])).ToArray(), true);
+                    if (detection.Detected)
+                        result = DocumentScanner.Process(result.Bgra32, result.Width, result.Height, detection.Corners, "original", cancellationToken, int.MaxValue);
+                }
+                if (options.AutoOrientation)
+                {
+                    var orientation = Orientation.Value.Detect(result, cancellationToken);
+                    result = Rotate(result, orientation.Rotation, cancellationToken);
+                }
+                if (options.Rectify)
+                {
+                    Volatile.Write(ref _processingStage, "DocScanner: rectifying page…");
+                    result = Rectifier.Value.Rectify(result, cancellationToken);
+                }
+                if (options.Shadows || options.Deblur || options.Appearance || options.Grayscale)
+                    result = ClassicalDocumentRestoration.Restore(result, options.Grayscale, cancellationToken, options.Shadows, options.Deblur, options.Appearance);
             }
             return await NativeImageCodec.EncodePngAsync(result.Bgra32, (uint)result.Width, (uint)result.Height, cancellationToken).ConfigureAwait(false);
         }

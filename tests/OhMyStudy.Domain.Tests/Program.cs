@@ -280,6 +280,9 @@ internal sealed class CompatibilitySuite
             (Options() with { SessionId = new string('a', 256) }).Validate(Protocol.Messages, true, true);
             Assert(!Accepted(() => (Options() with { SessionId = new string('a', 257) }).Validate(Protocol.Messages, true, true)));
             Assert(!Accepted(() => (Options() with { SessionId = "" }).Validate(Protocol.Messages, true, true)));
+            (Options() with { PromptCacheKey = new string('k', 256) }).Validate(Protocol.Responses, true, true);
+            Assert(!Accepted(() => (Options() with { PromptCacheKey = new string('k', 257) }).Validate(Protocol.Responses, true, true)));
+            Assert(!Accepted(() => (Options() with { PromptCacheKey = "" }).Validate(Protocol.Responses, true, true)));
         });
 
         Check("coverage", "complete", () => GradingValidation.ValidateCoverage(document, coverage, [saved], false, viewed));

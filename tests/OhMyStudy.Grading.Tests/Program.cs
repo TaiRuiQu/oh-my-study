@@ -28,7 +28,9 @@ internal static partial class Program
             using var assets = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "assets.synthetic.json")));
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
             ModelProfileChecks.Run(Check);
+            await ModelContentChecks();
             await ModelProfilesAtTaskStart();
+            await CodexCacheKey();
             await OutputTokenChecks();
             await FilesLifecycleChecks();
             await PageImageFormats();
@@ -448,6 +450,34 @@ internal static partial class Program
                 Check((await Wait(queue, submitted.Id)).State == JobState.Completed && api.Attempts == 3,
                     $"{protocol}/{model}: selected profile completes the real tool loop");
             }
+    }
+
+    private static async Task CodexCacheKey()
+    {
+        foreach (var (protocol, enabled) in new[] { (Protocol.Responses, true), (Protocol.Responses, false), (Protocol.Messages, true) })
+        {
+            await using var fixture = await Fixture.Create(ImportMode.Blank, protocol, codexMode: enabled);
+            var question = Question(fixture.Document, reference: false);
+            string? seen = null;
+            bool saw = false;
+            var api = new ScriptApi(protocol, (round, body, _) =>
+            {
+                string? key = body["prompt_cache_key"]?.GetValue<string>();
+                string? expected = protocol == Protocol.Responses && enabled ? fixture.Document.Id : null;
+                Check(key == expected, $"{protocol} codex={enabled}: cache key follows the exam id only for Responses");
+                if (saw) Check(key == seen, $"{protocol} codex={enabled}: cache key stays constant across rounds");
+                saw = true;
+                seen = key;
+                return Task.FromResult<List<ToolCall>>(round switch
+                {
+                    1 => fixture.Document.Pages.Select(page => Read(page)).ToList(),
+                    2 => [Save(question)],
+                    3 => [Finish(Coverage(fixture.Document, question.DraftKey))],
+                    _ => throw new InvalidOperationException("unexpected codex continuation")
+                });
+            });
+            Check((await fixture.Run(api)).State == JobState.Completed && api.Attempts == 3, $"{protocol} codex={enabled}: cache key reaches the live request");
+        }
     }
 
     private static async Task StreamingActivity()
@@ -1053,7 +1083,7 @@ internal static partial class Program
         public RejectExecutor Executor { get; } = new();
         public IToolExecutor? CodeExecutor { get; set; }
         public Action<SavedQuestion>? QuestionSaved { get; set; }
-        public static async Task<Fixture> Create(ImportMode mode, Protocol protocol, int materialPages = 1)
+        public static async Task<Fixture> Create(ImportMode mode, Protocol protocol, int materialPages = 1, bool codexMode = false)
         {
             var repository = await LibraryRepository.OpenAsync(new(Path.Combine(Root, Guid.NewGuid().ToString("N")), LibraryOpenMode.CreateNew) { MediaProcessor = new PixelProcessor() });
             var sources = Enumerable.Range(0, materialPages).Select(_ => new ImportSource("synthetic material.png", png)).Append(new("synthetic reference.png", png, "reference")).ToList();
@@ -1063,7 +1093,7 @@ internal static partial class Program
             {
                 Library = repository,
                 Document = document,
-                Input = new() { Document = document, Provider = new() { Id = Guid.NewGuid().ToString(), Name = "Synthetic fake handler", Protocol = protocol, BaseUrl = "https://example.invalid/v1/", KeyRef = null, Models = [model] }, Model = model, AllowUnknown = false }
+                Input = new() { Document = document, Provider = new() { Id = Guid.NewGuid().ToString(), Name = "Synthetic fake handler", Protocol = protocol, BaseUrl = "https://example.invalid/v1/", KeyRef = null, CodexMode = codexMode, Models = [model] }, Model = model, AllowUnknown = false }
             };
         }
         public async Task<JobQueue> Queue(IModelClient client)

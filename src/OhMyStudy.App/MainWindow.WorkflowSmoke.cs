@@ -88,7 +88,8 @@ public sealed partial class MainWindow
             var complex = restored.Question with
             {
                 Stem = [.. restored.Question.Stem, new TableContent { Rows = [["x", "f(x)"], ["−2", "−2"]] },
-                    new ImageContent { Caption = "函数图像", ContainsHandwriting = false, Region = region, AssetId = processedAsset.Id }],
+                    new ImageContent { Caption = "函数图像", ContainsHandwriting = false, Region = region, AssetId = processedAsset.Id, WidthPercent = 50 },
+                    new MermaidContent { Region = region, Code = "flowchart LR\nA[求导] --> B[比较端点与驻点]", Caption = "求解流程", WidthPercent = 75 }],
                 Items = [firstItem with { Label = "(1)", Options = ["A. 最大值为2", "B. 最大值为3"], Prompt = [new TextContent { Text = "求最大值。" }] },
                     firstItem with { Key = "workflow-nested", Label = "(2)①", Prompt = [new TextContent { Text = "求最小值。" }] }]
             };
@@ -112,6 +113,9 @@ public sealed partial class MainWindow
                 && complexSaved.Question.Stem.OfType<TableContent>().Single().Rows[1][1] == "−2"
                 && complexSaved.Question.Stem.OfType<ImageContent>().Single().Region == region
                 && complexSaved.Question.Stem.OfType<ImageContent>().Single().AssetId == processedAsset.Id
+                && complexSaved.Question.Stem.OfType<ImageContent>().Single().WidthPercent == 50
+                && complexSaved.Question.Stem.OfType<MermaidContent>().Single().Code == "flowchart LR\nA[求导] --> B[比较端点与驻点]"
+                && complexSaved.Question.Stem.OfType<MermaidContent>().Single().WidthPercent == 75
                 && complexSaved.Question.Items.Count == 2 && complexSaved.Question.Items[0].Options.Count == 2 && complexSaved.Question.Items[1].Label == "(2)①"
                 && complexSaved.Question.Sources.Single() == region && complexSaved.Question.Items.All(item => item.Attempt is null)
                 && partEdited && complexSaved.Question.Items[0].Answer == "编辑后的参考答案"
@@ -121,7 +125,17 @@ public sealed partial class MainWindow
             var exportedImage = imageSegments.Single().Image!.Bytes;
             checks["processed-image-export-keeps-full-transformed-image"] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(exportedImage.AsSpan(16, 4)) == 1200
                 && System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(exportedImage.AsSpan(20, 4)) == 900
+                && imageSegments.Single().Image!.WidthPercent == 50
                 && (await _library.ReadAssetAsync(document.Pages[0].AssetId)).Bytes.AsSpan().SequenceEqual(bytes);
+            var mermaidSegments = await ExportSegmentsAsync(complexSaved.Question.Stem.OfType<MermaidContent>(), _library,
+                document.Pages.ToDictionary(page => page.Id), new Services.NativePageImages(), new ExportImageBudget(), _lifetime.Token);
+            checks["mermaid-export-preserves-code-and-width"] = mermaidSegments.Single().Mermaid!.Code == "flowchart LR\nA[求导] --> B[比较端点与驻点]"
+                && mermaidSegments.Single().Mermaid!.WidthPercent == 75;
+            checks["mermaid-evidence-page-is-protected"] = QuestionPageIds(complexSaved.Question with
+            {
+                Stem = [complexSaved.Question.Stem.OfType<MermaidContent>().Single()],
+                Sources = []
+            }).Single() == region.PageId;
             await File.WriteAllBytesAsync(Path.Combine(root, "processed-image-export.png"), exportedImage);
             ShowQuestionWorkspace();
             ViewModel.SelectedQuestion = ViewModel.Questions.Single();

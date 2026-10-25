@@ -69,8 +69,13 @@ Task Billing()
     Check(ProviderProtocol.EstimateCost(usage, 0m, 0m, 0m, 0m) == 0, "explicit free rates are valid");
     Check(ProviderProtocol.EstimateCost(usage with { Input = 80, CacheRead = 0, CacheWrite = 0 }, 1m, 2m) == 0.00014m, "zero cache needs no cache prices");
     Check(ProviderProtocol.EstimateCost(usage with { Input = 0, InputUncached = 0, CacheRead = 0, CacheWrite = 0, Output = 0 }, null, null) == 0, "zero use needs no prices");
-    foreach (var unknown in new[] { usage with { InputUncached = null }, usage with { CacheRead = null }, usage with { CacheWrite = null }, usage with { Output = null }, usage with { Input = 99 } })
-        Check(ProviderProtocol.EstimateCost(unknown, 1m, 2m, 0.1m, 1.25m) is null, "missing or inconsistent usage stays unknown");
+    Check(ProviderProtocol.EstimateCost(usage with { Output = null }, 1m, 2m, 0.1m, 1.25m) == 0.00008775m, "missing output omits only the output charge");
+    Check(ProviderProtocol.EstimateCost(usage with { Output = null }, 1m, null, 0.1m, 1.25m) == 0.00008775m, "missing output usage does not need an output rate");
+    Check(ProviderProtocol.EstimateCost(usage with { Output = 0 }, 1m, null, 0.1m, 1.25m) == 0.00008775m, "explicit zero output needs no output rate");
+    Check(ProviderProtocol.EstimateCost(usage, 1m, null, 0.1m, 1.25m) is null, "missing output rate keeps a known output unknown");
+    Check(ProviderProtocol.EstimateCost(usage with { Output = null, Input = 99 }, 1m, 2m, 0.1m, 1.25m) is null, "inconsistent input split stays unknown when output is omitted");
+    foreach (var unknown in new[] { usage with { InputUncached = null }, usage with { CacheRead = null }, usage with { CacheWrite = null }, usage with { Input = 99 } })
+        Check(ProviderProtocol.EstimateCost(unknown, 1m, 2m, 0.1m, 1.25m) is null, "missing or inconsistent input usage stays unknown");
     Throws(() => ProviderProtocol.EstimateCost(usage, 1m, 2m, -1m, 1m), ErrorKind.InvalidRequest);
     Throws(() => ProviderProtocol.EstimateCost(usage, 1m, 2m, 1m, -1m), ErrorKind.InvalidRequest);
     Check(ProviderProtocol.EstimateCost(usage, decimal.MaxValue, 2m, 1m, 1m) is null, "out of range estimate is unknown");
@@ -409,6 +414,7 @@ async Task OpenRouterCaching()
                 Check(input[0]!["content"]![0]!["prompt_cache_breakpoint"]?["mode"]?.GetValue<string>() == (enabled ? "explicit" : null), "cache marker scoped to OpenRouter Claude");
                 Check(!body.ToJsonString().Contains("cache_control", StringComparison.Ordinal), "Responses uses its supported breakpoint field");
                 Check(body["session_id"]?.GetValue<string>() == (openRouter ? "synthetic-task-1" : null), "sticky session sent only to OpenRouter");
+                Check(body["prompt_cache_key"] is null, "codex cache key stays off unless requested");
                 Check(request.Headers.TryGetValues("HTTP-Referer", out var referers) == openRouter
                     && (!openRouter || referers!.Single() == "https://github.com/TaiRuiQu/oh-my-study")
                     && request.Headers.TryGetValues("X-OpenRouter-Title", out var titles) == openRouter
@@ -453,6 +459,13 @@ async Task SdkFraming()
     ProviderProtocol.ContinueWith(Protocol.Responses, history, turn, [new ToolResult { Call = turn.Calls[0], Text = "page 1", Images = [Image()], IsError = false }]);
     var body = ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { Thinking = new ResponsesThinking { Effort = "xhigh" }, Extra = new() { ["instructions"] = Json("\"规则\""), ["temperature"] = Json("0.2") } }, history, [Tool()]);
     Check(body["store"]!.GetValue<bool>() == false && body["include"]![0]!.GetValue<string>() == "reasoning.encrypted_content", "stateless native context");
+    Check(body["prompt_cache_key"] is null, "cache key omitted when unset");
+    var keyed = ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { PromptCacheKey = "synthetic-exam-1" }, history, [Tool()]);
+    var keyedAgain = ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { PromptCacheKey = "synthetic-exam-1" }, history, [Tool()]);
+    Check(keyed["prompt_cache_key"]!.GetValue<string>() == "synthetic-exam-1" && keyedAgain["prompt_cache_key"]!.GetValue<string>() == keyed["prompt_cache_key"]!.GetValue<string>(), "codex cache key is stable on the Responses body");
+    Throws(() => ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { PromptCacheKey = "" }, history, []), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { PromptCacheKey = new string('k', 257) }, history, []), ErrorKind.InvalidRequest);
+    Throws(() => ProviderProtocol.BuildRequest(Protocol.Responses, Options() with { Extra = new() { ["prompt_cache_key"] = Json("\"x\"") } }, history, []), ErrorKind.InvalidRequest);
     Check(body["reasoning"]!["effort"]!.GetValue<string>() == "xhigh" && body["instructions"]!.GetValue<string>() == "规则" && body["temperature"]!.GetValue<double>() == 0.2, "typed and native parameters");
     Check(body["tools"]![0]!["strict"]!.GetValue<bool>() == false && body["tools"]![0]!["parameters"]!["required"] is not null, "function tool schema");
     Check(body["input"]![0]!["type"]!.GetValue<string>() == "message", "bare role message gains its kind");

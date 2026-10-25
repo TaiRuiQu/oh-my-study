@@ -186,21 +186,16 @@ public sealed partial class MainWindow
         {
             BankEmptyIcon.Glyph = "\uE721";
             BankEmptyTitle.Text = UiText.Get("Search by meaning");
-            BankEmptyMessage.Text = UiText.Get("Describe what you want to find, then press Search or Enter. Model calls require confirmation.");
             return;
         }
         if (_bankTotal > 0 || query.Search is not null || query.Subject is not null || query.Filter != QuestionFilter.All && !mistakes)
         {
             BankEmptyIcon.Glyph = "\uE721";
             BankEmptyTitle.Text = UiText.Get("No questions found");
-            BankEmptyMessage.Text = UiText.Get("Try another keyword, subject, or result filter.");
             return;
         }
         BankEmptyIcon.Glyph = mistakes ? "\uE734" : "\uE8F1";
         BankEmptyTitle.Text = mistakes ? UiText.Get("No mistakes yet") : ViewModel.IsTaskRunning ? UiText.Get("Recognizing questions") : UiText.Get("No questions yet");
-        BankEmptyMessage.Text = mistakes ? UiText.Get("Questions to review after grading will appear here.")
-            : ViewModel.IsTaskRunning ? UiText.Get("Recognized questions appear here automatically. Check progress in Tasks.")
-            : UiText.Get("Import a PDF or image in Exams. Recognized questions join your question bank automatically.");
     }
 
     private void BankList_Loaded(object sender, RoutedEventArgs e) => AttachBankScroll();
@@ -237,7 +232,7 @@ public sealed partial class MainWindow
         if (IsMeaningSearch)
         {
             CancelSemanticSearch();
-            SetSemanticFeedback(UiText.Get("Filters changed. Press Search to refresh meaning results."));
+            SetSemanticFeedback(UiText.Get("Search results are out of date."));
         }
         await ReloadBankAsync();
     }

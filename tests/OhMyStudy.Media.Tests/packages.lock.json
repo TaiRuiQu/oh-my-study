@@ -83,6 +83,14 @@
         "resolved": "10.0.9",
         "contentHash": "fmEbAUFsaIKirgLt/lYhuFRBwhcSJN31jjHgCdbQxJiWOum6EdLjkbgGuukSP9z/a+9LibaxII/kF+GwOXgC4g=="
       },
+      "Microsoft.ML.OnnxRuntime.Managed": {
+        "type": "Transitive",
+        "resolved": "1.23.2",
+        "contentHash": "HtlQuzmVrqhnkmwfmkQ+2re8xPxtVmeLRQaYSJ3pXfzKs4b36+yBfa/LnDuzfX1bGcyWn/McKxmbY87TCAmo1Q==",
+        "dependencies": {
+          "System.Numerics.Tensors": "9.0.0"
+        }
+      },
       "SourceGear.sqlite3": {
         "type": "Transitive",
         "resolved": "3.50.4.2",
@@ -125,6 +133,11 @@
         "resolved": "10.0.9",
         "contentHash": "YweovHiLUoEdbr2Xv8eRqCSkTu1vMms4a6xBHaQiMSFVy32PL+hXv6Vhol2NWOmLHjaVgTyhJ3R52U6JxS6w3Q=="
       },
+      "System.Numerics.Tensors": {
+        "type": "Transitive",
+        "resolved": "9.0.0",
+        "contentHash": "hyJB4UlpAi19Xr9AXzu2NuagKC4lPfHObNMEAA0HmqFz2rX7wKgzeYzO/jM/eBHDhnUGFFEjk5cOoJaxqg5J4A=="
+      },
       "ohmystudy.application": {
         "type": "Project",
         "dependencies": {
@@ -134,6 +147,9 @@
       "ohmystudy.documents": {
         "type": "Project",
         "dependencies": {
+          "Microsoft.ML.OnnxRuntime": "[1.23.2, )",
+          "OpenCvSharp4": "[4.13.0.20260627, )",
+          "OpenCvSharp4.runtime.win": "[4.13.0.20260627, )",
           "VelociTex.Core": "[1.0.0-preview6, )",
           "VelociTex.Rendering.Direct2D": "[1.0.0-preview6, )"
         }
@@ -160,6 +176,15 @@
           "SQLitePCLRaw.core": "2.1.13"
         }
       },
+      "Microsoft.ML.OnnxRuntime": {
+        "type": "CentralTransitive",
+        "requested": "[1.23.2, )",
+        "resolved": "1.23.2",
+        "contentHash": "849xImRO0vxDH7DNlg/FAVGExKfjN1r2CIZevZGI5JQCoOj+0T23ShqPEgu5mLTwElot5X7V0qkO0jUz/yJZbA==",
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.23.2"
+        }
+      },
       "OpenAI": {
         "type": "CentralTransitive",
         "requested": "[2.14.0, )",
@@ -168,6 +193,18 @@
         "dependencies": {
           "System.ClientModel": "1.15.0"
         }
+      },
+      "OpenCvSharp4": {
+        "type": "CentralTransitive",
+        "requested": "[4.13.0.20260627, )",
+        "resolved": "4.13.0.20260627",
+        "contentHash": "nYk95jkyYY9f0sF5KqZ3OB1SWkmqsfV7eN0ROiQds/rxpSn0v1G0QIedMbwuqbdPhvQnOIG2DDmpkLnHEJMh8Q=="
+      },
+      "OpenCvSharp4.runtime.win": {
+        "type": "CentralTransitive",
+        "requested": "[4.13.0.20260627, )",
+        "resolved": "4.13.0.20260627",
+        "contentHash": "POIxR+CTpwHJIdam6wd8U2fprWv5QnIUw50jw79WEGb37He3T1h11SdtwSj9p2PLSfrzonMjO2t71wqi5uFsoQ=="
       },
       "SQLitePCLRaw.bundle_e_sqlite3": {
         "type": "CentralTransitive",
@@ -209,6 +246,21 @@
         "type": "Transitive",
         "resolved": "3.50.4.2",
         "contentHash": "eV9HwQ88WyoU+reGVxJz1SwME9NbYnl9h2LOY15j0LGdXN4JkTJDk8JRRg/yNgt00O3Cn5/qnska10FEZNoU5g=="
+      },
+      "Microsoft.ML.OnnxRuntime": {
+        "type": "CentralTransitive",
+        "requested": "[1.23.2, )",
+        "resolved": "1.23.2",
+        "contentHash": "849xImRO0vxDH7DNlg/FAVGExKfjN1r2CIZevZGI5JQCoOj+0T23ShqPEgu5mLTwElot5X7V0qkO0jUz/yJZbA==",
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.23.2"
+        }
+      },
+      "OpenCvSharp4.runtime.win": {
+        "type": "CentralTransitive",
+        "requested": "[4.13.0.20260627, )",
+        "resolved": "4.13.0.20260627",
+        "contentHash": "POIxR+CTpwHJIdam6wd8U2fprWv5QnIUw50jw79WEGb37He3T1h11SdtwSj9p2PLSfrzonMjO2t71wqi5uFsoQ=="
       },
       "VelociTex.Core": {
         "type": "CentralTransitive",

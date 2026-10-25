@@ -31,9 +31,9 @@ Test connection makes a short request. It can reveal a bad key, wrong endpoint, 
 
 ## Read cost details correctly
 
-The estimator needs ordinary input, cache-read, cache-write, and output counts. Each bucket uses its own configured rate. A missing cache statistic cannot be treated as a zero cache count.
+The estimator prices each reported bucket at its configured per-million rate. A missing output count omits the output charge and keeps the known input and cache charges. A missing input, cache-read, or cache-write count, an input split that does not match the reported total, or a known nonzero bucket without a rate leaves that request unpriced. The task total adds the priced requests. If none can be priced, the task shows that the estimate is unavailable. A missing cache statistic is not treated as a zero cache count. Zero counts are explicit and need no rate.
 
-For example, 1,000 uncached input tokens at 2 per million plus 500 output tokens at 8 per million costs 0.006 currency units, provided cache counts are explicitly known to be zero. If required usage is absent, the app may correctly show no estimate. CNY conversion is a dated reference, sometimes from cache; the service's bill remains authoritative.
+For example, 1,000 uncached input tokens at 2 per million plus 500 output tokens at 8 per million costs 0.006 currency units, provided cache counts are explicitly known to be zero. CNY conversion is a dated reference, sometimes from cache; the service's bill remains authoritative. A partial total can leave some requests out.
 
 ## Maintain configurations safely
 
@@ -47,6 +47,12 @@ Implementation and reference: [MainWindow.Models.cs](../../src/OhMyStudy.App/Mai
 Set **Max output tokens (max_tokens)** per model to override the automatic limit for new tasks. It maps to `max_output_tokens` for Responses and `max_tokens` for Messages, including later rounds. Use a supported positive integer, keeping fixed thinking budgets below it. Catalog enrichment preserves this override.
 
 Recognition selects a local model prompt profile once per task. Unknown versions use family guidance; unknown names use the generic study prompt. See [profiles and sources](../model-prompts.md).
+
+Recognition prompts prefer structured tables and Mermaid flowcharts over unclear crops, and Matplotlib-generated PNGs for simple geometry and diagrams. Generated content must retain original region evidence and visible data. Images and Mermaid blocks support a display width from 1–100 percent (default 100). Font directives and exact table merge markers preserve source typography and structure when needed.
+
+## Codex mode
+
+For a Responses provider, enable **Codex mode** to send `prompt_cache_key` on every turn of a new task. The key is that exam's document id and stays constant across turns, matching the cache-routing key Codex derives from its session. This can raise prompt-cache hit rates on providers that honor the field. It defaults to off and is saved with the provider. Messages providers do not send it. Providers that ignore unknown JSON fields leave the rest of the request unchanged.
 
 ## Optional Files API
 

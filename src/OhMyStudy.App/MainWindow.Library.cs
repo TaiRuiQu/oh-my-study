@@ -140,7 +140,7 @@ public sealed partial class MainWindow
             await RefreshTasksAsync();
             if (_documents.Count == 0)
             {
-                ViewModel.ClearLibrary(); OriginalCaption.Text = UiText.Get("Imported materials will appear here.");
+                ViewModel.ClearLibrary(); OriginalCaption.Text = "";
                 WorkspaceNotice.IsOpen = false;
             }
             string legacy = LegacyLibraryLocation.ResolveDefault(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
@@ -350,7 +350,7 @@ public sealed partial class MainWindow
                 recognitionQueued = true;
                 await ShowQuestionLibraryAsync();
             }
-            ViewModel.StatusMessage = studentAnswers ? UiText.Get("Student answers added. Recognize again to grade them.") : reference ? UiText.Get("Reference answers added. You can organize them again.")
+            ViewModel.StatusMessage = studentAnswers ? UiText.Get("Student answers added. Recognize again to grade them.") : reference ? UiText.Get("Reference answers added.")
                 : RecognitionStatus((await _jobs!.GetAsync(recognitionJob!.Id, _lifetime.Token)).State);
         }
         catch (OperationCanceledException) { ViewModel.StatusMessage = UiText.Get("Import canceled."); }
@@ -421,9 +421,11 @@ public sealed partial class MainWindow
         _selectedProviderId = provider.Id; ProviderName.Text = provider.Name; ProviderUrl.Text = provider.BaseUrl;
         ProtocolPicker.SelectedIndex = (int)provider.Protocol; ProviderKey.Password = "";
         ProviderFilesApi.IsChecked = provider.SupportsFilesApi;
+        ProviderCodexMode.IsChecked = provider.CodexMode;
+        UpdateCodexModeVisibility();
         ProviderFeedback.Text = "";
         UpdateModelList(provider);
-        ModelFeedback.Text = provider.Models.Count == 0 ? UiText.Get("No models yet. Fetch the list or add one manually.") : "";
+        ModelFeedback.Text = provider.Models.Count == 0 ? UiText.Get("No models yet.") : "";
         _providerFormBaseline = ProviderFormState(); _settingsFormsReady = true;
     }
     private async void NewProvider_Click(object sender, RoutedEventArgs e)
@@ -435,13 +437,21 @@ public sealed partial class MainWindow
         ProviderPicker.SelectedIndex = -1; _selectedProviderId = null; ProviderName.Text = ""; ProviderUrl.Text = ""; ProviderKey.Password = ""; ProviderFeedback.Text = "";
         ProtocolPicker.SelectedIndex = 0;
         ProviderFilesApi.IsChecked = false;
+        ProviderCodexMode.IsChecked = false;
+        UpdateCodexModeVisibility();
         _modelSelectionSuppressed = true;
         try { ModelPicker.ItemsSource = null; }
         finally { _modelSelectionSuppressed = false; }
-        ModelEditor.Visibility = Visibility.Collapsed; ModelFeedback.Text = UiText.Get("Save the provider before adding models.");
+        ModelEditor.Visibility = Visibility.Collapsed; ModelFeedback.Text = "";
         ModelPicker.Visibility = Visibility.Collapsed;
         UpdateSettingsActionAvailability();
         _providerFormBaseline = ProviderFormState(); _modelFormBaseline = ModelFormState(); _settingsFormsReady = true;
+    }
+    private void ProtocolPicker_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateCodexModeVisibility();
+    private void UpdateCodexModeVisibility()
+    {
+        if (ProviderCodexMode is null) return;
+        ProviderCodexMode.Visibility = ProtocolPicker.SelectedIndex == (int)Protocol.Responses ? Visibility.Visible : Visibility.Collapsed;
     }
     private async void SaveProvider_Click(object sender, RoutedEventArgs e) => await SaveProviderAsync();
 
@@ -466,6 +476,7 @@ public sealed partial class MainWindow
                 Protocol = protocol,
                 BaseUrl = ProviderUrl.Text.Trim(),
                 SupportsFilesApi = ProviderFilesApi.IsChecked == true,
+                CodexMode = protocol == Protocol.Responses && ProviderCodexMode.IsChecked == true,
                 Models = models
             };
             if (!string.IsNullOrEmpty(ProviderKey.Password)) key = Encoding.UTF8.GetBytes(ProviderKey.Password);
@@ -473,7 +484,7 @@ public sealed partial class MainWindow
             _selectedProviderId = saved.Provider.Id; ProviderKey.Password = "";
             UpdateProviderEntry(saved.Provider); _providerFormBaseline = ProviderFormState();
             if (saved.Provider.Models.Count == 0 && ModelEditor.Visibility == Visibility.Collapsed)
-                ModelFeedback.Text = UiText.Get("No models yet. Fetch the list or add one manually.");
+                ModelFeedback.Text = UiText.Get("No models yet.");
             ProviderFeedback.Text = saved.CredentialCleanupRequired ? UiText.Get("Saved, but the old key could not be removed. Save again later.") : UiText.Get("Saved.");
         }
         catch (InvalidOperationException error) when (error.Message.StartsWith(UiText.Get("A provider with existing models"), StringComparison.Ordinal)) { ProviderFeedback.Text = error.Message; }

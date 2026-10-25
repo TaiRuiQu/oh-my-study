@@ -71,6 +71,10 @@
   <ItemGroup>
     <EmbeddedResource Include="Localization/*.xml" LogicalName="OhMyStudy.App.Localization.%(Filename)%(Extension)" />
     <EmbeddedResource Include="MobileCapture/index.html" LogicalName="OhMyStudy.App.MobileCapture.html" />
+    <EmbeddedResource Include="MobileCapture/*.js" LogicalName="OhMyStudy.App.MobileCapture.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="MobileCapture/StudySans.woff2" LogicalName="OhMyStudy.App.MobileCapture.Font" />
+    <Content Include="MobileCapture/OFL.txt" Link="licenses/MobileCapture/OFL.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="MobileCapture/Font-NOTICE.md" Link="licenses/MobileCapture/Font-NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="../OhMyStudy.Documents/OhMyStudy.Documents.csproj" />
     <ProjectReference Include="../OhMyStudy.Infrastructure/OhMyStudy.Infrastructure.csproj" />
     <Content Include="Assets/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

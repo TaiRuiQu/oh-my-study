@@ -15,13 +15,8 @@
     <text key="S0012" xml:space="preserve">还没有错题</text>
     <text key="S0013" xml:space="preserve">正在识别题目</text>
     <text key="S0014" xml:space="preserve">还没有题目</text>
-    <text key="S0015" xml:space="preserve">批改后需要复习的题目会出现在这里。</text>
-    <text key="S0016" xml:space="preserve">题目识别后会自动出现在这里，可在任务中查看进度。</text>
-    <text key="S0017" xml:space="preserve">这份试卷还没有识别出题目，可在上方重新识别。</text>
-    <text key="S0018" xml:space="preserve">在试卷页面导入 PDF 或图片，识别后题目会自动加入题库。</text>
     <text key="S0019" xml:space="preserve">汇率 {0}，1 美元 = {1:0.####} 元</text>
     <text key="S0020" xml:space="preserve">（缓存）</text>
-    <text key="S0021" xml:space="preserve">请选择货币后查看人民币估算。</text>
     <text key="S0022" xml:space="preserve">暂时无法获取汇率，人民币估算不可用。原价格已保留。</text>
     <text key="S0023" xml:space="preserve">未设置</text>
     <text key="S0024" xml:space="preserve">人民币估算：未命中 {0}    命中 {1}    缓存写入 {2}    输出 {3}</text>
@@ -71,7 +66,6 @@
     <text key="S0068" xml:space="preserve">此电脑暂时无法打印。</text>
     <text key="S0069" xml:space="preserve">正在准备打印…</text>
     <text key="S0070" xml:space="preserve">无法打开打印窗口，请检查打印机。</text>
-    <text key="S0071" xml:space="preserve">请在打印窗口中选择打印机和纸张。</text>
     <text key="S0072" xml:space="preserve">打印未能准备完成，请检查原件和打印机后重试。</text>
     <text key="S0073" xml:space="preserve">已交给打印机。</text>
     <text key="S0074" xml:space="preserve">已取消打印。</text>
@@ -139,7 +133,6 @@
     <text key="S0136" xml:space="preserve">方向未能保存，请等待任务结束后重试。</text>
     <text key="S0137" xml:space="preserve">保存位置无法访问。</text>
     <text key="S0138" xml:space="preserve">取消未完成，请稍后重试。</text>
-    <text key="S0139" xml:space="preserve">导入资料后在这里查看。</text>
     <text key="S0140" xml:space="preserve">发现旧版资料</text>
     <text key="S0141" xml:space="preserve">可从更多菜单导入，原资料会保留。</text>
     <text key="S0142" xml:space="preserve">资料库无法打开，请检查保存位置或在设置中选择已有资料库。</text>
@@ -151,7 +144,7 @@
     <text key="S0148" xml:space="preserve">一次最多导入12页。</text>
     <text key="S0149" xml:space="preserve">正在导入…</text>
     <text key="S0150" xml:space="preserve">单个文件不能超过 64 MB，一次导入不能超过 256 MB。请拆分后重试。</text>
-    <text key="S0151" xml:space="preserve">参考答案已添加，可选择重新整理。</text>
+    <text key="S0151" xml:space="preserve">参考答案已添加。</text>
     <text key="S0152" xml:space="preserve">已取消导入。</text>
     <text key="S0153" xml:space="preserve">试卷已导入并开始识别，题库暂时无法刷新。请重新打开题库。</text>
     <text key="S0154" xml:space="preserve">试卷已保存，识别未能开始。请在试卷中重新识别。</text>
@@ -163,8 +156,7 @@
     <text key="S0160" xml:space="preserve">导入失败，请重新选择文件后重试。</text>
     <text key="S0161" xml:space="preserve">请先选择资料。</text>
     <text key="S0162" xml:space="preserve">无法打开文件，请重试。</text>
-    <text key="S0163" xml:space="preserve">还没有模型，可获取列表或手动添加。</text>
-    <text key="S0164" xml:space="preserve">先保存供应商，再添加模型。</text>
+    <text key="S0163" xml:space="preserve">暂无模型。</text>
     <text key="S0165" xml:space="preserve">请先选择可用的资料库。</text>
     <text key="S0166" xml:space="preserve">已有模型的供应商不能直接更改接口，请添加新的供应商。</text>
     <text key="S0167" xml:space="preserve">已保存；旧密钥未能清理，请稍后重新保存。</text>
@@ -309,8 +301,6 @@
     <text key="S0302" xml:space="preserve">{0} / {1} 份试卷</text>
     <text key="S0303" xml:space="preserve">还没有试卷</text>
     <text key="S0304" xml:space="preserve">没有找到试卷</text>
-    <text key="S0305" xml:space="preserve">导入 PDF 或图片试卷，开始整理。</text>
-    <text key="S0306" xml:space="preserve">试试其他关键词或学科。</text>
     <text key="S0307" xml:space="preserve">试卷无法打开，请稍后重试。</text>
     <text key="S0308" xml:space="preserve">标题</text>
     <text key="S0309" xml:space="preserve">如数学、语文、英语</text>
@@ -405,7 +395,6 @@
     <text key="S0398" xml:space="preserve">页面尺寸无效。 </text>
     <text key="S0399" xml:space="preserve">示例资料</text>
     <text key="S0400" xml:space="preserve">可查看和编辑，修改不会保存。</text>
-    <text key="S0401" xml:space="preserve">整理资料，梳理错题，轻松复习。</text>
     <text key="S0402" xml:space="preserve">知道了</text>
     <text key="S0403" xml:space="preserve">Windows 当前报告不支持打印；仅验证了原生 API，不代表系统或实物打印通过。</text>
     <text key="S0404" xml:space="preserve">截图需要绝对路径。</text>
@@ -521,7 +510,6 @@
     <text key="S0512" xml:space="preserve">题目内容</text>
     <text key="S0513" xml:space="preserve">答案</text>
     <text key="S0514" xml:space="preserve">备注</text>
-    <text key="S0515" xml:space="preserve">记录你的理解或复习提示</text>
     <text key="S0516" xml:space="preserve">最近任务</text>
     <text key="S0517" xml:space="preserve">任务列表</text>
     <text key="S0518" xml:space="preserve">选择任务</text>
@@ -539,8 +527,7 @@
     <text key="S0530" xml:space="preserve">任务正在处理</text>
     <text key="S0531" xml:space="preserve">滚动到最新记录</text>
     <text key="S0532" xml:space="preserve">最新</text>
-    <text key="S0533" xml:space="preserve">识别进度，随时可见</text>
-    <text key="S0534" xml:space="preserve">导入试卷后，在这里查看阅读、识别与保存的每一步。</text>
+    <text key="S0533" xml:space="preserve">暂无任务</text>
     <text key="S0535" xml:space="preserve">模型</text>
     <text key="S0536" xml:space="preserve">供应商</text>
     <text key="S0537" xml:space="preserve">供应商列表</text>
@@ -568,7 +555,6 @@
     <text key="S0559" xml:space="preserve">可选思考强度</text>
     <text key="S0560" xml:space="preserve">思考预算</text>
     <text key="S0561" xml:space="preserve">留空不设置</text>
-    <text key="S0562" xml:space="preserve">仅选择此模型支持的强度；图片和工具能力未确认时保留横线。</text>
     <text key="S0563" xml:space="preserve">价格</text>
     <text key="S0564" xml:space="preserve">输入（未命中）</text>
     <text key="S0565" xml:space="preserve">输入（命中）</text>
@@ -680,7 +666,6 @@
     <text key="S0671" xml:space="preserve">无法加载题目，请稍后重试。</text>
     <text key="S0672" xml:space="preserve">{0} / {1} 道题</text>
     <text key="S0673" xml:space="preserve">没有找到题目</text>
-    <text key="S0674" xml:space="preserve">换个关键词、科目或批改结果试试。</text>
     <text key="S0675" xml:space="preserve">这道题已不存在。</text>
     <text key="S0676" xml:space="preserve">知识点</text>
     <text key="S0677" xml:space="preserve">{0} 个小问</text>
@@ -698,7 +683,6 @@
     <text key="S0689" xml:space="preserve">搜索</text>
     <text key="S0690" xml:space="preserve">取消</text>
     <text key="S0691" xml:space="preserve">调整题目列表宽度</text>
-    <text key="S0692" xml:space="preserve">左右拖动，或使用左右方向键调整宽度</text>
     <text key="S0693" xml:space="preserve">题意搜索模型</text>
     <text key="S0694" xml:space="preserve">Embedding 和 reranker 的连接配置独立于识别供应商。程序会在填写的 Base URL 后追加 /embeddings 或 /rerank；服务需要 /v1 时请包含该路径。</text>
     <text key="S0695" xml:space="preserve">Embedding 模型</text>
@@ -716,9 +700,8 @@
     <text key="S0707" xml:space="preserve">本地索引已清除，下次按题意搜索将在确认后重新建立索引。</text>
     <text key="S0708" xml:space="preserve">无法清除搜索索引，请重试。</text>
     <text key="S0709" xml:space="preserve">描述要查找的题目或知识点</text>
-    <text key="S0710" xml:space="preserve">描述要查找的内容，然后点击搜索或按回车。调用模型前需要确认。</text>
     <text key="S0711" xml:space="preserve">搜索已取消，已完成的向量保留在本地。</text>
-    <text key="S0712" xml:space="preserve">最多展示按题意相关度排序的 50 道题。修改查询或筛选后重新搜索即可更新。</text>
+    <text key="S0712" xml:space="preserve">按语义相关度显示最多 50 道题。</text>
     <text key="S0713" xml:space="preserve">请先在设置中配置 embedding 的 Base URL 和模型名称。</text>
     <text key="S0714" xml:space="preserve">请先描述要查找的题目或知识点。</text>
     <text key="S0715" xml:space="preserve">正在准备本地搜索索引…</text>
@@ -732,7 +715,7 @@
     <text key="S0723" xml:space="preserve">正在准备题目向量：{0} / {1}</text>
     <text key="S0724" xml:space="preserve">搜索向量或模型响应不一致。请在设置中清除本地搜索索引后重试。</text>
     <text key="S0725" xml:space="preserve">按题意搜索失败，请检查设置中的搜索模型后重试。</text>
-    <text key="S0726" xml:space="preserve">筛选条件已更改，请点击搜索更新题意检索结果。</text>
+    <text key="S0726" xml:space="preserve">搜索结果尚未更新。</text>
     <text key="S0727" xml:space="preserve">Embedding 响应无效，请检查接口地址和模型。</text>
     <text key="S0728" xml:space="preserve">Reranker 响应无效，请检查接口地址和模型，或清空 reranker 配置。</text>
     <text key="S0729" xml:space="preserve">搜索模型的密钥不可用，请在设置中重新填写。</text>
@@ -747,7 +730,6 @@
     <text key="S0738" xml:space="preserve">API 类型</text>
     <text key="S0739" xml:space="preserve">OpenAI 兼容</text>
     <text key="S0740" xml:space="preserve">调整区域大小</text>
-    <text key="S0741" xml:space="preserve">拖动调整大小，或使用方向键；Home/End 调整到最小/最大。</text>
     <text key="S0742" xml:space="preserve">新题目文本还将发送至 {0}，使用 {1} 自动建立索引，可能产生额外费用。</text>
     <text key="S0743" xml:space="preserve">输出上限（max_tokens）</text>
     <text key="S0744" xml:space="preserve">留空自动设置</text>
@@ -761,7 +743,6 @@
     <text key="S0752" xml:space="preserve">此任务创建于重试恢复记录功能推出之前。请在试卷中使用“重新识别”，以保留已保存的结果。</text>
     <text key="S0753" xml:space="preserve">此任务保存的题目已有手工编辑。请在试卷中使用“重新识别”，以保留这些编辑。</text>
     <text key="S0754" xml:space="preserve">支持 Files API</text>
-    <text key="S0755" xml:space="preserve">仅在供应商支持文件上传和图片文件 ID 时启用。文件在 1 小时后过期，并在任务结束时主动删除。</text>
     <text key="S0756" xml:space="preserve">图片将上传至供应商的 Files API，后续通过文件 ID 引用。文件在 1 小时后过期，并在任务结束时主动删除；供应商可能收取存储或模型费用。</text>
     <text key="S0757" xml:space="preserve">正在向供应商的 Files API 上传图片</text>
     <text key="S0758" xml:space="preserve">供应商拒绝了 Files API 操作。请检查是否支持 Files API，以及文件权限和过期参数。</text>
@@ -771,7 +752,6 @@
     <text key="S0762" xml:space="preserve">上传学生作答</text>
     <text key="S0763" xml:space="preserve">录入学生作答</text>
     <text key="S0764" xml:space="preserve">错因分析</text>
-    <text key="S0765" xml:space="preserve">录入学生自己的作答过程。保存后重新识别，即可批改并分析错因。</text>
     <text key="S0766" xml:space="preserve">已添加学生作答。请重新识别以进行批改。</text>
     <text key="S0767" xml:space="preserve">学生作答已更改，请重新识别以进行批改。</text>
     <text key="S0768" xml:space="preserve">确认结果</text>
@@ -790,23 +770,30 @@
     <text key="S0781" xml:space="preserve">暂时无法检查更新。请检查网络后稍后重试。</text>
     <text key="S0782" xml:space="preserve">更新下载失败，请稍后重试。</text>
     <text key="S0783" xml:space="preserve">更新已安装。请重启应用以继续。</text>
+    <text key="S0784" xml:space="preserve">Codex 模式</text>
+    <text key="S0785" xml:space="preserve">A4 纵向</text>
+    <text key="S0786" xml:space="preserve">分栏数</text>
+    <text key="S0787" xml:space="preserve">图示</text>
+    <text key="S0788" xml:space="preserve">显示宽度（%）</text>
+    <text key="S0789" xml:space="preserve">Mermaid 代码</text>
+    <text key="S0790" xml:space="preserve">图示标题</text>
+    <text key="S0791" xml:space="preserve">添加图示</text>
+    <text key="S0792" xml:space="preserve">图示题</text>
     <text key="PhoneCapture.000" xml:space="preserve">导入来源</text>
-    <text key="PhoneCapture.001" xml:space="preserve">选择电脑上的文件，或扫码使用手机拍照。</text>
     <text key="PhoneCapture.002" xml:space="preserve">选择文件</text>
     <text key="PhoneCapture.003" xml:space="preserve">手机拍照</text>
     <text key="PhoneCapture.004" xml:space="preserve">请将电脑连接到 Wi-Fi 或以太网，然后重试手机拍照。</text>
-    <text key="PhoneCapture.005" xml:space="preserve">手机连接同一 Wi-Fi 后，用相机扫描二维码即可。无需安装 App 或登录账号。</text>
+    <text key="PhoneCapture.005" xml:space="preserve">手机与电脑需连接同一 Wi-Fi。</text>
     <text key="PhoneCapture.006" xml:space="preserve">电脑网络</text>
     <text key="PhoneCapture.007" xml:space="preserve">扫码连接手机</text>
     <text key="PhoneCapture.008" xml:space="preserve">连接链接</text>
     <text key="PhoneCapture.009" xml:space="preserve">复制链接</text>
     <text key="PhoneCapture.010" xml:space="preserve">无法连接？若 Windows 提示，请允许 Oh My Study 在专用网络上通信。请避开访客 Wi-Fi，可尝试手机热点或切换上方电脑网络。局域网 HTTP 连接请仅在可信网络使用。</text>
-    <text key="PhoneCapture.011" xml:space="preserve">已收到 {0} 个文件。拍摄完成后，点击“导入”。</text>
+    <text key="PhoneCapture.011" xml:space="preserve">已收到 {0} 个文件。</text>
     <text key="PhoneCapture.012" xml:space="preserve">等待手机连接。此二维码将于 {0:t} 失效。</text>
     <text key="PhoneCapture.013" xml:space="preserve">无法启动手机拍照。请检查网络或切换上方电脑网络。</text>
     <text key="PhoneCapture.014" xml:space="preserve">二维码已失效。可导入已接收的文件，或关闭后重新打开手机拍照获取新二维码。</text>
     <text key="PhoneCapture.015" xml:space="preserve">用手机拍照导入</text>
-    <text key="PhoneCapture.016" xml:space="preserve">每次拍摄一页，检查四角后发送到电脑。</text>
     <text key="PhoneCapture.017" xml:space="preserve">拍照</text>
     <text key="PhoneCapture.018" xml:space="preserve">选择图片或 PDF</text>
     <text key="PhoneCapture.019" xml:space="preserve">最多 12 页，单个文件不超过 64 MB，每次导入不超过 256 MB。原图和处理后的图片均计入限制。</text>
@@ -822,7 +809,6 @@
     <text key="PhoneCapture.029" xml:space="preserve">重新调整</text>
     <text key="PhoneCapture.030" xml:space="preserve">发送此页</text>
     <text key="PhoneCapture.031" xml:space="preserve">已发送到电脑</text>
-    <text key="PhoneCapture.032" xml:space="preserve">拍摄完成后，在电脑上点击“导入”。识别将沿用现有模型设置。</text>
     <text key="PhoneCapture.033" xml:space="preserve">临时连接有效期为 20 分钟。请保持此窗口打开，并使用可信 Wi-Fi。照片通过局域网 HTTP 直接传到电脑。</text>
     <text key="PhoneCapture.034" xml:space="preserve">连接已失效。请重新扫描电脑上的二维码。</text>
     <text key="PhoneCapture.035" xml:space="preserve">文件超过 64 MB。请选择较小的文件。</text>
@@ -838,7 +824,6 @@
     <text key="PhoneCapture.045" xml:space="preserve">正在上传到电脑…</text>
     <text key="PhoneCapture.046" xml:space="preserve">已发送。请在电脑上确认导入。</text>
     <text key="PhoneCapture.047" xml:space="preserve">照片预览</text>
-    <text key="PhoneCapture.048" xml:space="preserve">已找到页面边缘。可拖动四角进行调整。</text>
     <text key="PhoneCapture.049" xml:space="preserve">未找到清晰的页面边缘。请拖动四角，或保留整张照片。</text>
     <text key="PhoneCapture.050" xml:space="preserve">请检查全部四角。</text>
     <text key="PhoneCapture.051" xml:space="preserve">已放弃照片。</text>
@@ -846,13 +831,10 @@
     <text key="PhoneCapture.053" xml:space="preserve">矫正后的页面预览</text>
     <text key="PhoneCapture.054" xml:space="preserve">请确认文字没有被裁掉。</text>
     <text key="PhoneCapture.055" xml:space="preserve">正在连接…</text>
-    <text key="PhoneCapture.056" xml:space="preserve">连接成功，可以开始拍照。</text>
     <text key="PhoneCapture.057" xml:space="preserve">尚未发送</text>
     <text key="PhoneCapture.058" xml:space="preserve">继续编辑</text>
     <text key="PhoneCapture.059" xml:space="preserve">向右旋转</text>
-    <text key="PhoneCapture.060" xml:space="preserve">请检查页面方向，必要时手动旋转。</text>
-    <text key="PhoneCapture.061" xml:space="preserve">已自动矫正页面方向，仍可手动旋转。</text>
-    <text key="PhoneCapture.062" xml:space="preserve">发送前请确认页面方向。</text>
+    <text key="PhoneCapture.061" xml:space="preserve">页面方向已自动校正。</text>
     <text key="PhoneCapture.063" xml:space="preserve">四角重叠或距离过近，请重新调整。</text>
     <text key="PhoneCapture.064" xml:space="preserve">导入</text>
     <text key="PhoneCapture.065" xml:space="preserve">电脑已接收：{0} / 12 个文件。待上传：{1} 个。</text>
@@ -864,8 +846,8 @@
     <text key="PhoneCapture.071" xml:space="preserve">标准模式：DocScanner 展平、OpenCV 去阴影和轻度失焦恢复。可选 DocRes：855 MiB 模型权重，另需数 GB 的独立 Python 与 CUDA 依赖。下载保存在本机。</text>
     <text key="PhoneCapture.072" xml:space="preserve">下载并安装 DocRes</text>
     <text key="PhoneCapture.073" xml:space="preserve">启用可选 DocRes 修复</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocRes 已安装。启用后可在手机端选择神经网络修复。</text>
-    <text key="PhoneCapture.075" xml:space="preserve">本机满足 DocRes 要求。需主动下载后才能使用。</text>
+    <text key="PhoneCapture.074" xml:space="preserve">DocRes 已安装。</text>
+    <text key="PhoneCapture.075" xml:space="preserve">此电脑支持 DocRes。</text>
     <text key="PhoneCapture.076" xml:space="preserve">DocRes 需要专用显存严格大于 12 GiB 的 NVIDIA 独立显卡，以及已安装且可用的 CUDA 运行时。恰好 12 GiB 不符合要求。</text>
     <text key="PhoneCapture.077" xml:space="preserve">取消 DocRes 下载</text>
     <text key="PhoneCapture.078" xml:space="preserve">正在本机下载并检查 DocRes，可能需要数分钟…</text>
@@ -898,6 +880,103 @@
     <text key="PhoneCapture.105" xml:space="preserve">正在下载依赖…</text>
     <text key="PhoneCapture.106" xml:space="preserve">正在安装独立的 CUDA 运行时和 PyTorch，可能还需下载数 GB。</text>
     <text key="PhoneCapture.107" xml:space="preserve">正在校验权重，并在所选物理设备上运行 CUDA 推理。</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocRes 安装已通过校验。需单独启用后才能使用。</text>
+    <text key="PhoneCapture.108" xml:space="preserve">DocRes 安装已验证。</text>
     <text key="PhoneCapture.109" xml:space="preserve">DocRes 下载进度</text>
+    <text key="PhoneCapture.Batch.000" xml:space="preserve">拍摄</text>
+    <text key="PhoneCapture.Batch.001" xml:space="preserve">待选区</text>
+    <text key="PhoneCapture.Batch.002" xml:space="preserve">扫描纸张</text>
+    <text key="PhoneCapture.Batch.004" xml:space="preserve">开启相机</text>
+    <text key="PhoneCapture.Batch.005" xml:space="preserve">使用系统相机</text>
+    <text key="PhoneCapture.Batch.007" xml:space="preserve">相册 / 文件</text>
+    <text key="PhoneCapture.Batch.008" xml:space="preserve">进入待选区前，照片只保留在手机上。</text>
+    <text key="PhoneCapture.Batch.009" xml:space="preserve">预览待选页</text>
+    <text key="PhoneCapture.Batch.010" xml:space="preserve">全选</text>
+    <text key="PhoneCapture.Batch.011" xml:space="preserve">取消全选</text>
+    <text key="PhoneCapture.Batch.013" xml:space="preserve">暂无页面</text>
+    <text key="PhoneCapture.Batch.015" xml:space="preserve">继续拍摄</text>
+    <text key="PhoneCapture.Batch.016" xml:space="preserve">连接与导入限制</text>
+    <text key="PhoneCapture.Batch.017" xml:space="preserve">进入待选区后，原图会直传电脑以生成校正预览；只有确认发送的页面才能导入。</text>
+    <text key="PhoneCapture.Batch.018" xml:space="preserve">请保持页面打开，刷新会丢失尚未传输的照片。连接有效期为 20 分钟。</text>
+    <text key="PhoneCapture.Batch.019" xml:space="preserve">发送所选页面</text>
+    <text key="PhoneCapture.Batch.020" xml:space="preserve">返回待选区</text>
+    <text key="PhoneCapture.Batch.021" xml:space="preserve">调整裁剪</text>
+    <text key="PhoneCapture.Batch.022" xml:space="preserve">完成</text>
+    <text key="PhoneCapture.Batch.023" xml:space="preserve">拍摄导航</text>
+    <text key="PhoneCapture.Batch.024" xml:space="preserve">相机取景</text>
+    <text key="PhoneCapture.Batch.025" xml:space="preserve">已拍页面</text>
+    <text key="PhoneCapture.Batch.026" xml:space="preserve">预览处理进度</text>
+    <text key="PhoneCapture.Batch.027" xml:space="preserve">已连接电脑</text>
+    <text key="PhoneCapture.Batch.028" xml:space="preserve">连接不可用</text>
+    <text key="PhoneCapture.Batch.029" xml:space="preserve">待选区 ({0})</text>
+    <text key="PhoneCapture.Batch.030" xml:space="preserve">发送 {0} 页</text>
+    <text key="PhoneCapture.Batch.031" xml:space="preserve">正在发送…</text>
+    <text key="PhoneCapture.Batch.032" xml:space="preserve">已选 {0} 页 · {1} 页就绪</text>
+    <text key="PhoneCapture.Batch.034" xml:space="preserve">待生成预览</text>
+    <text key="PhoneCapture.Batch.035" xml:space="preserve">正在传输原图…</text>
+    <text key="PhoneCapture.Batch.036" xml:space="preserve">正在校正…</text>
+    <text key="PhoneCapture.Batch.037" xml:space="preserve">可以发送</text>
+    <text key="PhoneCapture.Batch.038" xml:space="preserve">需要处理</text>
+    <text key="PhoneCapture.Batch.039" xml:space="preserve">预览第 {0} 页</text>
+    <text key="PhoneCapture.Batch.040" xml:space="preserve">选择第 {0} 页</text>
+    <text key="PhoneCapture.Batch.041" xml:space="preserve">删除第 {0} 页</text>
+    <text key="PhoneCapture.Batch.042" xml:space="preserve">已发送到电脑 ({0})</text>
+    <text key="PhoneCapture.Batch.043" xml:space="preserve">此批次超过 256 MB，请删除部分页面后重试。</text>
+    <text key="PhoneCapture.Batch.044" xml:space="preserve">待选区已有 {0} 页</text>
+    <text key="PhoneCapture.Batch.045" xml:space="preserve">正在生成预览 {0} / {1}</text>
+    <text key="PhoneCapture.Batch.046" xml:space="preserve">部分页面处理失败，请重试或取消勾选。</text>
+    <text key="PhoneCapture.Batch.048" xml:space="preserve">连续取景需要受信任的 HTTPS。此连接可使用系统相机或选择文件。</text>
+    <text key="PhoneCapture.Batch.049" xml:space="preserve">相机权限被拒绝，请在浏览器中允许相机访问，或使用系统相机。</text>
+    <text key="PhoneCapture.Batch.050" xml:space="preserve">无法启动相机，请关闭占用相机的应用后重试，或使用系统相机。</text>
+    <text key="PhoneCapture.Batch.051" xml:space="preserve">相机正在启动，请稍后再拍。</text>
+    <text key="PhoneCapture.Batch.053" xml:space="preserve">请先生成预览；处理失败的页面可重试。</text>
+    <text key="PhoneCapture.Batch.054" xml:space="preserve">第 {0} 张</text>
+    <text key="PhoneCapture.Batch.055" xml:space="preserve">保存预览</text>
+    <text key="PhoneCapture.Batch.056" xml:space="preserve">手机连接方式</text>
+    <text key="PhoneCapture.Batch.057" xml:space="preserve">连续拍摄（实验性 HTTPS）</text>
+    <text key="PhoneCapture.Batch.058" xml:space="preserve">系统相机与文件（HTTP）</text>
+    <text key="PhoneCapture.Batch.059" xml:space="preserve">实验性 HTTPS 使用已公开的 eMudhra 签发证书。浏览器可能因证书撤销或透明度要求拒绝连接；无法打开时，请选择“系统相机与文件（HTTP）”。</text>
+    <text key="PhoneCapture.Batch.060" xml:space="preserve">继续生成预览</text>
+    <text key="PhoneCapture.Reference.000" xml:space="preserve">切换取景辅助线</text>
+    <text key="PhoneCapture.Reference.001" xml:space="preserve">拍单页</text>
+    <text key="PhoneCapture.Reference.002" xml:space="preserve">拍多页</text>
+    <text key="PhoneCapture.Reference.003" xml:space="preserve">扫描文件</text>
+    <text key="PhoneCapture.Reference.004" xml:space="preserve">超清模式</text>
+    <text key="PhoneCapture.Reference.005" xml:space="preserve">本机处理</text>
+    <text key="PhoneCapture.Reference.006" xml:space="preserve">更多设置</text>
+    <text key="PhoneCapture.Reference.007" xml:space="preserve">最近扫描</text>
+    <text key="PhoneCapture.Reference.008" xml:space="preserve">全部工具</text>
+    <text key="PhoneCapture.Reference.009" xml:space="preserve">PDF导入</text>
+    <text key="PhoneCapture.Reference.010" xml:space="preserve">相册导入</text>
+    <text key="PhoneCapture.Reference.011" xml:space="preserve">图像</text>
+    <text key="PhoneCapture.Reference.012" xml:space="preserve">页面</text>
+    <text key="PhoneCapture.Reference.013" xml:space="preserve">发送</text>
+    <text key="PhoneCapture.Reference.014" xml:space="preserve">发送 ({0})</text>
+    <text key="PhoneCapture.Reference.015" xml:space="preserve">选择此页</text>
+    <text key="PhoneCapture.Reference.016" xml:space="preserve">原图</text>
+    <text key="PhoneCapture.Reference.017" xml:space="preserve">上一张</text>
+    <text key="PhoneCapture.Reference.018" xml:space="preserve">下一张</text>
+    <text key="PhoneCapture.Reference.019" xml:space="preserve">继续拍</text>
+    <text key="PhoneCapture.Reference.020" xml:space="preserve">滤镜</text>
+    <text key="PhoneCapture.Reference.021" xml:space="preserve">裁剪旋转</text>
+    <text key="PhoneCapture.Reference.022" xml:space="preserve">预览</text>
+    <text key="PhoneCapture.Reference.023" xml:space="preserve">拍摄设置</text>
+    <text key="PhoneCapture.Reference.024" xml:space="preserve">扫描</text>
+    <text key="PhoneCapture.Reference.025" xml:space="preserve">PDF</text>
+    <text key="PhoneCapture.Reference.026" xml:space="preserve">照片</text>
+    <text key="PhoneCapture.Reference.027" xml:space="preserve">修复</text>
+    <text key="PhoneCapture.Reference.028" xml:space="preserve">裁剪</text>
+    <text key="PhoneCapture.Processing.000" xml:space="preserve">识别四角并裁剪</text>
+    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner 去弯曲</text>
+    <text key="PhoneCapture.Processing.002" xml:space="preserve">自动转正</text>
+    <text key="PhoneCapture.Processing.003" xml:space="preserve">灰度</text>
+    <text key="PhoneCapture.Processing.004" xml:space="preserve">展开去弯曲（可选）</text>
+    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocRes 直接处理原图，仅运行勾选的模型任务。</text>
+    <text key="PhoneCapture.Processing.006" xml:space="preserve">全部关闭</text>
+    <text key="PhoneCapture.Processing.007" xml:space="preserve">每项处理均可单独关闭。</text>
+    <text key="PhoneCapture.Processing.009" xml:space="preserve">正在执行所选处理…</text>
+    <text key="PhoneCapture.Processing.010" xml:space="preserve">正在生成预览…</text>
+    <text key="PhoneCapture.Camera.HighResolutionUnavailable" xml:space="preserve">此浏览器不支持超清拍照，请使用系统相机拍摄原始分辨率照片。</text>
+    <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">超清拍照失败，已保存普通照片。</text>
+    <text key="PhoneCapture.Processing.Global" xml:space="preserve">修改将应用于所有未发送页面及后续新照片。</text>
+    <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">页面顺序已更新。</text>
 </resources>

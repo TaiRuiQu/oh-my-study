@@ -1,8 +1,10 @@
 using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using OhMyStudy.App.Controls;
+using OhMyStudy.App.Diagnostics;
 using OhMyStudy.Documents;
 using VelociTex;
 using VelociTex.Rendering.Direct2D;
@@ -32,6 +34,14 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
     internal static int PendingFormulaCount => Volatile.Read(ref _pending);
     internal static void ClearCaches() { Formulas.Clear(); PreviewHeights.Clear(); TextShaper.Clear(); }
 
+    internal static string ReadingFontFamily(DocumentFont font) => font switch
+    {
+        DocumentFont.Serif => "NSimSun",
+        DocumentFont.SansSerif => "Microsoft YaHei",
+        DocumentFont.Kai => "KaiTi",
+        _ => UiText.ReadingFontFamily
+    };
+
     internal static double? CachedPreviewHeight(string source, double width)
         => PreviewHeights.TryGet((source, Math.Floor(width)), out double result) ? result : null;
 
@@ -59,7 +69,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
             {
                 FlushParagraph();
                 var result = await CompileAsync(run.Text, true, 20, token);
-                if (result.Document is null) blocks.Add(Plain("$$" + run.Text + "$$"));
+                if (result.Document is null) blocks.Add(Plain("$$" + run.Text + "$$", run.Font));
                 else
                 {
                     if (FormulaWidth(result.Document) + 4 > available)
@@ -108,7 +118,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                 if (_preview && result.Document is { } large && (Math.Max(large.LogicalSize.Height, large.InkBounds.Y + large.InkBounds.Height) - Math.Min(0, large.InkBounds.Y) + 2 > 46
                     || Math.Max(large.LogicalSize.Width, large.InkBounds.X + large.InkBounds.Width) - Math.Min(0, large.InkBounds.X) + 2 > available))
                 {
-                    paragraphSource.Append('…'); parts.Add(new("…", null));
+                    paragraphSource.Append('…'); parts.Add(new("…", null, null, run.Font));
                     break;
                 }
                 string delimiter = run.IsDisplay ? "$$" : "$";
@@ -116,7 +126,7 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                 paragraphSource.Append(marked);
                 if (!_preview && result.Document is { } document && FormulaWidth(document) + 4 > available)
                     parts.AddRange(await FitFormulaAsync(document, false, 16, table ? Math.Min(available, 280) : available, token));
-                else parts.Add(new(result.Document is null ? marked : string.Empty, result.Document));
+                else parts.Add(new(result.Document is null ? marked : string.Empty, result.Document, null, run.Font));
             }
             else
             {
@@ -125,13 +135,13 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                 for (int i = 0; i < lines.Length; i++)
                 {
                     if (i > 0 && !_preview) FlushParagraph();
-                    parts.Add(new(lines[i], null)); paragraphSource.Append(lines[i]);
-                    if (i + 1 < lines.Length && _preview) { parts.Add(new(" ", null)); paragraphSource.Append(' '); }
+                    parts.Add(new(lines[i], null, null, run.Font)); paragraphSource.Append(lines[i]);
+                    if (i + 1 < lines.Length && _preview) { parts.Add(new(" ", null, null, run.Font)); paragraphSource.Append(' '); }
                 }
             }
         }
         FlushParagraph();
-        if (blocks.Count == 0) blocks.Add(Plain(source));
+        if (blocks.Count == 0) blocks.Add(Plain(runs.Count == 0 ? "" : source));
         FrameworkElement host = blocks.Count == 1 ? blocks[0] : new StackPanel { Spacing = 6 };
         if (host is StackPanel panel) foreach (var block in blocks) panel.Children.Add(block);
         host.RequestedTheme = requestedTheme ?? _theme; host.IsHitTestVisible = !_preview;
@@ -159,13 +169,21 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
             }
             else
             {
-                TextBlock literal = Plain(string.Concat(parts.Select(part => part.Text)));
+                TextBlock literal = Literal(parts);
                 literal.Measure(new Windows.Foundation.Size(available, 10000)); previewHeight = literal.DesiredSize.Height;
                 blocks.Add(literal);
             }
             parts.Clear(); paragraphSource.Clear();
         }
-        TextBlock Plain(string text) => new() { Text = text, FontFamily = new FontFamily(UiText.ReadingFontFamily), FontSize = _preview ? 14 : 16, TextWrapping = TextWrapping.Wrap, MaxLines = _preview ? 2 : 0, TextTrimming = _preview ? TextTrimming.CharacterEllipsis : TextTrimming.None, IsTextSelectionEnabled = !_preview, HorizontalAlignment = HorizontalAlignment.Stretch };
+        TextBlock Literal(IReadOnlyList<NativeFormulaParagraph.Part> sourceParts)
+        {
+            TextBlock literal = Plain("");
+            literal.Inlines.Clear();
+            foreach (var part in sourceParts)
+                literal.Inlines.Add(new Run { Text = part.Text, FontFamily = new FontFamily(ReadingFontFamily(part.Font)) });
+            return literal;
+        }
+        TextBlock Plain(string text, DocumentFont font = DocumentFont.Default) => new() { Text = text, FontFamily = new FontFamily(ReadingFontFamily(font)), FontSize = _preview ? 14 : 16, TextWrapping = TextWrapping.Wrap, MaxLines = _preview ? 2 : 0, TextTrimming = _preview ? TextTrimming.CharacterEllipsis : TextTrimming.None, IsTextSelectionEnabled = !_preview, HorizontalAlignment = HorizontalAlignment.Stretch };
     }
 
     private static double FormulaWidth(MathDocument document) =>
@@ -218,7 +236,11 @@ internal sealed class NativeFormulaReadingSession(double width, bool preview, El
                         success = Engine.TryCompile(source, in options, workspace, token, out document, out diagnostic);
                         Interlocked.Increment(ref Compilations);
                     }
-                    if (!success) Interlocked.Increment(ref InvalidFormulas);
+                    if (!success)
+                    {
+                        Interlocked.Increment(ref InvalidFormulas);
+                        AppLog.Failure("Question.NativeFormula", $"Compilation failed: {diagnostic}; source: {source}");
+                    }
                     if (diagnostic.Code == MathDiagnosticCode.Cancelled) throw new OperationCanceledException(token);
                     return new Compilation(document, diagnostic);
                 }, token);

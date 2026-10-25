@@ -103,11 +103,13 @@ internal sealed class ResponsesSdkClient
                 request.Instructions = value.GetString();
                 continue;
             }
-            if (EmittedKeys.Contains(key, StringComparer.Ordinal) || key is "reasoning" or "previous_response_id" or "conversation" or "session_id")
+            if (EmittedKeys.Contains(key, StringComparer.Ordinal) || key is "reasoning" or "previous_response_id" or "conversation" or "session_id" or "prompt_cache_key")
                 throw ProviderProtocol.Invalid($"native parameter collision: {key}");
             if (!key.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')) throw ProviderProtocol.Invalid("invalid native parameter name");
             request.Patch.Set(Encoding.UTF8.GetBytes("$." + key), Encoding.UTF8.GetBytes(value.GetRawText()));
         }
+        if (options.PromptCacheKey is { Length: > 0 } cacheKey)
+            request.Patch.Set("$.prompt_cache_key"u8, Encoding.UTF8.GetBytes(JsonValue.Create(cacheKey)!.ToJsonString()));
         return request;
     }
 

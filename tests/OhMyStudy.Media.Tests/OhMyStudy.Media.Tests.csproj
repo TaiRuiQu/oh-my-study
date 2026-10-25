@@ -22,6 +22,8 @@
     <Compile Include="../../src/OhMyStudy.App/Services/NativeMediaProcessor.cs" Link="Services/NativeMediaProcessor.cs" />
     <Compile Include="../../src/OhMyStudy.App/Services/PhonePhotoProcessor.cs" Link="Services/PhonePhotoProcessor.cs" />
     <EmbeddedResource Include="../../src/OhMyStudy.App/MobileCapture/index.html" LogicalName="PhoneCapture.html" />
+    <EmbeddedResource Include="../../src/OhMyStudy.App/MobileCapture/*.js" LogicalName="PhoneCapture.Script.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../src/OhMyStudy.App/MobileCapture/StudySans.woff2" LogicalName="PhoneCapture.Font" />
     <Content Include="../../output/migration/toolchain/scanner/*" Link="native/scanner/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../packaging/docres/*" Link="native/docres/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="../Fixtures/Compatibility/assets.synthetic.json" Link="Fixtures/assets.synthetic.json" CopyToOutputDirectory="PreserveNewest" />

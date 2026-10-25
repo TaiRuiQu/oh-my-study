@@ -49,6 +49,11 @@ def run(arguments):
     subprocess.run([str(argument) for argument in arguments], check=True)
 
 
+def discard_extracted_archives(root, filenames):
+    for name in filenames:
+        (root / name).unlink(missing_ok=True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--destination", required=True, type=Path)
@@ -84,6 +89,7 @@ def main():
     shutil.copyfile(source / "DocRes-d3e3a18c7c7ad10e4615ca2eb6a10f83128d8560/LICENSE", root / "DocRes-LICENSE.txt")
     print("Checking weights and running CUDA inference on the selected physical device.", flush=True)
     run([python, "-I", "-B", Path(__file__).parent / "worker.py", "--root", root, "--self-test", args.device])
+    discard_extracted_archives(root, [asset["filename"] for asset in manifest["assets"] if asset["filename"].endswith(".zip")])
     (root / "verified.json").write_text(json.dumps({"schema": 1, "source": manifest["source"], "torch": "2.9.1+cu128", "device": args.device}), encoding="utf-8")
     print("DocRes installation verified. Enable it explicitly to use it.", flush=True)
 

@@ -12,7 +12,7 @@ public sealed partial class MainWindow
     private bool _settingsSelectionReview;
     private string _providerFormBaseline = "";
     private string _modelFormBaseline = "";
-    private string ProviderFormState() => string.Join('\u001f', ProviderName.Text, ProviderUrl.Text, ProtocolPicker.SelectedIndex.ToString(CultureInfo.InvariantCulture), ProviderFilesApi.IsChecked?.ToString() ?? "");
+    private string ProviderFormState() => string.Join('\u001f', ProviderName.Text, ProviderUrl.Text, ProtocolPicker.SelectedIndex.ToString(CultureInfo.InvariantCulture), ProviderFilesApi.IsChecked?.ToString() ?? "", ProviderCodexMode.IsChecked?.ToString() ?? "");
     private string ModelFormState() => string.Join('\u001f', ModelId.Text, ModelDisplayName.Text, ModelContextWindow.Text, ModelMaxTokens.Text,
         ModelVision.IsChecked?.ToString() ?? "", ModelTools.IsChecked?.ToString() ?? "", ModelPriceInput.Text, ModelPriceOutput.Text,
         ModelPriceCacheRead.Text, ModelPriceCacheWrite.Text,

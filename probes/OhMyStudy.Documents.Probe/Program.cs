@@ -111,6 +111,7 @@ using (var pdf = pdfium.Open(exports.Count > 0 ? Path.Combine(output, exports[0]
 }
 checks.Add("raster rotation, disposal and pre-cancellation");
 await ComplexDocumentProbe.VerifyAsync(root, output, typesetter, pdfium, checks);
+await FeatureExportProbe.VerifyAsync(root, output, typesetter, pdfium, checks);
 var report = new ProbeReport(DateTimeOffset.Now, RuntimeInformation.OSDescription, RuntimeInformation.FrameworkDescription,
     RuntimeFeature.IsDynamicCodeSupported, TypstToolchain.EngineVersion, clock.ElapsedMilliseconds, checks, exports);
 await File.WriteAllTextAsync(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(report, ProbeJsonContext.Default.ProbeReport));

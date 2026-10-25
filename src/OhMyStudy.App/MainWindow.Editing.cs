@@ -204,7 +204,10 @@ public sealed partial class MainWindow
         AddButton(list.Actions, UiText.Get("Add formula"), () => list.Add(new FormulaContent { Latex = "" }));
         AddButton(list.Actions, UiText.Get("Add table"), () => list.Add(new TableContent { Rows = [[""]] }));
         if (document.Pages.FirstOrDefault(p => p.Role == "material") is { } material)
+        {
             AddButton(list.Actions, UiText.Get("Add image"), () => list.Add(new ImageContent { Caption = "", ContainsHandwriting = false, Region = FullPage(material.Id) }));
+            AddButton(list.Actions, UiText.Get("Add diagram"), () => list.Add(new MermaidContent { Region = FullPage(material.Id), Code = "" }));
+        }
         return list;
     }
 
@@ -269,8 +272,15 @@ public sealed partial class MainWindow
             case ImageContent image:
                 var caption = AddText(panel, UiText.Get("Image caption"), image.Caption, true);
                 var handwriting = new CheckBox { Content = UiText.Get("Contains handwriting"), IsChecked = image.ContainsHandwriting }; panel.Children.Add(handwriting);
+                var displayWidth = AddWidth(panel, image.WidthPercent);
                 var region = RegionField(image.Region, document, "material"); panel.Children.Add(region.Element);
-                return new(panel, () => image with { Caption = caption.Text, ContainsHandwriting = handwriting.IsChecked == true, Region = region.Read() });
+                return new(panel, () => image with { Caption = caption.Text, ContainsHandwriting = handwriting.IsChecked == true, WidthPercent = ReadWidth(displayWidth), Region = region.Read() });
+            case MermaidContent mermaid:
+                var code = AddText(panel, UiText.Get("Mermaid code"), mermaid.Code, true);
+                var diagramCaption = AddText(panel, UiText.Get("Diagram caption"), mermaid.Caption, true);
+                var diagramWidth = AddWidth(panel, mermaid.WidthPercent);
+                var diagramRegion = RegionField(mermaid.Region, document, "material"); panel.Children.Add(diagramRegion.Element);
+                return new(panel, () => mermaid with { Code = code.Text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n'), Caption = diagramCaption.Text, WidthPercent = ReadWidth(diagramWidth), Region = diagramRegion.Read() });
             default: throw new InvalidOperationException(UiText.Get("This content cannot be edited."));
         }
     }
@@ -302,9 +312,15 @@ public sealed partial class MainWindow
             Height = ParseRequired(height.Text) / 100
         });
     }
+    private static NumberBox AddWidth(StackPanel panel, int value)
+    {
+        var field = new NumberBox { Header = UiText.Get("Display width (%)"), Minimum = 1, Maximum = 100, Value = Math.Clamp(value, 1, 100), HorizontalAlignment = HorizontalAlignment.Stretch };
+        panel.Children.Add(field); return field;
+    }
+    private static int ReadWidth(NumberBox field) => double.IsFinite(field.Value) ? (int)Math.Clamp(Math.Round(field.Value), 1, 100) : 100;
     private static TextBox AddText(StackPanel panel, string label, string value, bool multiline = false)
     {
-        var field = new TextBox { Header = label, Text = value, AcceptsReturn = multiline, TextWrapping = TextWrapping.Wrap, MaxHeight = multiline ? 180 : 80 };
+        var field = new TextBox { Header = label, AcceptsReturn = multiline, Text = value, TextWrapping = TextWrapping.Wrap, MaxHeight = multiline ? 180 : 80 };
         panel.Children.Add(field); return field;
     }
     private static void AddSection(StackPanel panel, string label, FrameworkElement content, bool expanded = false)

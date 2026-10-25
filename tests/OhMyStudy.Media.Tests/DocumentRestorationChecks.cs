@@ -13,6 +13,20 @@ internal static class DocumentRestorationChecks
             Require(restored.Bgra32.SequenceEqual(raster.Bgra32));
             return Task.CompletedTask;
         });
+        await check("restoration_options_combine_without_implicit_geometry_changes", () =>
+        {
+            var original = Raster(48, 40, (x, y) => (40 + x, 80 + y, 160));
+            var unchanged = ClassicalDocumentRestoration.Restore(original, shadows: false, deblur: false);
+            Require(unchanged.Bgra32.SequenceEqual(original.Bgra32));
+            for (int combination = 0; combination < 16; combination++)
+            {
+                var result = ClassicalDocumentRestoration.Restore(original, (combination & 1) != 0, shadows: (combination & 2) != 0, deblur: (combination & 4) != 0, appearance: (combination & 8) != 0);
+                Require(result.Width == original.Width && result.Height == original.Height && result.Bgra32.Length == original.Bgra32.Length);
+                if ((combination & 1) != 0)
+                    for (int i = 0; i < result.Bgra32.Length; i += 4) Require(result.Bgra32[i] == result.Bgra32[i + 1] && result.Bgra32[i] == result.Bgra32[i + 2]);
+            }
+            return Task.CompletedTask;
+        });
         await check("restoration_gradient_reduces_shadow_without_erasing_marks", () =>
         {
             var raster = Raster(256, 160, (x, y) =>

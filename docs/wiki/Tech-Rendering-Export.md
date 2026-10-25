@@ -34,7 +34,7 @@ Compilation uses a private root and empty package/cache paths, clears Typst envi
 
 The UI reads the completed PDF before writing the picker-selected destination. This separates incomplete compilation from the final file write, although it is not a universal filesystem transaction guarantee.
 
-Current prose typography targets Chinese/English with Windows NSimSun; formula outlines use their own renderer. Japanese/Korean interface localization does not imply extra print-font coverage.
+Current printed prose typography targets Chinese/English with Windows NSimSun, while the reading view defaults to the interface sans-serif face; formula outlines use their own renderer. Japanese/Korean interface localization does not imply extra print-font coverage.
 
 For verification, use document/media tests for structure and rendering contracts, then inspect actual PDF output for glyphs, fractions, long equations, table widths, figure crops, and page/column breaks. Physical printer settings remain outside the compiler.
 

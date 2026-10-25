@@ -7,16 +7,18 @@ internal static partial class Program
     {
         string path = Unique("provider-files");
         var original = Fixture<Provider>("provider");
-        Check(!original.SupportsFilesApi && !DomainJson.Serialize(original).Contains("supports_files_api", StringComparison.Ordinal), "legacy providers keep Files API disabled without changing their JSON");
+        var legacy = DomainJson.Serialize(original);
+        Check(!original.SupportsFilesApi && !original.CodexMode && !legacy.Contains("supports_files_api", StringComparison.Ordinal) && !legacy.Contains("codex_mode", StringComparison.Ordinal), "legacy providers keep Files API and Codex mode disabled without changing their JSON");
         await using (var library = await LibraryRepository.OpenAsync(NewOptions(path)))
-            await library.UpsertProviderAsync(original with { SupportsFilesApi = true });
+            await library.UpsertProviderAsync(original with { SupportsFilesApi = true, CodexMode = true });
         await using (var library = await LibraryRepository.OpenAsync(new(path, LibraryOpenMode.ReadWrite)))
         {
             var provider = (await library.ListProvidersAsync()).Single();
-            Check(provider.SupportsFilesApi && provider.KeyRef == original.KeyRef && provider.Models.Count == original.Models.Count, "Files API opt-in persists across library reopen without replacing provider settings");
-            await library.UpsertProviderAsync(provider with { SupportsFilesApi = false });
+            Check(provider.SupportsFilesApi && provider.CodexMode && provider.KeyRef == original.KeyRef && provider.Models.Count == original.Models.Count, "Files API and Codex mode opt-in persists across library reopen without replacing provider settings");
+            await library.UpsertProviderAsync(provider with { SupportsFilesApi = false, CodexMode = false });
         }
         await using var reopened = await LibraryRepository.OpenAsync(new(path));
-        Check(!(await reopened.ListProvidersAsync()).Single().SupportsFilesApi, "Files API can be disabled and reopened read-only");
+        var disabled = (await reopened.ListProvidersAsync()).Single();
+        Check(!disabled.SupportsFilesApi && !disabled.CodexMode && !DomainJson.Serialize(disabled).Contains("codex_mode", StringComparison.Ordinal), "Files API and Codex mode can be disabled and reopened read-only");
     }
 }

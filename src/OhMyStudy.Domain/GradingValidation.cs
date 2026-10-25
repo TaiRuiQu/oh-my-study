@@ -41,7 +41,7 @@ public static class GradingValidation
         Require(!string.IsNullOrWhiteSpace(question.Number) && question.Stem.Count != 0 && question.Sources.Count != 0, "Question number, stem, and original image sources must not be empty");
         Require(question.Items.Count is > 0 and <= MaximumItems, "A question needs between 1 and 100 items");
         foreach (var region in question.Sources) ValidateRegion(region, document, "material");
-        foreach (var image in question.Stem.OfType<ImageContent>()) ValidateRegion(image.Region, document, "material");
+        ValidateContent(question.Stem, document);
         var keys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in question.Items)
         {
@@ -60,7 +60,7 @@ public static class GradingValidation
     private static void ValidateItem(QuestionItem item, Document doc, IReadOnlyList<ReferenceAnswer> refs, bool manual)
     {
         Require(item.Points is not { } points || (double.IsFinite(points) && points >= 0), "Invalid item points");
-        foreach (var image in item.Prompt.OfType<ImageContent>()) ValidateRegion(image.Region, doc, "material");
+        ValidateContent(item.Prompt, doc);
         Require(doc.Mode switch { ImportMode.Blank => item.Attempt is null, ImportMode.Auto => true, _ => item.Attempt is not null },
             doc.Mode == ImportMode.Blank ? "Blank exams must not create student attempts or unanswered records" : "Preserve attempts from answered materials; mark illegible answers uncertain");
         if (item.Attempt is not { } a) return;
@@ -88,6 +88,28 @@ public static class GradingValidation
         }
         else Require(a.Grade.Source != GradeSource.AiReference, "Reference grading requires a matched reference");
     }
+
+    private static void ValidateContent(IEnumerable<Content> content, Document document)
+    {
+        foreach (var block in content)
+        {
+            switch (block)
+            {
+                case ImageContent image:
+                    ValidateWidth(image.WidthPercent);
+                    ValidateRegion(image.Region, document, "material");
+                    break;
+                case MermaidContent mermaid:
+                    ValidateWidth(mermaid.WidthPercent);
+                    Require(!string.IsNullOrWhiteSpace(mermaid.Code) && Encoding.UTF8.GetByteCount(mermaid.Code) <= 32_768,
+                        "Mermaid code must be nonempty and at most 32 KiB in UTF-8");
+                    ValidateRegion(mermaid.Region, document, "material");
+                    break;
+            }
+        }
+    }
+
+    private static void ValidateWidth(int widthPercent) => Require(widthPercent is >= 1 and <= 100, "Content width_percent must be an integer from 1 to 100");
 
     public static List<string> ItemKeys(Question question) => question.Items.Select(item => item.Key).ToList();
     public static bool IsWrongQuestion(Question question) => question.IsMistake;

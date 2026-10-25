@@ -148,10 +148,6 @@ public sealed partial class MainWindow
         QuestionDetail.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         QuestionDetailLayout.Visibility = QuestionDetail.Visibility;
         EmptyQuestionTitle.Text = ViewModel.SectionTitle == UiText.Get("Mistakes") ? UiText.Get("No mistakes yet") : ViewModel.IsTaskRunning ? UiText.Get("Recognizing questions") : UiText.Get("No questions yet");
-        EmptyQuestionMessage.Text = ViewModel.SectionTitle == UiText.Get("Mistakes") ? UiText.Get("Questions to review after grading will appear here.")
-            : ViewModel.IsTaskRunning ? UiText.Get("Recognized questions appear here automatically. Check progress in Tasks.")
-            : ViewModel.CurrentDocument is not null ? UiText.Get("No questions were recognized in this exam. Try recognition again above.")
-            : UiText.Get("Import a PDF or image in Exams. Recognized questions join your question bank automatically.");
         GradeButton.Visibility = DocumentToolbar.Visibility == Visibility.Visible && ViewModel.CurrentDocument is not null ? Visibility.Visible : Visibility.Collapsed;
         TaskActivity.Visibility = ViewModel.IsTaskRunning && TasksPanel.Visibility != Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
     }

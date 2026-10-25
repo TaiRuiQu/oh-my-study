@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using OhMyStudy.App.Diagnostics;
 using OhMyStudy.App.ViewModels;
 using OhMyStudy.Documents;
 using OhMyStudy.Domain;
@@ -245,7 +246,8 @@ public static class NativeQuestionPresenter
             {
                 case TextContent text: panel.Children.Add(await reading.PresentAsync(text.Text, cancellationToken)); break;
                 case TableContent table: panel.Children.Add(await TableAsync(table.Rows, reading, cancellationToken)); break;
-                case ImageContent image: panel.Children.Add(await SourceImageAsync(image, library, cancellationToken)); break;
+                case ImageContent image: panel.Children.Add(await SourceImageAsync(image, library, reading, cancellationToken)); break;
+                case MermaidContent mermaid: panel.Children.Add(await MermaidAsync(mermaid, reading, cancellationToken)); break;
             }
         }
         foreach (string option in options) panel.Children.Add(await reading.PresentAsync(option, cancellationToken));
@@ -273,31 +275,32 @@ public static class NativeQuestionPresenter
     private static async Task<FrameworkElement> TableAsync(List<List<string>> rows, NativeReadingSession reading, CancellationToken cancellationToken)
     {
         var grid = new Grid { HorizontalAlignment = HorizontalAlignment.Left };
-        int columns = rows.Count == 0 ? 0 : rows.Max(row => row.Count);
+        var cells = DocumentTable.Layout(rows);
+        int columns = cells.Count == 0 ? 0 : cells.Max(cell => cell.Column + cell.ColumnSpan);
+        int rowCount = cells.Count == 0 ? 0 : cells.Max(cell => cell.Row + cell.RowSpan);
         for (var column = 0; column < columns; column++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = 72, MaxWidth = 320 });
-        for (var row = 0; row < rows.Count; row++)
+        for (var row = 0; row < rowCount; row++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        foreach (var layoutCell in cells)
         {
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            for (var column = 0; column < columns; column++)
+            cancellationToken.ThrowIfCancellationRequested();
+            var body = new StackPanel { Spacing = 4, MaxWidth = 300 };
+            body.Children.Add(await reading.PresentAsync(layoutCell.Text, cancellationToken, table: true));
+            var cell = new Border
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var body = new StackPanel { Spacing = 4, MaxWidth = 300 };
-                body.Children.Add(await reading.PresentAsync(column < rows[row].Count ? rows[row][column] : "", cancellationToken, table: true));
-                var cell = new Border
-                {
-                    Padding = new Thickness(10, 7, 10, 7),
-                    BorderThickness = new Thickness(0, 0, 0, 1),
-                    Child = body
-                };
-                if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("ControlStrokeColorDefaultBrush", out var stroke) && stroke is Brush brush) cell.BorderBrush = brush;
-                Grid.SetRow(cell, row); Grid.SetColumn(cell, column); grid.Children.Add(cell);
-            }
+                Padding = new Thickness(10, 7, 10, 7),
+                BorderThickness = new Thickness(1),
+                Child = body
+            };
+            if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("ControlStrokeColorDefaultBrush", out var stroke) && stroke is Brush brush) cell.BorderBrush = brush;
+            Grid.SetRow(cell, layoutCell.Row); Grid.SetColumn(cell, layoutCell.Column);
+            Grid.SetRowSpan(cell, layoutCell.RowSpan); Grid.SetColumnSpan(cell, layoutCell.ColumnSpan);
+            grid.Children.Add(cell);
         }
         AutomationProperties.SetName(grid, UiText.Get("Table"));
         return new ScrollViewer { Content = grid, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, HorizontalScrollMode = ScrollMode.Enabled, VerticalScrollMode = ScrollMode.Disabled };
     }
 
-    private static async Task<FrameworkElement> SourceImageAsync(ImageContent content, LibraryRepository library, CancellationToken cancellationToken)
+    private static async Task<FrameworkElement> SourceImageAsync(ImageContent content, LibraryRepository library, NativeReadingSession reading, CancellationToken cancellationToken)
     {
         try
         {
@@ -307,18 +310,73 @@ public static class NativeQuestionPresenter
             if (page is null) return Text(UiText.Get("Image temporarily unavailable."));
             var source = await library.ReadAssetAsync(content.AssetId ?? page.AssetId, cancellationToken: cancellationToken);
             var result = await PageImages.ReadForDisplayAsync(source.Bytes, content.AssetId is null ? content.Region : null, content.AssetId is null ? page.Rotation : (ushort)0, cancellationToken);
-            var image = await ImageAsync(Convert.FromBase64String(result.Image.Base64), content.Caption, cancellationToken);
-            image.MaxHeight = 420;
+            var image = await ImageAsync(Convert.FromBase64String(result.Image.Base64), content.Caption, ContentWidth(reading.Width, content.WidthPercent), cancellationToken);
             if (string.IsNullOrWhiteSpace(content.Caption)) return image;
             var panel = new StackPanel { Spacing = 5 };
-            panel.Children.Add(image); panel.Children.Add(Text(content.Caption)); return panel;
+            panel.Children.Add(image); panel.Children.Add(await reading.PresentAsync(content.Caption, cancellationToken, width: reading.Width)); return panel;
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or COMException or UnauthorizedAccessException)
         { return Text(UiText.Get("Image temporarily unavailable.")); }
     }
 
-    private static async Task<UiImage> ImageAsync(byte[] png, string accessibleText, CancellationToken cancellationToken)
+    private static async Task<FrameworkElement> MermaidAsync(MermaidContent content, NativeReadingSession reading, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var display = await Task.Run(() => MermaidRenderer.RenderDisplay(content.Code), cancellationToken);
+            using var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream))
+            {
+                writer.WriteString(display.Svg); await writer.StoreAsync().AsTask(cancellationToken); writer.DetachStream();
+            }
+            stream.Seek(0);
+            var source = new SvgImageSource();
+            await source.SetSourceAsync(stream).AsTask(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            var canvas = new Canvas { Width = display.Width, Height = display.Height, Background = new SolidColorBrush(Microsoft.UI.Colors.White) };
+            canvas.Children.Add(new UiImage { Source = source, Width = display.Width, Height = display.Height, Stretch = Stretch.Fill });
+            foreach (var label in display.Labels)
+            {
+                var text = new TextBlock
+                {
+                    Text = label.Text,
+                    FontFamily = new FontFamily(UiText.ReadingFontFamily),
+                    FontSize = label.FontSize,
+                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.Black),
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Stretch
+                };
+                var border = new Border { Width = label.Width, Height = label.Height, Child = text };
+                Canvas.SetLeft(border, label.X - label.Width / 2); Canvas.SetTop(border, label.Y - label.Height / 2);
+                canvas.Children.Add(border);
+            }
+            var image = new Viewbox
+            {
+                Child = canvas,
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Width = ContentWidth(reading.Width, content.WidthPercent),
+                MaxHeight = 520
+            };
+            AutomationProperties.SetName(image, string.IsNullOrWhiteSpace(content.Caption) ? UiText.Get("Diagram") : content.Caption);
+            if (string.IsNullOrWhiteSpace(content.Caption)) return image;
+            var panel = new StackPanel { Spacing = 5 };
+            panel.Children.Add(image); panel.Children.Add(await reading.PresentAsync(content.Caption, cancellationToken, width: reading.Width)); return panel;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception error)
+        {
+            AppLog.Failure("Question.Mermaid", "Render failed for code:\n" + content.Code + "\n" + error);
+            return Text(UiText.Get("Question content is temporarily unavailable."));
+        }
+    }
+
+    private static double ContentWidth(double availableWidth, int widthPercent) => Math.Max(1, Math.Floor(availableWidth * Math.Clamp(widthPercent, 1, 100) / 100d));
+
+    private static async Task<UiImage> ImageAsync(byte[] png, string accessibleText, double availableWidth, CancellationToken cancellationToken)
     {
         using var stream = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(stream))
@@ -329,7 +387,9 @@ public static class NativeQuestionPresenter
         var bitmap = new BitmapImage();
         await bitmap.SetSourceAsync(stream).AsTask(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var image = new UiImage { Source = bitmap, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, MaxWidth = 720 };
+        double pixelWidth = Math.Max(1, bitmap.PixelWidth), pixelHeight = Math.Max(1, bitmap.PixelHeight);
+        double scale = Math.Min(availableWidth / pixelWidth, 420 / pixelHeight);
+        var image = new UiImage { Source = bitmap, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, Width = Math.Max(1, pixelWidth * scale), Height = Math.Max(1, pixelHeight * scale), MaxHeight = 420 };
         AutomationProperties.SetName(image, string.IsNullOrWhiteSpace(accessibleText) ? UiText.GetByKey("S0437") : accessibleText);
         return image;
     }

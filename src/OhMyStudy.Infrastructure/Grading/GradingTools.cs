@@ -70,7 +70,7 @@ public static class GradingTools
     { ["type"] = "object", ["properties"] = properties, ["required"] = new JsonArray((required ?? properties.Select(p => p.Key).ToArray()).Select(v => (JsonNode?)JsonValue.Create(v)).ToArray()), ["additionalProperties"] = false };
     private static JsonObject Region() => Describe(Object(new()
     {
-        ["page_id"] = String("Exact source page ID. Image content must use a material page."),
+        ["page_id"] = String("Exact source page ID. Image and Mermaid content must use a material page."),
         ["bbox"] = Describe(new JsonObject
         {
             ["type"] = "array",
@@ -108,16 +108,25 @@ public static class GradingTools
     {
         var text = Object(new() { ["kind"] = Describe(Enum("text"), "Text content block."), ["text"] = String("Transcribed question text in the source language; exclude student answers and teacher marks.") });
         var formula = Object(new() { ["kind"] = Describe(Enum("formula"), "Mathematical formula block."), ["latex"] = String("LaTeX formula wrapped in $...$.") });
-        var table = Object(new() { ["kind"] = Describe(Enum("table"), "Table content block."), ["rows"] = Describe(Array(Array(String())), "Rows in reading order; each row contains its cell texts in column order.") });
+        var table = Object(new() { ["kind"] = Describe(Enum("table"), "Structured table content block; prefer this or a Markdown table over a low-recognizability source crop."), ["rows"] = Describe(Array(Array(String())), "Rows in reading order; each row contains its cell texts in column order. To preserve merged cells exactly, use ^ for merge up, < for merge left, or > for merge right as the entire cell content.") });
         var image = Object(new()
         {
             ["kind"] = Describe(Enum("image"), "Diagram, figure, or content retained as an image."),
-            ["region"] = Describe(Region(), "Source region for the diagram or unreadable content on a material page."),
+            ["region"] = Describe(Region(), "Source region for the diagram or unreadable content on a material page. Also identifies original evidence when asset_id is generated."),
             ["asset_id"] = String("Optional processed image asset ID returned by python or shell, or retained from this question. Displays the entire processed image; region still identifies original source evidence."),
             ["contains_handwriting"] = Describe(Bool(), "True if this image region contains handwriting."),
-            ["caption"] = String("Brief description in Simplified Chinese; omit if unnecessary.")
+            ["caption"] = String("Brief description in Simplified Chinese; omit if unnecessary."),
+            ["width_percent"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100, ["default"] = 100 }, "Optional display width as a percentage of the available content width. 100 uses the full page content width; 50 uses half. Omit for 100. This does not change the source region.")
         }, ["kind", "region"]);
-        JsonObject Content(string description) => Describe(Array(new JsonObject { ["anyOf"] = new JsonArray(text.DeepClone(), formula.DeepClone(), table.DeepClone(), image.DeepClone()) }), description);
+        var mermaid = Object(new()
+        {
+            ["kind"] = Describe(Enum("mermaid"), "Flowchart represented as Mermaid code rather than a source crop."),
+            ["region"] = Describe(Region(), "Original material region containing the flowchart evidence."),
+            ["code"] = Describe(new JsonObject { ["type"] = "string", ["minLength"] = 1, ["maxLength"] = 32768 }, "Nonempty raw Mermaid flowchart code, at most 32768 characters. Use only flowchart TD|LR|BT|RL or graph with simple nodes and labeled arrows; no fences, subgraphs, styling, callbacks, HTML, Markdown-in-node, or other diagram types. Transcribe only visible evidence."),
+            ["caption"] = Describe(new JsonObject { ["type"] = "string", ["default"] = "" }, "Optional brief description in Simplified Chinese; defaults to an empty string."),
+            ["width_percent"] = Describe(new JsonObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100, ["default"] = 100 }, "Optional display width as a percentage of the available content width. 100 uses the full page content width; 50 uses half. Omit for 100.")
+        }, ["kind", "region", "code"]);
+        JsonObject Content(string description) => Describe(Array(new JsonObject { ["anyOf"] = new JsonArray(text.DeepClone(), formula.DeepClone(), table.DeepClone(), image.DeepClone(), mermaid.DeepClone()) }), description);
         var attempt = Object(new()
         {
             ["student_answer"] = String("Student response to this item only, preserving its language. Do not include teacher marks, reference answers, or AI solutions."),

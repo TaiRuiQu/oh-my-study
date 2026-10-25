@@ -43,11 +43,22 @@ public sealed partial class TypstDocumentService
     }
 
     public async Task<ExamExportResult> ExportExamAsync(ExamDocument document, ExamPaper paper, ExamEdition edition,
-        string outputDirectory, CancellationToken cancellationToken = default)
+        string outputDirectory, CancellationToken cancellationToken = default, ExamColumns columns = ExamColumns.Default)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (document.Questions.Count is 0 or > 500) throw new ArgumentOutOfRangeException(nameof(document), "The question count must be between 1 and 500. ");
         if (document.Title.Length > 512) throw new ArgumentException("The title is too long. ", nameof(document));
+        int columnCount = columns switch
+        {
+            ExamColumns.Default => paper == ExamPaper.A3Landscape ? 2 : 1,
+            ExamColumns.One => 1,
+            ExamColumns.Two => 2,
+            ExamColumns.Three => 3,
+            ExamColumns.Four => 4,
+            _ => throw new ArgumentOutOfRangeException(nameof(columns))
+        };
+        double fullWidthMillimetres = paper == ExamPaper.A3Landscape ? 386 : 176;
+        double columnWidthMillimetres = (fullWidthMillimetres - 12 * (columnCount - 1)) / columnCount;
         var directory = Path.GetFullPath(outputDirectory);
         Directory.CreateDirectory(directory);
         var name = (paper == ExamPaper.A3Landscape ? "a3-" : "a4-") + (edition == ExamEdition.Questions ? "questions" : "answers");
@@ -63,10 +74,10 @@ public sealed partial class TypstDocumentService
         source.Append("#let fit-formula(pic, original) = layout(size => { if measure(pic).width > size.width { block(breakable: true)[#text(size: 9pt, \"The formula exceeds the column width. Original formula:\") #linebreak() #text(original)] } else { align(center, pic) } })\n");
         source.Append("#align(center, text(size: 18pt, weight: \"bold\", ").Append(Quote(document.Title)).Append("))\n");
         source.Append("#align(center, text(size: 10pt, ").Append(Quote(edition == ExamEdition.Questions ? "Questions · Name: ____________  Date: ____________" : "Answers and explanations")).Append("))\n#v(4mm)\n");
-        if (paper == ExamPaper.A3Landscape) source.Append("#columns(2, gutter: 12mm)[\n");
+        if (columnCount > 1) source.Append("#columns(").Append(columnCount).Append(", gutter: 12mm)[\n");
         long totalText = document.Title.Length;
         int nodes = 0;
-        var assets = new ExportAssets(directory, edition, cancellationToken, paper == ExamPaper.A3Landscape ? 181 * 72 / 25.4 : 176 * 72 / 25.4);
+        var assets = new ExportAssets(directory, edition, cancellationToken, fullWidthMillimetres, columnWidthMillimetres, columnCount);
         foreach (var question in document.Questions)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -84,7 +95,7 @@ public sealed partial class TypstDocumentService
                 edition, diagnostics, question.Number, assets, ref totalText, ref nodes, cancellationToken);
             if (edition == ExamEdition.Questions) AppendBlank(source, question.BlankMillimetres);
         }
-        if (paper == ExamPaper.A3Landscape) source.Append("]\n");
+        if (columnCount > 1) source.Append("]\n");
         if (totalText > 1_000_000) throw new ArgumentException("Exam text exceeds the limit. ", nameof(document));
         await File.WriteAllTextAsync(sourcePath, source.ToString(), new UTF8Encoding(false), cancellationToken);
         var pdf = Path.Combine(directory, name + ".pdf");
@@ -138,6 +149,18 @@ public sealed partial class TypstDocumentService
         foreach (var option in options) AppendTextBlock(source, option, diagnostics, question, assets, ref total);
     }
 
+    private static void AppendLiteral(StringBuilder source, string text, DocumentFont font = DocumentFont.Serif)
+    {
+        string family = font switch
+        {
+            DocumentFont.Default or DocumentFont.Serif => TypstToolchain.TextFontFamily,
+            DocumentFont.SansSerif => TypstToolchain.SansFontFamily,
+            DocumentFont.Kai => TypstToolchain.KaiFontFamily,
+            _ => throw new ArgumentOutOfRangeException(nameof(font))
+        };
+        source.Append("#text(font: ").Append(Quote(family)).Append(", ").Append(Quote(DocumentText.AllowWrap(text))).Append(")");
+    }
+
     private static void AppendTextBlock(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
         CountText(text, ref total);
@@ -145,13 +168,14 @@ public sealed partial class TypstDocumentService
         source.Append("#block(breakable: true)[");
         foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(text)))
         {
-            if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay);
-            else source.Append("#text(").Append(Quote(DocumentText.AllowWrap(run.Text))).Append(")");
+            if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, font: run.Font);
+            else AppendLiteral(source, run.Text, run.Font);
         }
         source.Append("]\n");
     }
 
-    private static void AppendFormula(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, bool display, double? maximumWidth = null)
+    private static void AppendFormula(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets,
+        bool display, double? maximumWidth = null, DocumentFont font = DocumentFont.Serif)
     {
         var formula = assets.AddFormula(text, display, out string? diagnostic);
         if (formula is not null)
@@ -159,7 +183,7 @@ public sealed partial class TypstDocumentService
             if (!display && formula.WidthPoints > (maximumWidth ?? assets.ColumnWidthPoints))
             {
                 diagnostics.Add(new(question, text, "The formula exceeds the column width. The original text is preserved."));
-                source.Append("#text(").Append(Quote(DocumentText.AllowWrap(text))).Append(")");
+                AppendLiteral(source, text, font);
                 return;
             }
             string picture = "image(" + Quote(Path.GetFileName(formula.Path)) + ", width: " + formula.WidthPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt, height: " + formula.HeightPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt)";
@@ -169,7 +193,7 @@ public sealed partial class TypstDocumentService
         else
         {
             diagnostics.Add(new(question, text, diagnostic!));
-            source.Append("#text(").Append(Quote(DocumentText.AllowWrap(text))).Append(")");
+            AppendLiteral(source, text, font);
         }
     }
 
@@ -179,18 +203,19 @@ public sealed partial class TypstDocumentService
         if (segments.Count > 1000) throw new ArgumentException("Too many segments in one question. ", nameof(segments));
         foreach (var segment in segments)
         {
-            if ((segment.Rows is not null && segment.Image is not null) || ((segment.Rows is not null || segment.Image is not null) && (segment.IsFormula || segment.Text.Length != 0)))
-                throw new ArgumentException("The question segment type is ambiguous.");
+            int kinds = (segment.Rows is null ? 0 : 1) + (segment.Image is null ? 0 : 1) + (segment.Mermaid is null ? 0 : 1);
+            if (kinds > 1 || kinds == 1 && (segment.IsFormula || segment.Text.Length != 0)) throw new ArgumentException("The question segment type is ambiguous.");
             if (segment.Rows is { } rows) AppendTable(source, rows, diagnostics, question, assets, ref total);
             else if (segment.Image is { } image)
             {
                 CountText(image.Caption, ref total);
-                string asset = assets.Add(image);
-                // Explicit height cap avoids an unbreakable image overflowing a page or column.
-                source.Append("#block(breakable: false)[#layout(size => { let pic = image(").Append(Quote(asset))
-                    .Append(", width: size.width); if measure(pic).height > 150mm { align(center, image(").Append(Quote(asset))
-                    .Append(", height: 150mm)) } else { pic } })]\n");
-                if (image.Caption.Length > 0) AppendTextBlock(source, image.Caption, diagnostics, question, assets, ref total);
+                AppendVisual(source, assets.Add(image), image.WidthPercent, image.Caption, assets, diagnostics, question, ref total);
+            }
+            else if (segment.Mermaid is { } mermaid)
+            {
+                CountText(mermaid.Code, ref total);
+                CountText(mermaid.Caption, ref total);
+                AppendVisual(source, assets.Add(mermaid), mermaid.WidthPercent, mermaid.Caption, assets, diagnostics, question, ref total);
             }
             else if (segment.IsFormula)
             {
@@ -201,49 +226,71 @@ public sealed partial class TypstDocumentService
         }
     }
 
+    private static void AppendVisual(StringBuilder source, string asset, double widthPercent, string caption, ExportAssets assets,
+        List<TypesettingDiagnostic> diagnostics, int question, ref long total)
+    {
+        double widthMillimetres = assets.FullWidthMillimetres * widthPercent / 100;
+        bool spanning = assets.ColumnCount > 1 && widthMillimetres > assets.ColumnWidthMillimetres + 0.01;
+        if (spanning) source.Append("#place(top + center, scope: \"parent\", float: true, clearance: 2mm)[\n");
+        source.Append("#align(center, block(breakable: false)[#layout(size => { let pic = image(").Append(Quote(asset))
+            .Append(", width: ").Append(widthMillimetres.ToString("0.###", CultureInfo.InvariantCulture))
+            .Append("mm); if measure(pic).height > 150mm { image(").Append(Quote(asset))
+            .Append(", height: 150mm) } else { pic } })])\n");
+        if (caption.Length > 0) AppendTextBlock(source, caption, diagnostics, question, assets, ref total);
+        if (spanning) source.Append("]\n");
+    }
+
     private static void AppendTable(StringBuilder source, IReadOnlyList<IReadOnlyList<string>> rows,
         List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
-        if (rows.Count == 0) return;
+        var cells = DocumentTable.Layout(rows);
+        if (cells.Count == 0) return;
         int columns = rows.Max(row => row.Count);
-        if (columns == 0) return;
-        if (rows.Count > 2000 || columns > 100 || (long)rows.Count * columns > 50_000) throw new ArgumentException("The table exceeds the limit.");
-        // Split wide tables into column panels with explicit original column numbers, preserving every cell.
-        for (int start = 0; start < columns; start += 6)
+        for (int start = 0; start < columns;)
         {
-            int width = Math.Min(6, columns - start);
+            int end = Math.Min(columns, start + 6);
+            foreach (var cell in cells)
+                if (cell.Column >= start && cell.Column < end && cell.Column + cell.ColumnSpan > end) end = cell.Column;
+            if (end == start) throw new InvalidDataException($"A table merge beginning at column {start + 1} spans more than six columns and cannot be kept intact in a wide-table panel.");
+            int width = end - start;
             bool wide = columns > 6;
-            if (columns > 6) source.Append("#block(sticky: true)[#text(size: 9pt, ")
-                .Append(Quote($"Table: columns {start + 1}–{start + width}")).Append(")]\n");
+            if (wide) source.Append("#block(sticky: true)[#text(size: 9pt, ")
+                .Append(Quote($"Table: columns {start + 1}–{end}")).Append(")]\n");
             source.Append("#table(columns: (").Append(wide ? "auto, " : "").Append(string.Join(", ", Enumerable.Repeat("1fr", width))).Append(",), inset: 5pt, stroke: 0.4pt + rgb(\"aaaaaa\"),\n");
             if (wide)
             {
                 source.Append("table.header(repeat: true, [Row], ");
-                for (int column = start; column < start + width; column++) source.Append("[#text(").Append(Quote($"Column {column + 1}")).Append(")], ");
+                for (int column = start; column < end; column++) source.Append("[#text(").Append(Quote($"Column {column + 1}")).Append(")], ");
                 source.Append("),\n");
             }
-            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+            foreach (var cell in cells.Where(cell => cell.Column >= start && cell.Column < end))
             {
-                var row = rows[rowIndex];
-                if (wide) source.Append("[#text(").Append(Quote((rowIndex + 1).ToString(CultureInfo.InvariantCulture))).Append(")],\n");
-                for (int column = start; column < start + width; column++)
-                {
-                    source.Append("table.cell(breakable: true)[");
-                    string cell = column < row.Count ? row[column] : "";
-                    CountText(cell, ref total);
-                    foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(cell)))
-                        if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, Math.Max(8, (assets.ColumnWidthPoints - (wide ? 30 : 0)) / width - 10));
-                        else source.Append("#text(").Append(Quote(DocumentText.AllowWrap(run.Text))).Append(")");
-                    source.Append("],\n");
-                }
+                int x = cell.Column - start + (wide ? 1 : 0);
+                int y = cell.Row + (wide ? 1 : 0);
+                source.Append("table.cell(x: ").Append(x).Append(", y: ").Append(y).Append(", rowspan: ").Append(cell.RowSpan)
+                    .Append(", colspan: ").Append(cell.ColumnSpan).Append(", breakable: true)[");
+                CountText(cell.Text, ref total);
+                double maximum = Math.Max(8, (assets.ColumnWidthPoints - (wide ? 30 : 0)) / width * cell.ColumnSpan - 10);
+                foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(cell.Text)))
+                    if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, maximum, run.Font);
+                    else AppendLiteral(source, run.Text, run.Font);
+                source.Append("],\n");
             }
+            for (int row = 0; wide && row < rows.Count; row++)
+                source.Append("table.cell(x: 0, y: ").Append(row + 1).Append(")[#text(")
+                    .Append(Quote((row + 1).ToString(CultureInfo.InvariantCulture))).Append(")],\n");
             source.Append(")\n");
+            start = end;
         }
     }
 
-    private sealed class ExportAssets(string directory, ExamEdition edition, CancellationToken token, double columnWidthPoints)
+    private sealed class ExportAssets(string directory, ExamEdition edition, CancellationToken token,
+        double fullWidthMillimetres, double columnWidthMillimetres, int columnCount)
     {
-        internal double ColumnWidthPoints { get; } = columnWidthPoints;
+        internal double ColumnWidthPoints { get; } = columnWidthMillimetres * 72 / 25.4;
+        internal double FullWidthMillimetres { get; } = fullWidthMillimetres;
+        internal double ColumnWidthMillimetres { get; } = columnWidthMillimetres;
+        internal int ColumnCount { get; } = columnCount;
         private readonly HashSet<string> written = new(StringComparer.Ordinal);
         private long bytes;
         private readonly Dictionary<(string, bool), (FormulaSvg? Formula, string? Diagnostic)> formulas = [];
@@ -284,6 +331,22 @@ public sealed partial class TypstDocumentService
                 if (written.Count > 512 || bytes > 128L * 1024 * 1024) throw new ArgumentException("Total question image size exceeds the limit.");
                 File.WriteAllBytes(Path.Combine(directory, name), image.Bytes);
             }
+            return name;
+        }
+
+        public string Add(ExamMermaid mermaid)
+        {
+            token.ThrowIfCancellationRequested();
+            string svg = MermaidRenderer.RenderSvg(mermaid.Code);
+            byte[] content = Encoding.UTF8.GetBytes(svg);
+            string name = "mermaid-" + Convert.ToHexStringLower(SHA256.HashData(content)) + ".svg";
+            if (written.Add(name))
+            {
+                bytes += content.LongLength;
+                if (written.Count > 512 || bytes > 128L * 1024 * 1024) throw new ArgumentException("Total question image size exceeds the limit.");
+                File.WriteAllBytes(Path.Combine(directory, name), content);
+            }
+            token.ThrowIfCancellationRequested();
             return name;
         }
 
@@ -359,7 +422,7 @@ public sealed partial class TypstDocumentService
             if (missing >= 0)
             {
                 string family = error[missing..].Split('\n')[0]["unknown font family".Length..].TrimStart(' ', ':', '：');
-                throw new InvalidDataException($"The required font '{family}' is missing. Install the Windows SimSun (NSimSun) font and retry.");
+                throw new InvalidDataException($"The required font '{family}' is missing. Install the required Windows font and retry.");
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (pages == 0)

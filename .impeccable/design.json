@@ -1,0 +1,431 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T16:50:30Z",
+  "title": "Design System: Oh My Study",
+  "extensions": {
+    "colorMeta": {
+      "mobile-blue": {
+        "role": "primary",
+        "displayName": "Scanner Blue",
+        "tonalRamp": [
+          "oklch(15% 0.2565 265.36)",
+          "oklch(26% 0.2565 265.36)",
+          "oklch(37% 0.2565 265.36)",
+          "oklch(48% 0.2565 265.36)",
+          "oklch(60% 0.2565 265.36)",
+          "oklch(72% 0.2565 265.36)",
+          "oklch(84% 0.2565 265.36)",
+          "oklch(95% 0.2565 265.36)"
+        ]
+      },
+      "mobile-blue-hover": {
+        "role": "primary",
+        "displayName": "Pressed Blue",
+        "tonalRamp": [
+          "oklch(15% 0.2508 264.86)",
+          "oklch(26% 0.2508 264.86)",
+          "oklch(37% 0.2508 264.86)",
+          "oklch(48% 0.2508 264.86)",
+          "oklch(60% 0.2508 264.86)",
+          "oklch(72% 0.2508 264.86)",
+          "oklch(84% 0.2508 264.86)",
+          "oklch(95% 0.2508 264.86)"
+        ]
+      },
+      "mobile-blue-tint": {
+        "role": "primary",
+        "displayName": "Blue Mist",
+        "tonalRamp": [
+          "oklch(15% 0.0190 276.35)",
+          "oklch(26% 0.0190 276.35)",
+          "oklch(37% 0.0190 276.35)",
+          "oklch(48% 0.0190 276.35)",
+          "oklch(60% 0.0190 276.35)",
+          "oklch(72% 0.0190 276.35)",
+          "oklch(84% 0.0190 276.35)",
+          "oklch(95% 0.0190 276.35)"
+        ]
+      },
+      "mobile-canvas": {
+        "role": "neutral",
+        "displayName": "Review Canvas",
+        "tonalRamp": [
+          "oklch(15% 0.0068 277.16)",
+          "oklch(26% 0.0068 277.16)",
+          "oklch(37% 0.0068 277.16)",
+          "oklch(48% 0.0068 277.16)",
+          "oklch(60% 0.0068 277.16)",
+          "oklch(72% 0.0068 277.16)",
+          "oklch(84% 0.0068 277.16)",
+          "oklch(95% 0.0068 277.16)"
+        ]
+      },
+      "mobile-surface": {
+        "role": "neutral",
+        "displayName": "Control White",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(26% 0.0000 0.00)",
+          "oklch(37% 0.0000 0.00)",
+          "oklch(48% 0.0000 0.00)",
+          "oklch(60% 0.0000 0.00)",
+          "oklch(72% 0.0000 0.00)",
+          "oklch(84% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "mobile-ink": {
+        "role": "neutral",
+        "displayName": "Document Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0076 274.67)",
+          "oklch(26% 0.0076 274.67)",
+          "oklch(37% 0.0076 274.67)",
+          "oklch(48% 0.0076 274.67)",
+          "oklch(60% 0.0076 274.67)",
+          "oklch(72% 0.0076 274.67)",
+          "oklch(84% 0.0076 274.67)",
+          "oklch(95% 0.0076 274.67)"
+        ]
+      },
+      "mobile-muted": {
+        "role": "neutral",
+        "displayName": "Readable Slate",
+        "tonalRamp": [
+          "oklch(15% 0.0196 271.01)",
+          "oklch(26% 0.0196 271.01)",
+          "oklch(37% 0.0196 271.01)",
+          "oklch(48% 0.0196 271.01)",
+          "oklch(60% 0.0196 271.01)",
+          "oklch(72% 0.0196 271.01)",
+          "oklch(84% 0.0196 271.01)",
+          "oklch(95% 0.0196 271.01)"
+        ]
+      },
+      "mobile-border": {
+        "role": "neutral",
+        "displayName": "Quiet Divider",
+        "tonalRamp": [
+          "oklch(15% 0.0114 269.54)",
+          "oklch(26% 0.0114 269.54)",
+          "oklch(37% 0.0114 269.54)",
+          "oklch(48% 0.0114 269.54)",
+          "oklch(60% 0.0114 269.54)",
+          "oklch(72% 0.0114 269.54)",
+          "oklch(84% 0.0114 269.54)",
+          "oklch(95% 0.0114 269.54)"
+        ]
+      },
+      "mobile-camera": {
+        "role": "neutral",
+        "displayName": "Camera Black",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(26% 0.0000 0.00)",
+          "oklch(37% 0.0000 0.00)",
+          "oklch(48% 0.0000 0.00)",
+          "oklch(60% 0.0000 0.00)",
+          "oklch(72% 0.0000 0.00)",
+          "oklch(84% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "mobile-viewfinder": {
+        "role": "neutral",
+        "displayName": "Viewfinder Charcoal",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(26% 0.0000 0.00)",
+          "oklch(37% 0.0000 0.00)",
+          "oklch(48% 0.0000 0.00)",
+          "oklch(60% 0.0000 0.00)",
+          "oklch(72% 0.0000 0.00)",
+          "oklch(84% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "mobile-camera-toolbar": {
+        "role": "neutral",
+        "displayName": "Camera Toolbar",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(26% 0.0000 0.00)",
+          "oklch(37% 0.0000 0.00)",
+          "oklch(48% 0.0000 0.00)",
+          "oklch(60% 0.0000 0.00)",
+          "oklch(72% 0.0000 0.00)",
+          "oklch(84% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "mobile-page-stage": {
+        "role": "neutral",
+        "displayName": "Page Stage",
+        "tonalRamp": [
+          "oklch(15% 0.0095 279.68)",
+          "oklch(26% 0.0095 279.68)",
+          "oklch(37% 0.0095 279.68)",
+          "oklch(48% 0.0095 279.68)",
+          "oklch(60% 0.0095 279.68)",
+          "oklch(72% 0.0095 279.68)",
+          "oklch(84% 0.0095 279.68)",
+          "oklch(95% 0.0095 279.68)"
+        ]
+      },
+      "mobile-sheet": {
+        "role": "neutral",
+        "displayName": "Settings Mist",
+        "tonalRamp": [
+          "oklch(15% 0.0067 277.16)",
+          "oklch(26% 0.0067 277.16)",
+          "oklch(37% 0.0067 277.16)",
+          "oklch(48% 0.0067 277.16)",
+          "oklch(60% 0.0067 277.16)",
+          "oklch(72% 0.0067 277.16)",
+          "oklch(84% 0.0067 277.16)",
+          "oklch(95% 0.0067 277.16)"
+        ]
+      },
+      "mobile-shutter": {
+        "role": "neutral",
+        "displayName": "Shutter Charcoal",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.00)",
+          "oklch(26% 0.0000 0.00)",
+          "oklch(37% 0.0000 0.00)",
+          "oklch(48% 0.0000 0.00)",
+          "oklch(60% 0.0000 0.00)",
+          "oklch(72% 0.0000 0.00)",
+          "oklch(84% 0.0000 0.00)",
+          "oklch(95% 0.0000 0.00)"
+        ]
+      },
+      "mobile-error": {
+        "role": "error",
+        "displayName": "Error Red",
+        "tonalRamp": [
+          "oklch(15% 0.1887 24.59)",
+          "oklch(26% 0.1887 24.59)",
+          "oklch(37% 0.1887 24.59)",
+          "oklch(48% 0.1887 24.59)",
+          "oklch(60% 0.1887 24.59)",
+          "oklch(72% 0.1887 24.59)",
+          "oklch(84% 0.1887 24.59)",
+          "oklch(95% 0.1887 24.59)"
+        ]
+      },
+      "mobile-camera-error": {
+        "role": "error",
+        "displayName": "Camera Error Rose",
+        "tonalRamp": [
+          "oklch(15% 0.0827 15.22)",
+          "oklch(26% 0.0827 15.22)",
+          "oklch(37% 0.0827 15.22)",
+          "oklch(48% 0.0827 15.22)",
+          "oklch(60% 0.0827 15.22)",
+          "oklch(72% 0.0827 15.22)",
+          "oklch(84% 0.0827 15.22)",
+          "oklch(95% 0.0827 15.22)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "mobile-body": {
+        "displayName": "Mobile Body",
+        "purpose": "Mobile interface font stack and inherited reading line height."
+      },
+      "mobile-headline": {
+        "displayName": "Mobile Headline",
+        "purpose": "Short surface headings, with smaller camera/editor overrides in source."
+      },
+      "mobile-brand": {
+        "displayName": "Mobile Brand",
+        "purpose": "Camera title using the final source weight and tracking."
+      },
+      "mobile-tool-label": {
+        "displayName": "Mobile Tool Label",
+        "purpose": "Aligned review tool captions and independent processing labels."
+      },
+      "mobile-camera-label": {
+        "displayName": "Mobile Camera Label",
+        "purpose": "Aligned camera captions, reduced to 11px at the compact breakpoint."
+      },
+      "mobile-navigation": {
+        "displayName": "Mobile Navigation",
+        "purpose": "Bottom preview/filter/pages navigation."
+      },
+      "mobile-segment": {
+        "displayName": "Mobile Segment",
+        "purpose": "Compact image/pages selector; selected state uses weight 600."
+      },
+      "mobile-send": {
+        "displayName": "Mobile Send",
+        "purpose": "The compact top-right review send capsule."
+      },
+      "mobile-meta": {
+        "displayName": "Mobile Meta",
+        "purpose": "Compact help, progress, and feedback."
+      },
+      "desktop-interface": {
+        "displayName": "Desktop Interface",
+        "purpose": "Existing WinUI interface family only; sizes and native roles remain authoritative in XAML."
+      }
+    },
+    "shadows": [
+      {
+        "name": "mobile-status-notice",
+        "value": "0 4px 20px #00000012",
+        "purpose": "Transient status feedback above the workspace."
+      },
+      {
+        "name": "mobile-preview-progress",
+        "value": "0 4px 20px #0001",
+        "purpose": "The compact processing notice over the review page."
+      },
+      {
+        "name": "mobile-crop-handle",
+        "value": "0 2px 6px #0005",
+        "purpose": "Keeps a draggable corner visible over the photograph."
+      }
+    ],
+    "motion": [
+      {
+        "name": "mobile-shutter-flash",
+        "value": "shutter .22s ease-out",
+        "purpose": "White flash fades from opacity 0.65 to 0; disabled by prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-compact-max",
+        "value": "360px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Mobile Batch Send",
+      "kind": "button",
+      "refersTo": "mobile-send",
+      "description": "The compact blue capsule in the review header; the selected count is part of the label.",
+      "html": "<button class=\"ds-send\">Send (3)</button>",
+      "css": ".ds-send{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;display:inline-flex;align-items:center;justify-content:center;min-width:70px;height:40px;min-height:40px;padding:7px 16px;border:0;border-radius:24px;background:var(--accent,#2454ff);color:white;font-size:16px;font-weight:600;line-height:24px;white-space:nowrap;cursor:pointer;}.ds-send:hover:not(:disabled){background:#1746ec;}.ds-send:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-send:active{opacity:.65;}.ds-send:disabled{opacity:.35;cursor:default;}"
+    },
+    {
+      "name": "Mobile Surface Action",
+      "kind": "button",
+      "refersTo": "mobile-surface-action",
+      "description": "A white capsule for a secondary action within the crop editor.",
+      "html": "<button class=\"ds-surface-action\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"M20 10a8 8 0 1 0-1 7M20 3v7h-7\"/></svg><span>Rotate right</span></button>",
+      "css": ".ds-surface-action{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 12px;border:0;border-radius:24px;background:white;color:#242529;font-size:14px;line-height:1.5;cursor:pointer;}.ds-surface-action:hover:not(:disabled){background:#00000006;}.ds-surface-action:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-surface-action:active{opacity:.65;}.ds-surface-action:disabled{opacity:.35;cursor:default;}.ds-icon{width:26px;height:26px;fill:none;flex:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}"
+    },
+    {
+      "name": "Mobile Restoration Selector",
+      "kind": "input",
+      "refersTo": "mobile-restoration-select",
+      "description": "The native select used to choose Standard or optional DocRes restoration.",
+      "html": "<label class=\"ds-select-label\"><span>Document restoration</span><select class=\"ds-restoration\"><option>Standard (DocScanner + OpenCV)</option><option disabled>DocRes (optional CUDA)</option></select></label>",
+      "css": ".ds-select-label{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:#242529;font-size:14px;line-height:1.5;}.ds-restoration{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;min-height:44px;max-width:100%;background:white;color:#242529;border:0;border-radius:12px;padding:8px 12px;font-size:14px;accent-color:var(--accent,#2454ff);}.ds-restoration:hover:not(:disabled){background:#00000006;}.ds-restoration:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-restoration:active{opacity:.65;}.ds-restoration:disabled{opacity:.35;cursor:default;}"
+    },
+    {
+      "name": "Mobile Capture Modes",
+      "kind": "nav",
+      "refersTo": "mobile-capture-mode-selected",
+      "description": "A floating dark selector; Multiple pages is initially selected.",
+      "html": "<nav class=\"ds-capture-modes\" aria-label=\"Capture mode\"><button aria-pressed=\"false\">Single page</button><button aria-pressed=\"true\">Multiple pages</button></nav>",
+      "css": ".ds-capture-modes{display:inline-flex;padding:4px;border-radius:12px;background:#1e1e1ebd;white-space:nowrap;}.ds-capture-modes button{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;min-height:36px;border:0;font-size:16px;line-height:1.5;color:white;background:transparent;padding:8px 12px;border-radius:8px;cursor:pointer;}.ds-capture-modes button:hover:not(:disabled){background:#00000006;}.ds-capture-modes button[aria-pressed=\"true\"]{background:var(--accent,#2454ff);}.ds-capture-modes button:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-capture-modes button:active{opacity:.65;}.ds-capture-modes button:disabled{opacity:.35;cursor:default;}"
+    },
+    {
+      "name": "Mobile Review Tabs",
+      "kind": "nav",
+      "refersTo": "mobile-review-tab",
+      "description": "Preview, filters, and pages navigation with text and underline indicating the current tab.",
+      "html": "<nav class=\"ds-review-tabs\" aria-label=\"Review\"><button aria-pressed=\"true\">Preview</button><button aria-pressed=\"false\">Filters</button><button aria-pressed=\"false\">Pages</button><button class=\"ds-tab-options\" aria-label=\"Connection and limits\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><rect x=\"3\" y=\"3\" width=\"6\" height=\"6\" rx=\"1.5\"/><rect x=\"15\" y=\"3\" width=\"6\" height=\"6\" rx=\"1.5\"/><rect x=\"3\" y=\"15\" width=\"6\" height=\"6\" rx=\"1.5\"/><rect x=\"15\" y=\"15\" width=\"6\" height=\"6\" rx=\"1.5\"/></svg></button></nav>",
+      "css": ".ds-review-tabs{display:flex;align-items:center;justify-content:space-between;gap:6px;height:58px;padding:0 6px;background:var(--canvas,#f1f2f7);}.ds-review-tabs button{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;position:relative;min-height:48px;padding:8px 12px;border:0;border-radius:12px;background:transparent;color:#242529;font-size:15px;line-height:24px;font-weight:500;cursor:pointer;}.ds-review-tabs button:hover:not(:disabled){background:#00000006;}.ds-review-tabs button[aria-pressed=\"true\"]{color:var(--accent,#2454ff);}.ds-review-tabs button[aria-pressed=\"true\"]::after{content:\"\";position:absolute;width:16px;height:4px;bottom:0;left:calc(50% - 8px);background:var(--accent,#2454ff);}.ds-review-tabs .ds-tab-options{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;padding:8px;border-left:1px solid var(--border,#daddE5);border-radius:0;}.ds-review-tabs button:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-review-tabs button:active{opacity:.65;}.ds-review-tabs button:disabled{opacity:.35;cursor:default;}.ds-icon{width:26px;height:26px;fill:none;flex:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}"
+    },
+    {
+      "name": "Mobile Capture Count",
+      "kind": "chip",
+      "refersTo": "mobile-count",
+      "description": "A small blue count badge anchored to Recent scans in the camera controls.",
+      "html": "<span class=\"ds-count\" aria-label=\"3 captured pages\">3</span>",
+      "css": ".ds-count{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;display:inline-block;min-width:17px;background:var(--accent,#2454ff);color:white;border-radius:10px;padding:1px 5px;font-size:10px;line-height:1.5;text-align:center;}"
+    },
+    {
+      "name": "Mobile Page Card",
+      "kind": "card",
+      "refersTo": "mobile-page-card",
+      "description": "The alternate Pages grid uses portrait document previews with selection, index, filename, and text state. The inline vector is only a document placeholder.",
+      "html": "<article class=\"ds-page\"><div class=\"ds-page-image\"><button class=\"ds-page-preview\" aria-label=\"Review page 1\"><svg class=\"ds-paper\" viewBox=\"0 0 150 200\" role=\"img\" aria-label=\"Document preview\"><rect x=\"5\" y=\"4\" width=\"140\" height=\"192\" fill=\"white\"/><path d=\"M22 28h78M22 43h104M22 58h94M22 88h101M22 103h106M22 118h87M22 148h103M22 163h95\" stroke=\"#daddE5\" stroke-width=\"3\"/><path d=\"M22 73h52M22 133h54\" stroke=\"#626672\" stroke-width=\"3\"/></svg></button><span class=\"ds-page-index\">1</span><label class=\"ds-page-check\"><input type=\"checkbox\" checked aria-label=\"Select page 1\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"m5 12 4 4L19 6\"/></svg></label></div><div class=\"ds-page-meta\"><div class=\"ds-page-label\"><div class=\"ds-page-name\">Study page.jpg</div><span class=\"ds-page-state\">Ready to send</span></div><button class=\"ds-page-remove\" aria-label=\"Remove page 1\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7\"/></svg></button></div></article>",
+      "css": ".ds-page{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;width:180px;max-width:100%;color:#242529;}.ds-page-image{position:relative;background:#e6e7ee;border-radius:10px;overflow:hidden;aspect-ratio:3/4;}.ds-page-preview{display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:8px;border:0;border-radius:12px;background:transparent;cursor:pointer;}.ds-page-preview:hover:not(:disabled){background:#00000006;}.ds-paper{width:100%;height:100%;}.ds-page-index{position:absolute;left:8px;top:8px;background:#fffe;color:#242529;border-radius:5px;padding:3px 6px;font-size:11px;pointer-events:none;}.ds-page-check{position:absolute;top:0;right:0;display:grid;place-items:center;width:44px;height:44px;cursor:pointer;}.ds-page-check input{appearance:none;width:24px;height:24px;margin:0;border-radius:50%;border:1.5px solid #9296a0;background:white;cursor:pointer;}.ds-page-check input:checked{border-color:var(--accent,#2454ff);background:var(--accent,#2454ff);}.ds-page-check .ds-icon{position:absolute;width:17px;height:17px;color:white;pointer-events:none;}.ds-page-check input:not(:checked)+.ds-icon{display:none;}.ds-page-check input:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-page-check input:hover{outline:1px solid var(--accent,#2454ff);outline-offset:1px;}.ds-page-meta{display:flex;align-items:center;justify-content:space-between;gap:4px;}.ds-page-label{min-width:0;}.ds-page-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.ds-page-state{display:block;color:var(--muted,#626672);font-size:11px;}.ds-page-remove{display:inline-flex;align-items:center;justify-content:center;width:40px;min-height:44px;padding:8px;border:0;border-radius:12px;background:transparent;color:inherit;cursor:pointer;}.ds-page-remove:hover:not(:disabled){background:#00000006;}.ds-page-preview:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-page-preview:active{opacity:.65;}.ds-page-preview:disabled{opacity:.35;cursor:default;}.ds-page-remove:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-page-remove:active{opacity:.65;}.ds-page-remove:disabled{opacity:.35;cursor:default;}.ds-icon{width:26px;height:26px;fill:none;flex:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}@media(forced-colors:active){.ds-page-check input{appearance:auto;}.ds-page-check .ds-icon{display:none;}}"
+    },
+    {
+      "name": "Mobile Shutter",
+      "kind": "custom",
+      "refersTo": "mobile-shutter",
+      "description": "The centered white-ring camera shutter with a charcoal inner disc.",
+      "html": "<div class=\"ds-shutter-stage\"><button class=\"ds-shutter\" aria-label=\"Take a photo\"><span></span></button></div>",
+      "css": ".ds-shutter-stage{display:flex;align-items:center;justify-content:center;background:#000;padding:16px;}.ds-shutter{display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;padding:4px;border:4px solid white;border-radius:50%;background:transparent;color:white;cursor:pointer;}.ds-shutter span{width:56px;height:56px;border-radius:50%;background:#343434;}.ds-shutter:hover:not(:disabled){background:#00000006;}.ds-shutter:not(:disabled):active span{background:#7b7b7b;}.ds-shutter:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-shutter:active{opacity:.65;}.ds-shutter:disabled{opacity:.35;cursor:default;}"
+    },
+    {
+      "name": "Mobile Review Tool Tray",
+      "kind": "custom",
+      "refersTo": "mobile-review-tools",
+      "description": "Four aligned tools with a 32px icon row and 20px caption row; labels here use the same supported actions as the source.",
+      "html": "<div class=\"ds-review-tools\"><button><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><circle cx=\"9\" cy=\"8\" r=\"5\"/><circle cx=\"6.5\" cy=\"15.5\" r=\"5\"/><circle cx=\"15.5\" cy=\"15.5\" r=\"5\"/></svg><span>Filters</span></button><button><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"M11 2c0 7-2 9-9 9 7 0 9 2 9 9 0-7 2-9 9-9-7 0-9-2-9-9zm8 13c0 3-1 4-4 4 3 0 4 1 4 4 0-3 1-4 4-4-3 0-4-1-4-4z\"/></svg><span>Document restoration</span></button><button><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"M6 2v16h16M2 6h16v16M9 3h8a4 4 0 0 1 4 4m-1-6 2 3-4 1\"/></svg><span>Crop and rotate</span></button><button><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" ><path d=\"M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7\"/></svg><span>Remove</span></button></div>",
+      "css": ".ds-review-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:white;border-radius:15px;padding:15px 6px 10px;}.ds-review-tools button{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;display:grid;grid-template-rows:32px 20px;justify-items:center;align-content:center;row-gap:8px;min-width:0;min-height:76px;padding:8px 2px;border:0;border-radius:12px;background:transparent;color:#242529;font-size:13px;line-height:20px;font-weight:450;white-space:nowrap;cursor:pointer;}.ds-review-tools button:hover:not(:disabled){background:#00000006;}.ds-review-tools .ds-icon{width:30px;height:30px;align-self:center;}.ds-review-tools button:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-review-tools button:active{opacity:.65;}.ds-review-tools button:disabled{opacity:.35;cursor:default;}.ds-icon{width:26px;height:26px;fill:none;flex:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}"
+    },
+    {
+      "name": "Mobile Independent Processing Options",
+      "kind": "input",
+      "refersTo": "mobile-processing-option",
+      "description": "Independent restoration checkboxes begin off; choosing one option does not select another.",
+      "html": "<fieldset class=\"ds-processing\"><legend>Document restoration</legend><label><input type=\"checkbox\"><span>Crop to page corners</span></label><label><input type=\"checkbox\"><span>DocScanner dewarping</span></label><label><input type=\"checkbox\"><span>Automatic orientation</span></label><label><input type=\"checkbox\"><span>Remove shadows</span></label><label><input type=\"checkbox\"><span>Recover mild blur</span></label><label><input type=\"checkbox\"><span>Enhance appearance</span></label><label><input type=\"checkbox\"><span>Grayscale</span></label></fieldset>",
+      "css": ".ds-processing{font-family:\"Study Sans\",\"Microsoft YaHei UI\",sans-serif;font-synthesis:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 12px;border:0;padding:0;margin:12px 0;color:#242529;}.ds-processing legend{font-size:14px;line-height:1.5;margin-bottom:8px;}.ds-processing label{display:flex;align-items:center;min-height:44px;gap:10px;font-size:13px;line-height:20px;cursor:pointer;}.ds-processing input{flex:none;width:20px;height:20px;accent-color:var(--accent,#2454ff);}.ds-processing input:focus-visible{outline:3px solid var(--accent,#2454ff);outline-offset:3px;}.ds-processing label:hover{background:#00000006;}.ds-processing input:active{opacity:.65;}.ds-processing input:disabled{opacity:.35;cursor:default;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Pocket Document Scanner",
+    "overview": "Mobile capture follows the document-scanner reference chosen by the user: a black camera workspace with white outline controls and saturated blue selection, followed by a pale review workspace where the photographed page dominates. Rounded white controls frame the document without competing with it. The real app name and supported actions remain visible.\n\nThis record describes the implemented phone surface in src/OhMyStudy.App/MobileCapture/index.html. All mobile-prefixed tokens and every camera, review, tool-grid, and responsive measurement below apply only to mobile capture. Desktop keeps its native WinUI theme resources, teal accent, typography, control states, and layout authority in src/OhMyStudy.App/Themes/WorkspaceResources.xaml; this document establishes no new desktop layout scale.",
+    "keyCharacteristics": [
+      "Black camera chrome and a cool, light review canvas.",
+      "Blue marks the current mode, selected controls, and send action.",
+      "Consistent outline icons, fixed icon rows, and aligned captions.",
+      "Large-page review, paging, optional processing, and one batch send."
+    ],
+    "rules": [
+      {
+        "name": "The Surface Boundary Rule",
+        "body": "Mobile blue, Study Sans, shell dimensions, and tool grids belong to mobile capture. Desktop continues to use WinUI resources and native control behavior.",
+        "section": "colors"
+      },
+      {
+        "name": "The Aligned Tool Rule",
+        "body": "Camera and review tools reserve separate icon and caption rows; label length must not shift adjacent icons or button baselines.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Workspace Rule",
+        "body": "Use tonal separation for the camera, page, and tool tray. Reserve shadows for transient notices and crop handles.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do scope every mobile-prefixed token and scanner layout measurement to mobile capture.",
+      "Do preserve the aligned 32px icon rows and 20px caption rows in camera and review tools.",
+      "Do keep the page fully visible in review and provide paging, continue shooting, and batch send controls.",
+      "Do present each processing operation independently, with all operations off by default.",
+      "Do retain visible focus outlines, text status, disabled states, and reduced-motion behavior.",
+      "Do preserve the local font embedding and distribute its font notice and OFL license."
+    ],
+    "donts": [
+      "Don't propagate the mobile blue palette, font, or 600px shell into the desktop WinUI workspace.",
+      "Don't restore the rejected teal camera and two-column-first review composition.",
+      "Don't substitute unsupported reference features or another product's branding for the implemented actions.",
+      "Don't let variable caption lengths move icons out of their shared rows.",
+      "Don't enable restoration tasks implicitly when another processing option is selected.",
+      "Don't replace user document previews with decorative shipping imagery."
+    ]
+  }
+}
+

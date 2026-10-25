@@ -35,14 +35,25 @@ public sealed partial class MainWindow
         _exportingQuestions = true;
         try
         {
-            var paper = new ComboBox { Header = UiText.Get("Paper size"), SelectedIndex = 0, Items = { "A4", UiText.Get("A3 landscape") }, HorizontalAlignment = HorizontalAlignment.Stretch };
+            var paper = new ComboBox { Header = UiText.Get("Paper size"), SelectedIndex = 0, Items = { UiText.Get("A4 portrait"), UiText.Get("A3 landscape") }, HorizontalAlignment = HorizontalAlignment.Stretch };
+            var columns = new ComboBox { Header = UiText.Get("Columns"), SelectedIndex = 0, Items = { "1", "2", "3", "4" }, HorizontalAlignment = HorizontalAlignment.Stretch };
             var edition = new ComboBox { Header = UiText.Get("Content"), SelectedIndex = 0, Items = { UiText.Get("Questions"), UiText.Get("Answers and explanations") }, HorizontalAlignment = HorizontalAlignment.Stretch };
+            bool columnsExplicit = false, settingDefault = false;
+            columns.SelectionChanged += (_, _) => { if (!settingDefault) columnsExplicit = true; };
+            paper.SelectionChanged += (_, _) =>
+            {
+                if (columnsExplicit) return;
+                settingDefault = true;
+                columns.SelectedIndex = paper.SelectedIndex == 1 ? 1 : 0;
+                settingDefault = false;
+            };
             var content = new StackPanel { Spacing = 12 };
             content.Children.Add(new TextBlock { Text = UiText.Format("Export currently displayed questions: {0}.", saved.Count), TextWrapping = TextWrapping.Wrap });
-            content.Children.Add(paper); content.Children.Add(edition);
+            content.Children.Add(paper); content.Children.Add(columns); content.Children.Add(edition);
             var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = UiText.Get("Export questions"), Content = content, PrimaryButtonText = UiText.Get("Continue"), CloseButtonText = UiText.Get("Cancel"), DefaultButton = ContentDialogButton.Primary };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
             var size = paper.SelectedIndex == 1 ? ExamPaper.A3Landscape : ExamPaper.A4Portrait;
+            var columnCount = columns.SelectedIndex switch { 1 => ExamColumns.Two, 2 => ExamColumns.Three, 3 => ExamColumns.Four, _ => ExamColumns.One };
             var version = edition.SelectedIndex == 1 ? ExamEdition.Answers : ExamEdition.Questions;
             if (version == ExamEdition.Questions && saved.Any(item => ContainsHandwrittenImage(item.Question)))
             { ViewModel.StatusMessage = UiText.Get("Some question images contain handwriting. Replace them with clean images before exporting a question paper."); return; }
@@ -82,7 +93,7 @@ public sealed partial class MainWindow
                 var directory = Directory.CreateTempSubdirectory("OhMyStudy-Export-").FullName;
                 try
                 {
-                    var result = await service.ExportExamAsync(document, size, version, directory, _lifetime.Token).ConfigureAwait(false);
+                    var result = await service.ExportExamAsync(document, size, version, directory, _lifetime.Token, columns: columnCount).ConfigureAwait(false);
                     fallbackCount = result.Diagnostics.Count;
                     return await File.ReadAllBytesAsync(result.PdfPath, _lifetime.Token).ConfigureAwait(false);
                 }
@@ -121,7 +132,10 @@ public sealed partial class MainWindow
                     if (!pages.TryGetValue(image.Region.PageId, out var page)) throw new InvalidDataException(UiText.Get("The source of a question image no longer exists."));
                     var asset = await library.ReadAssetAsync(image.AssetId ?? page.AssetId, cancellationToken: cancellationToken).ConfigureAwait(false);
                     var result = await reader.ReadForDisplayAsync(asset.Bytes, image.AssetId is null ? image.Region : null, image.AssetId is null ? page.Rotation : (ushort)0, cancellationToken).ConfigureAwait(false);
-                    segments.Add(new("", Image: new ExamImage(imageBudget.Intern(Convert.FromBase64String(result.Image.Base64)), image.Caption, image.ContainsHandwriting)));
+                    segments.Add(new("", Image: new ExamImage(imageBudget.Intern(Convert.FromBase64String(result.Image.Base64)), image.Caption, image.ContainsHandwriting, image.WidthPercent)));
+                    break;
+                case MermaidContent mermaid:
+                    segments.Add(new("", Mermaid: new ExamMermaid(mermaid.Code, mermaid.Caption, mermaid.WidthPercent)));
                     break;
                 default: throw new InvalidDataException(UiText.Get("Question content could not be read completely."));
             }
@@ -150,7 +164,8 @@ public sealed partial class MainWindow
         {
             foreach (var name in new[] { "a4-questions", "a4-answers", "a3-questions", "a3-answers" })
                 foreach (var extension in new[] { ".typ", ".pdf" }) File.Delete(Path.Combine(directory, name + extension));
-            foreach (var asset in Directory.EnumerateFiles(directory, "asset-*")) File.Delete(asset);
+            foreach (var pattern in new[] { "asset-*", "mermaid-*" })
+                foreach (var asset in Directory.EnumerateFiles(directory, pattern)) File.Delete(asset);
             var packages = Path.Combine(directory, "empty-packages");
             if (Directory.Exists(packages)) Directory.Delete(packages, recursive: false);
             Directory.Delete(directory, recursive: false);
@@ -214,7 +229,11 @@ public sealed partial class MainWindow
     private static IEnumerable<string> QuestionPageIds(Question question)
     {
         foreach (var source in question.Sources) yield return source.PageId;
-        foreach (var image in question.Stem.Concat(question.Items.SelectMany(item => item.Prompt)).OfType<ImageContent>()) yield return image.Region.PageId;
+        foreach (var content in question.Stem.Concat(question.Items.SelectMany(item => item.Prompt)))
+        {
+            if (content is ImageContent image) yield return image.Region.PageId;
+            else if (content is MermaidContent mermaid) yield return mermaid.Region.PageId;
+        }
         foreach (var attempt in question.Items.Select(item => item.Attempt).OfType<Attempt>())
         {
             foreach (var source in attempt.StudentRegions) yield return source.PageId;
@@ -251,7 +270,7 @@ public sealed partial class MainWindow
             _originalPrintSession = new OriginalPrintSession(this, document.Name, pages);
             bool shown = await PrintManagerInterop.ShowPrintUIForWindowAsync(WinRT.Interop.WindowNative.GetWindowHandle(this));
             if (!shown) { _originalPrintSession.Dispose(); _originalPrintSession = null; ViewModel.StatusMessage = UiText.Get("Could not open the print dialog. Check your printer."); }
-            else ViewModel.StatusMessage = UiText.Get("Choose a printer and paper size in the print dialog.");
+            else ViewModel.StatusMessage = "";
         }
         catch (OperationCanceledException) { _originalPrintSession?.Dispose(); _originalPrintSession = null; }
         catch { _originalPrintSession?.Dispose(); _originalPrintSession = null; if (!_closed) ViewModel.StatusMessage = UiText.Get("Could not prepare printing. Check the original and printer, then retry."); }
