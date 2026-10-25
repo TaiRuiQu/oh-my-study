@@ -9,75 +9,30 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
-        string[] arguments = Environment.GetCommandLineArgs();
-        int localizationSmoke = Array.IndexOf(arguments, "--localization-smoke");
-        string? diagnosticLanguage = localizationSmoke > 0 && localizationSmoke + 2 < arguments.Length ? arguments[localizationSmoke + 1] : null;
-        if (diagnosticLanguage is null && arguments.Any(argument => argument.StartsWith("--", StringComparison.Ordinal) && argument.Contains("smoke", StringComparison.Ordinal))) diagnosticLanguage = "zh-CN";
         string systemLanguage = Windows.System.UserProfile.GlobalizationPreferences.Languages.FirstOrDefault() ?? System.Globalization.CultureInfo.CurrentUICulture.Name;
-        UiText.Initialize(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "language.txt"), systemLanguage, diagnosticLanguage);
+        UiText.Initialize(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "language.txt"), systemLanguage);
         Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = UiText.Language;
         AppLog.Info("Application.Start", $"Version={typeof(App).Assembly.GetName().Version}; PID={Environment.ProcessId}; Language={UiText.Language}; BaseDirectory={AppContext.BaseDirectory}");
-        UnhandledException += (_, args) => SmokeStartupDiagnostics.Log("Application.UnhandledException", args.Exception);
-        bool xamlDiagnostics = Array.IndexOf(Environment.GetCommandLineArgs(), "--smoke-test") >= 0;
+        UnhandledException += (_, args) => AppLog.Error("Application.UnhandledException", args.Exception);
 #if DEBUG
-        xamlDiagnostics = true;
+        DebugSettings.BindingFailed += (_, args) => AppLog.Failure("XAML.BindingFailed", args.Message);
+        DebugSettings.XamlResourceReferenceFailed += (_, args) => AppLog.Failure("XAML.ResourceReferenceFailed", args.Message);
+        DebugSettings.IsXamlResourceReferenceTracingEnabled = true;
 #endif
-        if (xamlDiagnostics)
-        {
-            DebugSettings.BindingFailed += (_, args) => SmokeStartupDiagnostics.LogText("XAML.BindingFailed", args.Message);
-            DebugSettings.XamlResourceReferenceFailed += (_, args) => SmokeStartupDiagnostics.LogText("XAML.ResourceReferenceFailed", args.Message);
-            DebugSettings.IsXamlResourceReferenceTracingEnabled = true;
-        }
-        try
-        {
-            InitializeComponent();
-        }
-        catch (Exception exception)
-        {
-            SmokeStartupDiagnostics.Log("Application.InitializeComponent", exception);
-            throw;
-        }
+        try { InitializeComponent(); }
+        catch (Exception exception) { AppLog.Error("Application.InitializeComponent", exception); throw; }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        string[] arguments = Environment.GetCommandLineArgs();
-        string? reportPath = null;
-        string? previewPdfPath = null;
-        string? workflowReport = null;
-        string? performanceReport = null;
-        string? updateReport = null;
-        string? updateSource = null;
-        for (int index = 1; index < arguments.Length; index++)
-        {
-            if (arguments[index] == "--smoke-test" && index + 1 < arguments.Length)
-                reportPath = Path.GetFullPath(arguments[++index]);
-            else if (arguments[index] == "--preview-pdf" && index + 1 < arguments.Length)
-                previewPdfPath = Path.GetFullPath(arguments[++index]);
-            else if (arguments[index] == "--workflow-smoke" && index + 1 < arguments.Length)
-                workflowReport = Path.GetFullPath(arguments[++index]);
-            else if (arguments[index] == "--performance-smoke" && index + 1 < arguments.Length)
-                performanceReport = Path.GetFullPath(arguments[++index]);
-            else if (arguments[index] == "--update-smoke" && index + 2 < arguments.Length)
-            {
-                updateReport = Path.GetFullPath(arguments[++index]);
-                updateSource = Path.GetFullPath(arguments[++index]);
-            }
-        }
-
         try
         {
             var font = new Microsoft.UI.Xaml.Media.FontFamily(UiText.InterfaceFontFamily);
             Microsoft.UI.Xaml.Application.Current.Resources["ContentControlThemeFontFamily"] = font;
-            _window = new MainWindow(reportPath, previewPdfPath, workflowReport, performanceReport);
+            _window = new MainWindow();
             _window.Activate();
-            if (updateReport is not null && updateSource is not null) _ = _window.RunUpdateSmokeAsync(updateReport, updateSource);
             AppLog.Info("Application.WindowActivated", "Main window activated.");
         }
-        catch (Exception exception)
-        {
-            SmokeStartupDiagnostics.Log("Application.OnLaunched", exception);
-            throw;
-        }
+        catch (Exception exception) { AppLog.Error("Application.OnLaunched", exception); throw; }
     }
 }

@@ -1,6 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -27,9 +24,6 @@ public sealed partial class MainWindow : Window
 {
     private const double PageWidth = 760;
     private const double PageHeight = 1040;
-    private readonly string? _smokeReportPath;
-    private readonly string? _smokePreviewPdfPath;
-    private readonly string? _workflowReportPath;
     private bool _initialized;
     private bool _updatingZoom;
     private bool _hasImportedImage;
@@ -45,7 +39,6 @@ public sealed partial class MainWindow : Window
     private int _rasterWidth;
     private int _rasterHeight;
     private bool _closed;
-    private readonly string? _performanceReportPath;
     private CancellationTokenSource? _questionPresentationCancellation;
     private readonly ThemeSettings _themeSettings;
     private Services.WindowBounds _windowBounds = Services.WindowBounds.Default;
@@ -53,13 +46,9 @@ public sealed partial class MainWindow : Window
 
     public WorkspaceViewModel ViewModel { get; }
 
-    public MainWindow(string? smokeReportPath = null, string? previewPdfPath = null, string? workflowReport = null, string? performanceReport = null)
+    public MainWindow()
     {
-        _smokeReportPath = smokeReportPath;
-        _smokePreviewPdfPath = previewPdfPath;
-        _workflowReportPath = workflowReport;
-        _performanceReportPath = performanceReport;
-        ViewModel = new WorkspaceViewModel(sample: smokeReportPath is not null);
+        ViewModel = new WorkspaceViewModel();
         InitializeComponent();
         QuestionColumnSplitter.ResizeRequested += (_, change) => ResizeQuestionSplit(change);
         InitializePaneSplitters();
@@ -190,80 +179,9 @@ public sealed partial class MainWindow : Window
         LocalizeNavigationSettings();
         DispatcherQueue.TryEnqueue(() => { if (!_closed) LocalizeNavigationSettings(); });
         FitPage();
-        string[] arguments = Environment.GetCommandLineArgs();
-        int localizationSmoke = Array.IndexOf(arguments, "--localization-smoke");
-        if (localizationSmoke > 0 && localizationSmoke + 2 < arguments.Length)
-        {
-            await RunLocalizationSmokeAsync(Path.GetFullPath(arguments[localizationSmoke + 2]));
-            return;
-        }
-        if (_smokeReportPath is not null)
-        {
-            ShowMaterialsNavigation();
-            SourcePane.Visibility = Visibility.Visible;
-            ApplyWorkspaceLayout();
-            SamplePaper.Visibility = Visibility.Visible;
-            WorkspaceNotice.IsOpen = true;
-            DocumentToolbar.Visibility = Visibility.Collapsed;
-        }
-        else if (_performanceReportPath is not null)
-        {
-            await RunPerformanceSmokeAsync(_performanceReportPath);
-            return;
-        }
-        else if (_workflowReportPath is not null)
-        {
-            await RunWorkflowSmokeAsync(_workflowReportPath);
-            return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--preview-smoke") is int previewIndex && previewIndex > 0)
-        {
-            await RunPreviewSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[previewIndex + 1]));
-            return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--math-smoke") is int mathIndex && mathIndex > 0)
-        {
-            await RunMathSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[mathIndex + 1]));
-            return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--billing-smoke") is int billingIndex && billingIndex > 0)
-        {
-            await RunBillingSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[billingIndex + 1])); return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--papers-smoke") is int papersIndex && papersIndex > 0)
-        {
-            await RunPapersSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[papersIndex + 1])); return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--question-bank-smoke") is int bankIndex && bankIndex > 0)
-        {
-            await RunQuestionBankSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[bankIndex + 1])); return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--task-smoke") is int taskIndex && taskIndex > 0)
-        {
-            await RunTaskSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[taskIndex + 1]));
-            return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--import-smoke") is int importIndex && importIndex > 0)
-        {
-            await RunImportSmokeAsync(Path.GetFullPath(Environment.GetCommandLineArgs()[importIndex + 1]));
-            return;
-        }
-        else if (Array.IndexOf(Environment.GetCommandLineArgs(), "--update-smoke") >= 0)
-        {
-            return;
-        }
-        else
-        {
-            await InitializeLibraryAsync();
-            await ShowQuestionLibraryAsync();
-        }
+        await InitializeLibraryAsync();
+        await ShowQuestionLibraryAsync();
         UpdateSourceHighlight();
-        if (_smokeReportPath is not null)
-        {
-            // Exercise the actual loaded XAML tree, rather than declaring success from model construction.
-            await Task.Delay(350);
-            await RunSmokeTestAsync(_smokeReportPath);
-        }
     }
 
     private async void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -516,7 +434,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            SmokeStartupDiagnostics.Log("OpenFile", exception);
+            AppLog.Error("OpenFile", exception);
             ViewModel.StatusMessage = UiText.Get("Could not open the file. Select it again.");
         }
         finally { _openingFile = false; }
@@ -557,7 +475,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            SmokeStartupDiagnostics.Log("DropFile", exception);
+            AppLog.Error("DropFile", exception);
             ViewModel.StatusMessage = UiText.Get("Could not open the file. Select it again.");
         }
         finally { deferral.Complete(); }
@@ -720,7 +638,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            SmokeStartupDiagnostics.Log("PreviewPdf", exception);
+            AppLog.Error("PreviewPdf", exception);
             if (!_closed && generation == _previewGeneration) ViewModel.StatusMessage = UiText.Get("Could not open this PDF. Check that it is complete or try another file.");
             return false;
         }
@@ -797,248 +715,5 @@ public sealed partial class MainWindow : Window
     }
 
     private async void About_Click(object sender, RoutedEventArgs e) => await ShowAboutAndUpdatesAsync();
-
-    private async Task RunSmokeTestAsync(string reportPath)
-    {
-        var report = new DesktopSmokeReport
-        {
-            TimestampUtc = DateTimeOffset.UtcNow,
-            IsNativeAot = !RuntimeFeature.IsDynamicCodeSupported,
-            ProcessArchitecture = RuntimeInformation.ProcessArchitecture.ToString(),
-            SyntheticDataOnly = _smokePreviewPdfPath is null,
-            PdfRequested = _smokePreviewPdfPath is not null
-        };
-        int exitCode = 1;
-        try
-        {
-            report.WindowLoaded = RootGrid.XamlRoot is not null && RootGrid.ActualWidth > 0 && AppWindow.IsVisible;
-            report.TitleBarHeight = AppTitleBar.ActualHeight;
-            double navigationTop = Navigation.TransformToVisual(RootGrid).TransformPoint(new Windows.Foundation.Point(0, 0)).Y;
-            report.UnifiedTitleBar = ExtendsContentIntoTitleBar && AppWindow.TitleBar.ExtendsContentIntoTitleBar &&
-                AppWindow.TitleBar.PreferredHeightOption == TitleBarHeightOption.Tall &&
-                Math.Abs(report.TitleBarHeight - 48) < 1 && Math.Abs(navigationTop - report.TitleBarHeight) < 1 &&
-                AppTitleBar.Title == Title && AppTitleBar.IconSource is not null && string.IsNullOrEmpty(Navigation.PaneTitle);
-            bool paneWasOpen = Navigation.IsPaneOpen;
-            AppTitleBar_PaneToggleRequested(AppTitleBar, EventArgs.Empty);
-            await Task.Delay(250);
-            bool paneChanged = Navigation.IsPaneOpen != paneWasOpen;
-            AppTitleBar_PaneToggleRequested(AppTitleBar, EventArgs.Empty);
-            await Task.Delay(250);
-            report.TitleBarPaneToggle = paneChanged && Navigation.IsPaneOpen == paneWasOpen &&
-                AppTitleBar.IsPaneToggleButtonVisible && !Navigation.IsPaneToggleButtonVisible;
-            Navigation.SelectedItem = Navigation.MenuItems[1];
-            await Task.Delay(30);
-            bool libraryNavigation = ViewModel.SectionTitle == UiText.Get("Question bank") && _bankTotal == 500 && _bankQuestions.Count == BankPageSize && QuestionsPanel.Visibility == Visibility.Visible;
-            string libraryDetail = $"library: {ViewModel.SectionTitle}, {_bankTotal}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
-            Navigation.SelectedItem = Navigation.MenuItems[2];
-            await Task.Delay(30);
-            bool mistakeNavigation = ViewModel.SectionTitle == UiText.Get("Mistakes") && _bankTotal is > 0 and < 500 && QuestionResultFilter.Visibility == Visibility.Collapsed;
-            string mistakeDetail = $"mistakes: {ViewModel.SectionTitle}, {_bankTotal}, index={Navigation.MenuItems.IndexOf(Navigation.SelectedItem)}";
-            Navigation.SelectedItem = Navigation.SettingsItem;
-            await Task.Delay(30);
-            bool settingsNavigation = SettingsPanel.Visibility == Visibility.Visible &&
-                Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(
-                    WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem)) == UiText.Get("Settings");
-            string settingsDetail = $"settings: {SettingsPanel.Visibility}, {Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(WinRT.CastExtensions.As<NavigationViewItem>(Navigation.SettingsItem))}";
-            Navigation.SelectedItem = Navigation.MenuItems[0];
-            await Task.Delay(30);
-            report.NativeNavigation = libraryNavigation && mistakeNavigation && settingsNavigation &&
-                WorkspaceGrid.Visibility == Visibility.Visible && ViewModel.SectionTitle == UiText.Get("Exams");
-            report.NavigationDetails = [libraryDetail, mistakeDetail, settingsDetail, $"returned: {ViewModel.SectionTitle}, {WorkspaceGrid.Visibility}"];
-            var selected = ViewModel.SelectedQuestion;
-            string originalNotes = selected.Notes;
-            selected.Notes = "原生绑定自检 · 中文输入";
-            await Task.Delay(30);
-            report.CompiledBinding = NotesEditor.Text == selected.Notes;
-            NotesEditor.Text = "双向绑定自检";
-            report.TwoWayBinding = selected.Notes == "双向绑定自检";
-            selected.Notes = originalNotes;
-
-            QuestionList.UpdateLayout();
-            report.TotalItems = QuestionList.Items.Count;
-            report.RealizedItems = Enumerable.Range(0, report.TotalItems).Count(index => QuestionList.ContainerFromIndex(index) is not null);
-            // Native AOT can expose the native panel through its base Panel projection. Ask IInspectable for
-            // the actual native class instead of treating a failed managed 'is' as evidence about virtualization.
-            DependencyObject? panel = QuestionList.ItemsPanelRoot;
-            if (panel is null || GetRuntimeClassName(panel) != "Microsoft.UI.Xaml.Controls.ItemsStackPanel")
-                panel = FindNativeItemsStackPanel(QuestionList);
-            report.PanelType = panel?.GetType().FullName;
-            report.RuntimeClass = panel is null ? null : GetRuntimeClassName(panel);
-            report.ItemsStackPanel = report.RuntimeClass == "Microsoft.UI.Xaml.Controls.ItemsStackPanel";
-            if (panel is not null)
-            {
-                var projectedPanel = WinRT.CastExtensions.As<ItemsStackPanel>(panel);
-                report.PanelOrientationType = projectedPanel.GetType().FullName;
-                report.PanelOrientationValue = projectedPanel.Orientation.ToString();
-                report.PanelOrientationVertical = projectedPanel.Orientation == Orientation.Vertical;
-            }
-
-            QuestionList.ScrollIntoView(ViewModel.Questions[^1], ScrollIntoViewAlignment.Leading);
-            report.LastItemRealized = await WaitForContainerAsync(report.TotalItems - 1);
-            report.RealizedItemsAtEnd = Enumerable.Range(0, report.TotalItems).Count(index => QuestionList.ContainerFromIndex(index) is not null);
-            QuestionList.ScrollIntoView(ViewModel.Questions[0], ScrollIntoViewAlignment.Leading);
-            report.ScrollRoundTrip = report.LastItemRealized && await WaitForContainerAsync(0);
-            report.Virtualization = report.TotalItems == 500 && report.RealizedItems is > 0 and < 500 &&
-                report.RealizedItemsAtEnd is > 0 and < 500 && report.ItemsStackPanel && report.PanelOrientationVertical && report.ScrollRoundTrip;
-
-            ProbePrintInterop(report);
-
-            RootGrid.RequestedTheme = ElementTheme.Light;
-            await Task.Delay(100);
-            bool light = RootGrid.ActualTheme == ElementTheme.Light;
-            bool lightCaption = AppWindow.TitleBar.ButtonForegroundColor == CaptionForeground;
-            RootGrid.RequestedTheme = ElementTheme.Dark;
-            await Task.Delay(100);
-            report.ThemeSwitch = light && RootGrid.ActualTheme == ElementTheme.Dark;
-            report.TitleBarCaptionTheme = lightCaption && AppWindow.TitleBar.ButtonForegroundColor == CaptionForeground;
-            RootGrid.RequestedTheme = ElementTheme.Default;
-            var resources = Microsoft.UI.Xaml.Application.Current.Resources.MergedDictionaries[1];
-            report.HighContrastResources = resources.ThemeDictionaries.ContainsKey("HighContrast");
-
-            Rotate(90);
-            report.RotationAndSource = PageCanvas.Width == PageHeight && PageCanvas.Height == PageWidth &&
-                PageTransform.Rotation == 90 && Canvas.GetTop(SourceHighlight) == selected.SourceY;
-            Rotate(-90);
-
-            Task task = ViewModel.RunSyntheticTaskAsync();
-            await Task.Delay(60);
-            ViewModel.CancelTaskCommand.Execute(null);
-            await task;
-            report.Cancellation = !ViewModel.IsTaskRunning && ViewModel.TaskStatus.Contains(UiText.Get("Canceled"), StringComparison.Ordinal);
-            if (_smokePreviewPdfPath is not null)
-            {
-                report.PdfLoaded = await PreviewPdfAsync(_smokePreviewPdfPath, 0);
-                report.PageCount = _pdfPageCount;
-                if (report.PdfLoaded && report.PageCount > 1)
-                {
-                    bool next = await PreviewPdfAsync(_smokePreviewPdfPath, 1) && _pdfPageIndex == 1;
-                    bool previous = await PreviewPdfAsync(_smokePreviewPdfPath, 0) && _pdfPageIndex == 0;
-                    report.PdfPageNavigation = next && previous;
-                }
-                else report.PdfPageNavigation = report.PdfLoaded && !PreviousPdfPage.IsEnabled && !NextPdfPage.IsEnabled;
-                report.RasterDimensions = $"{_rasterWidth}x{_rasterHeight}";
-                report.PdfPreview = report.PdfLoaded && report.PageCount is >= 1 and <= 12 &&
-                    _rasterWidth > 0 && _rasterHeight > 0 && Math.Max(_rasterWidth, _rasterHeight) == 1600 &&
-                    ImportedImage.Source is BitmapImage && SourceOverlay.Visibility == Visibility.Collapsed && report.PdfPageNavigation;
-                if (!report.PdfLoaded) report.Error = ViewModel.StatusMessage;
-            }
-            else report.PdfPreview = true;
-            report.ScreenshotPath = Path.ChangeExtension(reportPath, ".png");
-            await Task.Delay(60);
-            await CaptureWorkspaceAsync(report.ScreenshotPath);
-            report.ScreenshotCaptured = File.Exists(report.ScreenshotPath);
-            report.Passed = report.WindowLoaded && report.UnifiedTitleBar && report.TitleBarPaneToggle && report.NativeNavigation && report.CompiledBinding && report.TwoWayBinding && report.Virtualization &&
-                report.ThemeSwitch && report.TitleBarCaptionTheme && report.HighContrastResources && report.RotationAndSource && report.Cancellation && report.ScreenshotCaptured && report.PdfPreview && report.PrintSupported && report.PrintInterop;
-            exitCode = report.Passed ? 0 : 1;
-        }
-        catch (Exception exception) { report.Error = exception.ToString(); }
-        finally
-        {
-            try
-            {
-                string? directory = Path.GetDirectoryName(reportPath);
-                if (directory is not null) Directory.CreateDirectory(directory);
-                await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(report, SmokeJsonContext.Default.DesktopSmokeReport));
-            }
-            catch { exitCode = 3; }
-            Close();
-            Environment.Exit(exitCode);
-        }
-    }
-
-    private async Task<bool> WaitForContainerAsync(int index)
-    {
-        for (int attempt = 0; attempt < 12; attempt++)
-        {
-            await Task.Delay(30);
-            QuestionList.UpdateLayout();
-            if (QuestionList.ContainerFromIndex(index) is not null) return true;
-        }
-        return false;
-    }
-
-    private static string? GetRuntimeClassName(object value)
-    {
-        if (!WinRT.ComWrappersSupport.TryUnwrapObject(value, out var reference)) return null;
-        return new WinRT.IInspectable(reference).GetRuntimeClassName(noThrow: true);
-    }
-
-    private static DependencyObject? FindNativeItemsStackPanel(DependencyObject root)
-    {
-        if (GetRuntimeClassName(root) == "Microsoft.UI.Xaml.Controls.ItemsStackPanel") return root;
-        for (int index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
-            if (FindNativeItemsStackPanel(VisualTreeHelper.GetChild(root, index)) is { } panel) return panel;
-        return null;
-    }
-
-    private void ProbePrintInterop(DesktopSmokeReport report)
-    {
-        try
-        {
-            report.PrintSupported = PrintManager.IsSupported();
-            var manager = PrintManagerInterop.GetForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
-            var printDocument = new PrintDocument();
-            Windows.Foundation.TypedEventHandler<PrintManager, PrintTaskRequestedEventArgs> requested = (_, _) => { };
-            PaginateEventHandler paginate = (_, _) => { };
-            GetPreviewPageEventHandler preview = (_, _) => { };
-            AddPagesEventHandler addPages = (_, _) => { };
-            // Register and remove the real native event projections, without opening UI or creating a print task.
-            manager.PrintTaskRequested += requested;
-            try
-            {
-                printDocument.Paginate += paginate;
-                printDocument.GetPreviewPage += preview;
-                printDocument.AddPages += addPages;
-                try { report.PrintInterop = printDocument.DocumentSource is not null; }
-                finally
-                {
-                    printDocument.AddPages -= addPages;
-                    printDocument.GetPreviewPage -= preview;
-                    printDocument.Paginate -= paginate;
-                }
-            }
-            finally { manager.PrintTaskRequested -= requested; }
-            if (!report.PrintSupported) report.PrintError = UiText.Get("Windows reports printing is unavailable; only native API checks ran, not system or physical printing verification.");
-        }
-        catch (Exception exception)
-        {
-            report.PrintInterop = false;
-            report.PrintError = exception.ToString();
-        }
-    }
-
-    private async Task CaptureWorkspaceAsync(string path, FrameworkElement? element = null)
-    {
-        string directoryPath = Path.GetDirectoryName(path) ?? throw new InvalidOperationException(UiText.Get("An absolute path is required for screenshots."));
-        Directory.CreateDirectory(directoryPath);
-        byte[] pixels;
-        int pixelWidth, pixelHeight;
-        if (element is null)
-        {
-            // Every full-window smoke screenshot reads the window's own composed surface.
-            // PrintWindow never raises, activates or makes the window topmost, so the app
-            // may stay behind other windows while the capture runs. Element-only captures
-            // still use RenderTargetBitmap because they deliberately crop one visual.
-            await Task.Delay(180);
-            (pixels, pixelWidth, pixelHeight) = CaptureNativeClient();
-        }
-        else
-        {
-            var bitmap = new RenderTargetBitmap();
-            await bitmap.RenderAsync(element ?? RootGrid);
-            var buffer = await bitmap.GetPixelsAsync();
-            using var reader = DataReader.FromBuffer(buffer);
-            pixels = new byte[buffer.Length];
-            reader.ReadBytes(pixels);
-            pixelWidth = bitmap.PixelWidth; pixelHeight = bitmap.PixelHeight;
-        }
-        StorageFolder directory = await StorageFolder.GetFolderFromPathAsync(directoryPath);
-        StorageFile file = await directory.CreateFileAsync(Path.GetFileName(path), CreationCollisionOption.ReplaceExisting);
-        using var stream = await file.OpenAsync(FileAccessMode.ReadWrite);
-        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
-            (uint)pixelWidth, (uint)pixelHeight, 96, 96, pixels);
-        await encoder.FlushAsync();
-    }
 
 }

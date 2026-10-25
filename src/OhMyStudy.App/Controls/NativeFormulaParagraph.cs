@@ -256,7 +256,6 @@ internal sealed unsafe partial class NativeFormulaParagraph : Grid
     internal IReadOnlyList<string> FormulaSources => _parts.Where(part => part.Formula is not null).Select(part => part.FormulaSource).Distinct().ToArray();
     internal bool BaselineChecksPassed => (_preview || _placements.Count == FormulaCount) && _placements.All(item => _lineBaselines.Any(line => Math.Abs(line - item.Y - item.Baseline) < .02f)) && _glyphBaselines.All(value => _lineBaselines.Any(line => Math.Abs(line - value) < .02f));
     internal IReadOnlyList<float> LineBaselines => _lineBaselines;
-    internal void RebuildForAcceptance(double density) => Rebuild(density);
     internal IReadOnlyList<FormulaPlacement> Placements => _placements;
     internal readonly record struct FormulaPlacement(int Index, float X, float Y, float Baseline);
     private static nint MakeInlineTable()

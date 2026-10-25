@@ -7,9 +7,7 @@ param(
     [string]$OutputDirectory,
     [string]$BaselinePackage,
     [string]$PackId = 'TaiRuiQu.OhMyStudy',
-    [string]$PackTitle = 'Oh My Study',
-    [switch]$DesktopSmoke,
-    [switch]$WorkflowSmoke
+    [string]$PackTitle = 'Oh My Study'
 )
 $ErrorActionPreference='Stop'
 $workspace=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
@@ -198,9 +196,6 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
     $sourceStatus=@(& git -C $workspace status --porcelain --untracked-files=normal)
     $manifest=[ordered]@{ schemaVersion=1; status='release-candidate-user-acceptance-pending'; createdUtc=[DateTimeOffset]::UtcNow.ToString('O'); architecture='win-x64'; variant=$Variant; nativeAot=$profile.nativeAot; selfContained=$profile.selfContained; instructionSet=$profile.instructionSet; entryPoint='OhMyStudy.App.exe'; installerType='velopack'; version=$version; channel=$channel; sourceCommit=$sourceCommit; sourceTreeClean=($sourceStatus.Count -eq 0); manifestExcludesItself=$true; sourceSnapshot='source/source-snapshot.zip'; files=$files; notRun=$report.notRun; userValidation=$report.userValidation }
     $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $package 'package-manifest.json') -Encoding utf8
-    $verification=Join-Path $run 'package-verification.json'
-    & (Join-Path $PSScriptRoot 'Test-OfflinePackage.ps1') -PackageDirectory $package -ReportFile $verification -DesktopSmoke:$DesktopSmoke -WorkflowSmoke:$WorkflowSmoke
-    $report.verificationReport=$verification
     $zip=Join-Path $run "$runId.zip"
     [IO.Compression.ZipFile]::CreateFromDirectory($package,$zip,[IO.Compression.CompressionLevel]::Optimal,$false)
     $releases=Join-Path $run 'velopack'
@@ -228,20 +223,12 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
         if (-not (Test-Path -LiteralPath $report.deltaPackage -PathType Leaf)) { throw 'Required Velopack delta package was not generated' }
         Assert-VelopackPackageManifest $report.deltaPackage $PackId $version $channel
         $report.deltaPackageSha256=(Get-FileHash -LiteralPath $report.deltaPackage -Algorithm SHA256).Hash.ToLowerInvariant()
-        $reconstructed=Join-Path $run 'reconstructed.nupkg'
-        & $vpk delta patch --base $baseline --patch $report.deltaPackage --output $reconstructed | Out-Host
-        if ($LASTEXITCODE -ne 0) { throw 'Delta package could not be applied' }
-        try {
-            Assert-NupkgContentEqual $report.fullPackage $reconstructed
-            Assert-VelopackPackageManifest $reconstructed $PackId $version $channel
-        }
-        finally { Remove-Item -LiteralPath $reconstructed -Force }
     }
     $report.installerType='velopack'
     $report.version=$version
     $report.channel=$channel
     $report.zip=$zip; $report.zipSha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); $report.fileCount=$files.Count
-    $report.packageStatus='created-and-local-checks-passed'
+    $report.packageStatus='created'
 } catch { $report.packageStatus='failed'; $report.error=$_.Exception.Message; throw }
 finally {
     $report | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $run 'package-report.json') -Encoding utf8

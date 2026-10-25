@@ -9,7 +9,6 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly Dictionary<string, QuestionViewModel> _editing = new(StringComparer.Ordinal);
     private QuestionViewModel _selectedQuestion = QuestionViewModel.Empty();
     private QuestionViewModel _openQuestion = QuestionViewModel.Empty();
-    private CancellationTokenSource? _taskCancellation;
     private string _taskStatus = UiText.Get("Ready");
     private string _statusMessage = "";
     private double _taskProgress;
@@ -149,19 +148,6 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IDisposable
         TaskStatus = job is null ? UiText.Get("Ready") : UiText.ActivityText(job.Message);
     }
 
-    internal async Task RunSyntheticTaskAsync()
-    {
-        if (IsTaskRunning) return;
-        using var cancellation = new CancellationTokenSource(); _taskCancellation = cancellation;
-        IsTaskRunning = true; TaskProgress = 0; TaskStatus = UiText.Get("Running");
-        try
-        {
-            for (int step = 1; step <= 20; step++) { await Task.Delay(220, cancellation.Token); TaskProgress = step * 5; TaskStatus = $"{step * 5}%"; }
-            TaskStatus = UiText.Get("Completed");
-        }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { TaskStatus = UiText.Get("Canceled"); }
-        finally { _taskCancellation = null; IsTaskRunning = false; }
-    }
-    public void CancelTask() { _taskCancellation?.Cancel(); CancelCurrentJob?.Invoke(); }
+    public void CancelTask() => CancelCurrentJob?.Invoke();
     public void Dispose() => CancelTask();
 }

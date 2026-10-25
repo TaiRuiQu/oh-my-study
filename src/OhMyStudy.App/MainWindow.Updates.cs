@@ -93,30 +93,4 @@ public sealed partial class MainWindow
             ? new UpdateManager(diagnosticSource)
             : new UpdateManager(new GithubSource("https://github.com/TaiRuiQu/oh-my-study", null, false));
 
-    internal async Task RunUpdateSmokeAsync(string reportPath, string source)
-    {
-        try
-        {
-            var manager = CreateUpdateManager(source);
-            var update = await manager.CheckForUpdatesAsync();
-            if (update is null)
-            {
-                string report = "{\"passed\":true,\"version\":\"" + manager.CurrentVersion + "\",\"downloaded\":true,\"restarted\":true}";
-                await File.WriteAllTextAsync(reportPath, report);
-                Microsoft.UI.Xaml.Application.Current.Exit();
-                return;
-            }
-            await manager.DownloadUpdatesAsync(update);
-            string downloadReport = "{\"passed\":true,\"version\":\"" + update.TargetFullRelease.Version + "\",\"downloaded\":true}";
-            await File.WriteAllTextAsync(reportPath, downloadReport);
-            manager.ApplyUpdatesAndRestart(update, Environment.GetCommandLineArgs().Skip(1).ToArray());
-        }
-        catch (Exception error)
-        {
-            AppLog.Error("Updates.Smoke", error);
-            string report = "{\"passed\":false,\"error\":\"" + System.Text.Json.JsonEncodedText.Encode(error.ToString()) + "\"}";
-            await File.WriteAllTextAsync(reportPath, report);
-            Microsoft.UI.Xaml.Application.Current.Exit();
-        }
-    }
 }

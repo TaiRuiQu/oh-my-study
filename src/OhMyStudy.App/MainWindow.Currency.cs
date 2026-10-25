@@ -18,7 +18,6 @@ public sealed partial class MainWindow
     private Task<CnyRate?> GetCnyRateAsync()
     {
         if (_diagnosticRate is not null) return Task.FromResult<CnyRate?>(_diagnosticRate);
-        if (Environment.GetCommandLineArgs().Any(a => a.Contains("smoke", StringComparison.Ordinal))) return Task.FromResult<CnyRate?>(null);
         var today = DateOnly.FromDateTime(DateTime.Now);
         if (_exchangeRateTask is null || _exchangeRateDay != today) { _exchangeRateDay = today; _exchangeRateTask = Read(); }
         return _exchangeRateTask;
