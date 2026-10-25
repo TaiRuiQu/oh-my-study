@@ -7,6 +7,9 @@ internal static class FeatureExportProbe
     public static async Task VerifyAsync(string root, string output, TypstDocumentService service, PdfiumRasterizer rasterizer, List<string> checks)
     {
         VerifyPureLayout();
+        bool kai = await HasKaiTiAsync(service, output);
+        string kaiRun = kai ? "{font:kai}KAI_A{/font}" : "KAI_A";
+        string kaiExplanation = kai ? "{font:kai}EXPLANATION_KAI{/font}" : "EXPLANATION_KAI";
         using var fixture = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "tests", "Fixtures", "Compatibility", "assets.synthetic.json")));
         byte[] png = Convert.FromBase64String(fixture.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
         IReadOnlyList<IReadOnlyList<string>> merged =
@@ -21,7 +24,7 @@ internal static class FeatureExportProbe
         ];
         var document = new ExamDocument("FONT_AND_FLOW_EXPORT", [new ExamQuestion(1,
         [
-            new("SERIF_A {font:sans}SANS_A $x^2$ SANS_B{/font} {font:kai}KAI_A{/font} {font:serif}SERIF_B{/font}"),
+            new("SERIF_A {font:sans}SANS_A $x^2$ SANS_B{/font} " + kaiRun + " {font:serif}SERIF_B{/font}"),
             new("MALFORMED_{font:unknown}_TEXT {font:sans}UNCLOSED_FONT"),
             new("", Rows: merged),
             new("", Rows: wide),
@@ -29,7 +32,7 @@ internal static class FeatureExportProbe
             new("", Image: new ExamImage(png, "IMAGE_NARROW", WidthPercent: 20)),
             new("", Image: new ExamImage(png, "IMAGE_WIDE", WidthPercent: 80)),
             new("", Image: new ExamImage(png, "IMAGE_FULL"))
-        ], Answer: "{font:sans}ANSWER_SANS{/font}", Explanation: "{font:kai}EXPLANATION_KAI{/font}", Options: ["{font:sans}OPTION_SANS{/font}"])]);
+        ], Answer: "{font:sans}ANSWER_SANS{/font}", Explanation: kaiExplanation, Options: ["{font:sans}OPTION_SANS{/font}"])]);
         string target = Path.Combine(output, "feature-export");
         foreach (var paper in Enum.GetValues<ExamPaper>())
             foreach (var columns in new[] { ExamColumns.One, ExamColumns.Two, ExamColumns.Three, ExamColumns.Four })
@@ -41,7 +44,8 @@ internal static class FeatureExportProbe
                 Require(source.Contains("paper: \"" + (paper == ExamPaper.A4Portrait ? "a4" : "a3") + "\"", StringComparison.Ordinal), "Typst paper selection");
                 Require(count == 1 && !source.Contains("#columns(", StringComparison.Ordinal)
                     || count > 1 && source.Contains("#columns(" + count + ", gutter: 12mm)", StringComparison.Ordinal), "independent Typst column count");
-                foreach (string font in new[] { "NSimSun", "Microsoft YaHei", "KaiTi" }) Require(source.Contains("font: \"" + font + "\"", StringComparison.Ordinal), "run font " + font);
+                string[] expectedFonts = kai ? ["NSimSun", "Microsoft YaHei", "KaiTi"] : ["NSimSun", "Microsoft YaHei"];
+                foreach (string font in expectedFonts) Require(source.Contains("font: \"" + font + "\"", StringComparison.Ordinal), "run font " + font);
                 Require(source.Contains("rowspan: 2, colspan: 2", StringComparison.Ordinal), "rectangular Typst merge");
                 Require(source.Contains("Table: columns 1–5", StringComparison.Ordinal) && source.Contains("Table: columns 6–8", StringComparison.Ordinal), "wide table panel avoids crossing merge");
                 double fullWidth = paper == ExamPaper.A4Portrait ? 176 : 386;
@@ -69,7 +73,26 @@ internal static class FeatureExportProbe
             }
         checks.Add("A4/A3 with independent 1/2/3/4 columns: eight compiled and rasterized PDFs; source page/column settings and actual paper dimensions");
         checks.Add("PDF fonts, formula-safe directives, malformed literal directives, rectangular/ragged/wide merged tables, Mermaid SVG, and 20/60/80/100 percent full-page visual widths");
+        if (!kai) checks.Add("KaiTi is not installed; kai export coverage skipped");
     }
+
+    private static async Task<bool> HasKaiTiAsync(TypstDocumentService service, string output)
+    {
+        var probe = new ExamDocument("FONT_PROBE", [new ExamQuestion(1, [new ExamSegment("{font:kai}KAI_PROBE{/font}")])]);
+        try
+        {
+            await service.ExportExamAsync(probe, ExamPaper.A4Portrait, ExamEdition.Questions, Path.Combine(output, "font-probe"));
+            return true;
+        }
+        catch (InvalidDataException error) when (IsMissingKaiTi(error))
+        {
+            return false;
+        }
+    }
+
+    private static bool IsMissingKaiTi(InvalidDataException error)
+        => error.Message.Contains("kaiti", StringComparison.OrdinalIgnoreCase)
+            && error.Message.Contains("missing", StringComparison.OrdinalIgnoreCase);
 
     private static void VerifyPureLayout()
     {
@@ -115,6 +138,8 @@ internal static class FeatureExportProbe
             try { _ = new ExamImage([1, 2, 3, 4, 5, 6, 7, 8], WidthPercent: width); throw new InvalidOperationException("invalid image width accepted"); }
             catch (ArgumentOutOfRangeException) { }
         Require(new ExamImage([1, 2, 3, 4, 5, 6, 7, 8]).WidthPercent == 100 && new ExamMermaid("graph TD; A").WidthPercent == 100, "default visual widths");
+        Require(IsMissingKaiTi(new InvalidDataException("The required font 'kaiti' is missing. Install the required Windows font and retry.")), "missing KaiTi diagnostic recognized");
+        Require(!IsMissingKaiTi(new InvalidDataException("Native typesetting failed: timeout")), "unrelated typesetting failures are not masked");
     }
 
     private static void Require(bool condition, string message)
