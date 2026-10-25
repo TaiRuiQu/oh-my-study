@@ -83,7 +83,7 @@ public static class GradingTools
     {
         ["verdict"] = Describe(Enum("correct", "partial", "incorrect", "unanswered", "uncertain"), "correct=fully correct; partial=partly correct; incorrect=wrong; unanswered=visibly blank on an answered paper; uncertain=unreadable or insufficient evidence."),
         ["earned"] = Describe(Nullable(Number()), "Earned points, or null if unknown. Requires known possible. Correct equals possible; partial is strictly between zero and possible; incorrect/unanswered are zero; uncertain must be null."),
-        ["possible"] = Describe(Nullable(Number()), "Maximum points, or null if unknown. Must equal the question's points when both are known."),
+        ["possible"] = Describe(Nullable(Number()), "Maximum points, matching item.points. If not printed, a reasonable estimate based on common scoring conventions is allowed; record the allocation and basis in question.uncertainties. Use null if no reasonable estimate is available."),
         ["source"] = Describe(Enum("teacher", "ai_reference", "ai_solution", "manual"), "teacher for explicit teacher results; ai_reference for a verified matched reference; ai_solution otherwise. Never create a manual grade; preserve an existing user-edited one."),
         ["reason"] = String("Brief grading explanation in Simplified Chinese. Explain uncertainty; preserve teacher deduction text when a numerical score cannot be determined.")
     }, ["verdict", "source"]);
@@ -148,7 +148,7 @@ public static class GradingTools
             ["label"] = String("Printed subquestion label such as (1) or (2)(a). Required when the question has several items; use an empty string for a question without subquestions."),
             ["prompt"] = Content("Content specific to this subquestion in reading order. Leave empty for a question without subquestions, whose whole text belongs in stem."),
             ["options"] = Describe(Array(String()), "Answer options for this item in printed order, including their labels; omit if unavailable."),
-            ["points"] = Describe(Nullable(Number()), "Maximum points for this item; null if unknown. Question totals are derived from item points."),
+            ["points"] = Describe(Nullable(Number()), "Maximum points for this item. Prefer printed values. If absent, estimate using common scoring conventions and question difficulty; item allocations must agree with any known question or paper total. Explain estimated allocations and their basis in question.uncertainties. Use null if no reasonable estimate is available. Question totals are derived from item points."),
             ["answer"] = String("Standard answer for this item, from a verified reference or your own solution. Generate it even on a blank paper. Use an empty string only when the answer cannot be determined and explain why in uncertainties."),
             ["explanation"] = String("Concise complete standard solution in Simplified Chinese, including the essential steps or justification. Generate it even on a blank paper, independently of student work. Do not repeat it in attempt.ai_solution."),
             ["attempt"] = Describe(Nullable(attempt), "Must be null on a blank paper. On answered papers, keep a nonnull attempt; distinguish visibly unanswered from unreadable/uncertain. Student answers, teacher marks, references, solutions, and grades belong inside attempt, never directly on the item. Omitted fields preserve existing information.")
@@ -170,7 +170,7 @@ public static class GradingTools
     internal static JsonObject WithSourceRegions(JsonElement args, IReadOnlyList<Region>? previous)
     {
         var result = JsonNode.Parse(args.GetRawText()) as JsonObject ?? throw new JsonException("Expected an object.");
-        LiftAttemptFields(result);
+        GradingToolArguments.NormalizeQuestion(result);
         if (result["items"] is JsonArray items)
             foreach (var item in items.OfType<JsonObject>())
                 if (item["attempt"] is JsonObject attempt && attempt.Remove("student_page_ids", out var studentPages))
@@ -202,25 +202,6 @@ public static class GradingTools
         }
         result["sources"] = sources;
         return result;
-    }
-
-    private static readonly string[] AttemptFields = ["student_answer", "student_page_ids", "error_analysis", "teacher", "reference_key", "ai_solution", "conflict", "grade"];
-
-    // Models sometimes place answer fields beside attempt instead of inside it; lift them so both layouts save.
-    private static void LiftAttemptFields(JsonObject question)
-    {
-        if (question["items"] is not JsonArray items) return;
-        foreach (var entry in items.OfType<JsonObject>())
-        {
-            JsonObject? attempt = entry["attempt"] as JsonObject;
-            foreach (string field in AttemptFields)
-            {
-                if (entry[field] is not { } value) continue;
-                if (attempt is null) { attempt = new JsonObject(); entry["attempt"] = attempt; }
-                if (attempt[field] is null) attempt[field] = value.DeepClone();
-                entry.Remove(field);
-            }
-        }
     }
 
     internal static void UsePageSources(JsonNode? node)

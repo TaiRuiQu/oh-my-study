@@ -5,7 +5,8 @@
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Default">
             <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei UI</FontFamily>
-            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FF171A20" />
+            <SolidColorBrush x:Key="WorkspaceBackdropBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#80171A20" />
             <SolidColorBrush x:Key="WorkspaceCardBrush" Color="#FF262B33" />
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FF414852" />
             <SolidColorBrush x:Key="TaskAccentBrush" Color="#FF70D6CC" />
@@ -23,7 +24,8 @@
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
             <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei UI</FontFamily>
-            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#FFE9EDF2" />
+            <SolidColorBrush x:Key="WorkspaceBackdropBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#66E9EDF2" />
             <SolidColorBrush x:Key="WorkspaceCardBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="#FFCBD2DC" />
             <SolidColorBrush x:Key="TaskAccentBrush" Color="#FF087F79" />
@@ -41,6 +43,7 @@
         </ResourceDictionary>
         <ResourceDictionary x:Key="HighContrast">
             <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei UI</FontFamily>
+            <SolidColorBrush x:Key="WorkspaceBackdropBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="NavigationViewContentBackground" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="WorkspaceCardBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="WorkspaceBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />

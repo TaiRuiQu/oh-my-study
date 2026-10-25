@@ -415,7 +415,7 @@ public sealed partial class MainWindow
             AppWindow.Resize(new(900, 700)); await Task.Delay(100);
             RestoreWindowBounds(boundsPath); await Task.Delay(120);
             checks["window-size-restored-from-file"] = AppWindow.Size.Width == 1180 && AppWindow.Size.Height == 840;
-            if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
+            if (WindowPresenter is { } presenter)
             {
                 presenter.Maximize(); await Task.Delay(150); RememberWindowBounds(boundsPath);
                 var maximizedBounds = Services.WindowBounds.Parse(await File.ReadAllTextAsync(boundsPath));

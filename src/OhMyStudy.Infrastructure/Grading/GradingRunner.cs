@@ -106,6 +106,12 @@ public sealed class GradingRunner(LibraryRepository library, IGradingImageReader
             throw;
         }
         var definitions = GradingTools.Create(referenceOnly, profile);
+        if (input.Provider.Protocol == Protocol.Responses && input.Provider.CodexMode)
+            history.Insert(0, new JsonObject
+            {
+                ["role"] = "developer",
+                ["content"] = new JsonArray(new JsonObject { ["type"] = "input_text", ["text"] = GradingPrompts.ToolParameters(definitions) })
+            });
         var viewed = new HashSet<string>(StringComparer.Ordinal);
         var saved = new HashSet<string>(StringComparer.Ordinal);
         int processedImages = 0;

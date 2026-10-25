@@ -10,7 +10,11 @@ In **Settings → Appearance → Language**, choose **Follow Windows**, **简体
 
 English and Chinese typography remain the primary focus. Interface fonts follow the selected language, and longer labels adapt to narrower windows. Changing the interface language does not translate imported materials, edits, or model responses. PDF headings and generated labels use English, while question content keeps its original language. PDF output retains the existing Chinese/English typesetting and mathematics support; Japanese and Korean interface support does not add Japanese or Korean print fonts.
 
+The window uses native frosted Acrylic on supported graphics hardware. Windows automatically uses a solid background when hardware support is insufficient, Battery Saver or high contrast is active, or transparency effects are disabled. Reading surfaces stay opaque for legibility.
+
 ## Setting up models
+
+When individual question or subquestion points are not printed, recognition may estimate them from common scoring conventions, constrained by any known totals. Estimated allocations and their basis appear in the question's uncertainties; AI grading reasons identify scores based on estimated points. Printed scores and protected manual grades take priority.
 
 1. Open "Settings (设置)" and click "Add provider (添加供应商)".
 2. Enter a name, API type, address, and key, then click "Save (保存)". The API type should match the service offered by the provider; you can choose OpenAI Responses or Anthropic Messages.
@@ -28,7 +32,7 @@ The Tasks page shows estimated costs. Click "Details (明细)" to view cost and 
 
 Images sent to the model target 200 KiB each before base64 encoding, including full pages, crops, and previews of generated images. Small images remain lossless PNGs; larger images use color JPEG, lowering quality down to 0.6 and scaling down proportionally to a long-side floor of 1280 pixels without upscaling smaller sources. Images may exceed the target at those readability limits. Original files, question previews, and PDF export assets retain their existing quality. The target reduces transfer size but does not guarantee recognition accuracy or lower image token charges.
 
-For an OpenAI Responses provider, "Codex mode (Codex 模式)" sends a stable `prompt_cache_key` on every turn of a new task. The key is that exam's document id, the same kind of cache-routing key Codex derives from its session, and keeping it constant can raise cache hit rates. The option defaults to off, applies only to Responses, and does not change providers that ignore unknown request fields.
+For an OpenAI Responses provider, "Codex mode (Codex 模式)" sends a stable `prompt_cache_key` on every turn of a new task. The key is that exam's document id, the same kind of cache-routing key Codex derives from its session, and keeping it constant can raise cache hit rates. It also repeats every available tool's complete parameter schema in a fixed developer message, alongside the normal `tools` definitions, to reinforce exact field names, structures, and enum values. This adds input tokens. The option defaults to off and applies only to Responses.
 
 If your provider supports the Files API and image file IDs, enable "Support Files API (支持 Files API)" in its settings and save. This option defaults to off and applies to new tasks. It supports the configured Responses or Messages protocol and uses the same provider address and key. Only images requested during recognition are uploaded, including page crops and generated images. Identical images upload once per task; subsequent model calls reference their file IDs, keeping the request body small even after repeated page reads. Different crops remain distinct images and use the same compression policy.
 

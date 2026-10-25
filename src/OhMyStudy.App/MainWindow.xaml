@@ -7,8 +7,8 @@
     xmlns:controls="using:OhMyStudy.App.Controls"
     xmlns:l="using:OhMyStudy.App.Localization"
     Title="Oh My Study">
-    <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
-    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource WorkspaceCanvasBrush}">
+    <Window.SystemBackdrop><DesktopAcrylicBackdrop /></Window.SystemBackdrop>
+    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded" ActualThemeChanged="RootGrid_ActualThemeChanged" Background="{ThemeResource WorkspaceBackdropBrush}">
         <Grid.Resources>
             <DataTemplate x:Key="ImportModelTemplate" x:DataType="domain:ModelConfig"><StackPanel Spacing="3" Padding="0,5" MaxWidth="380"><TextBlock Text="{x:Bind Label}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Label}" /><TextBlock Text="{x:Bind Id}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Id}" Style="{StaticResource QuietTextStyle}" /></StackPanel></DataTemplate>
         </Grid.Resources>

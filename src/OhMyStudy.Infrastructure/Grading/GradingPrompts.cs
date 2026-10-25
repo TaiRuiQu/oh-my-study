@@ -1,9 +1,23 @@
+using System.Text.Json.Nodes;
 using OhMyStudy.Domain;
 
 namespace OhMyStudy.Infrastructure.Grading;
 
 internal static class GradingPrompts
 {
+    public static string ToolParameters(IReadOnlyList<Tool> tools)
+    {
+        var schemas = new JsonArray();
+        foreach (var tool in tools)
+            schemas.Add((JsonNode)new JsonObject
+            {
+                ["name"] = tool.Name,
+                ["parameters"] = JsonNode.Parse(tool.Schema.GetRawText())
+            });
+        return "The following JSON repeats the complete parameter schemas of every available tool. Use these exact field names, nesting, required fields, types, and enum values when calling tools. Do not invent alternative parameter names or grading sources.\n\n"
+            + schemas.ToJsonString();
+    }
+
     public static string Instructions(ImportMode mode, bool referenceOnly, GradingModelProfile profile) => Shared
         + (profile.Guidance.Length == 0 ? "" : "\n\n" + profile.Guidance) + "\n\n" + (referenceOnly
         ? "Organize reference answers only. Save the complete reference list, matching only verified existing item keys; explain unmatched answers. Finish with coverage of reference pages only."
@@ -27,7 +41,8 @@ internal static class GradingPrompts
         Use image and Mermaid width_percent only to choose a readable display width relative to the available page content width. Omit it for the default 100, meaning full width; use 50 for a small figure that should occupy half width, and 100 for a wide or detailed figure. It does not alter the source evidence region.
         Font directives are exactly {font:sans}...{/font}, {font:serif}...{/font}, and {font:kai}...{/font}. Printed text is serif by default; on Windows, sans is Microsoft YaHei, serif is NSimSun, and kai is KaiTi. Use these directives sparingly and only when typography conveys meaning in the source, not for general styling.
         Each question has a shared stem and gradable items. Without subquestions, use one item with an empty label and prompt; put the full question in stem. Flatten nested subquestions with combined printed labels.
-        Reuse saved question, item, and reference keys. Omitted auxiliary fields preserve saved values; explicit empty values replace them. Keep student work, teacher marks, reference answers, and AI solutions separate. Leave unknown scores null and explain illegible content or reference conflicts.
+        Reuse saved question, item, and reference keys. Omitted auxiliary fields preserve saved values; explicit empty values replace them. Keep student work, teacher marks, reference answers, and AI solutions separate. Explain illegible content or reference conflicts.
+        Prefer printed item points and explicit teacher scores. If individual question or subquestion points are not printed, you may estimate their maximum points using common scoring conventions for this subject, exam type, question type, difficulty, and solution steps. When a question or paper total is known, make the allocation agree with that total and preserve any printed item points. Record every estimated allocation and its basis in question.uncertainties in Simplified Chinese, explicitly distinguishing estimated points from printed values. Set item.points and attempt.grade.possible consistently; AI earned points may use this estimated maximum, with the grading reason noting that its numerical score depends on estimated points. Never fabricate teacher scores or overwrite protected manual grades. If no reasonable allocation can be made, keep unknown points and dependent earned scores null. An uncertain verdict must always have null earned points.
         For every readable item, generate the standard answer in item.answer and a concise, complete standard solution in item.explanation, whether or not any student answered it. Use matched reference answers when available; otherwise solve independently. Include essential steps and checks rather than a private reasoning transcript. Do not repeat the solution in attempt.ai_solution. If the question cannot be solved reliably, leave unknown content empty and record the specific limitation in uncertainties.
         Report the visible exam title through save_paper_info.name, preserving its language. Use null or omit it when absent or unreadable; never invent a title or mistake a student name for the exam name.
         When student work is incorrect or partially correct, report attempt.error_analysis: identify the supported error in the student's work and how to correct it. Use null when the cause cannot be inferred from the evidence, including an unexplained wrong final answer; also use null for correct, blank, or unreadable responses. Keep this separate from the grading reason and standard solution.

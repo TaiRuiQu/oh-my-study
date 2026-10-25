@@ -111,6 +111,9 @@ public sealed partial class MainWindow : Window
 
     private static bool DiagnosticLaunch => Services.WindowBounds.IsDiagnosticLaunch(Environment.GetCommandLineArgs());
 
+    private OverlappedPresenter? WindowPresenter => AppWindow.Presenter is { Kind: AppWindowPresenterKind.Overlapped } presenter
+        ? WinRT.CastExtensions.As<OverlappedPresenter>(presenter) : null;
+
     private void RestoreWindowBounds(string? statePath = null)
     {
         _windowBounds = Services.WindowBounds.Default;
@@ -126,12 +129,12 @@ public sealed partial class MainWindow : Window
         bool maximized = _windowBounds.Maximized;
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
         AppWindow.Resize(new(Math.Min(_windowBounds.Width, area.Width), Math.Min(_windowBounds.Height, area.Height)));
-        if (maximized && AppWindow.Presenter is OverlappedPresenter overlapped) overlapped.Maximize();
+        if (maximized && WindowPresenter is { } overlapped) overlapped.Maximize();
     }
 
     private void CaptureWindowBounds()
     {
-        if (AppWindow.Presenter is not OverlappedPresenter presenter) return;
+        if (WindowPresenter is not { } presenter) return;
         if (presenter.State == OverlappedPresenterState.Maximized) _windowBounds = _windowBounds with { Maximized = true };
         else if (presenter.State == OverlappedPresenterState.Restored && AppWindow.Size is { Width: >= 460, Height: >= 420 } size)
             _windowBounds = new(size.Width, size.Height, false);
