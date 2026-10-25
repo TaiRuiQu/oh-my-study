@@ -164,7 +164,8 @@ try {
         finally { $check.elapsedMilliseconds=$clock.ElapsedMilliseconds }
     }
     $report.checkStatus='selected-checks-passed'
-    $report.testCount = ($report.checks | Measure-Object -Property testCount -Sum).Sum
+    $report.testCount = 0
+    foreach ($suite in $report.checks) { $report.testCount += [int]$suite.testCount }
     if (-not $Extended -and $report.testCount -gt 240) { throw "Core regression budget exceeded: $($report.testCount) > 240; full CI reserves 60 tests for packaging checks" }
 } catch {
     $report.checkStatus='failed'; $report.error=$_.Exception.Message

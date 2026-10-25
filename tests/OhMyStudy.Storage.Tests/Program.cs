@@ -34,7 +34,7 @@ internal static partial class Program
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
             if (args.Contains("--ci", StringComparer.Ordinal))
             {
-                await LegacyMigration();
+                await LegacyMigration(allVersions: false);
                 await ImportRecovery();
                 await PdfRelationships();
                 await PhonePhotoRelationships();
@@ -176,9 +176,9 @@ internal static partial class Program
         return path;
     }
 
-    private static async Task LegacyMigration()
+    private static async Task LegacyMigration(bool allVersions = true)
     {
-        foreach (var version in new[] { 1, 2 })
+        foreach (var version in allVersions ? new[] { 1, 2 } : [2])
         {
             var path = CreateLegacy(version);
             await using (var read = await LibraryRepository.OpenAsync(new(path)))

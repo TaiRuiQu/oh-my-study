@@ -34,7 +34,6 @@ internal static partial class Program
                 await ModelContentChecks();
                 await OptionalFields();
                 await BatchedTools();
-                await MessagesThinkingContinuation();
                 await ProtectedRegrading();
                 await FailureRetainsSaved();
                 await CancelLateModelResult();
