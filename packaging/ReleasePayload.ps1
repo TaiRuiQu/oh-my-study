@@ -43,6 +43,37 @@ function Assert-ReleasePayload([string]$Root) {
     }
 }
 
+function Get-ZipEntryHash([System.IO.Compression.ZipArchiveEntry]$Entry) {
+    $stream = $Entry.Open()
+    try { return [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData($stream)).ToLowerInvariant() }
+    finally { $stream.Dispose() }
+}
+
+function Assert-NupkgContentEqual([string]$Expected, [string]$Actual) {
+    $expectedArchive = [System.IO.Compression.ZipFile]::OpenRead($Expected)
+    $actualArchive = [System.IO.Compression.ZipFile]::OpenRead($Actual)
+    try {
+        $expectedEntries = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+        foreach ($entry in $expectedArchive.Entries) {
+            if ($entry.FullName.EndsWith('/')) { continue }
+            if (-not $expectedEntries.TryAdd($entry.FullName, (Get-ZipEntryHash $entry))) { throw "Duplicate package entry: $($entry.FullName)" }
+        }
+        $actualEntries = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+        foreach ($entry in $actualArchive.Entries) {
+            if ($entry.FullName.EndsWith('/')) { continue }
+            if (-not $actualEntries.TryAdd($entry.FullName, (Get-ZipEntryHash $entry))) { throw "Duplicate package entry: $($entry.FullName)" }
+        }
+        if ($expectedEntries.Count -ne $actualEntries.Count) { throw 'Delta reconstruction file count differs from the full package' }
+        foreach ($pair in $expectedEntries.GetEnumerator()) {
+            $hash = $null
+            if (-not $actualEntries.TryGetValue($pair.Key, [ref]$hash) -or $hash -cne $pair.Value) { throw "Delta reconstruction differs from the full package: $($pair.Key)" }
+        }
+    } finally {
+        $expectedArchive.Dispose()
+        $actualArchive.Dispose()
+    }
+}
+
 function Update-ReleaseRuntimeManifest([string]$RuntimeDirectory) {
     $path = Join-Path $RuntimeDirectory 'runtime-manifest.json'
     $manifest = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json

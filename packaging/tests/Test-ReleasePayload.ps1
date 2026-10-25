@@ -3,8 +3,32 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../ReleasePayload.ps1')
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
 $area = Join-Path $workspace ('output/ci/payload-test-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $area -Force | Out-Null
 $source = Join-Path $area 'source'
 $destination = Join-Path $area 'clean'
+function New-SyntheticPackage([string]$Path, [string]$Content, [string[]]$Directories) {
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Create)
+    $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($directory in $Directories) { $archive.CreateEntry($directory) | Out-Null }
+        $entry = $archive.CreateEntry('lib/app/data.txt')
+        $writer = [IO.StreamWriter]::new($entry.Open())
+        try { $writer.Write($Content) } finally { $writer.Dispose() }
+    } finally {
+        $archive.Dispose()
+        $stream.Dispose()
+    }
+}
+$contentA = Join-Path $area 'content-a.nupkg'
+$contentB = Join-Path $area 'content-b.nupkg'
+$contentC = Join-Path $area 'content-c.nupkg'
+New-SyntheticPackage $contentA 'same' @()
+New-SyntheticPackage $contentB 'same' @('lib/app/removed/')
+New-SyntheticPackage $contentC 'different' @()
+Assert-NupkgContentEqual $contentA $contentB
+$rejected = $false
+try { Assert-NupkgContentEqual $contentA $contentC } catch { if ($_.Exception.Message -notlike 'Delta reconstruction differs*') { throw }; $rejected = $true }
+if (-not $rejected) { throw 'Delta content validation accepted a changed file' }
 $kept = @('OhMyStudy.App.exe','native/pdfium.dll','native/typst/typst.exe','source/source-snapshot.zip',
     'licenses/LICENSE.txt','runtime/python/python313.zip','runtime/python/Lib/site-packages/numpy/testing/helpers.py',
     'runtime/python/Lib/site-packages/numpy/_core/tests/__init__.py','runtime/python/Lib/site-packages/numpy/_core/tests/_natype.py',

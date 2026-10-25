@@ -225,8 +225,9 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
         $report.deltaPackageSha256=(Get-FileHash -LiteralPath $report.deltaPackage -Algorithm SHA256).Hash.ToLowerInvariant()
         $reconstructed=Join-Path $run 'reconstructed.nupkg'
         & $vpk delta patch --base $baseline --patch $report.deltaPackage --output $reconstructed | Out-Host
-        if ($LASTEXITCODE -ne 0 -or (Get-FileHash -LiteralPath $reconstructed -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $report.fullPackage -Algorithm SHA256).Hash) { throw 'Delta package does not reconstruct the full package' }
-        Remove-Item -LiteralPath $reconstructed
+        if ($LASTEXITCODE -ne 0) { throw 'Delta package could not be applied' }
+        try { Assert-NupkgContentEqual $report.fullPackage $reconstructed }
+        finally { Remove-Item -LiteralPath $reconstructed -Force }
     }
     $report.installerType='velopack'
     $report.version=$version
