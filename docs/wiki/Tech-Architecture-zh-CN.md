@@ -28,18 +28,9 @@ global.json 固定 SDK，包集中管理并按发布配置锁定。源生成 JSO
 
 原生 PDF、公式、打印、图像、计算组件需一同分发，便携是目录不是单 EXE。AOT、自包含、框架依赖改变运行时要求，不改领域概念。
 
-## 按风险验证
+## 构建与检查
 
-| 边界 | 验证 |
-| --- | --- |
-| 分数/内容 | 领域、批改可执行测试。 |
-| 数据/升级 | 存储、集成、迁移检查。 |
-| 协议 | 供应商解析/用量测试。 |
-| 执行 | 执行与原生运行时检查。 |
-| 输出 | 媒体/文档、探针、视觉验收。 |
-| 安装 | Velopack 软件包和更新回归检查。 |
-
-CI 入口分 lint/check/test/build，普通分支/PR 使用托管供应商和评分 SDK 套件，跳过需要两套安装包的安装更新流程；标签/手动运行启用完整 Native AOT 验证、Velopack 安装／更新／卸载回归，并构建全部三种版本。桌面与物理打印另验。应报告实际运行情况，不能把有测试当已通过。
+CI 编译应用并发布 Native AOT、自包含及框架依赖三种包。自动测试、回归套件、冒烟启动模式和 CI Lint 已移除。本地空白检查的时间上限为 30 秒。界面和 PDF 改动使用真实内容进行视觉检查。
 
 源码: [OhMyStudy.slnx](../../OhMyStudy.slnx) · [Directory.Packages.props](../../Directory.Packages.props) · [global.json](../../global.json) · [Invoke-CI.ps1](../../packaging/Invoke-CI.ps1)
 

@@ -16,8 +16,5 @@ internal readonly record struct WindowBounds(int Width, int Height, bool Maximiz
         return new(width, height, fields.Length == 3 && fields[2] == "1");
     }
 
-    internal static bool IsDiagnosticLaunch(IEnumerable<string> arguments) => arguments.Any(argument =>
-        argument.StartsWith("--", StringComparison.Ordinal) && (argument.Contains("smoke", StringComparison.Ordinal) || argument == "--preview-pdf"));
-
     public override string ToString() => string.Create(CultureInfo.InvariantCulture, $"{Width} {Height} {(Maximized ? 1 : 0)}");
 }

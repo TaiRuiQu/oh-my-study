@@ -78,8 +78,6 @@ To delete study materials, confirm your backups and close the app first, then de
 
 Add a provider, key, and model in **Settings (设置)** and save, then import an exam. See the [Usage Guide](usage.md) for details.
 
-Normal branch and pull-request CI runs regression tests without producing all three download variants or building two installer packages for an installation/update cycle. Provider and grading suites run in managed mode to avoid repeating the expensive SDK Native AOT compilation; the other native suites remain enabled. Tag and manual runs perform full Native AOT validation, the complete Velopack installation/update/uninstall regression, and builds of all three packages. Run `./packaging/Invoke-CI.ps1 -Phase Test -FullValidation` locally for the same complete test phase. Obsolete runs for the same branch are canceled.
+CI compiles the application and publishes the three distribution variants. It runs no automated tests, regressions, or lint. Local whitespace lint is limited to 30 seconds; review UI and PDF output visually before release.
 
 [Wiki contents](wiki/Home.md)
-
-The complete CI run is capped at 300 named tests, including packaging and the installer cycle. Domain, storage, grading, media, and execution use a curated core selection; repetitive protocol/model and boundary matrices remain available outside CI with `./packaging/Invoke-MigrationChecks.ps1 -Extended`. Both branch and release CI use the same core selection. The run records suite counts in `output/ci/test-budget.json` and fails when the total exceeds 300.

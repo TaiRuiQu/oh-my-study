@@ -28,18 +28,9 @@ The pinned SDK is in global.json. Package versions are centralized and locked fo
 
 Native PDF, formula, print, imaging, and computation components must be packaged together. A portable app is a directory payload, not an isolated EXE. AOT, self-contained, and framework-dependent builds differ in runtime requirements while using the same domain concepts.
 
-## Verification maps to risk
+## Build and review
 
-| Boundary | Relevant verification |
-| --- | --- |
-| Grade/content rules | Domain and grading executable tests. |
-| Durable data and upgrades | Storage/integration and migration checks. |
-| Remote protocols | Provider tests, including parsing/usage behavior. |
-| Code execution | Execution tests and native runtime checks. |
-| Rendering/export | Media/document tests, probes, and visual acceptance. |
-| Installation | Velopack package and update regression checks. |
-
-CI runs lint/check/test/build phases through packaging/Invoke-CI.ps1. Ordinary branch/PR runs use managed provider/grading SDK suites and skip the two-package installer cycle; tag/manual runs enable full Native AOT verification, the Velopack installation/update/uninstall regression, and builds of all three distribution variants. Desktop visuals and physical printing need their own acceptance. Documentation should state which checks actually ran, not equate the existence of a suite with a successful run.
+CI compiles the application and publishes Native AOT, self-contained, and framework-dependent packages. Automated tests, regression suites, smoke launch modes, and CI lint have been removed. Local whitespace lint has a 30-second limit. Review UI and PDF changes visually with realistic content.
 
 Source: [OhMyStudy.slnx](../../OhMyStudy.slnx) · [Directory.Packages.props](../../Directory.Packages.props) · [global.json](../../global.json) · [Invoke-CI.ps1](../../packaging/Invoke-CI.ps1)
 

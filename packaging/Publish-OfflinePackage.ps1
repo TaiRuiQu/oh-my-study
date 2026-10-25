@@ -70,7 +70,7 @@ try {
     foreach ($required in @('OhMyStudy.App.exe','OhMyStudy.App.pri','App.xbf','MainWindow.xbf','Themes/WorkspaceResources.xbf','e_sqlite3.dll','Microsoft.ui.xaml.dll','Assets/App.ico')) {
         if (-not (Test-Path -LiteralPath (Join-Path $package $required) -PathType Leaf)) { throw "Required native app output missing: $required" }
     }
-    $documentLock=Get-Content -LiteralPath (Join-Path $workspace 'probes/native-documents.lock.json') -Raw | ConvertFrom-Json
+    $documentLock=Get-Content -LiteralPath (Join-Path $workspace 'packaging/native-documents.lock.json') -Raw | ConvertFrom-Json
     $tools=Join-Path $cache 'toolchain'
     Assert-Hash (Join-Path $tools 'pdfium/pdfium.dll') $documentLock.pdfium.librarySha256
     Assert-Hash (Join-Path $tools 'typst-x86_64-pc-windows-msvc/typst.exe') $documentLock.typst.executableSha256
@@ -99,7 +99,7 @@ try {
     $report.excludedDevelopmentBytes = [long]($excludedFiles | Measure-Object -Property bytes -Sum).Sum
     Copy-Item -LiteralPath (Join-Path $workspace 'LICENSE') -Destination (Join-Path $package 'LICENSE')
     $notices=Join-Path $package 'licenses'; New-Item -ItemType Directory -Path $notices -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $workspace 'probes/native-documents.lock.json') -Destination (Join-Path $notices 'native-documents.lock.json')
+    Copy-Item -LiteralPath (Join-Path $workspace 'packaging/native-documents.lock.json') -Destination (Join-Path $notices 'native-documents.lock.json')
     if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'runtime.lock.json'))) { throw 'Private runtime lock is missing' }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime.lock.json') -Destination (Join-Path $notices 'runtime.lock.json')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'webp.lock.json') -Destination (Join-Path $notices 'webp.lock.json')

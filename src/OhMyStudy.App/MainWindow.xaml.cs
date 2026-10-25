@@ -98,23 +98,17 @@ public sealed partial class MainWindow : Window
 
     private static string WindowStatePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "window.txt");
 
-    private static bool DiagnosticLaunch => Services.WindowBounds.IsDiagnosticLaunch(Environment.GetCommandLineArgs());
-
     private OverlappedPresenter? WindowPresenter => AppWindow.Presenter is { Kind: AppWindowPresenterKind.Overlapped } presenter
         ? WinRT.CastExtensions.As<OverlappedPresenter>(presenter) : null;
 
-    private void RestoreWindowBounds(string? statePath = null)
+    private void RestoreWindowBounds()
     {
         _windowBounds = Services.WindowBounds.Default;
-        if (statePath is not null || !DiagnosticLaunch)
+        try
         {
-            try
-            {
-                string path = statePath ?? WindowStatePath;
-                if (File.Exists(path)) _windowBounds = Services.WindowBounds.Parse(File.ReadAllText(path));
-            }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { AppLog.Error("Window.RestoreBounds", error); }
+            if (File.Exists(WindowStatePath)) _windowBounds = Services.WindowBounds.Parse(File.ReadAllText(WindowStatePath));
         }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { AppLog.Error("Window.RestoreBounds", error); }
         bool maximized = _windowBounds.Maximized;
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
         AppWindow.Resize(new(Math.Min(_windowBounds.Width, area.Width), Math.Min(_windowBounds.Height, area.Height)));
@@ -129,13 +123,12 @@ public sealed partial class MainWindow : Window
             _windowBounds = new(size.Width, size.Height, false);
     }
 
-    private void RememberWindowBounds(string? statePath = null)
+    private void RememberWindowBounds()
     {
-        if (statePath is null && DiagnosticLaunch) return;
         try
         {
             CaptureWindowBounds();
-            string path = statePath ?? WindowStatePath;
+            string path = WindowStatePath;
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, _windowBounds.ToString());
         }

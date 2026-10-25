@@ -24,9 +24,10 @@ Oh My Study is a Windows study app built with C# 14, .NET 10, and WinUI. It impo
 
 - Use the SDK pinned in `global.json`; keep package versions centralized in `Directory.Packages.props` and preserve lock files.
 - Restore with `dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode`. Native prerequisites and setup are documented in `.github/workflows/ci.yml` and its setup action.
-- Use `./packaging/Invoke-CI.ps1 -Phase Lint`, `-Phase Checks`, and `-Phase Test` as appropriate. Tests are executable projects; the CI test phase verifies published Native AOT executables.
-- Add focused regression coverage for changed behavior. Check affected UI and document output visually when relevant.
+- CI builds and publishes the application only. Do not add or run automated tests or regression suites. Lint runs locally only through `./packaging/Invoke-Lint.ps1`, with a hard limit of 30 seconds; avoid full-solution lint and tool downloads.
+- Check affected UI and document output visually with realistic content. Use compilation to catch broken source references after edits.
 - Prioritize rendered visual inspection for PDF and UI layout changes. Use realistic content and inspect spacing, baselines, wrapping, and pagination; passing code tests does not establish visual quality. Avoid repeated local code-test runs when visual review is requested.
 - Update English and Chinese user documentation together when workflows change. Keep generated artifacts out of commits and preserve unrelated work.
 - Report changes, verification performed, and any checks that could not run.
 - Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.
+- DO NOT WRITE any (smoke, regression, unit, end to end) tests, lints NOR run them unless user explicitly asked. Use visual (one-time) checks instead. That is, you run the app, take screenshots, and read them.

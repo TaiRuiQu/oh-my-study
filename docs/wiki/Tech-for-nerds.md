@@ -31,24 +31,17 @@ The question model is a shared stem plus ordered flat `QuestionItem` records. Re
 
 Recognition, file upload, optional background embedding, and reranking have distinct data paths. [Meaning search](Features-Search.md) uses cached embeddings, a local cosine scan, and optional remote reranking. Provider/search keys stay outside the library in Windows Credential Manager.
 
-## Build and verification
+## Build and visual review
 
-The stack is C# 14, .NET 10, and WinUI. Use SDK 10.0.402 pinned by [global.json](../../global.json); package versions and locks are centralized. Native AOT/trimming require source-generated JSON and explicit supported contracts.
-
-Follow [CI setup](../../.github/actions/setup-native/action.yml) and [workflow](../../.github/workflows/ci.yml):
+Use the SDK pinned in `global.json`. CI compiles the application and creates the three distribution variants; it runs no lint, tests, or regression suites.
 
 ```powershell
 dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
-./probes/prepare-documents.ps1
+./packaging/prepare-documents.ps1
 ./packaging/prepare-webp.ps1
 ./packaging/prepare-runtime.ps1
-./packaging/Invoke-CI.ps1 -Phase Lint
-./packaging/Invoke-CI.ps1 -Phase Checks
-./packaging/Invoke-CI.ps1 -Phase Test
+dotnet build OhMyStudy.slnx -c Release --no-restore
+./packaging/Invoke-Lint.ps1
 ```
 
-The executable tests cover domain, storage, providers, execution, grading, media/documents, integration, and packaging. Ordinary branch/PR runs use managed provider/grading SDK tests; tag/manual runs use full Native AOT validation, the complete Velopack installation/update/uninstall regression, and builds of all three distribution variants. Use `./packaging/Invoke-CI.ps1 -Phase Test -FullValidation` to run the complete test phase locally. App smoke fixtures provide separate visual evidence; printing still needs output inspection. See [architecture](Tech-Architecture.md) and [installation](../installation.md).
-
-Keep regressions and behavior likely to break: persisted data compatibility, protocol serialization, recovery after failures, and Markdown/PDF output. Avoid assertions that repeat constants, prompt wording, control visibility, or simple UI state changes; inspect those visually during development. Check shared serialized schemas once per protocol and task mode instead of repeating the same assertions on every model turn.
-
-Complete CI is capped at 300 named tests across regression, packaging, and installer checks. The same curated core runs on branches and tags. Use `./packaging/Invoke-MigrationChecks.ps1 -Extended` for the larger manual suite; it is never selected by release CI. Suite counts and the enforced total are written to `output/ci/test-budget.json`.
+Lint is local only, checks whitespace in changed files, and stops within 30 seconds. Review UI and rendered PDF output visually with realistic content. Use `./packaging/Invoke-CI.ps1 -Phase Build` to package the app locally.

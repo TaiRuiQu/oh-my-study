@@ -78,8 +78,6 @@ v0.1.9 会将可写资料库升级到 SQLite v6，以支持补充学生作答页
 
 在 **设置** 中添加供应商、密钥和模型并保存，然后导入试卷。详细操作见[使用指南](usage.zh-CN.md)。
 
-普通分支提交和拉取请求只执行回归检查，不生成全部三种下载版本，也不为一次安装更新流程重新打两套安装包。Provider 和 grading 测试以托管模式运行，避免反复进行耗时的 SDK Native AOT 编译；其余原生测试继续保留。标签发布和手动运行会执行完整 Native AOT 验证、完整的 Velopack 安装／更新／卸载回归，并构建全部三种软件包。本地可运行 `./packaging/Invoke-CI.ps1 -Phase Test -FullValidation` 执行相同的完整测试阶段。同一分支的旧运行会被取消。
+CI 只编译应用并发布三种发行包，不运行自动测试、回归或 Lint。本地空白检查不超过 30 秒；发布前通过实际界面和 PDF 输出进行视觉检查。
 
 [Wiki 目录](wiki/Home-zh-CN.md)
-
-完整 CI 最多执行 300 个具名测试，包括打包与安装更新流程。领域、存储、批改、媒体和执行测试使用精简的核心用例；重复的协议／模型组合及边界矩阵保留为本地扩展验证，可运行 `./packaging/Invoke-MigrationChecks.ps1 -Extended`。普通提交与发布 CI 均使用同一核心集合，实际数量记录在 `output/ci/test-budget.json`，超过 300 即失败。

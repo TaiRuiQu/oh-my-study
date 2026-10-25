@@ -63,7 +63,7 @@
     <None Include="$(DocumentToolchain)\runtime\**\*" Link="runtime\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Condition="Exists('$(DocumentToolchain)\runtime\runtime-manifest.json')" />
   </ItemGroup>
   <Target Name="RequireDocumentTools" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
-    <Error Condition="!Exists('$(DocumentToolchain)\pdfium\pdfium.dll')" Text="PDF dependency missing. Run ./probes/prepare-documents.ps1 before building the app." />
+    <Error Condition="!Exists('$(DocumentToolchain)\pdfium\pdfium.dll')" Text="PDF dependency missing. Run ./packaging/prepare-documents.ps1 before building the app." />
     <Error Condition="!Exists('$(DocumentToolchain)\scanner\docaligner-lcnet.onnx')" Text="Document scanner model missing. Run ./packaging/prepare-scanner.ps1 before building the app." />
     <Error Condition="!Exists('$(DocumentToolchain)\scanner\docscanner-l.onnx')" Text="DocScanner rectifier is missing. Run ./packaging/prepare-scanner.ps1 before building the app." />
     <Error Condition="!Exists('$(DocumentToolchain)\scanner\document-orientation.onnx')" Text="Document orientation model missing. Run ./packaging/prepare-scanner.ps1 before building the app." />

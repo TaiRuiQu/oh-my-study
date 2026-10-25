@@ -7,7 +7,7 @@ $start.UseShellExecute = $false
 $start.CreateNoWindow = $true
 $start.RedirectStandardOutput = $true
 $start.RedirectStandardError = $true
-foreach ($argument in @('diff','--check','HEAD')) { $start.ArgumentList.Add($argument) }
+foreach ($argument in @('-c','core.autocrlf=false','diff','--check','HEAD')) { $start.ArgumentList.Add($argument) }
 $process = [Diagnostics.Process]::Start($start)
 try {
     $output = $process.StandardOutput.ReadToEndAsync()

@@ -2,8 +2,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('Lint','Build')][string]$Phase,
     [ValidateSet('aot','self-contained','framework-dependent')][string]$Variant = 'aot',
-    [string]$BaselinePackage,
-    [switch]$FullValidation)
+    [string]$BaselinePackage)
 $ErrorActionPreference = 'Stop'
 $workspace = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $savedLocation = Get-Location

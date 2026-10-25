@@ -49,6 +49,10 @@ jobs:
         run: |
           dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prepare document dependencies
+        run: |
+          ./packaging/prepare-documents.ps1
+          ./packaging/prepare-webp.ps1
       - name: Build application
         run: |
           dotnet build OhMyStudy.slnx -c Release --no-restore -warnaserror
