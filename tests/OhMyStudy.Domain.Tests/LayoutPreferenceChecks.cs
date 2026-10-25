@@ -26,12 +26,6 @@ internal static class LayoutPreferenceChecks
             Require(WindowBounds.Parse("1180 840") == restored && WindowBounds.Parse("max") == WindowBounds.Default with { Maximized = true });
             Require(WindowBounds.Parse("broken") == WindowBounds.Default && WindowBounds.Parse("0 -1") == WindowBounds.Default);
         });
-        check("debug_host_keeps_normal_window_preferences", () =>
-        {
-            Require(!WindowBounds.IsDiagnosticLaunch(["OhMyStudy.App.exe", "--ui-process"]));
-            Require(WindowBounds.IsDiagnosticLaunch(["OhMyStudy.App.exe", "--ui-process", "--math-smoke", "report.txt"]));
-            Require(WindowBounds.IsDiagnosticLaunch(["OhMyStudy.App.exe", "--workflow-smoke", "report.json"]));
-        });
     }
 
     private static void Require(bool condition)

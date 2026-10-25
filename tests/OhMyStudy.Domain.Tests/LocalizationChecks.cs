@@ -27,19 +27,6 @@ internal static class LocalizationChecks
         {
             var source = Catalog("en-US");
             var legacySource = Catalog("zh-CN");
-            check("english_source_default", () =>
-            {
-                Require(UiText.Language == "en-US" && UiText.Preference == "system");
-                Require(UiText.Get("Settings") == "Settings");
-                Require(UiText.GetByKey("S0009") == "Settings");
-            });
-            check("xaml_catalog_keys", () =>
-            {
-                using var stream = typeof(UiText).Assembly.GetManifestResourceStream("Localization.MainWindow.xaml")!;
-                using var reader = new StreamReader(stream);
-                var markup = reader.ReadToEnd();
-                foreach (Match match in Regex.Matches(markup, @"\{l:Text Key=(S[0-9]+)\}")) Require(source.ContainsKey(match.Groups[1].Value));
-            });
             foreach (string language in new[] { "zh-CN", "en-US", "ja-JP", "ko-KR" })
             {
                 check("catalog_" + language, () =>
@@ -64,8 +51,6 @@ internal static class LocalizationChecks
                     Require(UiText.Get("unknown source") == "unknown source");
                     Require(UiText.GetByKey("unknown key") == "unknown key");
                     Require(UiText.Format("Page {0} / {1}", 2, 12).Contains("12", StringComparison.Ordinal));
-                    Require(!string.IsNullOrEmpty(UiText.InterfaceFontFamily));
-                    if (language is "zh-CN" or "en-US") Require(UiText.ReadingFontFamily == "Microsoft YaHei UI");
                     Require(UiText.ActivityText("已阅读 2 页，已保存 15 题。") == UiText.Format("已阅读 {0} 页，已保存 {1} 题。", "2", "15"));
                     Require(UiText.ActivityText("阅读第 12 页") == UiText.Format("阅读第 {0} 页", "12"));
                     Require(UiText.ActivityText("第 4 轮识别") == UiText.Format("第 {0} 轮识别", "4"));

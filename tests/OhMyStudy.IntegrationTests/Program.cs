@@ -25,16 +25,6 @@ void Require(bool condition, string message)
 }
 
 Check("native-aot-runtime", () => Require(!RuntimeFeature.IsDynamicCodeSupported, "必须运行 Release Native AOT 发布产物"));
-Check("source-generated-json", () =>
-{
-    var record = new SyntheticRecord("synthetic-provider", "中文合成项", null);
-    var json = JsonSerializer.Serialize(record, ProbeJson.Default.SyntheticRecord);
-    var restored = JsonSerializer.Deserialize(json, ProbeJson.Default.SyntheticRecord);
-    Require(restored == record, "源生成序列化往返不一致");
-    Require(!JsonSerializer.IsReflectionEnabledByDefault, "反射 JSON 必须关闭");
-});
-Check("legacy-directory-resolution", () =>
-    Require(LegacyLibraryLocation.ResolveDefault(library) == Path.Combine(library, "io.ohmystudy.desktop"), "旧目录身份不一致"));
 Check("single-writer-lease", () =>
 {
     using (LibraryWriterLease.Acquire(library))
@@ -129,12 +119,10 @@ foreach (var result in results) Console.WriteLine($"{(result.Passed ? "PASS" : "
 Console.WriteLine(reportFile);
 return results.All(r => r.Passed) ? 0 : 1;
 
-internal sealed record SyntheticRecord(string Id, string Name, string? KeyReference);
 internal sealed record ProbeResult(string Name, bool Passed, string? Error);
 internal sealed record ProbeReport(string TimestampUtc, bool DynamicCodeSupported, string WindowsVersion,
     string RuntimeVersion, string SyntheticLibrary, ProbeResult[] Results);
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
-[JsonSerializable(typeof(SyntheticRecord))]
 [JsonSerializable(typeof(ProbeReport))]
 internal sealed partial class ProbeJson : JsonSerializerContext;

@@ -11,8 +11,6 @@ spec.loader.exec_module(install)
 manifest = json.loads((root / "packaging/docres/models.json").read_text(encoding="utf-8"))
 archives = [asset["filename"] for asset in manifest["assets"] if asset["filename"].endswith(".zip")]
 kept = [asset["filename"] for asset in manifest["assets"] if not asset["filename"].endswith(".zip")]
-assert archives == ["python-3.13.2-embed-amd64.zip", "docres-source.zip"]
-assert kept == ["docres.pkl", "mbd.pkl"]
 
 with tempfile.TemporaryDirectory() as directory:
     destination = Path(directory)

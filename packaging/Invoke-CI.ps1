@@ -70,7 +70,9 @@ try {
                 if (-not @($report.checks | Where-Object { $_.name -eq $name -and $_.status -eq 'passed' }).Count) { throw "Required test suite did not pass: $name" }
             }
             if (@($report.notRun | Where-Object { $_ -like 'execution:*' }).Count) { throw 'Private computation runtime test was skipped' }
-            & (Join-Path $PSScriptRoot 'tests/Test-VelopackInstaller.ps1') -ReportFile (Join-Path $workspace 'output/ci/velopack-regression.json')
+            if ($FullValidation) {
+                & (Join-Path $PSScriptRoot 'tests/Test-VelopackInstaller.ps1') -ReportFile (Join-Path $workspace 'output/ci/velopack-regression.json')
+            }
         }
         'Build' {
             $releaseOutput=Join-Path $workspace ('output/releases/'+$Variant)

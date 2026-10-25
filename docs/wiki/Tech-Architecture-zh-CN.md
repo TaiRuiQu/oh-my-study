@@ -39,7 +39,7 @@ global.json 固定 SDK，包集中管理并按发布配置锁定。源生成 JSO
 | 输出 | 媒体/文档、探针、视觉验收。 |
 | 安装 | Velopack 软件包和更新回归检查。 |
 
-CI 入口分 lint/check/test/build，普通分支/PR 使用托管供应商和评分 SDK 套件，标签/手动运行启用完整 Native AOT 验证并构建全部三种版本。桌面与物理打印另验。应报告实际运行情况，不能把有测试当已通过。
+CI 入口分 lint/check/test/build，普通分支/PR 使用托管供应商和评分 SDK 套件，跳过需要两套安装包的安装更新流程；标签/手动运行启用完整 Native AOT 验证、Velopack 安装／更新／卸载回归，并构建全部三种版本。桌面与物理打印另验。应报告实际运行情况，不能把有测试当已通过。
 
 源码: [OhMyStudy.slnx](../../OhMyStudy.slnx) · [Directory.Packages.props](../../Directory.Packages.props) · [global.json](../../global.json) · [Invoke-CI.ps1](../../packaging/Invoke-CI.ps1)
 

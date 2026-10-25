@@ -379,46 +379,6 @@ test('failed manual correction cannot send a stale preview and retains the edits
     assert.equal(app.calls.filter(call => call.path.startsWith('/upload')).length, 1);
 });
 
-test('reference-style page viewer supports paging, grid selection, and continuing capture', async () => {
-    const app = await setup();
-    app.run('addFiles([new File(["a"],"one.jpg"),new File(["b"],"two.jpg")])');
-    await app.run('openTray(); worker');
-    assert.equal(app.run('currentPage() === items[0]'), true);
-    app.run('$("next-page").onclick()');
-    assert.equal(app.run('currentPage() === items[1]'), true);
-    app.run('$("current-selected").onchange({target:{checked:false}})');
-    assert.equal(app.run('items[1].selected'), false);
-    app.run('setReviewLayout("grid")');
-    assert.equal(app.elements.get('pages').hidden, false);
-    app.run('$("continue-camera").onclick()');
-    assert.equal(app.run('view'), 'capture');
-});
-
-test('single-page mode opens review while multi-page mode keeps capturing', async () => {
-    const app = await setup();
-    await app.run('startCamera()');
-    app.run('$("single-mode").onclick()');
-    await app.run('takePhoto()');
-    assert.equal(app.run('view'), 'tray');
-    await app.run('worker');
-    app.run('continueShooting(); $("multi-mode").onclick()');
-    await app.run('takePhoto()');
-    assert.equal(app.run('view'), 'capture');
-});
-
-test('crop tool remains available after returning from manual editing', async () => {
-    const app = await setup();
-    app.run('addFiles([new File(["a"],"one.jpg")])');
-    await app.run('openTray(); worker');
-    await app.run('beginEdit()');
-    assert.equal(app.run('view'), 'detail');
-    app.run('$("detail-back").onclick()');
-    assert.equal(app.run('view'), 'tray');
-    assert.equal(app.elements.get('edit-page').hidden, false);
-    await app.run('beginEdit()');
-    assert.equal(app.run('view'), 'detail');
-});
-
 test('processing defaults retain arbitrary independent selections without adding dewarping', async () => {
     const app = await setup();
     app.run('defaultProcessing = {shadows:true,grayscale:true}; addFiles([new File(["a"],"one.jpg")])');
@@ -428,14 +388,6 @@ test('processing defaults retain arbitrary independent selections without adding
     assert.deepEqual(correction.tasks, ['dewarping','deshadowing','appearance','deblurring']);
     assert.equal(correction.processing.rectify, undefined);
     assert.equal(correction.processing.crop, undefined);
-});
-
-test('capture settings expose the standard pipeline and all DocRes tasks by default', async () => {
-    const app = await setup();
-    assert.deepEqual(JSON.parse(app.run('JSON.stringify(readProcessing($("capture-processing")))')), {
-        crop:true,rectify:false,autoOrientation:true,shadows:true,deblur:true,appearance:true,grayscale:false
-    });
-    assert.equal(app.run('$("capture-docres-tasks").querySelectorAll("input:checked").length'), 4);
 });
 
 test('global processing changes rerender every unsent photo and also apply to future photos', async () => {
@@ -517,10 +469,7 @@ test('restoration tool opens global settings and batches all-page changes until 
     assert.equal(app.run('items.every(item => item.state === "ready" && !item.correction.processing.shadows && !item.correction.processing.deblur)'), true);
     assert.equal(app.calls.filter(call => call.path.startsWith('/render')).length, 4);
 });
-test('module assets contain no inline application code and worker returns the same detected boundary', async () => {
-    assert.match(html,/<script type="module" src="\/capture.js"><\/script>/);
-    assert.doesNotMatch(html,/function detectPaperCorners|function startCamera|onclick=/);
-    assert.match(html,/<img id="tray-result"[^>]*draggable="false"/);
+test('boundary worker avoids overlapping requests and stops after leaving capture', async () => {
     const frame = paperFrame(240,320,[[.18,.12],[.82,.2],[.88,.86],[.12,.82]]);
     const app = await setup({cameraFrame:frame,useWorker:true});
     await app.run('startCamera()');
@@ -546,17 +495,6 @@ async function threePages(options) {
     await app.run('openTray(); worker');
     return app;
 }
-test('horizontal swipes change pages in both directions, clamp at edges and preserve selection', async () => {
-    const app = await threePages(), stage = app.elements.get('review-stage');
-    for (const expected of [1,2,2]) {
-        stage.onpointerdown(pointer(stage,300,200)); stage.onpointermove(pointer(stage,80,215)); stage.onpointerup(pointer(stage,80,215));
-        assert.equal(app.run('reviewIndex'),expected);
-        assert.equal(stage.style.transform,'');
-    }
-    stage.onpointerdown(pointer(stage,80,200)); stage.onpointermove(pointer(stage,290,210)); stage.onpointerup(pointer(stage,290,210));
-    assert.equal(app.run('reviewIndex'),1);
-    assert.equal(app.run('items.every(item => item.selected)'),true);
-});
 test('losing implicit touch capture mid-swipe does not cancel the page change', async () => {
     const app = await threePages(), stage = app.elements.get('review-stage');
     stage.onpointerdown(pointer(stage,300,200)); stage.onpointermove(pointer(stage,280,205));
@@ -596,21 +534,6 @@ test('pinching zooms the photo around the gesture, panning moves it and page swi
     stage.onpointerdown(pointer(stage,195,200,4)); stage.onpointerdown(pointer(stage,195,600,5));
     stage.onpointermove(pointer(stage,195,300,4)); stage.onpointermove(pointer(stage,195,500,5));
     stage.onpointerup(pointer(stage,195,300,4)); stage.onpointerup(pointer(stage,195,500,5));
-    assert.equal(app.run('photoView.scale'),1);
-    assert.equal(image.style.transform,'');
-});
-test('changing pages or layouts resets the photo zoom', async () => {
-    const app = await threePages(), stage = app.elements.get('review-stage'), image = app.elements.get('tray-result');
-    stage.onpointerdown(pointer(stage,195,300,1)); stage.onpointerdown(pointer(stage,195,500,2));
-    stage.onpointermove(pointer(stage,195,200,1));
-    assert.match(image.style.transform,/scale/);
-    stage.onpointerup(pointer(stage,195,200,1)); stage.onpointerup(pointer(stage,195,500,2));
-    app.run('$("next-page").onclick()');
-    assert.equal(app.run('photoView.scale'),1);
-    assert.equal(image.style.transform,'');
-    stage.onpointerdown(pointer(stage,195,300,1)); stage.onpointerdown(pointer(stage,195,500,2));
-    stage.onpointermove(pointer(stage,195,200,1));
-    app.run('setReviewLayout("grid")');
     assert.equal(app.run('photoView.scale'),1);
     assert.equal(image.style.transform,'');
 });

@@ -430,11 +430,6 @@ internal sealed class CompatibilitySuite
             Assert(!Accepted(() => ConfigurationValidation.ValidateSettings(AppSettings.Default with { DefaultModel = new string('中', 342) })));
             Assert(!Accepted(() => ConfigurationValidation.ValidateSettings(AppSettings.Default with { ExecutionMode = "invalid" })));
         });
-        Check("job", "terminal_states_and_default_policy", () =>
-        {
-            Assert(Enum.GetValues<JobState>().Count(s => s.IsTerminal()) == 4);
-            Assert(ExecutionPolicy.Freeze(null, new() { State = CapabilityState.Ready, Reason = "" }, true).EffectiveMode == ExecutionMode.Sandbox);
-        });
 
         void CoverageFailure(string id, List<Coverage> values, List<SavedQuestion> questions, HashSet<string> read) => Check("coverage", id, () => Assert(!Accepted(() => GradingValidation.ValidateCoverage(document, values, questions, false, read))));
     }

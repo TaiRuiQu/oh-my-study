@@ -74,6 +74,6 @@ To delete study materials, confirm your backups and close the app first, then de
 
 Add a provider, key, and model in **Settings (设置)** and save, then import an exam. See the [Usage Guide](usage.md) for details.
 
-Normal branch and pull-request CI runs regression tests without producing all three download variants. Provider and grading suites run in managed mode to avoid repeating the expensive SDK Native AOT compilation; the other native suites remain enabled. Tag and manual runs perform full Native AOT validation and build all three packages. Obsolete runs for the same branch are canceled.
+Normal branch and pull-request CI runs regression tests without producing all three download variants or building two installer packages for an installation/update cycle. Provider and grading suites run in managed mode to avoid repeating the expensive SDK Native AOT compilation; the other native suites remain enabled. Tag and manual runs perform full Native AOT validation, the complete Velopack installation/update/uninstall regression, and builds of all three packages. Run `./packaging/Invoke-CI.ps1 -Phase Test -FullValidation` locally for the same complete test phase. Obsolete runs for the same branch are canceled.
 
 [Wiki contents](wiki/Home.md)

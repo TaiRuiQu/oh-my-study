@@ -47,4 +47,6 @@ dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode
 ./packaging/Invoke-CI.ps1 -Phase Test
 ```
 
-可执行测试覆盖领域、存储、供应商、执行、评分、媒体/文档、集成、打包。普通分支/PR 使用托管供应商/评分 SDK 测试；标签/手动运行执行完整 Native AOT 验证并打包三种版本。应用冒烟提供独立视觉证据，打印仍需检查实际输出。见[架构](Tech-Architecture-zh-CN.md)和[安装](../installation.zh-CN.md)。
+可执行测试覆盖领域、存储、供应商、执行、评分、媒体/文档、集成、打包。普通分支/PR 使用托管供应商/评分 SDK 测试；标签/手动运行执行完整 Native AOT 验证、完整的 Velopack 安装／更新／卸载回归，并打包三种版本。本地运行 `./packaging/Invoke-CI.ps1 -Phase Test -FullValidation` 可执行完整测试阶段。应用冒烟提供独立视觉证据，打印仍需检查实际输出。见[架构](Tech-Architecture-zh-CN.md)和[安装](../installation.zh-CN.md)。
+
+保留实际回归用例和容易出错的行为：持久化数据兼容性、协议序列化、失败恢复、Markdown／PDF 输出。不要添加只重复常量、提示词文案、控件可见性或简单界面状态变化的断言；开发时进行视觉检查即可。共享的序列化 schema 按协议和任务模式验证一次，避免每一轮模型调用都重复相同断言。

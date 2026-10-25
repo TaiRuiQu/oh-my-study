@@ -39,7 +39,7 @@ Native PDF, formula, print, imaging, and computation components must be packaged
 | Rendering/export | Media/document tests, probes, and visual acceptance. |
 | Installation | Velopack package and update regression checks. |
 
-CI runs lint/check/test/build phases through packaging/Invoke-CI.ps1. Ordinary branch/PR runs use managed provider/grading SDK suites; tag/manual runs enable full Native AOT verification and build all three distribution variants. Desktop visuals and physical printing need their own acceptance. Documentation should state which checks actually ran, not equate the existence of a suite with a successful run.
+CI runs lint/check/test/build phases through packaging/Invoke-CI.ps1. Ordinary branch/PR runs use managed provider/grading SDK suites and skip the two-package installer cycle; tag/manual runs enable full Native AOT verification, the Velopack installation/update/uninstall regression, and builds of all three distribution variants. Desktop visuals and physical printing need their own acceptance. Documentation should state which checks actually ran, not equate the existence of a suite with a successful run.
 
 Source: [OhMyStudy.slnx](../../OhMyStudy.slnx) · [Directory.Packages.props](../../Directory.Packages.props) · [global.json](../../global.json) · [Invoke-CI.ps1](../../packaging/Invoke-CI.ps1)
 

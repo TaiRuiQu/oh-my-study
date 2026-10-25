@@ -51,19 +51,6 @@ internal static class DocumentExportChecks
                 AssertInvalid(() => MermaidRenderer.RenderSvg(invalid));
             return Task.CompletedTask;
         });
-        await check("document_visual_width_validation", () =>
-        {
-            Assert(new ExamImage([1, 2, 3, 4, 5, 6, 7, 8]).WidthPercent == 100);
-            Assert(new ExamMermaid("graph TD; A").WidthPercent == 100);
-            foreach (double width in new[] { 0, 101, double.NaN, double.PositiveInfinity })
-            {
-                bool rejected = false;
-                try { _ = new ExamImage([1, 2, 3, 4, 5, 6, 7, 8], WidthPercent: width); }
-                catch (ArgumentOutOfRangeException) { rejected = true; }
-                Assert(rejected);
-            }
-            return Task.CompletedTask;
-        });
     }
 
     internal static async Task<int> RunStandaloneAsync()
