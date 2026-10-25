@@ -979,4 +979,9 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">高解像度撮影に失敗したため、通常の写真を保存しました。</text>
     <text key="PhoneCapture.Processing.Global" xml:space="preserve">変更は未送信の全ページと今後の写真に適用されます。</text>
     <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">ページの順序を更新しました。</text>
+    <text key="Export.AnswerSpace" xml:space="preserve">解答欄を追加</text>
+    <text key="Export.Class" xml:space="preserve">クラス</text>
+    <text key="Export.StudentNumber" xml:space="preserve">出席番号</text>
+    <text key="Export.Points" xml:space="preserve">（{0:g}点）</text>
+    <text key="Export.DistributeSpace" xml:space="preserve">ページの残りの余白を均等に配分</text>
 </resources>

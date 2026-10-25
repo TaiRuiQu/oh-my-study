@@ -17,6 +17,18 @@ int failures = 0;
 var webpDecoder = args.ElementAtOrDefault(2) ?? Path.Combine(Environment.CurrentDirectory, "output/migration/toolchain/libwebp/libwebp-1.6.0-windows-x64/bin/dwebp.exe");
 var images = new NativePageImages(webpDecoder);
 var media = new NativeMediaProcessor(pdfium, webpDecoder);
+bool ci = args.Contains("--ci", StringComparer.Ordinal);
+HashSet<string> ciCases = new(StringComparer.Ordinal)
+{
+    "png_original_and_thumbnail", "rotation_pixels_90", "normalized_coordinate_roundtrip_270",
+    "crop_uses_unrotated_source_then_rotates", "model_scan_compression_preserves_text_color_and_original",
+    "webp_native_decode", "pdf_two_pages_preserve_original", "pdf_page_limit", "invalid_input_rejected",
+    "cancelled_work_is_not_returned", "exam_answer_space", "document_font_directives", "document_table_merges",
+    "document_mermaid_svg", "phone_batch_confirmation_is_atomic_and_preserves_order",
+    "phone_batch_processing_failure_keeps_other_previews_and_originals", "phone_all_processing_off_preserves_original_pixels_and_geometry",
+    "phone_standard_pipeline_detects_crops_orients_then_restores", "phone_capture_authenticated_upload_preview_and_original",
+    "phone_capture_progress_and_cancel_preserve_pending_original"
+};
 if (args.Contains("--phone-capture-preview", StringComparer.Ordinal)) return await PhoneCaptureChecks.PreviewAsync(args.Contains("--phone-capture-https", StringComparer.Ordinal));
 if (args.Contains("--phone-capture-protocol-checks", StringComparer.Ordinal)) return await PhoneCaptureProtocolChecks.RunStandaloneAsync();
 int photoTestIndex = Array.IndexOf(args, "--phone-capture-benchmark");
@@ -322,6 +334,7 @@ return failures == 0 ? 0 : 1;
 
 async Task Check(string id, Func<Task> action)
 {
+    if (ci && !ciCases.Contains(id)) return;
     try { await action(); results.Add((JsonNode)new JsonObject { ["id"] = id, ["status"] = "passed" }); }
     catch (Exception ex) { failures++; Console.WriteLine($"FAIL {id}: {ex}"); results.Add((JsonNode)new JsonObject { ["id"] = id, ["status"] = "failed", ["error"] = ex.ToString() }); }
 }

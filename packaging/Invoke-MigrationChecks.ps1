@@ -8,6 +8,7 @@ param(
     [switch]$PrepareDocuments,
     [switch]$ManagedSdkTests,
     [switch]$NoRestore,
+    [switch]$Extended,
     [string]$RuntimeDirectory
 )
 $ErrorActionPreference = 'Stop'
@@ -135,6 +136,7 @@ try {
                     else { $report.notRun+='execution: private Python package computation, runtime not prepared' }
                 }
                 elseif ($entry.name -eq 'media') { $arguments=@((Join-Path $run 'media.json'),(Join-Path $output 'toolchain/pdfium/pdfium.dll'),(Join-Path $output 'toolchain/libwebp/libwebp-1.6.0-windows-x64/bin/dwebp.exe')) }
+                if (-not $Extended -and $entry.name -in @('domain','storage','grading','media','execution')) { $arguments += '--ci' }
                 & $exe @arguments 2>&1 | Tee-Object -FilePath (Join-Path $run "$($entry.name)-run.log") | Out-Host
                 $check.exitCode=$LASTEXITCODE
                 if ($LASTEXITCODE -ne 0) { throw "$($entry.name) checks exit $LASTEXITCODE" }
@@ -142,6 +144,18 @@ try {
                     $documents = Get-Content -LiteralPath (Join-Path $run 'documents/verification.json') -Raw | ConvertFrom-Json
                     if ($documents.DynamicCodeSupported) { throw 'Document probe reported dynamic code support' }
                 }
+                $log = Get-Content -LiteralPath (Join-Path $run "$($entry.name)-run.log") -Raw
+                $check.testCount = switch ($entry.name) {
+                    'domain' { (Get-Content -LiteralPath (Join-Path $run 'domain.json') -Raw | ConvertFrom-Json).checks }
+                    'media' { (Get-Content -LiteralPath (Join-Path $run 'media.json') -Raw | ConvertFrom-Json).checks }
+                    'storage' { if ($log -notmatch 'Storage regression: (\d+) checks passed') { throw 'Storage test count missing' }; [int]$Matches[1] }
+                    'grading' { if ($log -notmatch 'Grading integration: (\d+) checks passed') { throw 'Grading test count missing' }; [int]$Matches[1] }
+                    'provider' { if ($log -notmatch 'Provider protocol regression: (\d+) scenarios passed') { throw 'Provider test count missing' }; [int]$Matches[1] }
+                    'execution' { @($log -split "`n" | Where-Object { $_ -match '^PASS ' }).Count }
+                    'infrastructure' { @($log -split "`n" | Where-Object { $_ -match '^PASS ' }).Count }
+                    'documents' { @($documents.Checks).Count }
+                }
+                if ($check.testCount -lt 1) { throw "No tests executed for $($entry.name)" }
                 $check.status='passed'
             }
             $inventory = @(Get-ChildItem -LiteralPath $publish -Recurse -File | Sort-Object FullName | ForEach-Object { [ordered]@{ path=[IO.Path]::GetRelativePath($publish,$_.FullName).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
@@ -150,6 +164,8 @@ try {
         finally { $check.elapsedMilliseconds=$clock.ElapsedMilliseconds }
     }
     $report.checkStatus='selected-checks-passed'
+    $report.testCount = ($report.checks | Measure-Object -Property testCount -Sum).Sum
+    if (-not $Extended -and $report.testCount -gt 240) { throw "Core regression budget exceeded: $($report.testCount) > 240; full CI reserves 60 tests for packaging checks" }
 } catch {
     $report.checkStatus='failed'; $report.error=$_.Exception.Message
     foreach ($entry in $projects) { if ($entry.name -notin @($report.checks | ForEach-Object { $_.name }) -and -not @($report.notRun | Where-Object { $_ -like "$($entry.name):*" }).Count) { $report.notRun += "$($entry.name): not attempted after earlier failure" } }

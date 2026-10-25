@@ -14,16 +14,22 @@ The service supports 1–500 top-level questions and additional text/image budge
 
 | Edition | Includes | Intended use |
 | --- | --- | --- |
-| Questions | Question blocks, options, figures, items, writing space | Practice without displaying the answer key. |
+| Questions | Question blocks, options, figures, items, optional writing space | Practice without displaying the answer key. |
 | Answers and explanations | Questions with standard answers and explanations | Checking and guided review. |
 
-Student-attempt text is not the answer key. A recognized answer still needs human review before the answer edition becomes trustworthy. Export numbering is sequential while original printed question numbers are kept in the body.
+Student-attempt text is not the answer key. A recognized answer still needs human review before the answer edition becomes trustworthy. Export numbering is sequential. Each question starts with its number, score in parentheses, and stem on the same line; original printed numbers are omitted. Parts use consecutive parenthesized numbers on separate lines without blank lines between them.
 
 ## Choose a paper layout
 
-A4 is portrait. A3 landscape uses two columns. The image illustrates their organization, not the exact pagination of your question set. Longer questions, large diagrams, and mathematical expressions affect breaks.
+A4 is portrait with one column by default; A3 landscape defaults to two columns. You can choose one to four columns independently of paper size. Every page has ruled Class, Name, and Student no. fields in its header. Question spacing is compact. Four options use one row when they fit, otherwise two rows of two, or one option per row when necessary. The image illustrates their organization, not the exact pagination of your question set. Longer questions, large diagrams, and mathematical expressions affect breaks.
 
 Produce separate question and answer files rather than expecting one export to create both. Printing itself happens in a PDF reader, where printer paper/scaling must also match your intention.
+
+## Optional answer space
+
+Both answer-space options are off by default. Enable **Include answer space** to reserve writing areas for subjective questions and subjective parts; choice and fill-in questions receive no extra space. The minimum height uses the standard answer length, explicit line breaks, score, and column width: about one handwriting line per two points, with seven millimetres per line and a normal range of 14–98 mm. Answer text is never printed on the question paper.
+
+Enable **Distribute remaining space evenly** to share unused space in each page or column equally among its writing areas after the minimum-height layout. This option is available only when answer space is enabled. Both options apply only to the question edition.
 
 ## Handle figures responsibly
 

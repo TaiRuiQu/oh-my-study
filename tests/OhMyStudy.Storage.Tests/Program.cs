@@ -24,7 +24,7 @@ internal static partial class Program
     private static async Task Fails(Func<Task> action, string name)
     { try { await action(); } catch { Check(true, name); return; } throw new Exception("Expected failure: " + name); }
 
-    public static async Task<int> Main()
+    public static async Task<int> Main(string[] args)
     {
         Directory.CreateDirectory(Root);
         try
@@ -32,6 +32,17 @@ internal static partial class Program
             contracts = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(Fixtures, "Compatibility", "contracts.synthetic.json")));
             assets = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(Fixtures, "Compatibility", "assets.synthetic.json")));
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
+            if (args.Contains("--ci", StringComparer.Ordinal))
+            {
+                await LegacyMigration();
+                await ImportRecovery();
+                await PdfRelationships();
+                await PhonePhotoRelationships();
+                await CredentialAtomicity();
+                await ProviderFilesChecks();
+                Console.WriteLine($"Storage regression: {passed} checks passed. Synthetic temporary libraries only. {Root}");
+                return 0;
+            }
             await LegacyMigration();
             await QuestionAssetMigration();
             await ImportRecovery();

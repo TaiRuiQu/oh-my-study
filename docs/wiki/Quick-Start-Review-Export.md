@@ -14,7 +14,7 @@ Before exporting, look at the displayed list and save pending edits. The export 
 
 First export Questions on A4 portrait or A3 landscape. Then repeat with Answers and explanations. Use names you can distinguish, such as Algebra-review-questions.pdf and Algebra-review-answers.pdf.
 
-The question edition leaves writing space; the answer edition uses standard answers and explanations rather than student-attempt text. A3 landscape uses two columns. Diagrams above illustrate layout concepts, not an exact print preview.
+The question edition is compact by default. Enable Include answer space for subjective writing areas and optionally Distribute remaining space evenly to expand them within each page or column; the answer edition uses standard answers and explanations rather than student-attempt text. A3 landscape defaults to two columns; column count is configurable. Each page has ruled class, name, and student-number fields. Diagrams above illustrate layout concepts, not an exact print preview.
 
 ## Inspect before printing
 

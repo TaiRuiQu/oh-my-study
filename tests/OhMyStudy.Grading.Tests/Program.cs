@@ -18,15 +18,30 @@ internal static partial class Program
     private static readonly string Root = Path.Combine(Path.GetTempPath(), "OhMyStudy-Grading-" + Guid.NewGuid().ToString("N"));
     private static byte[] png = [];
     private static int checks;
+    private static bool ci;
     private static readonly ExecutionPolicy Policy = new() { PreferredMode = ExecutionMode.RequestPermission, EffectiveMode = ExecutionMode.RequestPermission, ExecutorKind = ExecutorKind.Host, SandboxNetworking = false };
 
-    public static async Task<int> Main()
+    public static async Task<int> Main(string[] args)
     {
         Directory.CreateDirectory(Root);
         try
         {
             using var assets = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "assets.synthetic.json")));
             png = Convert.FromBase64String(assets.RootElement.GetProperty("assets")[0].GetProperty("base64").GetString()!);
+            ci = args.Contains("--ci", StringComparer.Ordinal);
+            if (ci)
+            {
+                await ModelContentChecks();
+                await OptionalFields();
+                await BatchedTools();
+                await MessagesThinkingContinuation();
+                await ProtectedRegrading();
+                await FailureRetainsSaved();
+                await CancelLateModelResult();
+                await FinishMustBeLast();
+                Console.WriteLine($"Grading integration: {checks} checks passed. Synthetic temporary libraries only: {Root}");
+                return 0;
+            }
             ModelProfileChecks.Run(Check);
             await ModelContentChecks();
             await ModelProfilesAtTaskStart();
@@ -156,7 +171,7 @@ internal static partial class Program
 
     private static async Task BatchedTools()
     {
-        foreach (var protocol in Enum.GetValues<Protocol>())
+        foreach (var protocol in ci ? [Protocol.Responses] : Enum.GetValues<Protocol>())
         {
             await using var fixture = await Fixture.Create(ImportMode.TeacherGraded, protocol, materialPages: 2);
             var first = Question(fixture.Document, reference: false);

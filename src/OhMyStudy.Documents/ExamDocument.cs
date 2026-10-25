@@ -32,7 +32,8 @@ internal static class ExamMediaWidth
     }
 }
 public sealed record ExamPart(string Label, IReadOnlyList<ExamSegment> Body, string? Answer = null, double BlankMillimetres = 12,
-    string? Explanation = null, IReadOnlyList<string>? Options = null, IReadOnlyList<ExamPart>? Parts = null);
+    string? Explanation = null, IReadOnlyList<string>? Options = null, IReadOnlyList<ExamPart>? Parts = null,
+    double? Points = null, string QuestionType = "");
 public sealed record ExamQuestion(
     int Number,
     IReadOnlyList<ExamSegment> Body,
@@ -41,8 +42,12 @@ public sealed record ExamQuestion(
     string? StudentAttempt = null,
     IReadOnlyList<string>? Options = null,
     IReadOnlyList<ExamPart>? Parts = null,
-    double BlankMillimetres = 12);
-public sealed record ExamDocument(string Title, IReadOnlyList<ExamQuestion> Questions);
+    double BlankMillimetres = 12,
+    double? Points = null,
+    string QuestionType = "");
+public sealed record ExamPrintLabels(string Class = "Class", string Name = "Name", string StudentNumber = "Student no.",
+    string Points = "({0:g} points)", string Answers = "Answers and explanations");
+public sealed record ExamDocument(string Title, IReadOnlyList<ExamQuestion> Questions, ExamPrintLabels? Labels = null);
 
 public sealed record TypesettingDiagnostic(int QuestionNumber, string Source, string Message);
 public sealed record ExamExportResult(string PdfPath, string SourcePath, IReadOnlyList<TypesettingDiagnostic> Diagnostics);

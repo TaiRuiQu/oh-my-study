@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Printing;
 using OhMyStudy.App.Services;
+using OhMyStudy.App.Diagnostics;
 using OhMyStudy.Documents;
 using OhMyStudy.Domain;
 using Windows.Foundation;
@@ -38,6 +39,16 @@ public sealed partial class MainWindow
             var paper = new ComboBox { Header = UiText.Get("Paper size"), SelectedIndex = 0, Items = { UiText.Get("A4 portrait"), UiText.Get("A3 landscape") }, HorizontalAlignment = HorizontalAlignment.Stretch };
             var columns = new ComboBox { Header = UiText.Get("Columns"), SelectedIndex = 0, Items = { "1", "2", "3", "4" }, HorizontalAlignment = HorizontalAlignment.Stretch };
             var edition = new ComboBox { Header = UiText.Get("Content"), SelectedIndex = 0, Items = { UiText.Get("Questions"), UiText.Get("Answers and explanations") }, HorizontalAlignment = HorizontalAlignment.Stretch };
+            var answerSpace = new CheckBox { Content = UiText.Get("Include answer space"), IsChecked = false };
+            var distributeSpace = new CheckBox { Content = UiText.Get("Distribute remaining space evenly"), IsChecked = false, IsEnabled = false };
+            void UpdateAnswerSpaceOptions()
+            {
+                answerSpace.IsEnabled = edition.SelectedIndex == 0;
+                distributeSpace.IsEnabled = answerSpace.IsEnabled && answerSpace.IsChecked == true;
+            }
+            edition.SelectionChanged += (_, _) => UpdateAnswerSpaceOptions();
+            answerSpace.Checked += (_, _) => UpdateAnswerSpaceOptions();
+            answerSpace.Unchecked += (_, _) => UpdateAnswerSpaceOptions();
             bool columnsExplicit = false, settingDefault = false;
             columns.SelectionChanged += (_, _) => { if (!settingDefault) columnsExplicit = true; };
             paper.SelectionChanged += (_, _) =>
@@ -50,11 +61,17 @@ public sealed partial class MainWindow
             var content = new StackPanel { Spacing = 12 };
             content.Children.Add(new TextBlock { Text = UiText.Format("Export currently displayed questions: {0}.", saved.Count), TextWrapping = TextWrapping.Wrap });
             content.Children.Add(paper); content.Children.Add(columns); content.Children.Add(edition);
+            content.Children.Add(answerSpace);
+            content.Children.Add(distributeSpace);
             var dialog = new ContentDialog { XamlRoot = RootGrid.XamlRoot, Title = UiText.Get("Export questions"), Content = content, PrimaryButtonText = UiText.Get("Continue"), CloseButtonText = UiText.Get("Cancel"), DefaultButton = ContentDialogButton.Primary };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
             var size = paper.SelectedIndex == 1 ? ExamPaper.A3Landscape : ExamPaper.A4Portrait;
             var columnCount = columns.SelectedIndex switch { 1 => ExamColumns.Two, 2 => ExamColumns.Three, 3 => ExamColumns.Four, _ => ExamColumns.One };
             var version = edition.SelectedIndex == 1 ? ExamEdition.Answers : ExamEdition.Questions;
+            bool includeAnswerSpace = version == ExamEdition.Questions && answerSpace.IsChecked == true;
+            bool distributeAnswerSpace = includeAnswerSpace && distributeSpace.IsChecked == true;
+            var printLabels = new ExamPrintLabels(UiText.Get("Class"), UiText.Get("Name"), UiText.Get("Student no."),
+                UiText.Get("({0:g} points)"), UiText.Get("Answers and explanations"));
             if (version == ExamEdition.Questions && saved.Any(item => ContainsHandwrittenImage(item.Question)))
             { ViewModel.StatusMessage = UiText.Get("Some question images contain handwriting. Replace them with clean images before exporting a question paper."); return; }
             var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = UiText.Get("Questions") };
@@ -75,25 +92,26 @@ public sealed partial class MainWindow
                 {
                     var question = saved[index].Question;
                     var body = await ExportSegmentsAsync(question.Stem, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false);
-                    body.Insert(0, new ExamSegment(UiText.Format("Original question number: {0}", question.Number) + (question.Points is { } points ? UiText.Format(" ({0:g} points)", points) : "")));
                     if (question.Items is [var only])
                     {
                         body.AddRange(await ExportSegmentsAsync(only.Prompt, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false));
-                        questions.Add(new ExamQuestion(index + 1, body, only.Answer, only.Explanation, Options: only.Options));
+                        questions.Add(new ExamQuestion(index + 1, body, only.Answer, only.Explanation, Options: only.Options,
+                            Points: question.Points, QuestionType: question.QuestionType));
                         continue;
                     }
                     var parts = new List<ExamPart>();
                     foreach (var item in question.Items)
                         parts.Add(new ExamPart(item.Label, await ExportSegmentsAsync(item.Prompt, library, pages, reader, imageBudget, _lifetime.Token).ConfigureAwait(false), item.Answer,
-                            Explanation: item.Explanation, Options: item.Options));
-                    questions.Add(new ExamQuestion(index + 1, body, Parts: parts));
+                            Explanation: item.Explanation, Options: item.Options, Points: item.Points));
+                    questions.Add(new ExamQuestion(index + 1, body, Parts: parts, Points: question.Points, QuestionType: question.QuestionType));
                 }
-                var document = new ExamDocument(title, questions);
+                var document = new ExamDocument(title, questions, printLabels);
                 var service = new TypstDocumentService(new(Path.Combine(AppContext.BaseDirectory, "native", "typst", "typst.exe")));
                 var directory = Directory.CreateTempSubdirectory("OhMyStudy-Export-").FullName;
                 try
                 {
-                    var result = await service.ExportExamAsync(document, size, version, directory, _lifetime.Token, columns: columnCount).ConfigureAwait(false);
+                    var result = await service.ExportExamAsync(document, size, version, directory, _lifetime.Token,
+                        columns: columnCount, includeAnswerSpace: includeAnswerSpace, distributeAnswerSpace: distributeAnswerSpace).ConfigureAwait(false);
                     fallbackCount = result.Diagnostics.Count;
                     return await File.ReadAllBytesAsync(result.PdfPath, _lifetime.Token).ConfigureAwait(false);
                 }
@@ -107,9 +125,9 @@ public sealed partial class MainWindow
         catch (OperationCanceledException) { if (!_closed) ViewModel.StatusMessage = UiText.Get("Export canceled."); }
         catch (InvalidDataException error) when (error.Message.Contains("question image", StringComparison.OrdinalIgnoreCase)
             || error.Message == UiText.Get("The source of a question image no longer exists.") || error.Message == UiText.Get("Question images exceed the limit. Export in smaller batches."))
-        { if (!_closed) ViewModel.StatusMessage = UiText.Get(error.Message); }
-        catch (ArgumentException) { if (!_closed) ViewModel.StatusMessage = UiText.Get("Question content or image regions exceed export limits. Check and export in smaller batches."); }
-        catch { if (!_closed) ViewModel.StatusMessage = UiText.Get("Export failed. Check the destination or reinstall the app and retry."); }
+        { AppLog.Error("Export.Questions", error); if (!_closed) ViewModel.StatusMessage = UiText.Get(error.Message); }
+        catch (ArgumentException error) { AppLog.Error("Export.Questions", error); if (!_closed) ViewModel.StatusMessage = UiText.Get("Question content or image regions exceed export limits. Check and export in smaller batches."); }
+        catch (Exception error) { AppLog.Error("Export.Questions", error); if (!_closed) ViewModel.StatusMessage = UiText.Get("Export failed. Check the destination or reinstall the app and retry."); }
         finally { _exportingQuestions = false; }
     }
 

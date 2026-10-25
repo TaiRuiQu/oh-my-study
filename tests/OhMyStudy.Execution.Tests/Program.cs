@@ -13,8 +13,20 @@ Directory.CreateDirectory(output);
 var root = Path.Combine(output, "合成 任务 " + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(root);
 var results = new List<CheckResult>();
+bool ci = args.Contains("--ci", StringComparer.Ordinal);
+HashSet<string> ciCases = new(StringComparer.Ordinal)
+{
+    "native-aot", "permission-binding-consumption-and-revocation", "queue-serial-and-event-order",
+    "cancel-late-write-and-queue-slot", "permission-pause-and-denial", "retry-starts-a-fresh-task-after-cleanup",
+    "restart-interrupts-and-storage-failure-stops", "process-unicode-argv-environment-and-failure",
+    "process-timeout-cancel-output-limit", "normal-root-exit-cleans-descendant",
+    "appcontainer-token-files-environment-and-network-False", "appcontainer-token-files-environment-and-network-True",
+    "appcontainer-timeout-cancellation-and-descendant-cleanup", "private-python-computation",
+    "python-notebook-session-Sandbox", "sandbox-worker-isolated-host-computation"
+};
 async Task Check(string name, Func<Task> test)
 {
+    if (ci && !ciCases.Contains(name)) return;
     try { await test(); results.Add(new(name, true, null)); }
     catch (Exception error) { results.Add(new(name, false, error.GetType().Name + ": " + error.Message)); Console.Error.WriteLine(error); }
     Console.WriteLine($"{(results[^1].Passed ? "PASS" : "FAIL")} {name}: {results[^1].Error}");

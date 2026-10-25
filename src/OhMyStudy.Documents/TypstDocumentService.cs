@@ -43,7 +43,8 @@ public sealed partial class TypstDocumentService
     }
 
     public async Task<ExamExportResult> ExportExamAsync(ExamDocument document, ExamPaper paper, ExamEdition edition,
-        string outputDirectory, CancellationToken cancellationToken = default, ExamColumns columns = ExamColumns.Default)
+        string outputDirectory, CancellationToken cancellationToken = default, ExamColumns columns = ExamColumns.Default,
+        bool includeAnswerSpace = false, bool distributeAnswerSpace = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (document.Questions.Count is 0 or > 500) throw new ArgumentOutOfRangeException(nameof(document), "The question count must be between 1 and 500. ");
@@ -64,16 +65,21 @@ public sealed partial class TypstDocumentService
         var name = (paper == ExamPaper.A3Landscape ? "a3-" : "a4-") + (edition == ExamEdition.Questions ? "questions" : "answers");
         var sourcePath = Path.Combine(directory, name + ".typ");
         var diagnostics = new List<TypesettingDiagnostic>();
-        var source = new StringBuilder("// Fixed native document template; no eval, import or user-selected paths.\n");
+        var source = new StringBuilder();
+        var labels = document.Labels ?? new ExamPrintLabels();
         source.Append(PrintFontTemplate);
         source.Append("#set document(title: ").Append(Quote(document.Title)).Append(", author: \"Oh My Study\")\n");
+        source.Append(BuildHeader(labels));
         source.Append("#set page(paper: \"").Append(paper == ExamPaper.A3Landscape ? "a3" : "a4")
             .Append("\", flipped: ").Append(paper == ExamPaper.A3Landscape ? "true" : "false")
-            .Append(", margin: (x: 17mm, top: 18mm, bottom: 17mm), footer: context align(center, text(size: 9pt)[#counter(page).display(\"1 / 1\", both: true)]))\n");
-        source.Append("#set par(leading: 0.75em, spacing: 0.65em)\n");
+            .Append(", margin: (x: 17mm, top: 25mm, bottom: 17mm), header: exam-header, header-ascent: 5mm, footer: context align(center, text(size: 9pt)[#counter(page).display(\"1 / 1\", both: true)]))\n");
+        source.Append("#set text(top-edge: 0.88em, bottom-edge: 0.32em)\n#set par(leading: 0.35em, spacing: 0pt, first-line-indent: 0pt)\n#set block(above: 0pt, below: 0pt)\n");
+        source.Append(ExamLayoutTemplate);
         source.Append("#let fit-formula(pic, original) = layout(size => { if measure(pic).width > size.width { block(breakable: true)[#text(size: 9pt, \"The formula exceeds the column width. Original formula:\") #linebreak() #text(original)] } else { align(center, pic) } })\n");
         source.Append("#align(center, text(size: 18pt, weight: \"bold\", ").Append(Quote(document.Title)).Append("))\n");
-        source.Append("#align(center, text(size: 10pt, ").Append(Quote(edition == ExamEdition.Questions ? "Questions · Name: ____________  Date: ____________" : "Answers and explanations")).Append("))\n#v(4mm)\n");
+        if (edition == ExamEdition.Answers)
+            source.Append("#align(center, text(size: 10pt, ").Append(Quote(labels.Answers)).Append("))\n");
+        source.Append("#v(4mm)\n");
         if (columnCount > 1) source.Append("#columns(").Append(columnCount).Append(", gutter: 12mm)[\n");
         long totalText = document.Title.Length;
         int nodes = 0;
@@ -82,31 +88,90 @@ public sealed partial class TypstDocumentService
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (question.Number < 1) throw new ArgumentException("Question numbers must be positive integers. ", nameof(document));
-            source.Append("#block(sticky: true, above: 3mm, below: 1mm)[#strong[").Append(question.Number).Append(".]]\n");
-            AppendSegments(source, question.Body, diagnostics, question.Number, assets, ref totalText);
+            source.Append("#v(2.4mm, weak: true)\n");
+            string prefix = question.Number.ToString(CultureInfo.InvariantCulture) + ". " + FormatPoints(question.Points, labels);
+            bool writingSpace = edition == ExamEdition.Questions && includeAnswerSpace && question.Parts is not { Count: > 0 };
+            double blank = writingSpace ? ExamAnswerSpace.HeightMillimetres(question.Answer, question.Points, question.QuestionType,
+                question.Options is { Count: > 0 }, columnWidthMillimetres, question.BlankMillimetres) : 0;
+            AppendSegments(source, question.Body, diagnostics, question.Number, assets, ref totalText, prefix, blank > 0);
             AppendOptions(source, question.Options, diagnostics, question.Number, assets, ref totalText);
             if (edition == ExamEdition.Answers)
             {
-                // Neither StudentAttempt nor question-edition answer/explanation fields are read.
                 AppendTextBlock(source, "Answer: " + (question.Answer ?? "Not provided"), diagnostics, question.Number, assets, ref totalText);
                 if (question.Explanation is { Length: > 0 }) AppendTextBlock(source, "Explanation: " + question.Explanation, diagnostics, question.Number, assets, ref totalText);
             }
-            AppendParts(source, question.Parts, question.Number.ToString(CultureInfo.InvariantCulture), 0,
-                edition, diagnostics, question.Number, assets, ref totalText, ref nodes, cancellationToken);
-            if (edition == ExamEdition.Questions) AppendBlank(source, question.BlankMillimetres);
+            AppendParts(source, question.Parts, 0, edition, includeAnswerSpace, labels, question.QuestionType,
+                diagnostics, question.Number, assets, ref totalText, ref nodes, cancellationToken);
+            if (blank > 0) AppendBlank(source, blank, assets);
         }
         if (columnCount > 1) source.Append("]\n");
         if (totalText > 1_000_000) throw new ArgumentException("Exam text exceeds the limit. ", nameof(document));
+        source.Insert(0, "#let exam-extra = (:)\n");
         await File.WriteAllTextAsync(sourcePath, source.ToString(), new UTF8Encoding(false), cancellationToken);
+        if (includeAnswerSpace && distributeAnswerSpace && edition == ExamEdition.Questions && assets.BlankCount > 0)
+        {
+            string extras = await MeasureAnswerSpaceAsync(sourcePath, columnWidthMillimetres, columnCount, cancellationToken);
+            source.Replace("#let exam-extra = (:)\n", extras);
+            await File.WriteAllTextAsync(sourcePath, source.ToString(), new UTF8Encoding(false), cancellationToken);
+        }
         var pdf = Path.Combine(directory, name + ".pdf");
         await CompileAsync(sourcePath, pdf, cancellationToken);
         return new(pdf, sourcePath, diagnostics);
     }
 
-    private static void AppendBlank(StringBuilder source, double millimetres)
+    private static string BuildHeader(ExamPrintLabels labels)
+    {
+        var source = new StringBuilder("#let exam-header = text(size: 11pt)[#grid(columns: (auto, 1fr, auto, 1fr, auto, 1fr), column-gutter: 2mm, align: bottom,\n");
+        foreach (string label in new[] { labels.Class, labels.Name, labels.StudentNumber })
+            source.Append("[#text(").Append(Quote(label + ": ")).Append(")], [#box(width: 100%, height: 5mm, stroke: (bottom: 0.5pt))[]],\n");
+        return source.Append(")]\n").ToString();
+    }
+
+    private static string FormatPoints(double? points, ExamPrintLabels labels)
+    {
+        if (points is not { } value) return "";
+        if (!double.IsFinite(value) || value < 0) throw new ArgumentOutOfRangeException(nameof(points));
+        return string.Format(CultureInfo.InvariantCulture, labels.Points, value) + " ";
+    }
+
+    private const string ExamLayoutTemplate = """
+        #let exam-mark(kind, id: -1) = block(height: 0pt, sticky: kind != "blank")[#set text(size: 0pt, top-edge: 0pt, bottom-edge: 0pt)
+          #context {
+            let position = here().position()
+            [#metadata((kind: kind, id: id, page: position.page, x: position.x / 1pt, y: position.y / 1pt))<exam-layout>]
+          }
+        ]
+        #let exam-options(options) = block(breakable: true, layout(size => {
+          let gap = 3mm
+          let widths = options.map(option => measure(option).width)
+          let tracks = (1fr,)
+          if options.len() == 4 and widths.sum() + 3 * gap <= size.width {
+            let extra = (size.width - 3 * gap - widths.sum()) / 4
+            tracks = widths.map(width => width + extra)
+          } else if options.len() >= 2 {
+            let left = 0pt
+            let right = 0pt
+            for (index, width) in widths.enumerate() {
+              if calc.rem(index, 2) == 0 { left = calc.max(left, width) }
+              else { right = calc.max(right, width) }
+            }
+            if left + gap + right <= size.width {
+              let extra = (size.width - gap - left - right) / 2
+              tracks = (left + extra, right + extra)
+            }
+          }
+          grid(columns: tracks, column-gutter: gap, row-gutter: 4pt, align: horizon, ..options.map(option => block(inset: (bottom: 2pt), option)))
+        }))
+
+        """;
+
+    private static void AppendBlank(StringBuilder source, double millimetres, ExportAssets assets)
     {
         if (!double.IsFinite(millimetres) || millimetres < 0 || millimetres > 100) throw new ArgumentOutOfRangeException(nameof(millimetres));
-        source.Append("\n#v(").Append(millimetres.ToString(CultureInfo.InvariantCulture)).Append("mm)\n");
+        int id = assets.BlankCount++;
+        source.Append("#block(height: ").Append(millimetres.ToString(CultureInfo.InvariantCulture))
+            .Append("mm + exam-extra.at(\"").Append(id).Append("\", default: 0pt), breakable: false)[]\n")
+            .Append("#exam-mark(\"blank\", id: ").Append(id).Append(")\n");
     }
 
     private static void CountText(string text, ref long total)
@@ -116,37 +181,51 @@ public sealed partial class TypstDocumentService
         if (total > 1_000_000) throw new ArgumentException("Exam text exceeds the limit. ", nameof(text));
     }
 
-    private static void AppendParts(StringBuilder source, IReadOnlyList<ExamPart>? parts, string parent, int depth,
-        ExamEdition edition, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets,
+    private static void AppendParts(StringBuilder source, IReadOnlyList<ExamPart>? parts, int depth,
+        ExamEdition edition, bool includeAnswerSpace, ExamPrintLabels labels, string questionType,
+        List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets,
         ref long total, ref int nodes, CancellationToken cancellationToken)
     {
         if (parts is null) return;
         if (depth >= 32 || parts.Count > 100) throw new ArgumentException("The depth or number of question parts exceeds the limit.");
-        foreach (var part in parts)
+        for (int index = 0; index < parts.Count; index++)
         {
+            var part = parts[index];
             cancellationToken.ThrowIfCancellationRequested();
             if (++nodes > 10_000) throw new ArgumentException("The exam has too many question parts.");
-            string label = parent + " / " + part.Label;
-            CountText(label, ref total);
-            source.Append("#block(sticky: true, above: 2mm)[#strong[#text(").Append(Quote(label)).Append(")]]\n");
-            AppendSegments(source, part.Body, diagnostics, question, assets, ref total);
+            CountText(part.Label, ref total);
+            string type = part.QuestionType.Length > 0 ? part.QuestionType : questionType;
+            double blank = edition == ExamEdition.Questions && includeAnswerSpace && part.Parts is not { Count: > 0 }
+                ? ExamAnswerSpace.HeightMillimetres(part.Answer, part.Points, type, part.Options is { Count: > 0 },
+                    assets.ColumnWidthMillimetres, part.BlankMillimetres) : 0;
+            string prefix = "（" + (index + 1).ToString(CultureInfo.InvariantCulture) + "） ";
+            AppendSegments(source, part.Body, diagnostics, question, assets, ref total, prefix, blank > 0, FormatPoints(part.Points, labels).TrimEnd());
             AppendOptions(source, part.Options, diagnostics, question, assets, ref total);
             if (edition == ExamEdition.Answers)
             {
                 AppendTextBlock(source, "Answer: " + (part.Answer ?? "Not provided"), diagnostics, question, assets, ref total);
                 if (part.Explanation is { Length: > 0 }) AppendTextBlock(source, "Explanation: " + part.Explanation, diagnostics, question, assets, ref total);
             }
-            else AppendBlank(source, part.BlankMillimetres);
-            AppendParts(source, part.Parts, label, depth + 1, edition, diagnostics, question, assets, ref total, ref nodes, cancellationToken);
+            else if (blank > 0) AppendBlank(source, blank, assets);
+            AppendParts(source, part.Parts, depth + 1, edition, includeAnswerSpace, labels, type,
+                diagnostics, question, assets, ref total, ref nodes, cancellationToken);
         }
     }
 
     private static void AppendOptions(StringBuilder source, IReadOnlyList<string>? options,
         List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
     {
-        if (options is null) return;
+        if (options is not { Count: > 0 }) return;
         if (options.Count > 100) throw new ArgumentException("Too many options.");
-        foreach (var option in options) AppendTextBlock(source, option, diagnostics, question, assets, ref total);
+        source.Append("#exam-mark(\"start\")\n#exam-options((\n");
+        foreach (var option in options)
+        {
+            CountText(option, ref total);
+            source.Append('[');
+            AppendRichText(source, option, diagnostics, question, assets);
+            source.Append("],\n");
+        }
+        source.Append("))\n#exam-mark(\"end\")\n");
     }
 
     private static void AppendLiteral(StringBuilder source, string text, DocumentFont font = DocumentFont.Serif)
@@ -161,17 +240,23 @@ public sealed partial class TypstDocumentService
         source.Append("#text(font: ").Append(Quote(family)).Append(", ").Append(Quote(DocumentText.AllowWrap(text))).Append(")");
     }
 
-    private static void AppendTextBlock(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
+    private static void AppendTextBlock(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question,
+        ExportAssets assets, ref long total, string? prefix = null, bool sticky = false)
     {
         CountText(text, ref total);
-        // Blocks can break across a page/column. Formula delimiters share the preview converter.
-        source.Append("#block(breakable: true)[");
+        source.Append("#block(breakable: true, inset: (bottom: 3.5pt), sticky: ").Append(sticky ? "true" : "false").Append(")[");
+        if (prefix is not null) { source.Append("#strong["); AppendLiteral(source, prefix); source.Append(']'); }
+        AppendRichText(source, text, diagnostics, question, assets);
+        source.Append("]\n");
+    }
+
+    private static void AppendRichText(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets)
+    {
         foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(text)))
         {
             if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, font: run.Font);
             else AppendLiteral(source, run.Text, run.Font);
         }
-        source.Append("]\n");
     }
 
     private static void AppendFormula(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets,
@@ -198,13 +283,22 @@ public sealed partial class TypstDocumentService
     }
 
     private static void AppendSegments(StringBuilder source, IReadOnlyList<ExamSegment> segments,
-        List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total)
+        List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets, ref long total,
+        string? prefix = null, bool stickLast = false, string? suffix = null)
     {
         if (segments.Count > 1000) throw new ArgumentException("Too many segments in one question. ", nameof(segments));
-        foreach (var segment in segments)
+        if (segments.Count == 0) AppendTextBlock(source, suffix ?? "", diagnostics, question, assets, ref total, prefix, true);
+        for (int index = 0; index < segments.Count; index++)
         {
+            var segment = segments[index];
+            source.Append("#exam-mark(\"start\")\n");
             int kinds = (segment.Rows is null ? 0 : 1) + (segment.Image is null ? 0 : 1) + (segment.Mermaid is null ? 0 : 1);
             if (kinds > 1 || kinds == 1 && (segment.IsFormula || segment.Text.Length != 0)) throw new ArgumentException("The question segment type is ambiguous.");
+            if (index == 0 && (kinds != 0 || segment.IsFormula))
+            {
+                AppendTextBlock(source, suffix ?? "", diagnostics, question, assets, ref total, prefix, true);
+                prefix = null;
+            }
             if (segment.Rows is { } rows) AppendTable(source, rows, diagnostics, question, assets, ref total);
             else if (segment.Image is { } image)
             {
@@ -222,7 +316,9 @@ public sealed partial class TypstDocumentService
                 CountText(segment.Text, ref total);
                 AppendFormula(source, segment.Text, diagnostics, question, assets, true);
             }
-            else AppendTextBlock(source, segment.Text, diagnostics, question, assets, ref total);
+            else AppendTextBlock(source, segment.Text + (index == 0 && suffix is { Length: > 0 } ? " " + suffix : ""), diagnostics, question, assets, ref total,
+                index == 0 ? prefix : null, stickLast && index == segments.Count - 1);
+            source.Append("#exam-mark(\"end\")\n");
         }
     }
 
@@ -291,6 +387,7 @@ public sealed partial class TypstDocumentService
         internal double FullWidthMillimetres { get; } = fullWidthMillimetres;
         internal double ColumnWidthMillimetres { get; } = columnWidthMillimetres;
         internal int ColumnCount { get; } = columnCount;
+        internal int BlankCount { get; set; }
         private readonly HashSet<string> written = new(StringComparer.Ordinal);
         private long bytes;
         private readonly Dictionary<(string, bool), (FormulaSvg? Formula, string? Diagnostic)> formulas = [];
@@ -457,13 +554,13 @@ public sealed partial class TypstDocumentService
         }
     }
 
-    private static async Task<string> ReadLimitedAsync(StreamReader stream, CancellationToken cancellationToken)
+    private static async Task<string> ReadLimitedAsync(StreamReader stream, CancellationToken cancellationToken, int limit = 65_536)
     {
         var result = new StringBuilder();
         var buffer = new char[2048];
         int count;
         while ((count = await stream.ReadAsync(buffer.AsMemory(), cancellationToken)) > 0)
-            if (result.Length < 65_536) result.Append(buffer, 0, Math.Min(count, 65_536 - result.Length));
+            if (result.Length < limit) result.Append(buffer, 0, Math.Min(count, limit - result.Length));
         return result.ToString();
     }
 }

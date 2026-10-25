@@ -70,6 +70,8 @@ jobs:
           path: |
             output/migration/runs/**
             output/ci/velopack-regression.json
+            output/ci/test-budget.json
+            output/ci/packaging-test-counts.json
             output/ci/velopack-regression-*/**/*.log
             !output/migration/runs/**/publish/**
           if-no-files-found: ignore

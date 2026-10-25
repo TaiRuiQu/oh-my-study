@@ -15,6 +15,15 @@ function Invoke-Dotnet([string[]]$Arguments) {
     & dotnet @Arguments
     if ($LASTEXITCODE -ne 0) { throw "dotnet exited with $LASTEXITCODE" }
 }
+function Invoke-CountedCheck([string]$Name, [scriptblock]$Action) {
+    $lines = @(& $Action 2>&1)
+    $lines | Out-Host
+    $text = $lines -join "`n"
+    $count = 1
+    if ($text -match '(?:# tests|ℹ tests)\s+(\d+)') { $count = [int]$Matches[1] }
+    elseif ($text -match 'Ran (\d+) tests?') { $count = [int]$Matches[1] }
+    return [ordered]@{ name=$Name; testCount=$count }
+}
 try {
     Set-Location -LiteralPath $workspace
     $env:DOTNET_CLI_HOME = Join-Path $workspace 'output/migration/dotnet-home'
@@ -29,6 +38,7 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Workflow lint failed' }
         }
         'Checks' {
+            $checkCounts = [Collections.Generic.List[object]]::new()
             & (Join-Path $PSScriptRoot 'Test-RepositoryLayout.ps1')
             foreach ($root in @('packaging','probes','.github')) {
                 foreach ($file in Get-ChildItem -LiteralPath $root -Recurse -Filter '*.ps1' -File) {
@@ -46,23 +56,23 @@ try {
                     $json = [Text.Json.JsonDocument]::Parse($text); $json.Dispose()
                 } else { $null = [xml]$text }
             }
-            & (Join-Path $PSScriptRoot 'tests/Test-CIRelease.ps1')
-            & (Join-Path $PSScriptRoot 'tests/Test-VelopackBaseline.ps1')
-            & (Join-Path $PSScriptRoot 'tests/Test-ReleasePayload.ps1')
-            & (Join-Path $PSScriptRoot 'tests/Test-VelopackManifest.ps1')
-            & (Join-Path $PSScriptRoot 'tests/Test-ScannerAssets.ps1')
-            & (Join-Path $PSScriptRoot 'tests/Test-PhoneCaptureMobile.ps1')
+            foreach ($name in @('CIRelease','VelopackBaseline','ReleasePayload','VelopackManifest','ScannerAssets','PhoneCaptureMobile')) {
+                $checkCounts.Add((Invoke-CountedCheck $name { & (Join-Path $PSScriptRoot "tests/Test-$name.ps1") }))
+            }
             $docresPython = Join-Path $workspace 'output/migration/toolchain/runtime/python/python.exe'
             if (-not (Test-Path -LiteralPath $docresPython -PathType Leaf)) {
                 $found = Get-Command python -ErrorAction SilentlyContinue
                 if (-not $found) { throw 'Python is required to check DocRes install archive cleanup. Prepare the private runtime or install Python.' }
                 $docresPython = $found.Source
             }
-            & $docresPython (Join-Path $PSScriptRoot 'tests/Test-DocResInstall.py')
-            if ($LASTEXITCODE -ne 0) { throw 'DocRes install archive cleanup check failed' }
-            & $docresPython (Join-Path $PSScriptRoot 'tests/Test-DocResPipeline.py')
-            if ($LASTEXITCODE -ne 0) { throw 'DocRes optional task pipeline check failed' }
+            foreach ($name in @('DocResInstall','DocResPipeline')) {
+                $checkCounts.Add((Invoke-CountedCheck $name {
+                    & $docresPython (Join-Path $PSScriptRoot "tests/Test-$name.py")
+                    if ($LASTEXITCODE -ne 0) { throw "$name check failed" }
+                }))
+            }
             Invoke-Dotnet @('build','OhMyStudy.slnx','-c','Release','--no-restore','-warnaserror')
+            $checkCounts | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $workspace 'output/ci/packaging-test-counts.json') -Encoding utf8
         }
         'Test' {
             & (Join-Path $PSScriptRoot 'Invoke-MigrationChecks.ps1') -SkipApp -NoRestore -ManagedSdkTests:(!$FullValidation)
@@ -71,9 +81,21 @@ try {
                 if (-not @($report.checks | Where-Object { $_.name -eq $name -and $_.status -eq 'passed' }).Count) { throw "Required test suite did not pass: $name" }
             }
             if (@($report.notRun | Where-Object { $_ -like 'execution:*' }).Count) { throw 'Private computation runtime test was skipped' }
+            $installerCount = 0
             if ($FullValidation) {
                 & (Join-Path $PSScriptRoot 'tests/Test-VelopackInstaller.ps1') -ReportFile (Join-Path $workspace 'output/ci/velopack-regression.json')
+                $installerCount = @((Get-Content -LiteralPath (Join-Path $workspace 'output/ci/velopack-regression.json') -Raw | ConvertFrom-Json).checks).Count
             }
+            $packaging = @()
+            $packagingReport = Join-Path $workspace 'output/ci/packaging-test-counts.json'
+            if (Test-Path -LiteralPath $packagingReport) { $packaging = @(Get-Content -LiteralPath $packagingReport -Raw | ConvertFrom-Json) }
+            $packagingCount = ($packaging | Measure-Object -Property testCount -Sum).Sum
+            $total = [int]$report.testCount + [int]$packagingCount + $installerCount
+            [ordered]@{ limit=300; total=$total; regressions=$report.testCount; packaging=$packaging; installer=$installerCount } |
+                ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $workspace 'output/ci/test-budget.json') -Encoding utf8
+            if ($total -gt 300) { throw "Complete CI test budget exceeded: $total > 300" }
+            Write-Host "PASS complete CI test budget: $total / 300"
+            if ($env:GITHUB_STEP_SUMMARY) { Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Complete CI: $total tests (limit 300). Regression: $($report.testCount); packaging: $packagingCount; installer: $installerCount." }
         }
         'Build' {
             $releaseOutput=Join-Path $workspace ('output/releases/'+$Variant)

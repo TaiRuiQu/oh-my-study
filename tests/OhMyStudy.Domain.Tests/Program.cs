@@ -15,9 +15,21 @@ internal sealed class CompatibilitySuite
     private readonly JsonObject _cases = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures/cases.synthetic.json")))!.AsObject();
     private readonly JsonArray _results = [];
     private int _failed;
+    private bool _ci;
+    private static readonly HashSet<string> CiCases = new(StringComparer.Ordinal)
+    {
+        "unknown_question_field_is_rejected", "missing_optional_question_fields_default_empty", "u64_overflow",
+        "correct_exact", "partial_positive_below_possible", "earned_exceeds_possible", "unknown_scores_do_not_become_zero",
+        "outside_end_tolerance", "blank_requires_null_attempt", "answered_requires_attempt", "wrong_view_includes_partial",
+        "sandbox_ready", "sandbox_unsupported", "exact_serde_utf8", "source_generated_context_only",
+        "required_scalars_and_null_collections_rejected", "null_collection_elements_and_duplicate_fields_rejected",
+        "dto_roundtrips", "complete", "missing_page", "unviewed", "nonfinite_rejected",
+        "teacher_priority_and_evidence", "reference_cannot_be_bypassed", "derived_totals_and_outcome"
+    };
 
     public int Run(string[] args)
     {
+        _ci = args.Contains("--ci", StringComparer.Ordinal);
         using var process = Process.GetCurrentProcess();
         bool coreClrLoaded = process.Modules.Cast<ProcessModule>().Any(m => string.Equals(m.ModuleName, "coreclr.dll", StringComparison.OrdinalIgnoreCase));
         bool nativeAot = !RuntimeFeature.IsDynamicCodeSupported && !coreClrLoaded;
@@ -56,6 +68,7 @@ internal sealed class CompatibilitySuite
 
     private void Check(string group, string id, Action action)
     {
+        if (_ci && group is not ("localization" or "layout") && !CiCases.Contains(id)) return;
         try
         {
             action();

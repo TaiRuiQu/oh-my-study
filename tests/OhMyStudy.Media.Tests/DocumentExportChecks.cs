@@ -6,6 +6,29 @@ internal static class DocumentExportChecks
 {
     internal static async Task RunAsync(Func<string, Func<Task>, Task> check)
     {
+        await check("exam_answer_space", () =>
+        {
+            double Height(string? answer = null, double? points = null, string type = "", bool options = false, double width = 176)
+                => ExamAnswerSpace.HeightMillimetres(answer, points, type, options, width);
+            Assert(Height(options: true) == 0);
+            foreach (string type in new[] { "单项选择题", "多项选择题", "填空题", "Multiple-choice", "Fill_in_the_blank" })
+                Assert(Height(type: type) == 0);
+            Assert(Height() >= 14);
+            Assert(Height(points: 12) > Height(points: 4));
+            Assert(Height(new string('解', 160)) > Height("解"));
+            Assert(Height("a\nb\nc\nd") > Height("abcd"));
+            Assert(Height(new string('解', 160), width: 70) > Height(new string('解', 160)));
+            Assert(Height(new string('解', 32000), 1000) == 98);
+            Assert(ExamAnswerSpace.HeightMillimetres("", 1, "计算题", false, 176, 35) == 35);
+            foreach (double value in new[] { double.NaN, double.PositiveInfinity, -1 })
+            {
+                bool rejected = false;
+                try { Height(points: value); }
+                catch (ArgumentOutOfRangeException) { rejected = true; }
+                Assert(rejected);
+            }
+            return Task.CompletedTask;
+        });
         await check("document_font_directives", () =>
         {
             string source = "{font:sans}甲 $x^2$ 乙{/font} {font:kai}丙{/font} {font:bad}丁{/font} {font:sans}未闭合";

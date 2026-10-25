@@ -8,7 +8,7 @@
 
 Saved domain blocks are adapted into native reading controls and into ExamDocument print records. The viewer can be responsive and theme-aware while print uses fixed paper geometry. Export does not take a screenshot of the current window, so screen zoom is not the print scale.
 
-Text, formulas, tables, and image regions remain separate. Formula source is retained for editing and fallback. Ordered items keep their own labels and content, rather than being flattened into an opaque image.
+Text, formulas, tables, and image regions remain separate. Formula source is retained for editing and fallback. Ordered items keep their own content and use consecutive parenthesized print numbers, rather than being flattened into an opaque image.
 
 ## Native formula path
 
@@ -20,9 +20,9 @@ That fallback is evidence preservation, not a promise of textbook typesetting fo
 
 ## Build a controlled print model
 
-The UI gathers currently displayed saved questions, rejects unsaved quick edits, assigns sequential export numbers, and retains original printed numbers. It uses generated image assets when present and otherwise crops figures through managed page services, deduplicates image bytes, and enforces budgets. The question edition rejects handwriting-marked figures in the shared stem and every item.
+The UI gathers currently displayed saved questions, rejects unsaved quick edits, assigns sequential export numbers, and prints scores inline with each stem instead of adding an original-number paragraph. It uses generated image assets when present and otherwise crops figures through managed page services, deduplicates image bytes, and enforces budgets. The question edition rejects handwriting-marked figures in the shared stem and every item.
 
-The document service chooses A4 portrait or A3 landscape/two columns and Questions or Answers. Question edition omits answer/explanation fields while adding writing space; answer edition prints standard answers and explanations. StudentAttempt is not used as the answer key.
+The document service chooses A4 portrait or A3 landscape with independently configurable columns and Questions or Answers. Question edition omits answer/explanation text and defaults to compact spacing. Optional subjective writing areas estimate height from answer length, line breaks, score, and column width. A separate optional measurement pass distributes remaining page/column space equally among those areas; answer edition prints standard answers and explanations. StudentAttempt is not used as the answer key.
 
 ## Compile data through a fixed template
 

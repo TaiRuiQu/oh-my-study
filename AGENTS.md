@@ -26,6 +26,7 @@ Oh My Study is a Windows study app built with C# 14, .NET 10, and WinUI. It impo
 - Restore with `dotnet restore OhMyStudy.slnx -p:Configuration=Release --locked-mode`. Native prerequisites and setup are documented in `.github/workflows/ci.yml` and its setup action.
 - Use `./packaging/Invoke-CI.ps1 -Phase Lint`, `-Phase Checks`, and `-Phase Test` as appropriate. Tests are executable projects; the CI test phase verifies published Native AOT executables.
 - Add focused regression coverage for changed behavior. Check affected UI and document output visually when relevant.
+- Prioritize rendered visual inspection for PDF and UI layout changes. Use realistic content and inspect spacing, baselines, wrapping, and pagination; passing code tests does not establish visual quality. Avoid repeated local code-test runs when visual review is requested.
 - Update English and Chinese user documentation together when workflows change. Keep generated artifacts out of commits and preserve unrelated work.
 - Report changes, verification performed, and any checks that could not run.
 - Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in. Do not silently expand scope for theoretical robustness.

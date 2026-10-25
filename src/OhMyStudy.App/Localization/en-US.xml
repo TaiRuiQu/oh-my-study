@@ -979,4 +979,9 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of âˆ
     <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">High-resolution capture failed. A standard photo was saved.</text>
     <text key="PhoneCapture.Processing.Global" xml:space="preserve">Changes apply to all unsent pages and future photos.</text>
     <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">Page order updated.</text>
+    <text key="Export.AnswerSpace" xml:space="preserve">Include answer space</text>
+    <text key="Export.Class" xml:space="preserve">Class</text>
+    <text key="Export.StudentNumber" xml:space="preserve">Student no.</text>
+    <text key="Export.Points" xml:space="preserve">({0:g} points)</text>
+    <text key="Export.DistributeSpace" xml:space="preserve">Distribute remaining space evenly</text>
 </resources>

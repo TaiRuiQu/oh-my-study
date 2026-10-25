@@ -979,4 +979,9 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">고해상도 촬영에 실패하여 일반 사진을 저장했습니다.</text>
     <text key="PhoneCapture.Processing.Global" xml:space="preserve">변경 사항은 전송하지 않은 모든 페이지와 이후 사진에 적용됩니다.</text>
     <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">페이지 순서가 변경되었습니다.</text>
+    <text key="Export.AnswerSpace" xml:space="preserve">답안 작성 공간 추가</text>
+    <text key="Export.Class" xml:space="preserve">학급</text>
+    <text key="Export.StudentNumber" xml:space="preserve">학번</text>
+    <text key="Export.Points" xml:space="preserve">({0:g}점)</text>
+    <text key="Export.DistributeSpace" xml:space="preserve">페이지의 남은 공간을 균등 배분</text>
 </resources>

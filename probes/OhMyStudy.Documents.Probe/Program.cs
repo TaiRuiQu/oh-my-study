@@ -12,6 +12,18 @@ var clock = Stopwatch.StartNew();
 var toolchain = new TypstToolchain(Path.Combine(root, "output", "migration", "toolchain", "typst-x86_64-pc-windows-msvc", "typst.exe"));
 var pdfium = new PdfiumRasterizer(Path.Combine(root, "output", "migration", "toolchain", "pdfium", "pdfium.dll"));
 var typesetter = new TypstDocumentService(toolchain);
+if (args.Contains("--exam-preview-only", StringComparer.Ordinal))
+{
+    await ExamPreview.WriteAsync(output, typesetter);
+    return;
+}
+if (args.Contains("--exam-layout-only", StringComparer.Ordinal))
+{
+    var layoutChecks = new List<string>();
+    await ExamLayoutProbe.VerifyAsync(output, typesetter, pdfium, layoutChecks);
+    foreach (string check in layoutChecks) Console.WriteLine("PASS " + check);
+    return;
+}
 if (args.Contains("--reading-only", StringComparer.Ordinal))
 {
     await ReadingProbe.VerifyAsync(typesetter, output);
@@ -88,7 +100,7 @@ foreach (var paper in Enum.GetValues<ExamPaper>())
         {
             Require(!text.Contains("ANSWER_ONLY", StringComparison.Ordinal) && !text.Contains("SUBANSWER", StringComparison.Ordinal), "actual PDF answer isolation");
             Require(text.Contains("The formula exceeds the column width", StringComparison.Ordinal), "long formula readable fallback");
-            Require(text.Contains("Questions", StringComparison.Ordinal) && text.Contains("Name:", StringComparison.Ordinal), "English question headings");
+            Require(text.Contains("Class:", StringComparison.Ordinal) && text.Contains("Name:", StringComparison.Ordinal), "writable question header");
         }
         else
         {
@@ -112,6 +124,7 @@ using (var pdf = pdfium.Open(exports.Count > 0 ? Path.Combine(output, exports[0]
 checks.Add("raster rotation, disposal and pre-cancellation");
 await ComplexDocumentProbe.VerifyAsync(root, output, typesetter, pdfium, checks);
 await FeatureExportProbe.VerifyAsync(root, output, typesetter, pdfium, checks);
+await ExamLayoutProbe.VerifyAsync(output, typesetter, pdfium, checks);
 var report = new ProbeReport(DateTimeOffset.Now, RuntimeInformation.OSDescription, RuntimeInformation.FrameworkDescription,
     RuntimeFeature.IsDynamicCodeSupported, TypstToolchain.EngineVersion, clock.ElapsedMilliseconds, checks, exports);
 await File.WriteAllTextAsync(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(report, ProbeJsonContext.Default.ProbeReport));

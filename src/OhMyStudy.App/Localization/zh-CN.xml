@@ -979,4 +979,9 @@
     <text key="PhoneCapture.Camera.HighResolutionFallback" xml:space="preserve">超清拍照失败，已保存普通照片。</text>
     <text key="PhoneCapture.Processing.Global" xml:space="preserve">修改将应用于所有未发送页面及后续新照片。</text>
     <text key="PhoneCapture.Gesture.Reordered" xml:space="preserve">页面顺序已更新。</text>
+    <text key="Export.AnswerSpace" xml:space="preserve">加入答题空白</text>
+    <text key="Export.Class" xml:space="preserve">班级</text>
+    <text key="Export.StudentNumber" xml:space="preserve">学号</text>
+    <text key="Export.Points" xml:space="preserve">（{0:g}分）</text>
+    <text key="Export.DistributeSpace" xml:space="preserve">均分页面剩余空白</text>
 </resources>
