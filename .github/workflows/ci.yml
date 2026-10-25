@@ -56,14 +56,6 @@ jobs:
         run: |
           $baseline = ./packaging/Get-VelopackBaseline.ps1 -Repository $env:GITHUB_REPOSITORY -Variant $env:BUILD_VARIANT -CurrentTag $env:RELEASE_TAG -OutputDirectory "output/ci/baseline/$env:BUILD_VARIANT"
           ./packaging/Invoke-CI.ps1 -Phase Build -Variant $env:BUILD_VARIANT -BaselinePackage $baseline
-      - name: Upload offline application
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          name: ${{ steps.package.outputs.artifact-name }}
-          path: output/ci/artifacts/${{ matrix.variant }}/*
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 30
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}

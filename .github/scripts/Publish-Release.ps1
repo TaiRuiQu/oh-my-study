@@ -94,7 +94,7 @@ $marker
 $deltaText
 $runtime
 旧 MSI 用户请先卸载旧程序再安装此版本；学习资料会保留。
-二进制未代码签名，人工验收待完成；自动检查结果见 build-manifest.json。源码提交：$($manifest.commit)。
+二进制未代码签名，人工验收待完成；构建信息与文件校验值见 build-manifest.json。源码提交：$($manifest.commit)。
 "@
 $bodyFile = Join-Path $root 'release-notes.md'
 [IO.File]::WriteAllText($bodyFile,$notes,[Text.UTF8Encoding]::new($false))

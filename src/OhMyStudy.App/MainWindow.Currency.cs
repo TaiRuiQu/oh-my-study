@@ -11,13 +11,11 @@ public sealed partial class MainWindow
 {
     private Task<CnyRate?>? _exchangeRateTask;
     private DateOnly _exchangeRateDay;
-    private CnyRate? _diagnosticRate;
     private long _pricePreviewGeneration;
     private void ModelPrice_Changed(object sender, TextChangedEventArgs e) { if (_initialized) _ = UpdateModelCnyPreviewAsync(); }
     private void ModelPriceCurrency_Changed(object sender, SelectionChangedEventArgs e) { if (_initialized) _ = UpdateModelCnyPreviewAsync(); }
     private Task<CnyRate?> GetCnyRateAsync()
     {
-        if (_diagnosticRate is not null) return Task.FromResult<CnyRate?>(_diagnosticRate);
         var today = DateOnly.FromDateTime(DateTime.Now);
         if (_exchangeRateTask is null || _exchangeRateDay != today) { _exchangeRateDay = today; _exchangeRateTask = Read(); }
         return _exchangeRateTask;

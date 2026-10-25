@@ -35,7 +35,6 @@ public sealed partial class MainWindow
     private readonly SemaphoreSlim _settingsGate = new(1, 1);
     private bool _loadingLibrary;
     private string _libraryDirectory = "";
-    private string? _libraryPointerOverride;
     private string? _activeJob;
     private long _documentGeneration;
     private int _sourcePageIndex;
@@ -102,7 +101,7 @@ public sealed partial class MainWindow
         try
         {
             string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy");
-            var pointer = _libraryPointerOverride ?? Path.Combine(appData, "active-library.txt");
+            var pointer = Path.Combine(appData, "active-library.txt");
             var selected = directory is null && File.Exists(pointer) ? (await File.ReadAllTextAsync(pointer, _lifetime.Token)).Trim() : null;
             _libraryDirectory = directory ?? selected ?? Path.Combine(appData, "Library");
             LibraryPath.Text = _libraryDirectory;
@@ -801,7 +800,7 @@ public sealed partial class MainWindow
             ReleaseReadingResources(); _viewports.Clear(); _workspaceContexts.Clear();
             ViewModel.ClearLibrary();
             if (!await InitializeLibraryAsync(directory)) throw new IOException(UiText.Get("Could not open the library."));
-            string pointer = _libraryPointerOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "active-library.txt");
+            string pointer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OhMyStudy", "active-library.txt");
             string pointerDirectory = Path.GetDirectoryName(pointer)!;
             Directory.CreateDirectory(pointerDirectory);
             var temporary = Path.Combine(pointerDirectory, "active-library-" + Guid.NewGuid().ToString("N"));

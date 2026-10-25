@@ -40,7 +40,7 @@ public sealed partial class MainWindow
             dialog.IsPrimaryButtonEnabled = false;
             try
             {
-                manager ??= CreateUpdateManager(null);
+                manager ??= CreateUpdateManager();
                 if (update is null)
                 {
                     feedback.Text = UiText.Get("Checking for updates…");
@@ -88,9 +88,7 @@ public sealed partial class MainWindow
         await dialog.ShowAsync();
     }
 
-    private static UpdateManager CreateUpdateManager(string? diagnosticSource)
-        => diagnosticSource is not null
-            ? new UpdateManager(diagnosticSource)
-            : new UpdateManager(new GithubSource("https://github.com/TaiRuiQu/oh-my-study", null, false));
+    private static UpdateManager CreateUpdateManager()
+        => new(new GithubSource("https://github.com/TaiRuiQu/oh-my-study", null, false));
 
 }
