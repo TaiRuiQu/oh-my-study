@@ -30,3 +30,5 @@ Oh My Study is a Windows study app built with C# 14, .NET 10, and WinUI. It impo
 - Report changes, verification performed, and any checks that could not run.
 - NEVER make any robustness improvement unless user asked.
 - NEVER write any (smoke, regression, unit, end to end) tests, lints NOR run them unless user explicitly asked. Use visual (one-time) checks instead. That is, you run the app, take screenshots, and read them.
+- Before EVERY push, bump new version and add new tag.
+- NEVER benchmark ANYTHING on local computer.

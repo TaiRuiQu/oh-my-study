@@ -47,6 +47,13 @@ jobs:
           ./packaging/prepare-documents.ps1
           ./packaging/prepare-webp.ps1
           ./packaging/prepare-runtime.ps1
+      - name: Restore incremental build state
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: src/**/obj
+          key: obj-${{ runner.os }}-${{ runner.arch }}-${{ matrix.variant }}-${{ hashFiles('global.json', 'Directory.Build.props', 'Directory.Packages.props', 'NuGet.Config', '**/packages*.lock.json', 'src/**/*.cs', 'src/**/*.xaml', 'src/**/*.csproj', 'src/OhMyStudy.App/app.manifest') }}
+          restore-keys: |
+            obj-${{ runner.os }}-${{ runner.arch }}-${{ matrix.variant }}-
       - name: Build and package
         id: package
         env:

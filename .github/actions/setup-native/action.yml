@@ -12,6 +12,11 @@ runs:
       with:
         path: output/migration/nuget
         key: nuget-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json', 'NuGet.Config', 'Directory.Packages.props', '**/packages*.lock.json') }}
+    - name: Cache Velopack CLI
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: output/ci/tools
+        key: vpk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/velopack.lock.json') }}
     - name: Cache pinned native dependencies
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:

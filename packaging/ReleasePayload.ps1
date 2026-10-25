@@ -55,8 +55,8 @@ function Copy-ReleasePayload([string]$Source, [string]$Destination, [string]$Pre
             continue
         }
         $target = Join-Path $targetRoot $relative
-        New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
-        Copy-Item -LiteralPath $file.FullName -Destination $target
+        [IO.Directory]::CreateDirectory((Split-Path -Parent $target)) | Out-Null
+        [IO.File]::Copy($file.FullName, $target, $true)
     }
 }
 

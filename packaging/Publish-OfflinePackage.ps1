@@ -58,9 +58,10 @@ try {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT='1'; $env:DOTNET_GENERATE_ASPNET_CERTIFICATE='false'
     if (-not $AppPublishDirectory) {
         $project=Join-Path $workspace 'src/OhMyStudy.App/OhMyStudy.App.csproj'
-        Invoke-Dotnet (@('restore',$project,'-p:Configuration=Release','--locked-mode','--disable-parallel',"-p:Version=$version") + $profile.properties) (Join-Path $run 'app-restore.log')
+        $buildProperties=@('-p:RunAnalyzers=false','-p:EnableNETAnalyzers=false')
+        Invoke-Dotnet (@('restore',$project,'-p:Configuration=Release','--locked-mode',"-p:Version=$version",'-p:NuGetAudit=false') + $buildProperties + $profile.properties) (Join-Path $run 'app-restore.log')
         $AppPublishDirectory=Join-Path $run 'app-publish'
-        Invoke-Dotnet (@('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$AppPublishDirectory,"-p:Version=$version") + $profile.properties) (Join-Path $run 'app-publish.log')
+        Invoke-Dotnet (@('publish',$project,'-c','Release','--no-restore','-p:TrimmerSingleWarn=false','-o',$AppPublishDirectory,"-p:Version=$version") + $buildProperties + $profile.properties) (Join-Path $run 'app-publish.log')
     }
     $appSource=(Resolve-Path -LiteralPath $AppPublishDirectory).Path
     $report.appPublishDirectory=$appSource
