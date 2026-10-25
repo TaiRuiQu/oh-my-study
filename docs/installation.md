@@ -54,6 +54,10 @@ By default, the portable version still stores study materials in your user profi
 
 Each variant has full and delta `.nupkg` update packages for every subsequent release. Its first Velopack bootstrap release has a full package only. If a delta update cannot be used, the app automatically falls back to the full package. Updates preserve the separate app library and settings.
 
+If restarting after an update still opens the old version, check `%LOCALAPPDATA%/Velopack/velopack_TaiRuiQu.OhMyStudy.log`. The v0.3.3 delta package can fail with `Missing required manifest property: mainExe` because bundled dependency metadata is mistaken for the application manifest. Close the app and run the complete `Setup.exe` for the same variant to recover.
+
+If Setup reports that it cannot remove the existing application directory, close editors and terminals using files under `%LOCALAPPDATA%/TaiRuiQu.OhMyStudy`, then retry. For example, opening `current/package-manifest.json` in Sublime Text can leave its crash-reporting helper holding the directory open; fully exit Sublime Text to release it. The installer log is `%LOCALAPPDATA%/Velopack/velopack.log`. If the directory remains locked, restart Windows before retrying. Keep the separate library directory intact.
+
 The portable version has no in-app updater. To update it, close the app and manually replace its program files with a complete extraction of the new portable ZIP. Do not copy only the EXE or selected changed files.
 
 Version v0.1.9 upgrades writable libraries to SQLite schema v6 to support supplementary student answer pages. Before that first launch, save, close the app, and back up the entire library folder. The automatic `study.sqlite3.pre-v6-…` snapshot contains the database only. Older apps cannot open an upgraded library; use a complete earlier backup if returning to an older app. See the [release notes](releases/v0.1.9.md) and [library guide](wiki/Features-Library.md).

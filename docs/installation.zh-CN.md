@@ -54,6 +54,10 @@ Setup 将应用安装到当前用户的 `%LOCALAPPDATA%/TaiRuiQu.OhMyStudy`。�
 
 后续每次发布时，每种版本均提供全量和增量 `.nupkg` 更新包；首个 Velopack 引导发布只提供全量包。增量更新不可用时，应用会自动回退到全量包。更新会保留单独存放的应用资料库和设置。
 
+如果更新重启后仍是旧版，请查看 `%LOCALAPPDATA%/Velopack/velopack_TaiRuiQu.OhMyStudy.log`。v0.3.3 的增量包可能将附带的依赖元数据误认作应用清单，报 `Missing required manifest property: mainExe`。可关闭应用，运行同一版本类型的完整 `Setup.exe` 恢复更新。
+
+如果 Setup 提示无法删除已有应用目录，请关闭正在使用 `%LOCALAPPDATA%/TaiRuiQu.OhMyStudy` 下文件的编辑器和终端，再重试。例如，用 Sublime Text 打开 `current/package-manifest.json` 后，其崩溃报告辅助进程可能持续占用目录；完全退出 Sublime Text 可释放占用。安装日志位于 `%LOCALAPPDATA%/Velopack/velopack.log`。若仍被占用，请重启 Windows 后重试。请保留单独存放的资料库目录。
+
 便携版没有应用内更新功能。更新时请关闭应用，完整解压新版便携 ZIP，并手动替换程序文件。不要只复制 EXE 或部分变更文件。
 
 v0.1.9 会将可写资料库升级到 SQLite v6，以支持补充学生作答页面。首次启动该版本前请保存、退出，并备份整个资料库目录。自动生成的 `study.sqlite3.pre-v6-…` 快照只包含数据库；旧版应用无法打开升级后的资料库，回退时须使用完整的旧版备份。详见[发行说明](releases/v0.1.9.zh-CN.md)和[资料库指南](wiki/Features-Library-zh-CN.md)。

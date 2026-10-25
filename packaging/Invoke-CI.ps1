@@ -49,6 +49,7 @@ try {
             & (Join-Path $PSScriptRoot 'tests/Test-CIRelease.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-VelopackBaseline.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-ReleasePayload.ps1')
+            & (Join-Path $PSScriptRoot 'tests/Test-VelopackManifest.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-ScannerAssets.ps1')
             & (Join-Path $PSScriptRoot 'tests/Test-PhoneCaptureMobile.ps1')
             $docresPython = Join-Path $workspace 'output/migration/toolchain/runtime/python/python.exe'

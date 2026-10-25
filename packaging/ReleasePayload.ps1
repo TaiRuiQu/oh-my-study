@@ -49,6 +49,27 @@ function Get-ZipEntryHash([System.IO.Compression.ZipArchiveEntry]$Entry) {
     finally { $stream.Dispose() }
 }
 
+function Copy-ReleaseDependencyMetadata([string]$Source, [string]$Destination) {
+    $name = [IO.Path]::GetFileName($Source)
+    if ([IO.Path]::GetExtension($name).Equals('.nuspec', [StringComparison]::OrdinalIgnoreCase)) { $name += '.xml' }
+    Copy-Item -LiteralPath $Source -Destination (Join-Path $Destination $name)
+}
+
+function Assert-VelopackPackageManifest([string]$Path, [string]$PackId, [string]$Version, [string]$Channel) {
+    $archive = [IO.Compression.ZipFile]::OpenRead($Path)
+    try {
+        $manifests = @($archive.Entries | Where-Object { $_.FullName.EndsWith('.nuspec', [StringComparison]::OrdinalIgnoreCase) })
+        if ($manifests.Count -ne 1 -or $manifests[0].FullName -cne "$PackId.nuspec") { throw "Ambiguous or missing Velopack manifest in package: $Path" }
+        $reader = [IO.StreamReader]::new($manifests[0].Open())
+        try { $manifest = [xml]$reader.ReadToEnd() } finally { $reader.Dispose() }
+        $expected = @{ id = $PackId; version = $Version; channel = $Channel; mainExe = 'OhMyStudy.App.exe' }
+        foreach ($key in $expected.Keys) {
+            $node = $manifest.SelectSingleNode("/*[local-name()='package']/*[local-name()='metadata']/*[local-name()='$key']")
+            if ($null -eq $node -or $node.InnerText -cne $expected[$key]) { throw "Invalid Velopack manifest property '$key' in package: $Path" }
+        }
+    } finally { $archive.Dispose() }
+}
+
 function Assert-NupkgContentEqual([string]$Expected, [string]$Actual) {
     $expectedArchive = [System.IO.Compression.ZipFile]::OpenRead($Expected)
     $actualArchive = [System.IO.Compression.ZipFile]::OpenRead($Actual)

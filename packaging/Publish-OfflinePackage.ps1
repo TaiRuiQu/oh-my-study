@@ -131,7 +131,7 @@ try {
                 if ($id -eq 'SourceGear.sqlite3') { Assert-Hash (Join-Path $package 'e_sqlite3.dll') (Get-FileHash -LiteralPath (Join-Path $packageCache 'runtimes/win-x64/native/e_sqlite3.dll') -Algorithm SHA256).Hash }
                 $target=Join-Path $notices "$id-$dependencyVersion"; New-Item -ItemType Directory -Path $target -Force | Out-Null
                 $metadata=@(Get-ChildItem -LiteralPath $packageCache -File | Where-Object { $_.Name -match '(?i)license|notice|copying|\.nuspec$|^README\.md$' })
-                foreach ($file in $metadata) { Copy-Item -LiteralPath $file.FullName -Destination $target }
+                foreach ($file in $metadata) { Copy-ReleaseDependencyMetadata $file.FullName $target }
                 if ($id -like 'VelociTex.*') {
                     Copy-Tree (Join-Path $packageCache 'licenses') (Join-Path $target 'licenses')
                     Copy-Item -LiteralPath (Join-Path $packageCache 'THIRD-PARTY-NOTICES.md') -Destination $target
@@ -219,14 +219,19 @@ AI 识别与批改需要在设置中添加供应商、密钥和模型；材料�
         if (-not (Test-Path -LiteralPath $report[$name] -PathType Leaf)) { throw "Velopack output missing: $name" }
         $report[$name+'Sha256']=(Get-FileHash -LiteralPath $report[$name] -Algorithm SHA256).Hash.ToLowerInvariant()
     }
+    Assert-VelopackPackageManifest $report.fullPackage $PackId $version $channel
     if ($BaselinePackage) {
         $report.deltaPackage=Join-Path $releases "$PackId-$version-$channel-delta.nupkg"
         if (-not (Test-Path -LiteralPath $report.deltaPackage -PathType Leaf)) { throw 'Required Velopack delta package was not generated' }
+        Assert-VelopackPackageManifest $report.deltaPackage $PackId $version $channel
         $report.deltaPackageSha256=(Get-FileHash -LiteralPath $report.deltaPackage -Algorithm SHA256).Hash.ToLowerInvariant()
         $reconstructed=Join-Path $run 'reconstructed.nupkg'
         & $vpk delta patch --base $baseline --patch $report.deltaPackage --output $reconstructed | Out-Host
         if ($LASTEXITCODE -ne 0) { throw 'Delta package could not be applied' }
-        try { Assert-NupkgContentEqual $report.fullPackage $reconstructed }
+        try {
+            Assert-NupkgContentEqual $report.fullPackage $reconstructed
+            Assert-VelopackPackageManifest $reconstructed $PackId $version $channel
+        }
         finally { Remove-Item -LiteralPath $reconstructed -Force }
     }
     $report.installerType='velopack'
