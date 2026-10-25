@@ -74,7 +74,7 @@ public sealed partial class MainWindow
                 UiText.Get("({0:g} points)"), UiText.Get("Answers and explanations"));
             if (version == ExamEdition.Questions && saved.Any(item => ContainsHandwrittenImage(item.Question)))
             { ViewModel.StatusMessage = UiText.Get("Some question images contain handwriting. Replace them with clean images before exporting a question paper."); return; }
-            var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = UiText.Get("Questions") };
+            var picker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, SuggestedFileName = title };
             picker.FileTypeChoices.Add("PDF", new List<string> { ".pdf" });
             WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
             var file = await picker.PickSaveFileAsync();

@@ -48,8 +48,8 @@ By default, the portable version still stores study materials in your user profi
 
 ## Updating an installed app
 
-1. Open **Settings → About → Check for updates**.
-2. If an update is available, confirm the download.
+1. Open **Settings → About → Check for updates**. Update status appears after you start the check.
+2. If an update is available, confirm the download. A progress bar and percentage show the download progress.
 3. After the download finishes, confirm the restart. The app closes gracefully and prompts you to save or resolve unfinished work before restarting into the new version.
 
 Each variant has full and delta `.nupkg` update packages for every subsequent release. Its first Velopack bootstrap release has a full package only. If a delta update cannot be used, the app automatically falls back to the full package. Updates preserve the separate app library and settings.

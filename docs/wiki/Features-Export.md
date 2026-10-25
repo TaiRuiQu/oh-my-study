@@ -23,7 +23,9 @@ Student-attempt text is not the answer key. A recognized answer still needs huma
 
 A4 is portrait with one column by default; A3 landscape defaults to two columns. You can choose one to four columns independently of paper size. Every page has ruled Class, Name, and Student no. fields in its header. Question spacing is compact. Four options use one row when they fit, otherwise two rows of two, or one option per row when necessary. The image illustrates their organization, not the exact pagination of your question set. Longer questions, large diagrams, and mathematical expressions affect breaks.
 
-Produce separate question and answer files rather than expecting one export to create both. Printing itself happens in a PDF reader, where printer paper/scaling must also match your intention.
+Produce separate question and answer files rather than expecting one export to create both. The save dialog defaults to the exam name as the PDF filename; you can change it before saving. Printing itself happens in a PDF reader, where printer paper/scaling must also match your intention.
+
+PDF layout removes extra spaces between Chinese text and inline formulas while retaining English word spacing and explicit spacing inside formulas. Stored question text remains unchanged.
 
 ## Optional answer space
 

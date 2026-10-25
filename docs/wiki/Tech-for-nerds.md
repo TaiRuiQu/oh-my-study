@@ -45,3 +45,11 @@ dotnet build OhMyStudy.slnx -c Release --no-restore
 ```
 
 Lint is local only, checks whitespace in changed files, and stops within 30 seconds. Review UI and rendered PDF output visually with realistic content. Use `./packaging/Invoke-CI.ps1 -Phase Build` to package the app locally.
+
+Use the shared Windows API capture script for a one-time UI review. It starts the specified executable, saves a PNG, and closes the process it started, including when capture fails:
+
+```powershell
+./scripts/Capture-AppWindow.ps1 -ExecutablePath ./src/OhMyStudy.App/bin/Release/net10.0-windows10.0.26100.0/win-x64/OhMyStudy.App.exe -Destination ./output/ui-review/main-window.png
+```
+
+`-DelaySeconds` controls the rendering wait after the window opens. `-ArgumentList` passes application arguments; use `--ui-process` for a Debug build to capture the UI process directly. An optional `-PrepareWindow` script block receives the started process before capture, for opening the view being reviewed. Keep generated screenshots under `output`; the script remains in `scripts` when outputs are cleaned.

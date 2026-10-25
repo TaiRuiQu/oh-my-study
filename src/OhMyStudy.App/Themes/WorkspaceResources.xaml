@@ -130,6 +130,7 @@
         <Setter Property="Foreground" Value="{ThemeResource SystemFillColorAttentionBrush}" />
     </Style>
     <Style TargetType="controls:ColumnSplitter">
+        <Setter Property="Foreground" Value="{ThemeResource WorkspaceBorderBrush}" />
         <Setter Property="IsTabStop" Value="True" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -137,7 +138,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="controls:ColumnSplitter">
-                    <Grid Background="Transparent">
+                    <Grid Background="Transparent" Padding="{TemplateBinding Padding}">
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="CommonStates">
                                 <VisualState x:Name="Normal" />
@@ -145,7 +146,7 @@
                                 <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Divider.Background" Value="{ThemeResource SystemControlHighlightAccentBrush}" /></VisualState.Setters></VisualState>
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
-                        <Border x:Name="Divider" Width="1" Background="{ThemeResource WorkspaceBorderBrush}" HorizontalAlignment="Center" />
+                        <Border x:Name="Divider" Width="1" Background="{TemplateBinding Foreground}" HorizontalAlignment="Center" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

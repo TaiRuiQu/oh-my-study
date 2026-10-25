@@ -45,3 +45,11 @@ dotnet build OhMyStudy.slnx -c Release --no-restore
 ```
 
 Lint 仅在本地检查改动中的空白错误，并在 30 秒内停止。界面与 PDF 使用真实内容进行视觉检查。本地打包可运行 `./packaging/Invoke-CI.ps1 -Phase Build`。
+
+使用共享的 Windows API 截图脚本进行一次界面检查。脚本启动指定程序、保存 PNG，并关闭自己启动的进程；截图失败时也会关闭：
+
+```powershell
+./scripts/Capture-AppWindow.ps1 -ExecutablePath ./src/OhMyStudy.App/bin/Release/net10.0-windows10.0.26100.0/win-x64/OhMyStudy.App.exe -Destination ./output/ui-review/main-window.png
+```
+
+`-DelaySeconds` 控制窗口打开后的渲染等待时间。`-ArgumentList` 传递程序参数；Debug 构建请传入 `--ui-process`，直接截取界面进程。可选的 `-PrepareWindow` 脚本块在截图前接收已启动的进程，用于打开需要检查的页面。生成的截图放在 `output`；清理输出目录后，`scripts` 中的脚本仍会保留。

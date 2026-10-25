@@ -16,10 +16,12 @@ public sealed partial class MainWindow
     {
         string version = typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
             ?? typeof(App).Assembly.GetName().Version?.ToString() ?? UiText.Get("Unknown");
-        var feedback = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        var feedback = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+        var downloadProgress = new ProgressBar { Minimum = 0, Maximum = 100, Visibility = Visibility.Collapsed };
         var content = new StackPanel { Spacing = 12 };
         content.Children.Add(new TextBlock { Text = UiText.Format("Version {0}", version), Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["QuietTextStyle"] });
         content.Children.Add(feedback);
+        content.Children.Add(downloadProgress);
         var dialog = new ContentDialog
         {
             XamlRoot = RootGrid.XamlRoot,
@@ -38,6 +40,7 @@ public sealed partial class MainWindow
             args.Cancel = true;
             var deferral = args.GetDeferral();
             dialog.IsPrimaryButtonEnabled = false;
+            feedback.Visibility = Visibility.Visible;
             try
             {
                 manager ??= CreateUpdateManager();
@@ -55,8 +58,14 @@ public sealed partial class MainWindow
                 }
                 else if (!downloaded)
                 {
-                    Action<int> progress = value => DispatcherQueue.TryEnqueue(() => feedback.Text = UiText.Format("Downloading update… {0}%", value));
+                    Action<int> progress = value => DispatcherQueue.TryEnqueue(() =>
+                    {
+                        feedback.Text = UiText.Format("Downloading update… {0}%", value);
+                        downloadProgress.Value = value;
+                    });
                     feedback.Text = UiText.Format("Downloading update… {0}%", 0);
+                    downloadProgress.Value = 0;
+                    downloadProgress.Visibility = Visibility.Visible;
                     await manager.DownloadUpdatesAsync(update, progress);
                     downloaded = true;
                     feedback.Text = UiText.Get("Update downloaded. Save your work, then restart to install it.");
@@ -81,6 +90,7 @@ public sealed partial class MainWindow
             }
             finally
             {
+                downloadProgress.Visibility = Visibility.Collapsed;
                 dialog.IsPrimaryButtonEnabled = update is null && feedback.Text == UiText.Get("You are using the latest version.") ? false : true;
                 deferral.Complete();
             }

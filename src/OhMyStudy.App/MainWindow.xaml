@@ -702,6 +702,6 @@
                 </Grid>
             </Grid>
         </NavigationView>
-        <controls:ColumnSplitter x:Name="NavigationSplitter" Grid.Row="1" Width="12" HorizontalAlignment="Left" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0740}" />
+        <controls:ColumnSplitter x:Name="NavigationSplitter" Grid.Row="1" Width="12" Padding="0,8,0,0" Foreground="Transparent" HorizontalAlignment="Left" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0740}" />
     </Grid>
 </Window>

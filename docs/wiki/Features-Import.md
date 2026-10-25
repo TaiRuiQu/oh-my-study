@@ -42,6 +42,8 @@ After import, use **More → Upload student answers** inside the exam to add ans
 
 The model can also report the printed exam title. An absent title keeps the imported name, and a user-edited title is preserved on re-recognition.
 
+Recognition stores question numbers and subquestion labels separately from the question wording so they appear once in the workspace and exported PDF. Numbers within the wording, question references, and answer-option labels remain part of the content. This prompt change applies to future recognition; it does not rewrite already saved questions.
+
 For example, a red subtraction mark without enough context should not become an invented numerical score. Unknown maximum points cannot support a fabricated earned score. A reference key is evidence for matching, not permission to disregard explicit teacher results.
 
 ## What is stored

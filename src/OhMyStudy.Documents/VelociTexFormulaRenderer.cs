@@ -40,12 +40,28 @@ public static class VelociTexFormulaRenderer
             diagnostic = "The formula is too large. The original text is preserved.";
             return false;
         }
+        double scale = document.Rules.IsEmpty ? 1 : Math.Min(32, Math.Min(1024 / options.FontSize, 32768 / Math.Max(width, height)));
+        if (scale > 1)
+        {
+            options = options with { FontSize = options.FontSize * scale };
+            if (!new MathEngine().TryCompile(tex, in options, workspace, token, out document, out error))
+            {
+                if (error.Code == MathDiagnosticCode.Cancelled) throw new OperationCanceledException(token);
+                result = null;
+                diagnostic = error.Message;
+                return false;
+            }
+        }
         using var renderer = new WindowsMathRenderer();
-        renderer.WriteSvg(document!, path, padding: 1);
+        renderer.WriteSvg(document!, path, padding: scale);
         var svg = XElement.Load(path);
-        double Dimension(string name) => double.Parse(svg.Attribute(name)!.Value, CultureInfo.InvariantCulture) * 72 / 96;
+        double Dimension(string name) => double.Parse(svg.Attribute(name)!.Value, CultureInfo.InvariantCulture) / scale;
+        double svgWidth = Dimension("width"), svgHeight = Dimension("height");
+        svg.SetAttributeValue("width", svgWidth.ToString("0.########", CultureInfo.InvariantCulture));
+        svg.SetAttributeValue("height", svgHeight.ToString("0.########", CultureInfo.InvariantCulture));
+        svg.Save(path);
         double top = Math.Min(0, document!.InkBounds.Y);
-        result = new(path, Dimension("width"), Dimension("height"), (document.Baseline - top + 1) * 72 / 96);
+        result = new(path, svgWidth * 72 / 96, svgHeight * 72 / 96, (document.Baseline - top + scale) / scale * 72 / 96);
         diagnostic = null;
         return true;
     }

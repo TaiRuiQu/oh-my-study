@@ -145,8 +145,8 @@ public static class GradingTools
         var item = Object(new()
         {
             ["key"] = String("Nonempty stable item key, unique across all items of the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. References match this key."),
-            ["label"] = String("Printed subquestion label such as (1) or (2)(a). Required when the question has several items; use an empty string for a question without subquestions."),
-            ["prompt"] = Content("Content specific to this subquestion in reading order. Leave empty for a question without subquestions, whose whole text belongs in stem."),
+            ["label"] = String("Printed subquestion label such as (1) or (2)(a), stored only here and not repeated at the start of prompt. Required when the question has several items; use an empty string for a question without subquestions."),
+            ["prompt"] = Content("Content specific to this subquestion in reading order, excluding its leading subquestion label. Preserve numbers within the wording and internal references. Leave empty for a question without subquestions, whose whole text belongs in stem."),
             ["options"] = Describe(Array(String()), "Answer options for this item in printed order, including their labels; omit if unavailable."),
             ["points"] = Describe(Nullable(Number()), "Maximum points for this item. Prefer printed values. If absent, estimate using common scoring conventions and question difficulty; item allocations must agree with any known question or paper total. Explain estimated allocations and their basis in question.uncertainties. Use null if no reasonable estimate is available. Question totals are derived from item points."),
             ["answer"] = String("Standard answer for this item, from a verified reference or your own solution. Generate it even on a blank paper. Use an empty string only when the answer cannot be determined and explain why in uncertainties."),
@@ -156,10 +156,10 @@ public static class GradingTools
         return Object(new()
         {
             ["draft_key"] = String("Nonempty stable question key, unique across the paper, at most 128 UTF-8 bytes. Reuse existing keys on regrading. Coverage lists this key."),
-            ["number"] = String("Nonempty top-level question number, preserving the printed label."),
+            ["number"] = String("Nonempty top-level question number, preserving the printed label. Store it only here, without repeating it at the start of stem."),
             ["subject"] = String("Subject label in Simplified Chinese; omit if unknown."),
             ["question_type"] = String("Question type in Simplified Chinese; omit if unknown."),
-            ["stem"] = Content("Nonempty shared question text in reading order: the material, context, diagrams, and instructions that precede or apply to all items. A question without subquestions puts its whole text here."),
+            ["stem"] = Content("Nonempty shared question text in reading order: the material, context, diagrams, and instructions that precede or apply to all items. Exclude the leading top-level question number; preserve numbers within the wording and internal references. A question without subquestions puts its whole text here."),
             ["source_page_ids"] = Describe(Array(String()), "Source material page IDs, including every continuation page."),
             ["knowledge_points"] = Describe(Array(String()), "Relevant knowledge-point labels in Simplified Chinese; omit if unsupported."),
             ["uncertainties"] = Describe(Array(String()), "Specific unresolved transcription or interpretation issues in Simplified Chinese; retain image evidence instead of guessing."),

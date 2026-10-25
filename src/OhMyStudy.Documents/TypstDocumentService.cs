@@ -250,14 +250,34 @@ public sealed partial class TypstDocumentService
         source.Append("]\n");
     }
 
-    private static void AppendRichText(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets)
+    private static void AppendRichText(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets,
+        double? maximumWidth = null)
     {
-        foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(text)))
+        var runs = DocumentText.Split(DocumentText.NormalizeMath(text));
+        for (int index = 0; index < runs.Count; index++)
         {
-            if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, font: run.Font);
-            else AppendLiteral(source, run.Text, run.Font);
+            var run = runs[index];
+            if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, maximumWidth, run.Font);
+            else
+            {
+                string literal = run.Text;
+                if (index > 0 && runs[index - 1] is { IsFormula: true, IsDisplay: false })
+                {
+                    string trimmed = literal.TrimStart(' ', '\t');
+                    if (trimmed.Length > 0 && IsCjk(trimmed[0])) literal = trimmed;
+                }
+                if (index + 1 < runs.Count && runs[index + 1] is { IsFormula: true, IsDisplay: false })
+                {
+                    string trimmed = literal.TrimEnd(' ', '\t');
+                    if (trimmed.Length > 0 && IsCjk(trimmed[^1])) literal = trimmed;
+                }
+                AppendLiteral(source, literal, run.Font);
+            }
         }
     }
+
+    private static bool IsCjk(char character) => character is >= '\u3000' and <= '\u303f'
+        or >= '\u3400' and <= '\u9fff' or >= '\uf900' and <= '\ufaff' or >= '\uff00' and <= '\uffef';
 
     private static void AppendFormula(StringBuilder source, string text, List<TypesettingDiagnostic> diagnostics, int question, ExportAssets assets,
         bool display, double? maximumWidth = null, DocumentFont font = DocumentFont.Serif)
@@ -367,9 +387,7 @@ public sealed partial class TypstDocumentService
                     .Append(", colspan: ").Append(cell.ColumnSpan).Append(", breakable: true)[");
                 CountText(cell.Text, ref total);
                 double maximum = Math.Max(8, (assets.ColumnWidthPoints - (wide ? 30 : 0)) / width * cell.ColumnSpan - 10);
-                foreach (var run in DocumentText.Split(DocumentText.NormalizeMath(cell.Text)))
-                    if (run.IsFormula) AppendFormula(source, run.Text, diagnostics, question, assets, run.IsDisplay, maximum, run.Font);
-                    else AppendLiteral(source, run.Text, run.Font);
+                AppendRichText(source, cell.Text, diagnostics, question, assets, maximum);
                 source.Append("],\n");
             }
             for (int row = 0; wide && row < rows.Count; row++)
