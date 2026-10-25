@@ -1,5 +1,30 @@
 #requires -Version 7.0
 
+function Copy-ReleaseMathFonts([string]$AssemblyPath, [string]$Destination) {
+    $stream = [IO.File]::OpenRead($AssemblyPath)
+    $reader = [Reflection.PortableExecutable.PEReader]::new($stream)
+    try {
+        $metadata = [Reflection.Metadata.PEReaderExtensions]::GetMetadataReader($reader)
+        $resources = $reader.GetSectionData($reader.PEHeaders.CorHeader.ResourcesDirectory.RelativeVirtualAddress)
+        New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+        $count = 0
+        foreach ($handle in $metadata.ManifestResources) {
+            $resource = $metadata.GetManifestResource($handle)
+            $name = $metadata.GetString($resource.Name)
+            if ($name -notmatch '^VelociTex\.Core\.Resources\.Fonts\.(KaTeX_[A-Za-z0-9-]+\.ttf)$') { continue }
+            $fileName = $Matches[1]
+            $content = $resources.GetReader([int]$resource.Offset, $resources.Length - [int]$resource.Offset)
+            $length = $content.ReadInt32()
+            [IO.File]::WriteAllBytes((Join-Path $Destination $fileName), $content.ReadBytes($length))
+            $count++
+        }
+        if ($count -ne 20) { throw "Expected 20 embedded KaTeX fonts; found $count" }
+    } finally {
+        $reader.Dispose()
+        $stream.Dispose()
+    }
+}
+
 function Get-ReleaseExclusionReason([string]$RelativePath) {
     $path = $RelativePath.Replace('\','/')
     if ($path -match '(?i)\.(pdb|dbg|ilk|ipdb|iobj|exp|lib)$|\.dSYM(/|$)') { return 'debug-symbol-or-linker-output' }

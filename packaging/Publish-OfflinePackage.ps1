@@ -128,6 +128,9 @@ try {
                 $id=$dependency.Name; $dependencyVersion=$dependency.Value.resolved
                 if (-not $seen.Add("$id/$dependencyVersion")) { continue }
                 $packageCache=Join-Path $env:NUGET_PACKAGES "$($id.ToLowerInvariant())/$dependencyVersion"
+                if ($id -eq 'VelociTex.Core') {
+                    Copy-ReleaseMathFonts (Join-Path $packageCache 'lib/net10.0/VelociTex.Core.dll') (Join-Path $package 'Fonts')
+                }
                 if ($id -eq 'SourceGear.sqlite3') { Assert-Hash (Join-Path $package 'e_sqlite3.dll') (Get-FileHash -LiteralPath (Join-Path $packageCache 'runtimes/win-x64/native/e_sqlite3.dll') -Algorithm SHA256).Hash }
                 $target=Join-Path $notices "$id-$dependencyVersion"; New-Item -ItemType Directory -Path $target -Force | Out-Null
                 $metadata=@(Get-ChildItem -LiteralPath $packageCache -File | Where-Object { $_.Name -match '(?i)license|notice|copying|\.nuspec$|^README\.md$' })
