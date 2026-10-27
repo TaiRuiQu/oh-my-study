@@ -17,18 +17,6 @@
         "resolved": "10.0.13",
         "contentHash": "40yrBMsLEcjixBR4G+FiUaBPvxXIPSKJ2OgSrbOZcmSDBda4Sb0k7BWrfDpIvn3IvvDzwOL/tEPa6gDQfh6aRw=="
       },
-      "OpenCvSharp4": {
-        "type": "Direct",
-        "requested": "[4.13.0.20260627, )",
-        "resolved": "4.13.0.20260627",
-        "contentHash": "nYk95jkyYY9f0sF5KqZ3OB1SWkmqsfV7eN0ROiQds/rxpSn0v1G0QIedMbwuqbdPhvQnOIG2DDmpkLnHEJMh8Q=="
-      },
-      "OpenCvSharp4.runtime.win": {
-        "type": "Direct",
-        "requested": "[4.13.0.20260627, )",
-        "resolved": "4.13.0.20260627",
-        "contentHash": "POIxR+CTpwHJIdam6wd8U2fprWv5QnIUw50jw79WEGb37He3T1h11SdtwSj9p2PLSfrzonMjO2t71wqi5uFsoQ=="
-      },
       "VelociTex.Core": {
         "type": "Direct",
         "requested": "[1.0.0, )",

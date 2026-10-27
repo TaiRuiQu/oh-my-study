@@ -213,7 +213,7 @@ Camera fills the dynamic viewport, respecting safe-area insets. Its grid contain
 
 Review starts with a compact header (76px): a circular back control, an image/pages capsule, and blue batch send. The default review stage uses side margins (22px), fits the complete page with `object-fit: contain`, and places the document above a fixed dock. The stage height follows the dynamic viewport minus controls (310px), with a minimum (250px).
 
-The dock stays within the same shell and includes paging/original/continue controls, a white four-column tool tray, and preview/filter/pages navigation. Review reserves bottom space (230px); the crop editor reserves its own action-bar space (100px). Safe-area padding protects bottom actions.
+The dock stays within the same shell and includes paging/original/continue controls, a white four-column tool tray, and preview/filter/pages navigation. Review reserves bottom space (230px); the rotation editor reserves its own action-bar space (100px). Safe-area padding protects bottom actions.
 
 Pages is an alternate two-column portrait grid, not the default review composition. It uses row/column gaps (18px/12px), side gutters (20px), and a thumbnail aspect ratio (3:4). Settings options use two columns with independent checkboxes.
 
@@ -227,15 +227,14 @@ The scanner uses flat tonal layers. A black camera, pale review canvas, white co
 
 - **Status notice** (`0 4px 20px #00000012`): transient feedback above the workspace.
 - **Preview progress** (`0 4px 20px #0001`): the compact processing notice over the page.
-- **Crop handle** (`0 2px 6px #0005`): keeps a draggable corner visible over the photograph.
 
-**The The Flat Workspace Rule.** Use tonal separation for the camera, page, and tool tray. Reserve shadows for transient notices and crop handles.
+**The The Flat Workspace Rule.** Use tonal separation for the camera, page, and tool tray. Reserve shadows for transient notices.
 
 ## Shapes
 
 Mobile controls use soft corners and capsules. General controls and mode containers use the control radius; selected capture modes use the smaller mode radius. Page thumbnails use the page radius, the review tool tray has its own softer radius, and the settings sheet uses a larger sheet radius.
 
-Back controls, pager controls, selection marks, and the shutter use circular silhouettes. The shutter has a white outer ring (4px) around its dark inner disc (56px). Crop handles use a visible white center with a blue border inside a larger touch target (44px).
+Back controls, pager controls, selection marks, and the shutter use circular silhouettes. The shutter has a white outer ring (4px) around its dark inner disc (56px).
 
 Outline icons use rounded line caps and joins, normally on a square canvas (26px) with stroke width (1.8). Camera controls use their observed icon override (27px, stroke 1.9); review tools use square icons (30px) centered in the shared icon row (32px).
 
@@ -253,7 +252,7 @@ The single/multiple-page selector floats over the viewfinder in a translucent da
 
 The shutter remains centered between two actions on each side. A short white capture flash fades from opacity (0.65) over 220ms with ease-out. Reduced-motion preferences disable the animation. This flash is feedback, not a navigation transition.
 
-The viewfinder's blue outline is a live SVG quadrilateral, not a fixed rectangle. Browser-local classical detection analyzes preview frames at up to 320 pixels on the longest side in a module Worker every 200ms, skipping frames while busy. Use neutral-color segmentation, morphological cleanup, quadrilateral fitting and boundary refinement before grayscale/edge fallbacks. Map detected corners through the centered `object-fit: cover` crop before drawing the two-pixel outline. Hide the guide when detection fails and stop analysis outside capture, on camera shutdown, or when the page is hidden. The guide does not alter queued originals or restoration settings.
+The viewfinder shows the complete camera preview without a detected-corner outline. Original frames reach the computer before model correction; capture does not crop the queued photo.
 
 ### Review header and navigation
 
@@ -263,7 +262,7 @@ Bottom navigation uses blue text and a short blue underline (16px wide, 4px high
 
 ### Tool tray
 
-Four equal-width tools sit on a white rounded tray. Each reserves an icon row (32px), a caption row (20px), and a consistent row gap (8px). Keep the actual filter, restoration, crop/rotate, and remove actions; this record does not authorize adding unsupported reference functions.
+Four equal-width tools sit on a white rounded tray. Each reserves an icon row (32px), a caption row (20px), and a consistent row gap (8px). Keep the actual white-background filter, image-correction settings, rotation, and remove actions; this record does not authorize adding unsupported reference functions.
 
 ### Page previews and counts
 
@@ -273,9 +272,9 @@ The camera's count badge is a compact blue capsule anchored to Recent scans. Cap
 
 ### Inputs and processing settings
 
-Restoration selectors are white, softly rounded fields. Settings and editor options use independent labeled checkboxes, with shared label rows and a visible focus outline. Standard defaults enable automatic corner detection/crop, orientation, shadows, deblur, and appearance; grayscale and DocScanner dewarping start off. DocRes starts with all four tasks selected. Camera settings and the main Restore tool act on every unsent photo and future photos. Closing the settings sheet regenerates existing previews once. Single-page overrides remain in the crop editor.
+Settings and editor options use independent labeled checkboxes, with shared label rows and a visible focus outline. Automatic orientation, full-frame geometry and white-background enhancement start enabled. Camera settings and the main Restore tool act on every unsent photo and future photos. Closing the settings sheet regenerates existing previews once. Single-page overrides remain in the rotation editor; manual rotation takes precedence over automatic orientation. Computer imports use a native WinUI confirmation with an initially unchecked image-correction option.
 
-The modal settings sheet rests near the bottom with a dark backdrop. Optional DocRes availability and processing errors remain explicit text. Keep the reset action that turns off all processing.
+The modal settings sheet rests near the bottom with a dark backdrop. Processing errors remain explicit text. Keep the reset action that turns off all processing and clears rotation.
 
 ## Do's and Don'ts
 
@@ -284,7 +283,7 @@ The modal settings sheet rests near the bottom with a dark backdrop. Optional Do
 - Do scope every mobile-prefixed token and scanner layout measurement to mobile capture.
 - Do preserve the aligned 32px icon rows and 20px caption rows in camera and review tools.
 - Do keep the page fully visible in review and provide paging, continue shooting, and batch send controls.
-- Do present each operation independently, with standard pipeline defaults and all DocRes tasks selected.
+- Do present orientation, geometry and white-background processing independently, initially enabled on the phone.
 - Do retain visible focus outlines, text status, disabled states, and reduced-motion behavior.
 - Do preserve the local font embedding and distribute its font notice and OFL license.
 
@@ -298,6 +297,6 @@ The modal settings sheet rests near the bottom with a dark backdrop. Optional Do
 - Don't replace user document previews with decorative shipping imagery.
 
 
-Mobile capture keeps structure and styles in `MobileCapture/index.html`, interactions in `capture.js`, pure classical detection in `paper-detector.js`, and worker execution in `paper-worker.js`. Embedded script assets are served from an explicit allowlist with self-only script and worker CSP. HTML contains only non-executable JSON configuration.
+Mobile capture keeps structure and styles in `MobileCapture/index.html` and interactions in `capture.js`. Model inference runs locally on the computer. Embedded script assets are served from an explicit allowlist with self-only script CSP. HTML contains only non-executable JSON configuration.
 
 Interface copy names actions and reports actual state. Do not add instructional captions for swiping, dragging, tapping, paging, resizing, searching, or other standard interactions. Empty states use concise titles and relevant actions without tutorial paragraphs. Retain error recovery, progress, constraints, upload/cost notices, processing scope and accessible control names. Interaction instructions belong in documentation.

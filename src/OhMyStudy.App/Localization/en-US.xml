@@ -843,36 +843,13 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="PhoneCapture.068" xml:space="preserve">Choose up to 12 files per session. Import this batch before starting another.</text>
     <text key="PhoneCapture.069" xml:space="preserve">Ready for more photos.</text>
     <text key="PhoneCapture.070" xml:space="preserve">Checking local document restoration capabilities…</text>
-    <text key="PhoneCapture.071" xml:space="preserve">Standard: DocScanner rectification, OpenCV shadow removal and mild defocus recovery. Optional DocRes: 855 MiB of weights plus several GB of isolated Python and CUDA dependencies. Downloads stay on this computer.</text>
-    <text key="PhoneCapture.072" xml:space="preserve">Download and install DocRes</text>
-    <text key="PhoneCapture.073" xml:space="preserve">Enable optional DocRes restoration</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocRes is installed.</text>
-    <text key="PhoneCapture.075" xml:space="preserve">DocRes is available for this computer.</text>
-    <text key="PhoneCapture.076" xml:space="preserve">DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.</text>
-    <text key="PhoneCapture.077" xml:space="preserve">Cancel DocRes download</text>
-    <text key="PhoneCapture.078" xml:space="preserve">Downloading and checking DocRes locally. This may take several minutes…</text>
-    <text key="PhoneCapture.079" xml:space="preserve">DocRes download canceled. Standard restoration remains available.</text>
-    <text key="PhoneCapture.080" xml:space="preserve">DocRes installation failed. Check the diagnostic log, free disk space, and CUDA installation. Standard restoration remains available.</text>
     <text key="PhoneCapture.081" xml:space="preserve">Document restoration</text>
-    <text key="PhoneCapture.082" xml:space="preserve">Standard (DocScanner + OpenCV)</text>
-    <text key="PhoneCapture.083" xml:space="preserve">DocRes (optional CUDA)</text>
-    <text key="PhoneCapture.084" xml:space="preserve">Install and enable optional DocRes on your computer to use it here.</text>
-    <text key="PhoneCapture.085" xml:space="preserve">DocRes tasks</text>
     <text key="PhoneCapture.086" xml:space="preserve">Dewarp curved pages</text>
     <text key="PhoneCapture.087" xml:space="preserve">Remove shadows</text>
     <text key="PhoneCapture.088" xml:space="preserve">Recover mild blur</text>
     <text key="PhoneCapture.089" xml:space="preserve">Enhance appearance</text>
     <text key="PhoneCapture.090" xml:space="preserve">Cancel processing</text>
     <text key="PhoneCapture.091" xml:space="preserve">Processing canceled. Your original photo and corner edits are preserved.</text>
-    <text key="PhoneCapture.092" xml:space="preserve">DocRes could not process this page. Select Standard restoration and retry. Check CUDA memory and the diagnostic log on your computer.</text>
-    <text key="PhoneCapture.093" xml:space="preserve">DocScanner: rectifying page…</text>
-    <text key="PhoneCapture.094" xml:space="preserve">OpenCV: removing shadows and recovering mild blur…</text>
-    <text key="PhoneCapture.095" xml:space="preserve">DocRes: loading local CUDA models…</text>
-    <text key="PhoneCapture.096" xml:space="preserve">DocRes: dewarping</text>
-    <text key="PhoneCapture.097" xml:space="preserve">DocRes: deshadowing</text>
-    <text key="PhoneCapture.098" xml:space="preserve">DocRes: deblurring</text>
-    <text key="PhoneCapture.099" xml:space="preserve">DocRes: appearance</text>
-    <text key="PhoneCapture.100" xml:space="preserve">Select at least one DocRes task.</text>
     <text key="PhoneCapture.101" xml:space="preserve">No enhancement keeps geometric correction and skips all photometric tasks.</text>
     <text key="PhoneCapture.102" xml:space="preserve">Downloading {0}… {1}%</text>
     <text key="PhoneCapture.103" xml:space="preserve">Downloading dependencies… {0}%</text>
@@ -880,8 +857,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="PhoneCapture.105" xml:space="preserve">Downloading dependencies…</text>
     <text key="PhoneCapture.106" xml:space="preserve">Installing isolated CUDA runtime and PyTorch; this can download several GB.</text>
     <text key="PhoneCapture.107" xml:space="preserve">Checking weights and running CUDA inference on the selected physical device.</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocRes installation verified.</text>
-    <text key="PhoneCapture.109" xml:space="preserve">DocRes download progress</text>
     <text key="PhoneCapture.Batch.000" xml:space="preserve">Camera</text>
     <text key="PhoneCapture.Batch.001" xml:space="preserve">Review</text>
     <text key="PhoneCapture.Batch.002" xml:space="preserve">Scan your pages</text>
@@ -966,11 +941,9 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="PhoneCapture.Reference.027" xml:space="preserve">Restore</text>
     <text key="PhoneCapture.Reference.028" xml:space="preserve">Crop</text>
     <text key="PhoneCapture.Processing.000" xml:space="preserve">Detect corners and crop</text>
-    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner dewarping</text>
     <text key="PhoneCapture.Processing.002" xml:space="preserve">Automatic orientation</text>
     <text key="PhoneCapture.Processing.003" xml:space="preserve">Grayscale</text>
     <text key="PhoneCapture.Processing.004" xml:space="preserve">Dewarp curved pages (optional)</text>
-    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocRes receives the original photo directly. Only selected model tasks run.</text>
     <text key="PhoneCapture.Processing.006" xml:space="preserve">Turn off all processing</text>
     <text key="PhoneCapture.Processing.007" xml:space="preserve">Each processing step can be turned off.</text>
     <text key="PhoneCapture.Processing.009" xml:space="preserve">Applying selected processing…</text>
@@ -990,7 +963,6 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="Export.TableColumns" xml:space="preserve">Table: columns {0}–{1}</text>
     <text key="Export.Row" xml:space="preserve">Row</text>
     <text key="Export.Column" xml:space="preserve">Column {0}</text>
-    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">The restoration method and DocRes tasks apply to all unsent pages and future photos.</text>
     <text key="Task.RunPython" xml:space="preserve">Run Python</text>
     <text key="Task.RunPowerShell" xml:space="preserve">Run PowerShell</text>
     <text key="Task.ShowDetails" xml:space="preserve">Show step details</text>
@@ -1005,4 +977,22 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="Task.ImageRegion" xml:space="preserve">Region: left {0:0.#}%, top {1:0.#}%, width {2:0.#}%, height {3:0.#}%</text>
     <text key="Task.ImageRotation" xml:space="preserve">Rotation: {0}°</text>
     <text key="Task.OriginalPagesRead" xml:space="preserve">Original pages read</text>
+    <text key="PhoneCapture.Model.Enable" xml:space="preserve">Use image correction</text>
+    <text key="PhoneCapture.Model.Import" xml:space="preserve">Import images</text>
+    <text key="PhoneCapture.Model.Description" xml:space="preserve">Flatten pages and enhance white backgrounds locally. Original images are retained; PDFs are unchanged.</text>
+    <text key="PhoneCapture.Model.Title" xml:space="preserve">Image correction</text>
+    <text key="PhoneCapture.Model.Geometry" xml:space="preserve">Correct page geometry</text>
+    <text key="PhoneCapture.Model.White" xml:space="preserve">Enhance white background</text>
+    <text key="PhoneCapture.Model.Filter" xml:space="preserve">White background</text>
+    <text key="PhoneCapture.Model.Rotation" xml:space="preserve">Rotate image</text>
+    <text key="PhoneCapture.Model.GeometryStage" xml:space="preserve">Correcting page geometry…</text>
+    <text key="PhoneCapture.Model.WhiteStage" xml:space="preserve">Enhancing white background…</text>
+    <text key="PhoneCapture.Model.Failure" xml:space="preserve">Image correction failed. Your original photo is preserved. Retry or turn off correction.</text>
+    <text key="PhoneCapture.Model.Canceled" xml:space="preserve">Processing canceled. Your original photo and rotation are preserved.</text>
+    <text key="PhoneCapture.Model.Local" xml:space="preserve">Image correction runs locally with the bundled trained models.</text>
+    <text key="PhoneCapture.Model.Orientation" xml:space="preserve">Automatic orientation runs before full-photo geometry correction. Manual rotation overrides it.</text>
+    <text key="PhoneCapture.Model.Page" xml:space="preserve">Adjust processing for this page. Other pages keep their settings.</text>
+    <text key="PhoneCapture.Model.Progress" xml:space="preserve">Correcting image {0} of {1}…</text>
+    <text key="PhoneCapture.Model.Continue" xml:space="preserve">Continue</text>
+    <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">Orienting page…</text>
 </resources>

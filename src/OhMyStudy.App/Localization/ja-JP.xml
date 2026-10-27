@@ -843,36 +843,13 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.068" xml:space="preserve">1回最大12ファイルです。このバッチをインポートしてから次を始めてください。</text>
     <text key="PhoneCapture.069" xml:space="preserve">続けて撮影できます。</text>
     <text key="PhoneCapture.070" xml:space="preserve">ローカルの文書修復機能を検査しています…</text>
-    <text key="PhoneCapture.071" xml:space="preserve">標準：DocScanner による補正、OpenCV による影除去と軽度のぼけ回復。任意の DocRes：モデル重み 855 MiB に加え、分離された Python と CUDA 依存関係に数 GB 必要です。ダウンロードはこのコンピューターに保持されます。</text>
-    <text key="PhoneCapture.072" xml:space="preserve">DocRes をダウンロードしてインストール</text>
-    <text key="PhoneCapture.073" xml:space="preserve">任意の DocRes 修復を有効にする</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocResはインストール済みです。</text>
-    <text key="PhoneCapture.075" xml:space="preserve">このPCではDocResを利用できます。</text>
-    <text key="PhoneCapture.076" xml:space="preserve">DocRes には専用 VRAM が 12 GiB を超える NVIDIA 独立 GPU と、正常に動作するインストール済み CUDA ランタイムが必要です。ちょうど 12 GiB では対象外です。</text>
-    <text key="PhoneCapture.077" xml:space="preserve">DocRes のダウンロードをキャンセル</text>
-    <text key="PhoneCapture.078" xml:space="preserve">DocRes をローカルにダウンロードして検査しています。しばらく時間がかかる場合があります…</text>
-    <text key="PhoneCapture.079" xml:space="preserve">DocRes のダウンロードをキャンセルしました。標準修復は引き続き利用できます。</text>
-    <text key="PhoneCapture.080" xml:space="preserve">DocRes のインストールに失敗しました。診断ログ、ディスクの空き容量、CUDA のインストール状況を確認してください。標準修復は引き続き利用できます。</text>
     <text key="PhoneCapture.081" xml:space="preserve">文書修復</text>
-    <text key="PhoneCapture.082" xml:space="preserve">標準（DocScanner + OpenCV）</text>
-    <text key="PhoneCapture.083" xml:space="preserve">DocRes（任意の CUDA）</text>
-    <text key="PhoneCapture.084" xml:space="preserve">このコンピューターで任意の DocRes をインストールして有効にすると、ここで使用できます。</text>
-    <text key="PhoneCapture.085" xml:space="preserve">DocRes タスク</text>
     <text key="PhoneCapture.086" xml:space="preserve">曲がったページ会展平</text>
     <text key="PhoneCapture.087" xml:space="preserve">影を除去</text>
     <text key="PhoneCapture.088" xml:space="preserve">軽度のぼけを回復</text>
     <text key="PhoneCapture.089" xml:space="preserve">外観を強調</text>
     <text key="PhoneCapture.090" xml:space="preserve">処理をキャンセル</text>
     <text key="PhoneCapture.091" xml:space="preserve">処理をキャンセルしました。元の写真と角点の編集は保持されます。</text>
-    <text key="PhoneCapture.092" xml:space="preserve">DocRes はこのページを処理できませんでした。標準修復を選択して再試行してください。コンピューターの CUDA メモリと診断ログを確認してください。</text>
-    <text key="PhoneCapture.093" xml:space="preserve">DocScanner：ページ会展平中…</text>
-    <text key="PhoneCapture.094" xml:space="preserve">OpenCV：影除去と軽度のぼけ回復中…</text>
-    <text key="PhoneCapture.095" xml:space="preserve">DocRes：ローカル CUDA モデルを読み込み中…</text>
-    <text key="PhoneCapture.096" xml:space="preserve">DocRes：会展平</text>
-    <text key="PhoneCapture.097" xml:space="preserve">DocRes：影除去</text>
-    <text key="PhoneCapture.098" xml:space="preserve">DocRes：ぼけ除去</text>
-    <text key="PhoneCapture.099" xml:space="preserve">DocRes：外観強調</text>
-    <text key="PhoneCapture.100" xml:space="preserve">DocRes タスクを 1 つ以上選択してください。</text>
     <text key="PhoneCapture.101" xml:space="preserve">「不增强」は幾何補正を保持し、すべての光度タスクをスキップします。</text>
     <text key="PhoneCapture.102" xml:space="preserve">{0} をダウンロード中… {1}%</text>
     <text key="PhoneCapture.103" xml:space="preserve">依存関係をダウンロード中… {0}%</text>
@@ -880,8 +857,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.105" xml:space="preserve">依存関係をダウンロード中…</text>
     <text key="PhoneCapture.106" xml:space="preserve">分離された CUDA ランタイムと PyTorch をインストールしています。数 GB のダウンロードが必要になる場合があります。</text>
     <text key="PhoneCapture.107" xml:space="preserve">重みを確認し、選択した物理デバイスで CUDA 推論を実行しています。</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocResのインストールを検証しました。</text>
-    <text key="PhoneCapture.109" xml:space="preserve">DocRes のダウンロード進捗</text>
     <text key="PhoneCapture.Batch.000" xml:space="preserve">撮影</text>
     <text key="PhoneCapture.Batch.001" xml:space="preserve">確認</text>
     <text key="PhoneCapture.Batch.002" xml:space="preserve">ページをスキャン</text>
@@ -966,11 +941,9 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.Reference.027" xml:space="preserve">復元</text>
     <text key="PhoneCapture.Reference.028" xml:space="preserve">切抜</text>
     <text key="PhoneCapture.Processing.000" xml:space="preserve">四隅を検出して切り抜く</text>
-    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner ゆがみ補正</text>
     <text key="PhoneCapture.Processing.002" xml:space="preserve">向きを自動補正</text>
     <text key="PhoneCapture.Processing.003" xml:space="preserve">グレースケール</text>
     <text key="PhoneCapture.Processing.004" xml:space="preserve">ゆがみ補正（任意）</text>
-    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocResは原本を直接処理し、選択したタスクのみ実行します。</text>
     <text key="PhoneCapture.Processing.006" xml:space="preserve">すべて無効</text>
     <text key="PhoneCapture.Processing.007" xml:space="preserve">各処理は個別にオフにできます。</text>
     <text key="PhoneCapture.Processing.009" xml:space="preserve">選択した処理を実行中…</text>
@@ -990,7 +963,6 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="Export.TableColumns" xml:space="preserve">表：列 {0}–{1}</text>
     <text key="Export.Row" xml:space="preserve">行</text>
     <text key="Export.Column" xml:space="preserve">列 {0}</text>
-    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">補正方法と DocRes の処理項目は、未送信の全ページと今後の写真に適用されます。</text>
     <text key="Task.RunPython" xml:space="preserve">Python を実行</text>
     <text key="Task.RunPowerShell" xml:space="preserve">PowerShell を実行</text>
     <text key="Task.ShowDetails" xml:space="preserve">ステップの詳細を表示</text>
@@ -1005,4 +977,22 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="Task.ImageRegion" xml:space="preserve">領域：左 {0:0.#}%、上 {1:0.#}%、幅 {2:0.#}%、高さ {3:0.#}%</text>
     <text key="Task.ImageRotation" xml:space="preserve">回転：{0}°</text>
     <text key="Task.OriginalPagesRead" xml:space="preserve">元のページを読み取りました</text>
+    <text key="PhoneCapture.Model.Enable" xml:space="preserve">画像補正を使用</text>
+    <text key="PhoneCapture.Model.Import" xml:space="preserve">画像をインポート</text>
+    <text key="PhoneCapture.Model.Description" xml:space="preserve">このPCでページを平坦化し、背景を白くします。元画像は保持し、PDFは変更しません。</text>
+    <text key="PhoneCapture.Model.Title" xml:space="preserve">画像補正</text>
+    <text key="PhoneCapture.Model.Geometry" xml:space="preserve">ページのゆがみを補正</text>
+    <text key="PhoneCapture.Model.White" xml:space="preserve">白い背景を強調</text>
+    <text key="PhoneCapture.Model.Filter" xml:space="preserve">白い背景</text>
+    <text key="PhoneCapture.Model.Rotation" xml:space="preserve">画像を回転</text>
+    <text key="PhoneCapture.Model.GeometryStage" xml:space="preserve">ページのゆがみを補正中…</text>
+    <text key="PhoneCapture.Model.WhiteStage" xml:space="preserve">白い背景を強調中…</text>
+    <text key="PhoneCapture.Model.Failure" xml:space="preserve">画像補正に失敗しました。元画像は保持されています。再試行するか補正をオフにしてください。</text>
+    <text key="PhoneCapture.Model.Canceled" xml:space="preserve">処理を中止しました。元画像と回転設定は保持されています。</text>
+    <text key="PhoneCapture.Model.Local" xml:space="preserve">画像補正は同梱の学習済みモデルを使い、このPCで処理します。</text>
+    <text key="PhoneCapture.Model.Orientation" xml:space="preserve">写真全体のゆがみ補正の前に向きを認識します。手動回転を優先します。</text>
+    <text key="PhoneCapture.Model.Page" xml:space="preserve">このページの処理を調整します。他のページの設定は変わりません。</text>
+    <text key="PhoneCapture.Model.Progress" xml:space="preserve">画像 {0}/{1} を補正中…</text>
+    <text key="PhoneCapture.Model.Continue" xml:space="preserve">続ける</text>
+    <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">ページの向きを認識中…</text>
 </resources>

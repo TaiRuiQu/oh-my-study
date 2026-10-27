@@ -45,120 +45,11 @@ public sealed partial class MainWindow
         }
         string html = await PhoneCaptureHtmlAsync();
         var panel = new StackPanel { Spacing = 12, MaxWidth = 480 };
-        var restorationPanel = new StackPanel { Spacing = 12 };
-        panel.Children.Add(new Expander { Header = UiText.Get("Document restoration"), Content = restorationPanel, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
-        var restorationStatus = new TextBlock { TextWrapping = TextWrapping.Wrap, Text = UiText.Get("Checking local document restoration capabilities…") };
-        restorationPanel.Children.Add(restorationStatus);
-        restorationPanel.Children.Add(new TextBlock { TextWrapping = TextWrapping.Wrap, Text = UiText.Get("Standard: DocScanner rectification, OpenCV shadow removal and mild defocus recovery. Optional DocRes: 855 MiB of weights plus several GB of isolated Python and CUDA dependencies. Downloads stay on this computer.") });
-        var installRestoration = new Button { Content = UiText.Get("Download and install DocRes"), IsEnabled = false };
-        var downloadProgress = new ProgressBar { Minimum = 0, Maximum = 100, Visibility = Visibility.Collapsed, IsIndeterminate = true };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(downloadProgress, UiText.Get("DocRes download progress"));
-        var enableRestoration = new CheckBox { Content = UiText.Get("Enable optional DocRes restoration"), IsEnabled = false };
-        restorationPanel.Children.Add(installRestoration);
-        restorationPanel.Children.Add(downloadProgress);
-        restorationPanel.Children.Add(enableRestoration);
-        CancellationTokenSource? restorationDownload = null;
-        async Task RefreshRestorationAsync()
+        panel.Children.Add(new TextBlock
         {
-            var capability = await Task.Run(DocResRestoration.Status);
-            restorationStatus.Text = capability.Eligible ? UiText.Get(capability.Installed ? "DocRes is installed." : "DocRes is available for this computer.") : UiText.Get("DocRes requires a discrete NVIDIA GPU with more than 12 GiB dedicated VRAM and a working installed CUDA runtime. Exactly 12 GiB is not eligible.");
-            installRestoration.IsEnabled = capability.Eligible && !capability.Installed;
-            enableRestoration.IsEnabled = capability.Eligible && capability.Installed;
-            enableRestoration.IsChecked = capability.Enabled;
-            AppLog.Info("DocRes.Capability", $"Eligible={capability.Eligible}; Installed={capability.Installed}; Enabled={capability.Enabled}; Reason={capability.Reason}");
-        }
-        installRestoration.Click += async (_, _) =>
-        {
-            if (restorationDownload is not null) { await restorationDownload.CancelAsync(); return; }
-            using var canceled = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
-            restorationDownload = canceled;
-            installRestoration.Content = UiText.Get("Cancel DocRes download");
-            enableRestoration.IsEnabled = false;
-            downloadProgress.Visibility = Visibility.Visible;
-            downloadProgress.IsIndeterminate = true;
-            downloadProgress.Value = 0;
-            bool reporting = true;
-            try
-            {
-                restorationStatus.Text = UiText.Get("Downloading and checking DocRes locally. This may take several minutes…");
-                string dependency = "";
-                int loggedBucket = -1;
-                string loggedName = "";
-                void ShowInstallLine(bool parsed, DocResInstallProgress sample, string label, string text)
-                {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        if (_closed || !reporting) return;
-                        if (parsed && sample.Total > 0)
-                        {
-                            int percent = (int)Math.Clamp(sample.Current * 100d / sample.Total, 0, 100);
-                            downloadProgress.IsIndeterminate = false;
-                            downloadProgress.Value = percent;
-                            restorationStatus.Text = label.Length == 0
-                                ? UiText.Format("Downloading dependencies… {0}%", percent)
-                                : UiText.Format("Downloading {0}… {1}%", label, percent);
-                        }
-                        else if (parsed)
-                        {
-                            downloadProgress.IsIndeterminate = true;
-                            restorationStatus.Text = label.Length == 0
-                                ? UiText.Get("Downloading dependencies…")
-                                : UiText.Format("Downloading {0}…", label);
-                        }
-                        else if (text is "Installing isolated CUDA runtime and PyTorch; this can download several GB."
-                            or "Checking weights and running CUDA inference on the selected physical device."
-                            or "DocRes installation verified.")
-                        {
-                            downloadProgress.IsIndeterminate = true;
-                            restorationStatus.Text = UiText.Get(text);
-                        }
-                    });
-                }
-                await DocResRestoration.InstallAsync(line =>
-                {
-                    string text = line.Trim();
-                    bool parsed = DocResRestoration.TryParseInstallProgress(text, out var sample);
-                    if (!parsed && text.StartsWith("Downloading ", StringComparison.Ordinal)) dependency = text["Downloading ".Length..].Trim();
-                    string label = parsed && sample.Name.Length == 0 ? dependency : sample.Name;
-                    if (!parsed)
-                        AppLog.Info("DocRes.Install", line);
-                    else
-                    {
-                        int bucket = sample.Total > 0 ? (int)Math.Clamp(sample.Current * 10d / sample.Total, 0, 10) : 0;
-                        if (bucket != loggedBucket || label != loggedName || sample.Current == sample.Total)
-                        {
-                            AppLog.Info("DocRes.Install", line);
-                            loggedBucket = bucket;
-                            loggedName = label;
-                        }
-                    }
-                    ShowInstallLine(parsed, sample, label, text);
-                }, canceled.Token);
-            }
-            catch (OperationCanceledException) when (canceled.IsCancellationRequested) { restorationStatus.Text = UiText.Get("DocRes download canceled. Standard restoration remains available."); }
-            catch (Exception error)
-            {
-                AppLog.Error("DocRes.Install", error);
-                restorationStatus.Text = UiText.Get("DocRes installation failed. Check the diagnostic log, free disk space, and CUDA installation. Standard restoration remains available.");
-            }
-            finally
-            {
-                reporting = false;
-                restorationDownload = null;
-                downloadProgress.Visibility = Visibility.Collapsed;
-                downloadProgress.IsIndeterminate = true;
-                installRestoration.Content = UiText.Get("Download and install DocRes");
-                var capability = await Task.Run(DocResRestoration.Status);
-                installRestoration.IsEnabled = capability.Eligible && !capability.Installed;
-                enableRestoration.IsEnabled = capability.Eligible && capability.Installed;
-                if (capability.Installed) restorationStatus.Text = UiText.Get("DocRes is installed.");
-            }
-        };
-        enableRestoration.Click += (_, _) =>
-        {
-            try { DocResRestoration.SetEnabled(enableRestoration.IsChecked == true); }
-            catch (Exception error) { AppLog.Error("DocRes.Enable", error); enableRestoration.IsChecked = false; }
-        };
+            Text = UiText.Get("Image correction runs locally with the bundled trained models."),
+            TextWrapping = TextWrapping.Wrap
+        });
         panel.Children.Add(new TextBlock
         {
             Text = UiText.Get("Phone and computer must use the same Wi-Fi network."),
@@ -237,11 +128,8 @@ public sealed partial class MainWindow
                 if (server is not null) await server.DisposeAsync();
                 certificate?.Dispose();
                 certificate = new PhoneCaptureCertificate(((PhoneNetwork)network.SelectedItem).Address);
-                server = new(PhonePhotoProcessor.AnalyzeAsync, PhonePhotoProcessor.ProcessAsync, error => AppLog.Error("PhoneCapture.Request", error), () =>
-                {
-                    var capability = DocResRestoration.Status();
-                    return new(capability.Eligible, capability.Installed, capability.Enabled);
-                }, () => PhonePhotoProcessor.ProcessingStage, preview: PhonePhotoProcessor.PreviewAsync, scripts: PhoneCaptureScripts());
+                server = new(StudyImageProcessor.PreviewAsync, StudyImageProcessor.ProcessAsync, error => AppLog.Error("PhoneCapture.Request", error),
+                    () => StudyImageProcessor.ProcessingStage, scripts: PhoneCaptureScripts());
                 var current = server;
                 server.Changed += () => DispatcherQueue.TryEnqueue(() =>
                 {
@@ -275,7 +163,6 @@ public sealed partial class MainWindow
                 timer.Stop();
             }
         };
-        await RefreshRestorationAsync();
         await StartAsync();
         timer.Start();
         try
@@ -286,7 +173,6 @@ public sealed partial class MainWindow
         finally
         {
             finished = true; timer.Stop();
-            if (restorationDownload is not null) await restorationDownload.CancelAsync();
             if (server is not null) await server.DisposeAsync();
             certificate?.Dispose();
             AppLog.Info("PhoneCapture.Stop", "Temporary phone capture session closed");
@@ -296,7 +182,7 @@ public sealed partial class MainWindow
     private static IReadOnlyDictionary<string, byte[]> PhoneCaptureScripts()
     {
         var scripts = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        foreach (string name in new[] { "capture.js", "paper-detector.js", "paper-worker.js" })
+        foreach (string name in new[] { "capture.js" })
         {
             using var resource = typeof(MainWindow).Assembly.GetManifestResourceStream("OhMyStudy.App.MobileCapture." + name)!;
             byte[] bytes = new byte[checked((int)resource.Length)];

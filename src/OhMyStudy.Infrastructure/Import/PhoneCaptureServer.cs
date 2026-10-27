@@ -21,13 +21,12 @@ public sealed record PhoneNetwork(string Name, IPAddress Address)
     public override string ToString() => $"{Name} · {Address}";
 }
 
-public sealed record PhotoProcessingOptions(bool Crop = false, bool Rectify = false, bool Shadows = false, bool Deblur = false, bool Appearance = false, bool Grayscale = false, bool AutoOrientation = false);
-public sealed record PhotoCorrection(double[][] Corners, string Enhancement, ushort Rotation = 0, string Backend = "standard", string[]? Tasks = null, PhotoProcessingOptions? Processing = null);
-public sealed record PhonePhotoAnalysis(byte[] PreviewPng, double[][] Corners, bool Detected, ushort Rotation = 0, double OrientationConfidence = 0);
-public sealed record PhonePhotoInfo(string Id, string Name, bool Pdf, double[][]? Corners, bool Detected, bool Ready = false, ushort Rotation = 0, double OrientationConfidence = 0, bool Processed = false, PhotoCorrection? Correction = null);
+public sealed record PhotoProcessingOptions(bool Rectify = true, bool Appearance = true, bool AutoOrientation = true);
+public sealed record PhotoCorrection(ushort Rotation = 0, PhotoProcessingOptions? Processing = null);
+public sealed record PhonePhotoAnalysis(byte[] PreviewPng);
+public sealed record PhonePhotoInfo(string Id, string Name, bool Pdf, bool Ready = false, bool Processed = false, PhotoCorrection? Correction = null);
 public sealed record PhoneCaptureSelection(string[] Ids);
-public sealed record PhoneRestorationStatus(bool Eligible, bool Installed, bool Enabled);
-public sealed record PhoneCaptureStatus(IReadOnlyList<PhonePhotoInfo> Files, PhoneRestorationStatus? Restoration = null);
+public sealed record PhoneCaptureStatus(IReadOnlyList<PhonePhotoInfo> Files);
 public sealed class PhotoRestorationException(string message, Exception innerException) : Exception(message, innerException);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
@@ -63,7 +62,6 @@ public sealed class PhoneCaptureServer : IAsyncDisposable
     private readonly Func<byte[], CancellationToken, Task<PhonePhotoAnalysis>> _preview;
     private readonly Func<byte[], PhotoCorrection, CancellationToken, Task<byte[]>> _process;
     private readonly Action<Exception> _logError;
-    private readonly Func<PhoneRestorationStatus>? _restoration;
     private readonly Func<string>? _processingStage;
     private readonly IReadOnlyDictionary<string, byte[]> _scripts;
     private WebApplication? _app;
@@ -78,11 +76,11 @@ public sealed class PhoneCaptureServer : IAsyncDisposable
     public int UploadedCount => Volatile.Read(ref _uploadedCount);
     public event Action? Changed;
 
-    public PhoneCaptureServer(Func<byte[], CancellationToken, Task<PhonePhotoAnalysis>> analyze,
-        Func<byte[], PhotoCorrection, CancellationToken, Task<byte[]>> process, Action<Exception> logError, Func<PhoneRestorationStatus>? restoration = null, Func<string>? processingStage = null, Func<byte[], CancellationToken, Task<PhonePhotoAnalysis>>? preview = null, IReadOnlyDictionary<string, byte[]>? scripts = null)
+    public PhoneCaptureServer(Func<byte[], CancellationToken, Task<PhonePhotoAnalysis>> preview,
+        Func<byte[], PhotoCorrection, CancellationToken, Task<byte[]>> process, Action<Exception> logError, Func<string>? processingStage = null, IReadOnlyDictionary<string, byte[]>? scripts = null)
     {
-        _process = process; _logError = logError; _restoration = restoration; _processingStage = processingStage;
-        _preview = preview ?? analyze;
+        _process = process; _logError = logError; _processingStage = processingStage;
+        _preview = preview;
         _scripts = scripts ?? new Dictionary<string, byte[]>();
     }
 
@@ -164,7 +162,7 @@ public sealed class PhoneCaptureServer : IAsyncDisposable
             {
                 context.Response.ContentType = "application/json";
                 var files = _uploads.Values.OrderBy(upload => upload.Order).Select(upload => upload.Info with { Ready = upload.Accepted, Processed = upload.Processed is not null }).ToArray();
-                await JsonSerializer.SerializeAsync(context.Response.Body, new PhoneCaptureStatus(files, _restoration?.Invoke()), PhoneCaptureJsonContext.Default.PhoneCaptureStatus, canceled.Token).ConfigureAwait(false);
+                await JsonSerializer.SerializeAsync(context.Response.Body, new PhoneCaptureStatus(files), PhoneCaptureJsonContext.Default.PhoneCaptureStatus, canceled.Token).ConfigureAwait(false);
             }
             else if (HttpMethods.IsPost(context.Request.Method) && path == "/upload")
             {
@@ -177,8 +175,7 @@ public sealed class PhoneCaptureServer : IAsyncDisposable
                 var analysis = pdf ? null : await _preview(bytes, canceled.Token).ConfigureAwait(false);
                 if (RetainedBytes + bytes.LongLength + (analysis?.PreviewPng.LongLength ?? 0) > LibraryLimits.MaximumBatchBytes)
                     throw new InvalidDataException("Photo previews exceed 256 MiB");
-                var info = new PhonePhotoInfo(Guid.NewGuid().ToString("N"), name, pdf, analysis?.Corners, analysis?.Detected ?? false,
-                    Rotation: analysis?.Rotation ?? 0, OrientationConfidence: analysis?.OrientationConfidence ?? 0);
+                var info = new PhonePhotoInfo(Guid.NewGuid().ToString("N"), name, pdf);
                 _uploads.Add(info.Id, new(info, bytes, analysis?.PreviewPng, null, false, _nextOrder++));
                 Publish();
                 context.Response.ContentType = "application/json";
@@ -226,10 +223,7 @@ public sealed class PhoneCaptureServer : IAsyncDisposable
                 {
                     byte[] body = await ReadBodyAsync(context.Request, 4096, canceled.Token).ConfigureAwait(false);
                     requestDetails += $"; Correction={System.Text.Encoding.UTF8.GetString(body)}";
-                    var correction = JsonSerializer.Deserialize(body, PhoneCaptureJsonContext.Default.PhotoCorrection) ?? throw new InvalidDataException("Missing photo corners");
-                    if (correction.Backend == "standard" && correction.Processing is { Crop: true, Rectify: false } && (correction.Corners is null || correction.Corners.Length is not (0 or 4) || correction.Corners.Any(p => p is null || p.Length != 2))) throw new InvalidDataException("Use automatic cropping or select four photo corners");
-                    if (correction.Backend is not ("standard" or "docres") || correction.Enhancement is not ("original" or "color" or "gray")) throw new InvalidDataException("Unknown photo restoration mode");
-                    if (correction.Tasks is not null && (correction.Tasks.Any(task => task is not ("dewarping" or "deshadowing" or "deblurring" or "appearance")) || correction.Tasks.Distinct().Count() != correction.Tasks.Length)) throw new InvalidDataException("Invalid DocRes restoration tasks");
+                    var correction = JsonSerializer.Deserialize(body, PhoneCaptureJsonContext.Default.PhotoCorrection) ?? throw new InvalidDataException("Missing image correction options");
                     byte[] processed = await _process(upload.Original, correction, canceled.Token).ConfigureAwait(false);
                     if (processed.Length > LibraryLimits.MaximumAssetBytes || RetainedBytes - (upload.Processed?.LongLength ?? 0) + processed.LongLength > LibraryLimits.MaximumBatchBytes)
                         throw new InvalidDataException("Processed photos exceed the import limit");

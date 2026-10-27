@@ -843,36 +843,13 @@
     <text key="PhoneCapture.068" xml:space="preserve">每次最多选择 12 个文件。请先导入本批次，再开始下一批。</text>
     <text key="PhoneCapture.069" xml:space="preserve">可以继续拍摄。</text>
     <text key="PhoneCapture.070" xml:space="preserve">正在检查本机文档修复能力…</text>
-    <text key="PhoneCapture.071" xml:space="preserve">标准模式：DocScanner 展平、OpenCV 去阴影和轻度失焦恢复。可选 DocRes：855 MiB 模型权重，另需数 GB 的独立 Python 与 CUDA 依赖。下载保存在本机。</text>
-    <text key="PhoneCapture.072" xml:space="preserve">下载并安装 DocRes</text>
-    <text key="PhoneCapture.073" xml:space="preserve">启用可选 DocRes 修复</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocRes 已安装。</text>
-    <text key="PhoneCapture.075" xml:space="preserve">此电脑支持 DocRes。</text>
-    <text key="PhoneCapture.076" xml:space="preserve">DocRes 需要专用显存严格大于 12 GiB 的 NVIDIA 独立显卡，以及已安装且可用的 CUDA 运行时。恰好 12 GiB 不符合要求。</text>
-    <text key="PhoneCapture.077" xml:space="preserve">取消 DocRes 下载</text>
-    <text key="PhoneCapture.078" xml:space="preserve">正在本机下载并检查 DocRes，可能需要数分钟…</text>
-    <text key="PhoneCapture.079" xml:space="preserve">已取消 DocRes 下载，仍可使用标准修复。</text>
-    <text key="PhoneCapture.080" xml:space="preserve">DocRes 安装失败。请检查诊断日志、磁盘空间与 CUDA 安装情况，仍可使用标准修复。</text>
     <text key="PhoneCapture.081" xml:space="preserve">文档修复</text>
-    <text key="PhoneCapture.082" xml:space="preserve">标准（DocScanner + OpenCV）</text>
-    <text key="PhoneCapture.083" xml:space="preserve">DocRes（可选 CUDA）</text>
-    <text key="PhoneCapture.084" xml:space="preserve">在电脑端安装并启用可选 DocRes 后，即可在此使用。</text>
-    <text key="PhoneCapture.085" xml:space="preserve">DocRes 修复项目</text>
     <text key="PhoneCapture.086" xml:space="preserve">展平弯曲页面</text>
     <text key="PhoneCapture.087" xml:space="preserve">去除阴影</text>
     <text key="PhoneCapture.088" xml:space="preserve">恢复轻微模糊</text>
     <text key="PhoneCapture.089" xml:space="preserve">增强外观</text>
     <text key="PhoneCapture.090" xml:space="preserve">取消处理</text>
     <text key="PhoneCapture.091" xml:space="preserve">已取消处理。原照片与页角调整均已保留。</text>
-    <text key="PhoneCapture.092" xml:space="preserve">DocRes 无法处理此页。请选择标准修复后重试，并在电脑端检查 CUDA 显存与诊断日志。</text>
-    <text key="PhoneCapture.093" xml:space="preserve">DocScanner：正在展平页面…</text>
-    <text key="PhoneCapture.094" xml:space="preserve">OpenCV：正在去阴影与恢复轻微模糊…</text>
-    <text key="PhoneCapture.095" xml:space="preserve">DocRes：正在加载本地 CUDA 模型…</text>
-    <text key="PhoneCapture.096" xml:space="preserve">DocRes：正在展平页面</text>
-    <text key="PhoneCapture.097" xml:space="preserve">DocRes：正在去阴影</text>
-    <text key="PhoneCapture.098" xml:space="preserve">DocRes：正在恢复模糊</text>
-    <text key="PhoneCapture.099" xml:space="preserve">DocRes：正在增强外观</text>
-    <text key="PhoneCapture.100" xml:space="preserve">请至少选择一项 DocRes 修复任务。</text>
     <text key="PhoneCapture.101" xml:space="preserve">不增强仍进行几何校正，但跳过所有光度修复任务。</text>
     <text key="PhoneCapture.102" xml:space="preserve">正在下载 {0}… {1}%</text>
     <text key="PhoneCapture.103" xml:space="preserve">正在下载依赖… {0}%</text>
@@ -880,8 +857,6 @@
     <text key="PhoneCapture.105" xml:space="preserve">正在下载依赖…</text>
     <text key="PhoneCapture.106" xml:space="preserve">正在安装独立的 CUDA 运行时和 PyTorch，可能还需下载数 GB。</text>
     <text key="PhoneCapture.107" xml:space="preserve">正在校验权重，并在所选物理设备上运行 CUDA 推理。</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocRes 安装已验证。</text>
-    <text key="PhoneCapture.109" xml:space="preserve">DocRes 下载进度</text>
     <text key="PhoneCapture.Batch.000" xml:space="preserve">拍摄</text>
     <text key="PhoneCapture.Batch.001" xml:space="preserve">待选区</text>
     <text key="PhoneCapture.Batch.002" xml:space="preserve">扫描纸张</text>
@@ -966,11 +941,9 @@
     <text key="PhoneCapture.Reference.027" xml:space="preserve">修复</text>
     <text key="PhoneCapture.Reference.028" xml:space="preserve">裁剪</text>
     <text key="PhoneCapture.Processing.000" xml:space="preserve">识别四角并裁剪</text>
-    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner 去弯曲</text>
     <text key="PhoneCapture.Processing.002" xml:space="preserve">自动转正</text>
     <text key="PhoneCapture.Processing.003" xml:space="preserve">灰度</text>
     <text key="PhoneCapture.Processing.004" xml:space="preserve">展开去弯曲（可选）</text>
-    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocRes 直接处理原图，仅运行勾选的模型任务。</text>
     <text key="PhoneCapture.Processing.006" xml:space="preserve">全部关闭</text>
     <text key="PhoneCapture.Processing.007" xml:space="preserve">每项处理均可单独关闭。</text>
     <text key="PhoneCapture.Processing.009" xml:space="preserve">正在执行所选处理…</text>
@@ -990,7 +963,6 @@
     <text key="Export.TableColumns" xml:space="preserve">表格：第 {0}–{1} 列</text>
     <text key="Export.Row" xml:space="preserve">行</text>
     <text key="Export.Column" xml:space="preserve">第 {0} 列</text>
-    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">修复方式和 DocRes 任务适用于所有未发送页面和后续照片。</text>
     <text key="Task.RunPython" xml:space="preserve">运行 Python</text>
     <text key="Task.RunPowerShell" xml:space="preserve">运行 PowerShell</text>
     <text key="Task.ShowDetails" xml:space="preserve">显示步骤详情</text>
@@ -1005,4 +977,22 @@
     <text key="Task.ImageRegion" xml:space="preserve">区域：左 {0:0.#}%，上 {1:0.#}%，宽 {2:0.#}%，高 {3:0.#}%</text>
     <text key="Task.ImageRotation" xml:space="preserve">旋转：{0}°</text>
     <text key="Task.OriginalPagesRead" xml:space="preserve">已读取原始页面</text>
+    <text key="PhoneCapture.Model.Enable" xml:space="preserve">使用图像矫正</text>
+    <text key="PhoneCapture.Model.Import" xml:space="preserve">导入图片</text>
+    <text key="PhoneCapture.Model.Description" xml:space="preserve">在本机展平页面并增强白底。原图另行保留，PDF 不作处理。</text>
+    <text key="PhoneCapture.Model.Title" xml:space="preserve">图像矫正</text>
+    <text key="PhoneCapture.Model.Geometry" xml:space="preserve">页面几何矫正</text>
+    <text key="PhoneCapture.Model.White" xml:space="preserve">白底增强</text>
+    <text key="PhoneCapture.Model.Filter" xml:space="preserve">白底</text>
+    <text key="PhoneCapture.Model.Rotation" xml:space="preserve">旋转图片</text>
+    <text key="PhoneCapture.Model.GeometryStage" xml:space="preserve">正在矫正页面…</text>
+    <text key="PhoneCapture.Model.WhiteStage" xml:space="preserve">正在增强白底…</text>
+    <text key="PhoneCapture.Model.Failure" xml:space="preserve">图像矫正失败，原图已保留。请重试或关闭矫正。</text>
+    <text key="PhoneCapture.Model.Canceled" xml:space="preserve">处理已取消，原图和旋转设置已保留。</text>
+    <text key="PhoneCapture.Model.Local" xml:space="preserve">图像矫正使用内置的自训模型，全部在本机完成。</text>
+    <text key="PhoneCapture.Model.Orientation" xml:space="preserve">先识别方向，再矫正完整照片。手动旋转时以你的设置为准。</text>
+    <text key="PhoneCapture.Model.Page" xml:space="preserve">调整此页的处理方式，其他页面的设置保持不变。</text>
+    <text key="PhoneCapture.Model.Progress" xml:space="preserve">正在矫正第 {0}/{1} 张图片…</text>
+    <text key="PhoneCapture.Model.Continue" xml:space="preserve">继续</text>
+    <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">正在识别页面方向…</text>
 </resources>

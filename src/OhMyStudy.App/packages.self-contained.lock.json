@@ -255,8 +255,6 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.ML.OnnxRuntime": "[1.23.2, )",
-          "OpenCvSharp4": "[4.13.0.20260627, )",
-          "OpenCvSharp4.runtime.win": "[4.13.0.20260627, )",
           "VelociTex.Core": "[1.0.0, )",
           "VelociTex.Rendering.Direct2D": "[1.0.0, )"
         }
@@ -300,18 +298,6 @@
         "dependencies": {
           "System.ClientModel": "1.15.0"
         }
-      },
-      "OpenCvSharp4": {
-        "type": "CentralTransitive",
-        "requested": "[4.13.0.20260627, )",
-        "resolved": "4.13.0.20260627",
-        "contentHash": "nYk95jkyYY9f0sF5KqZ3OB1SWkmqsfV7eN0ROiQds/rxpSn0v1G0QIedMbwuqbdPhvQnOIG2DDmpkLnHEJMh8Q=="
-      },
-      "OpenCvSharp4.runtime.win": {
-        "type": "CentralTransitive",
-        "requested": "[4.13.0.20260627, )",
-        "resolved": "4.13.0.20260627",
-        "contentHash": "POIxR+CTpwHJIdam6wd8U2fprWv5QnIUw50jw79WEGb37He3T1h11SdtwSj9p2PLSfrzonMjO2t71wqi5uFsoQ=="
       },
       "SQLitePCLRaw.bundle_e_sqlite3": {
         "type": "CentralTransitive",
@@ -380,12 +366,6 @@
         "dependencies": {
           "Microsoft.ML.OnnxRuntime.Managed": "1.23.2"
         }
-      },
-      "OpenCvSharp4.runtime.win": {
-        "type": "CentralTransitive",
-        "requested": "[4.13.0.20260627, )",
-        "resolved": "4.13.0.20260627",
-        "contentHash": "POIxR+CTpwHJIdam6wd8U2fprWv5QnIUw50jw79WEGb37He3T1h11SdtwSj9p2PLSfrzonMjO2t71wqi5uFsoQ=="
       }
     }
   }

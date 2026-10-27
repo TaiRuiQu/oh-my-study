@@ -6,7 +6,9 @@ public sealed partial class LibraryRepository
 {
     // List rows do not load source pages, images, or question bodies.
     public Task<List<PaperSummary>> ListPapersAsync(CancellationToken ct = default) => Run(() =>
-        Query("SELECT d.id,d.name,d.mode,d.created_at,d.pending_pdf_pages,i.subject,i.earned,i.possible,(SELECT COUNT(*) FROM questions q WHERE q.document_id=d.id) FROM documents d LEFT JOIN paper_info i ON i.document_id=d.id ORDER BY d.created_at DESC,d.id", r => new PaperSummary(new Document
+        Query("SELECT d.id,d.name,d.mode,d.created_at,d.pending_pdf_pages,i.subject," +
+        "COALESCE(i.earned,(SELECT CASE WHEN COUNT(*)>0 AND COUNT(q.earned)=COUNT(*) THEN SUM(q.earned) END FROM questions q WHERE q.document_id=d.id))," +
+        "i.possible,(SELECT COUNT(*) FROM questions q WHERE q.document_id=d.id) FROM documents d LEFT JOIN paper_info i ON i.document_id=d.id ORDER BY d.created_at DESC,d.id", r => new PaperSummary(new Document
         { Id = r.GetString(0), Name = r.GetString(1), Mode = DomainJson.Deserialize<ImportMode>(r.GetString(2)), CreatedAt = r.GetString(3), PendingPdfPages = r.GetBoolean(4), Pages = [] },
         NullableText(r, 5), r.IsDBNull(6) ? null : r.GetDouble(6), r.IsDBNull(7) ? null : r.GetDouble(7), r.GetInt32(8))), ct);
 

@@ -843,36 +843,13 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.068" xml:space="preserve">세션당 최대 12개 파일입니다. 현재 묶음을 가져온 후 다음을 시작하세요.</text>
     <text key="PhoneCapture.069" xml:space="preserve">계속 촬영할 수 있습니다.</text>
     <text key="PhoneCapture.070" xml:space="preserve">로컬 문서 복원 기능을 확인하는 중…</text>
-    <text key="PhoneCapture.071" xml:space="preserve">표준: DocScanner 보정, OpenCV 그림자 제거 및 완만한 초점 흐림 복구. 선택적 DocRes: 모델 가중치 855 MiB 외에 격리된 Python 및 CUDA 의존성에 수 GB가 필요합니다. 다운로드는 이 컴퓨터에 보관됩니다.</text>
-    <text key="PhoneCapture.072" xml:space="preserve">DocRes 다운로드 및 설치</text>
-    <text key="PhoneCapture.073" xml:space="preserve">선택적 DocRes 복원 사용</text>
-    <text key="PhoneCapture.074" xml:space="preserve">DocRes가 설치되어 있습니다.</text>
-    <text key="PhoneCapture.075" xml:space="preserve">이 컴퓨터에서 DocRes를 사용할 수 있습니다.</text>
-    <text key="PhoneCapture.076" xml:space="preserve">DocRes에는 전용 VRAM이 12 GiB를 초과하는 NVIDIA 독립 GPU와 정상 작동하는 설치된 CUDA 런타임이 필요합니다. 정확히 12 GiB는 조건을 충족하지 않습니다.</text>
-    <text key="PhoneCapture.077" xml:space="preserve">DocRes 다운로드 취소</text>
-    <text key="PhoneCapture.078" xml:space="preserve">DocRes를 로컬로 다운로드하고 확인하는 중입니다. 시간이 오래 걸릴 수 있습니다…</text>
-    <text key="PhoneCapture.079" xml:space="preserve">DocRes 다운로드를 취소했습니다. 표준 복원은 계속 사용할 수 있습니다.</text>
-    <text key="PhoneCapture.080" xml:space="preserve">DocRes 설치에 실패했습니다. 진단 로그, 디스크 여유 공간, CUDA 설치 상태를 확인하세요. 표준 복원은 계속 사용할 수 있습니다.</text>
     <text key="PhoneCapture.081" xml:space="preserve">문서 복원</text>
-    <text key="PhoneCapture.082" xml:space="preserve">표준(DocScanner + OpenCV)</text>
-    <text key="PhoneCapture.083" xml:space="preserve">DocRes(선택적 CUDA)</text>
-    <text key="PhoneCapture.084" xml:space="preserve">이 컴퓨터에 선택적 DocRes를 설치하고 사용하면 여기에서 쓸 수 있습니다.</text>
-    <text key="PhoneCapture.085" xml:space="preserve">DocRes 작업</text>
     <text key="PhoneCapture.086" xml:space="preserve">움푹한 페이지 펼치기</text>
     <text key="PhoneCapture.087" xml:space="preserve">그림자 제거</text>
     <text key="PhoneCapture.088" xml:space="preserve">완만한 흐림 복구</text>
     <text key="PhoneCapture.089" xml:space="preserve">외관 개선</text>
     <text key="PhoneCapture.090" xml:space="preserve">처리 취소</text>
     <text key="PhoneCapture.091" xml:space="preserve">처리를 취소했습니다. 원본 사진과 모서리 편집은 유지됩니다.</text>
-    <text key="PhoneCapture.092" xml:space="preserve">DocRes가 이 페이지를 처리하지 못했습니다. 표준 복원을 선택하고 다시 시도하세요. 컴퓨터의 CUDA 메모리와 진단 로그를 확인하세요.</text>
-    <text key="PhoneCapture.093" xml:space="preserve">DocScanner: 페이지 펼치는 중…</text>
-    <text key="PhoneCapture.094" xml:space="preserve">OpenCV: 그림자 제거 및 완만한 흐림 복구 중…</text>
-    <text key="PhoneCapture.095" xml:space="preserve">DocRes: 로컬 CUDA 모델 불러오는 중…</text>
-    <text key="PhoneCapture.096" xml:space="preserve">DocRes: 펼치기</text>
-    <text key="PhoneCapture.097" xml:space="preserve">DocRes: 그림자 제거</text>
-    <text key="PhoneCapture.098" xml:space="preserve">DocRes: 흐림 제거</text>
-    <text key="PhoneCapture.099" xml:space="preserve">DocRes: 외관 개선</text>
-    <text key="PhoneCapture.100" xml:space="preserve">DocRes 작업을 하나 이상 선택하세요.</text>
     <text key="PhoneCapture.101" xml:space="preserve">"강화 없음"은 기하 보정을 유지하고 모든 광도 작업을 건너뜁니다.</text>
     <text key="PhoneCapture.102" xml:space="preserve">{0} 다운로드 중… {1}%</text>
     <text key="PhoneCapture.103" xml:space="preserve">의존성 다운로드 중… {0}%</text>
@@ -880,8 +857,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.105" xml:space="preserve">의존성 다운로드 중…</text>
     <text key="PhoneCapture.106" xml:space="preserve">격리된 CUDA 런타임과 PyTorch를 설치하는 중입니다. 수 GB를 다운로드할 수 있습니다.</text>
     <text key="PhoneCapture.107" xml:space="preserve">가중치를 확인하고 선택한 물리 장치에서 CUDA 추론을 실행하는 중입니다.</text>
-    <text key="PhoneCapture.108" xml:space="preserve">DocRes 설치를 검증했습니다.</text>
-    <text key="PhoneCapture.109" xml:space="preserve">DocRes 다운로드 진행률</text>
     <text key="PhoneCapture.Batch.000" xml:space="preserve">촬영</text>
     <text key="PhoneCapture.Batch.001" xml:space="preserve">검토</text>
     <text key="PhoneCapture.Batch.002" xml:space="preserve">페이지 스캔</text>
@@ -966,11 +941,9 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.Reference.027" xml:space="preserve">복원</text>
     <text key="PhoneCapture.Reference.028" xml:space="preserve">자르기</text>
     <text key="PhoneCapture.Processing.000" xml:space="preserve">모서리 감지 및 자르기</text>
-    <text key="PhoneCapture.Processing.001" xml:space="preserve">DocScanner 왜곡 보정</text>
     <text key="PhoneCapture.Processing.002" xml:space="preserve">자동 방향 보정</text>
     <text key="PhoneCapture.Processing.003" xml:space="preserve">회색조</text>
     <text key="PhoneCapture.Processing.004" xml:space="preserve">펴기 및 왜곡 보정 (선택)</text>
-    <text key="PhoneCapture.Processing.005" xml:space="preserve">DocRes는 원본에 선택한 모델 작업만 실행합니다.</text>
     <text key="PhoneCapture.Processing.006" xml:space="preserve">모두 끄기</text>
     <text key="PhoneCapture.Processing.007" xml:space="preserve">각 처리 기능은 개별적으로 끌 수 있습니다.</text>
     <text key="PhoneCapture.Processing.009" xml:space="preserve">선택한 처리 실행 중…</text>
@@ -990,7 +963,6 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="Export.TableColumns" xml:space="preserve">표: {0}–{1}열</text>
     <text key="Export.Row" xml:space="preserve">행</text>
     <text key="Export.Column" xml:space="preserve">{0}열</text>
-    <text key="PhoneCapture.Processing.Shared" xml:space="preserve">복원 방식과 DocRes 작업은 전송하지 않은 모든 페이지와 이후 사진에 적용됩니다.</text>
     <text key="Task.RunPython" xml:space="preserve">Python 실행</text>
     <text key="Task.RunPowerShell" xml:space="preserve">PowerShell 실행</text>
     <text key="Task.ShowDetails" xml:space="preserve">단계 세부 정보 표시</text>
@@ -1005,4 +977,22 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="Task.ImageRegion" xml:space="preserve">영역: 왼쪽 {0:0.#}%, 위쪽 {1:0.#}%, 너비 {2:0.#}%, 높이 {3:0.#}%</text>
     <text key="Task.ImageRotation" xml:space="preserve">회전: {0}°</text>
     <text key="Task.OriginalPagesRead" xml:space="preserve">원본 페이지를 읽었습니다</text>
+    <text key="PhoneCapture.Model.Enable" xml:space="preserve">이미지 보정 사용</text>
+    <text key="PhoneCapture.Model.Import" xml:space="preserve">이미지 가져오기</text>
+    <text key="PhoneCapture.Model.Description" xml:space="preserve">이 PC에서 페이지를 펴고 배경을 밝게 합니다. 원본 이미지는 보존되며 PDF는 변경하지 않습니다.</text>
+    <text key="PhoneCapture.Model.Title" xml:space="preserve">이미지 보정</text>
+    <text key="PhoneCapture.Model.Geometry" xml:space="preserve">페이지 왜곡 보정</text>
+    <text key="PhoneCapture.Model.White" xml:space="preserve">흰 배경 개선</text>
+    <text key="PhoneCapture.Model.Filter" xml:space="preserve">흰 배경</text>
+    <text key="PhoneCapture.Model.Rotation" xml:space="preserve">이미지 회전</text>
+    <text key="PhoneCapture.Model.GeometryStage" xml:space="preserve">페이지 왜곡 보정 중…</text>
+    <text key="PhoneCapture.Model.WhiteStage" xml:space="preserve">흰 배경 개선 중…</text>
+    <text key="PhoneCapture.Model.Failure" xml:space="preserve">이미지 보정에 실패했습니다. 원본 사진은 보존되었습니다. 다시 시도하거나 보정을 끄세요.</text>
+    <text key="PhoneCapture.Model.Canceled" xml:space="preserve">처리가 취소되었습니다. 원본 사진과 회전 설정은 보존되었습니다.</text>
+    <text key="PhoneCapture.Model.Local" xml:space="preserve">이미지 보정은 내장 학습 모델을 사용해 이 PC에서 처리됩니다.</text>
+    <text key="PhoneCapture.Model.Orientation" xml:space="preserve">사진 전체의 왜곡을 보정하기 전에 방향을 인식합니다. 수동 회전이 우선합니다.</text>
+    <text key="PhoneCapture.Model.Page" xml:space="preserve">이 페이지의 처리를 조정합니다. 다른 페이지의 설정은 유지됩니다.</text>
+    <text key="PhoneCapture.Model.Progress" xml:space="preserve">이미지 {0}/{1} 보정 중…</text>
+    <text key="PhoneCapture.Model.Continue" xml:space="preserve">계속</text>
+    <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">페이지 방향 인식 중…</text>
 </resources>

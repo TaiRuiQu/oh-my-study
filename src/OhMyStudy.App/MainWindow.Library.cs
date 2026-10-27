@@ -18,6 +18,7 @@ using OhMyStudy.Infrastructure.Jobs;
 using OhMyStudy.Infrastructure.Providers;
 using OhMyStudy.Infrastructure.Search;
 using OhMyStudy.Infrastructure.Storage;
+using OhMyStudy.Infrastructure.Import;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 
@@ -322,6 +323,13 @@ public sealed partial class MainWindow
                 DiscardSettingsForm();
             }
             if (fileCount > LibraryLimits.MaximumPages) { ViewModel.StatusMessage = UiText.Get("Import up to 12 pages at a time."); return; }
+            bool correctImages = false;
+            if (files.Any(file => !file.FileType.Equals(".pdf", StringComparison.OrdinalIgnoreCase)))
+            {
+                bool? correction = await ChooseImageCorrectionAsync();
+                if (correction is null) return;
+                correctImages = correction.Value;
+            }
             bool append = reference || studentAnswers;
             var processing = append ? null : confirmedProcessing ?? await ChooseProcessingAsync(false, importing: true);
             if (!append && processing is null) return;
@@ -336,7 +344,16 @@ public sealed partial class MainWindow
                 if (properties.Size > LibraryLimits.MaximumAssetBytes || total + (long)properties.Size > LibraryLimits.MaximumBatchBytes)
                     throw new InvalidDataException(UiText.Get("Files must be at most 64 MB each and 256 MB per import. Split them and retry."));
                 byte[] bytes = await File.ReadAllBytesAsync(file.Path, _lifetime.Token);
-                total += bytes.Length; sources.Add(new(file.Name, bytes, studentAnswers ? "student" : reference ? "reference" : "material"));
+                byte[]? corrected = null;
+                if (correctImages && !bytes.AsSpan().StartsWith("%PDF-"u8))
+                {
+                    ViewModel.StatusMessage = UiText.Format("Correcting image {0} of {1}…", sources.Count + 1, fileCount);
+                    AppLog.Info("ImageCorrection.Source", $"Name={file.Name}; InputBytes={bytes.Length}; Geometry=True; WhiteBackground=True");
+                    corrected = await StudyImageProcessor.ProcessAsync(bytes, new PhotoCorrection(), _lifetime.Token);
+                }
+                total += bytes.Length + (corrected?.LongLength ?? 0);
+                if (total > LibraryLimits.MaximumBatchBytes) throw new InvalidDataException(UiText.Get("Files must be at most 64 MB each and 256 MB per import. Split them and retry."));
+                sources.Add(new(file.Name, bytes, studentAnswers ? "student" : reference ? "reference" : "material", corrected));
             }
             imported = append && referenceDocumentId is not null
                 ? await _library.AppendDocumentSourcesAsync(referenceDocumentId, sources, _lifetime.Token)
@@ -360,6 +377,28 @@ public sealed partial class MainWindow
                 : imported is not null ? UiText.Get("Exam saved, but recognition could not start. Start recognition again in Exams.") : ImportFailureMessage(error);
         }
         finally { ImportPaperButton.IsEnabled = true; _importGate.Release(); }
+    }
+
+    private async Task<bool?> ChooseImageCorrectionAsync()
+    {
+        var enabled = new CheckBox { Content = UiText.Get("Use image correction"), IsChecked = false };
+        var content = new StackPanel { Spacing = 12, MaxWidth = 420 };
+        content.Children.Add(enabled);
+        content.Children.Add(new TextBlock
+        {
+            Text = UiText.Get("Flatten pages and enhance white backgrounds locally. Original images are retained; PDFs are unchanged."),
+            TextWrapping = TextWrapping.Wrap
+        });
+        var dialog = new ContentDialog
+        {
+            XamlRoot = RootGrid.XamlRoot,
+            Title = UiText.Get("Import images"),
+            Content = content,
+            PrimaryButtonText = UiText.Get("Continue"),
+            CloseButtonText = UiText.Get("Cancel"),
+            DefaultButton = ContentDialogButton.Primary
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary ? enabled.IsChecked == true : null;
     }
 
     private static string ImportFailureMessage(Exception error) => error switch

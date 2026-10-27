@@ -3,7 +3,7 @@ param(
     [string]$WorkspaceRoot = (Join-Path $PSScriptRoot '..')
 )
 $ErrorActionPreference = 'Stop'
-& (Join-Path $PSScriptRoot '../packaging/prepare-scanner.ps1') -WorkspaceRoot $WorkspaceRoot
+& (Join-Path $PSScriptRoot '../packaging/prepare-restoration.ps1') -WorkspaceRoot $WorkspaceRoot
 $workspace = (Resolve-Path -LiteralPath $WorkspaceRoot).Path
 $toolchain = Join-Path $workspace 'output/migration/toolchain'
 $lock = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'native-documents.lock.json') -Raw | ConvertFrom-Json

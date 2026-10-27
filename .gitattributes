@@ -8,6 +8,6 @@
 *.slnx text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
-/packaging/models/scanner/*.onnx filter=lfs diff=lfs merge=lfs -text
-/packaging/models/scanner/*.md text eol=lf
-/packaging/models/scanner/*.txt text eol=lf
+/packaging/models/restoration/*.onnx filter=lfs diff=lfs merge=lfs -text
+/packaging/models/restoration/*.md text eol=lf
+/packaging/models/restoration/*.txt text eol=lf

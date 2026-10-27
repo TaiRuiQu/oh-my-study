@@ -244,7 +244,7 @@ public sealed partial class MainWindow
             if (first.State == "completed" && first.Kind is not ("model" or "state"))
                 while (end < activities.Count && activities[end].Activity.Kind == first.Kind && activities[end].Activity.State == "completed") end++;
             int count = end - start;
-            if (count == 1) entries.Add((first, time, null, [first]));
+            if (count == 1) entries.Add((first, time, null, new[] { first }));
             else
             {
                 var members = activities.Skip(start).Take(count).Select(item => item.Activity).ToArray();

@@ -1,5 +1,3 @@
-import {detectPaperCorners,mapPaperCorners} from './paper-detector.js';
-
 const {strings,language} = JSON.parse(document.getElementById('capture-configuration').textContent);
 const t = value => strings[value] || value;
 const format = (value, ...args) => args.reduce((text, arg, index) => text.replaceAll('{'+index+'}', arg), t(value));
@@ -9,17 +7,15 @@ document.querySelectorAll('[data-text]').forEach(element => element.textContent 
 document.querySelectorAll('[data-aria]').forEach(element => element.setAttribute('aria-label', t(element.dataset.aria)));
 document.title = t('Take photos with your phone') + ' · Oh My Study';
 const token = location.hash.slice(1);
-const items = [], controls = [];
-let view = 'capture', active = null, corners = [], rotation = 0, editing = false, automaticCrop = true;
+const items = [];
+let view = 'capture', active = null, rotation = 0, editing = false;
 let reviewIndex = 0, reviewLayout = 'image', filterOpen = false, showOriginal = false;
-let multiCapture = true, highResolution = false, defaultEnhancement = 'original';
-let defaultBackend = 'standard', defaultTasks = ['dewarping','deshadowing','appearance','deblurring'];
-let defaultProcessing = {crop:true,autoOrientation:true,shadows:true,deblur:true,appearance:true};
+let multiCapture = true, highResolution = false;
+let defaultProcessing = {autoOrientation:true,rectify:true,appearance:true};
 let captureOptionsInitialized = false;
 let preparing = false, sending = false, capturing = false, editingBusy = false, connected = false, reordering = false;
 let pageDrag = null, pageSwipe = null;
 let stream = null, renderAbort = null, batchAbort = null, worker = null, cameraSequence = 0;
-let boundaryTimer = null, boundaryCanvas = null, boundaryContext = null, boundaryWorker = null, boundaryBusy = false;
 function message(value, error = false) {
     $('status').textContent = t(value); $('status').classList.toggle('error', error);
 }
@@ -36,16 +32,15 @@ async function api(path, options = {}) {
     if (!response.ok) {
         if (response.status === 401 || response.status === 410) { connection(false); throw new Error(t('Connection expired. Scan the QR code on your computer again.')); }
         if (response.status === 413) throw new Error(t('The file exceeds 64 MB. Choose a smaller file.'));
-        if (response.status === 422) throw new Error(t('DocRes could not process this page. Select Standard restoration and retry. Check CUDA memory and the diagnostic log on your computer.'));
+        if (response.status === 422) throw new Error(t('Image correction failed. Your original photo is preserved. Retry or turn off correction.'));
         throw new Error(t('Upload or processing failed. Check the file size and format, then retry.'));
     }
     return response;
 }
-function failure(error) { message(error.name === 'AbortError' ? 'Processing canceled. Your original photo and corner edits are preserved.' : error.message, true); }
+function failure(error) { message(error.name === 'AbortError' ? 'Processing canceled. Your original photo and rotation are preserved.' : error.message, true); }
 function show(next) {
     view = next; document.body.dataset.view = next;
     ['capture','tray','detail'].forEach(id => $(id).hidden = id !== next);
-    if (next === 'capture' && stream) startBoundaryDetection(); else stopBoundaryDetection();
     if (next === 'tray') updateReview();
     window.scrollTo({top:0, behavior:'instant'});
 }
@@ -66,7 +61,6 @@ function updateActions() {
     $('resume-previews').hidden = preparing || !pending.some(item => item.state === 'local');
     $('capture-tab').disabled = editingBusy || sending || reordering; $('tray-tab').disabled = editingBusy || sending || reordering;
     $('capture-options').querySelectorAll('input,select,#reset-capture-processing').forEach(input => input.disabled = preparing || sending || reordering || editingBusy);
-    updateCropControls($('capture-processing'),preparing || sending || reordering || editingBusy);
 }
 function icon(name) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('class','icon'); svg.setAttribute('aria-hidden','true');
@@ -147,7 +141,7 @@ async function prepareItem(item,signal) {
     }
     if (!item.pdf) {
         item.state = 'processing'; renderItems();
-        item.correction ||= {corners:[],rotation:0,enhancement:defaultEnhancement,backend:defaultBackend,tasks:[...defaultTasks],processing:{...defaultProcessing}};
+        item.correction ||= {rotation:0,processing:{...defaultProcessing}};
         const response = await api('/render/'+item.info.id,{method:'POST',signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(item.correction)});
         const url = URL.createObjectURL(await response.blob()); if (item.resultUrl) URL.revokeObjectURL(item.resultUrl); item.resultUrl = url;
     }
@@ -169,7 +163,7 @@ function prepareAll() {
         }
     })().finally(() => {
         worker = null; preparing = false; batchAbort = null; renderItems();
-        if (signal.aborted) message('Processing canceled. Your original photo and corner edits are preserved.');
+        if (signal.aborted) message('Processing canceled. Your original photo and rotation are preserved.');
         else if (view === 'tray') message(items.some(item => item.state === 'error') ? 'Some pages need attention. Retry or deselect them.' : '');
     });
     return worker;
@@ -183,18 +177,11 @@ async function removeItem(item) {
 }
 async function refresh() {
     const data = await (await api('/status')).json(); connection(true);
-    const neuralReady = !!(data.restoration?.eligible && data.restoration.installed && data.restoration.enabled);
-    $('docres-option').disabled = !neuralReady; $('capture-docres-option').disabled = !neuralReady; $('docres-availability').hidden = neuralReady;
     if (!captureOptionsInitialized) {
         captureOptionsInitialized = true;
         const correction = data.files.find(info => !info.ready && !info.pdf && info.correction)?.correction;
-        if (correction) {
-            defaultBackend = correction.backend; defaultTasks = correction.tasks || defaultTasks;
-            $('capture-backend').value = defaultBackend;
-            $('capture-docres-tasks').querySelectorAll('input').forEach(input => input.checked = defaultTasks.includes(input.value));
-            $('capture-processing').hidden = defaultBackend === 'docres';
-            $('capture-docres-tasks').hidden = defaultBackend !== 'docres';
-        }
+        if (correction?.processing) defaultProcessing = {...correction.processing};
+        $('capture-processing').querySelectorAll('[data-process]').forEach(input => input.checked = !!defaultProcessing[input.dataset.process]);
     }
     for (const info of data.files) {
         let item = items.find(value => value.info?.id === info.id);
@@ -205,50 +192,6 @@ async function refresh() {
     }
     renderItems();
 }
-function renderPaperGuide(points,sourceWidth,sourceHeight) {
-    const video = $('live');
-    if (!stream || view !== 'capture' || sourceWidth !== video.videoWidth || sourceHeight !== video.videoHeight) return;
-    const rect = video.getBoundingClientRect();
-    $('framing-guides').toggleAttribute('hidden',!points || !rect.width || !rect.height);
-    if (!points || !rect.width || !rect.height) return;
-    const mapped = mapPaperCorners(points,sourceWidth,sourceHeight,rect.width,rect.height);
-    $('live-boundary').setAttribute('points',mapped.map(point => point.map(value => value*100).join(',')).join(' '));
-}
-function updateFramingGuides() {
-    const video = $('live');
-    if (!stream || view !== 'capture' || document.hidden || capturing || boundaryBusy || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
-    try {
-        const scale = Math.min(1,320/Math.max(video.videoWidth,video.videoHeight));
-        const width = Math.max(3,Math.round(video.videoWidth*scale)), height = Math.max(3,Math.round(video.videoHeight*scale));
-        if (boundaryCanvas.width !== width) boundaryCanvas.width = width;
-        if (boundaryCanvas.height !== height) boundaryCanvas.height = height;
-        boundaryContext.drawImage(video,0,0,boundaryCanvas.width,boundaryCanvas.height);
-        const pixels = boundaryContext.getImageData(0,0,width,height).data;
-        if (boundaryWorker) {
-            boundaryBusy = true;
-            boundaryWorker.postMessage({pixels,width,height,sourceWidth:video.videoWidth,sourceHeight:video.videoHeight},[pixels.buffer]);
-        } else renderPaperGuide(detectPaperCorners(pixels,width,height),video.videoWidth,video.videoHeight);
-    } catch (error) {
-        console.error('Live paper boundary detection failed.',error); stopBoundaryDetection();
-    }
-}
-function startBoundaryDetection() {
-    if (boundaryTimer !== null) return;
-    boundaryCanvas = document.createElement('canvas'); boundaryContext = boundaryCanvas.getContext('2d',{willReadFrequently:true});
-    if (typeof Worker === 'function') {
-        try {
-            boundaryWorker = new Worker('/paper-worker.js',{type:'module'});
-            boundaryWorker.onmessage = event => { boundaryBusy = false; renderPaperGuide(event.data.points,event.data.sourceWidth,event.data.sourceHeight); };
-            boundaryWorker.onerror = error => { console.error('Paper boundary worker failed.',error); stopBoundaryDetection(); };
-        } catch (error) { console.error('Paper boundary worker could not start. Using slower preview analysis.',error); }
-    }
-    boundaryTimer = setInterval(updateFramingGuides,boundaryWorker ? 200 : 400);
-}
-function stopBoundaryDetection() {
-    if (boundaryTimer !== null) clearInterval(boundaryTimer);
-    boundaryWorker?.terminate(); boundaryWorker = null; boundaryBusy = false;
-    boundaryTimer = null; boundaryCanvas = null; boundaryContext = null; $('framing-guides').toggleAttribute('hidden',true);
-}
 async function startCamera() {
     if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) { message('Continuous capture requires trusted HTTPS. Use system camera or choose files on this connection.',true); return; }
     const sequence = ++cameraSequence; capturing = true; updateActions();
@@ -257,7 +200,6 @@ async function startCamera() {
         if (sequence !== cameraSequence || document.hidden) { camera.getTracks().forEach(track => track.stop()); return; }
         stopCamera(false); stream = camera; $('live').srcObject = camera; await $('live').play();
         $('camera-empty').hidden = true; message('');
-        startBoundaryDetection();
         camera.getVideoTracks()[0].onended = () => stopCamera();
     } catch (error) {
         stopCamera(); message(error.name === 'NotAllowedError' ? 'Camera access was denied. Allow camera access in your browser, or use system camera.' : 'Camera unavailable. Close other camera apps and retry, or use system camera.',true);
@@ -265,7 +207,6 @@ async function startCamera() {
 }
 function stopCamera(invalidate = true) {
     if (invalidate) cameraSequence++;
-    stopBoundaryDetection();
     if (stream) stream.getTracks().forEach(track => { track.onended = null; track.stop(); });
     stream = null; $('live').srcObject = null; $('camera-empty').hidden = false; updateActions();
 }
@@ -297,27 +238,9 @@ async function takePhoto() {
         if (highResolutionFailed) message('High-resolution capture failed. A standard photo was saved.',true);
     } catch (error) { failure(error); } finally { capturing = false; updateActions(); }
 }
-function draw() {
-    $('polygon').setAttribute('points',corners.map(point => [point[0]*100,point[1]*100].join(',')).join(' '));
-    controls.forEach((button,index) => { button.style.left = corners[index][0]*100+'%'; button.style.top = corners[index][1]*100+'%'; });
-}
-for (let index = 0; index < 4; index++) {
-    const button = document.createElement('button'); button.className = 'corner'; button.setAttribute('aria-label',t(['Top left corner','Top right corner','Bottom right corner','Bottom left corner'][index]));
-    let dragging = false;
-    const move = event => { const rect = $('editor').getBoundingClientRect(); corners[index] = [Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))]; enableManualCrop(); draw(); };
-    button.onpointerdown = event => { if (editingBusy) return; dragging = true; button.setPointerCapture(event.pointerId); move(event); };
-    button.onpointermove = event => { if (dragging) move(event); }; button.onpointerup = button.onpointercancel = () => dragging = false;
-    button.onkeydown = event => {
-        if (editingBusy || !event.key.startsWith('Arrow')) return; event.preventDefault(); const delta = event.shiftKey ? .025 : .005;
-        if (event.key === 'ArrowLeft') corners[index][0] -= delta; if (event.key === 'ArrowRight') corners[index][0] += delta;
-        if (event.key === 'ArrowUp') corners[index][1] -= delta; if (event.key === 'ArrowDown') corners[index][1] += delta;
-        corners[index] = corners[index].map(value => Math.max(0,Math.min(1,value))); enableManualCrop(); draw();
-    };
-    controls.push(button); $('editor').append(button);
-}
 function detailBusy(value) {
     editingBusy = value; $('detail').querySelectorAll('button,input,select').forEach(element => element.disabled = element.id === 'cancel-render' ? false : value);
-    $('docres-option').disabled = !$('docres-availability').hidden; updateProcessingControls(); updateActions();
+    updateProcessingControls(); updateActions();
 }
 async function openDetail(item) {
     if (preparing || sending || reordering) return;
@@ -329,19 +252,12 @@ async function editPage() {
     try {
         const blob = await (await api('/image/'+active.info.id)).blob(); if (active.editorUrl) URL.revokeObjectURL(active.editorUrl);
         active.editorUrl = URL.createObjectURL(blob); active.originalUrl ||= URL.createObjectURL(blob); $('photo').src = active.editorUrl; $('photo').alt = t('Photo preview');
-        corners = active.info.corners.map(point => [...point]); rotation = active.info.rotation;
-        automaticCrop = !active.correction?.corners?.length;
-        if (active.correction) {
-            const turns = (active.correction.rotation-rotation+360)%360/90;
-            for (let turn = 0; turn < turns; turn++) await rotatePhoto();
-            if (!automaticCrop) corners = active.correction.corners.map(point => [...point]);
-        }
-        $('backend').value = active.correction?.backend || 'standard';
-        $('standard-processing').querySelectorAll('[data-process]').forEach(input => input.checked = !!active.correction?.processing?.[input.dataset.process]);
-        if ($('docres-option').disabled) $('backend').value = 'standard';
-        const tasks = active.correction?.tasks || []; $('docres-tasks').querySelectorAll('input').forEach(input => input.checked = tasks.includes(input.value));
-        $('docres-tasks').hidden = $('backend').value !== 'docres';
-        editing = true; $('review').hidden = false; $('result').hidden = true; $('save-page').textContent = t('Save preview'); draw();
+        rotation = 0;
+        const turns = (active.correction?.rotation || 0) / 90;
+        for (let turn = 0; turn < turns; turn++) await rotatePhoto();
+        const processing = active.correction?.processing || defaultProcessing;
+        $('page-processing').querySelectorAll('[data-process]').forEach(input => input.checked = !!processing[input.dataset.process]);
+        editing = true; $('review').hidden = false; $('result').hidden = true; $('save-page').textContent = t('Save preview');
     } catch (error) { failure(error); } finally { detailBusy(false); }
 }
 async function rotatePhoto() {
@@ -350,36 +266,17 @@ async function rotatePhoto() {
     const blob = await new Promise(resolve => canvas.toBlob(resolve,'image/png'));
     if (!blob) throw new Error(t('Upload or processing failed. Check the file size and format, then retry.'));
     const old = active.editorUrl; active.editorUrl = URL.createObjectURL(blob); image.src = active.editorUrl; await image.decode(); if (old) URL.revokeObjectURL(old);
-    corners = [corners[3],corners[0],corners[1],corners[2]].map(point => [1-point[1],point[0]]); rotation = (rotation+90)%360; draw();
+    rotation = (rotation+90)%360;
 }
 async function savePage() {
     if (!editing) { active = null; openTray(); return; }
-    const crosses = corners.map((point,index) => { const q = corners[(index+1)%4], r = corners[(index+2)%4]; return (q[0]-point[0])*(r[1]-point[1])-(q[1]-point[1])*(r[0]-point[0]); });
-    const area = Math.abs(corners.reduce((sum,point,index) => { const q = corners[(index+1)%4]; return sum+point[0]*q[1]-q[0]*point[1]; },0))/2;
-    updateCropControls($('standard-processing'));
-    const processing = readProcessing($('standard-processing'));
-    if ($('backend').value === 'standard' && processing.crop && !automaticCrop && (crosses.some(value => value < .001) || area < .01)) { message('Corners overlap or are too close. Adjust the four handles.',true); return; }
-    const item = active; item.correction = {corners:automaticCrop || processing.rectify ? [] : corners.map(point => [...point]),rotation,enhancement:'original',backend:$('backend').value,tasks:[...$('docres-tasks').querySelectorAll('input:checked')].map(input => input.value),processing};
-    const sharedRestoration = item.correction.backend === 'docres' || item.correction.backend !== defaultBackend;
-    if (sharedRestoration) {
-        captureOptionsInitialized = true;
-        defaultBackend = item.correction.backend; defaultTasks = [...item.correction.tasks];
-        $('capture-backend').value = defaultBackend;
-        $('capture-docres-tasks').querySelectorAll('input').forEach(input => input.checked = defaultTasks.includes(input.value));
-        $('capture-processing').hidden = defaultBackend === 'docres';
-        $('capture-docres-tasks').hidden = defaultBackend !== 'docres';
-        items.filter(page => page !== item && !page.sent && !page.pdf).forEach(page => {
-            page.correction = {...(page.correction || {corners:[],rotation:0,enhancement:defaultEnhancement,processing:{...defaultProcessing}}),backend:defaultBackend,tasks:[...defaultTasks]};
-            page.state = 'local'; page.error = '';
-        });
-    }
+    const item = active;
+    item.correction = {rotation,processing:readProcessing($('page-processing'))};
     detailBusy(true); message('Applying selected processing…'); renderAbort = new AbortController(); $('cancel-render').hidden = false;
     const stageTimer = setInterval(async () => { try { const stage = await (await api('/progress')).text(); if (stage && renderAbort && !renderAbort.signal.aborted) message(stage); } catch {} },1000);
-    let saved = false;
-    try { await prepareItem(item,renderAbort.signal); await openDetail(item); saved = true; }
-    catch (error) { item.state = 'error'; item.error = t(error.name === 'AbortError' ? 'Processing canceled. Your original photo and corner edits are preserved.' : error.message); failure(error); }
+    try { await prepareItem(item,renderAbort.signal); await openDetail(item); }
+    catch (error) { item.state = 'error'; item.error = t(error.name === 'AbortError' ? 'Processing canceled. Your original photo and rotation are preserved.' : error.message); failure(error); }
     finally { clearInterval(stageTimer); renderAbort = null; $('cancel-render').hidden = true; detailBusy(false); }
-    if (saved && sharedRestoration) await prepareAll();
 }
 $('capture-tab').onclick = $('empty-camera').onclick = () => { active = null; show('capture'); message(''); };
 $('tray-tab').onclick = $('tray-shortcut').onclick = openTray;
@@ -389,10 +286,8 @@ $('files').onchange = event => choose(event.target);
 $('select-all').onclick = () => { const pending = items.filter(item => !item.sent), select = !pending.every(item => item.selected); pending.forEach(item => item.selected = select); renderItems(); };
 $('stop-processing').onclick = () => batchAbort?.abort(); $('cancel-render').onclick = () => renderAbort?.abort();
 $('resume-previews').onclick = prepareAll;
-$('backend').onchange = updateProcessingControls;
-$('standard-processing').onchange = updateProcessingControls;
-$('whole').onclick = () => { automaticCrop = false; $('standard-processing').querySelector('[data-process="crop"]').checked = false; corners = [[0,0],[1,0],[1,1],[0,1]]; draw(); };
-$('rotate').onclick = async () => { detailBusy(true); try { await rotatePhoto(); } catch (error) { failure(error); } finally { detailBusy(false); } };
+$('page-processing').onchange = updateProcessingControls;
+$('rotate').onclick = async () => { detailBusy(true); try { await rotatePhoto(); $('page-processing').querySelector('[data-process="autoOrientation"]').checked = false; } catch (error) { failure(error); } finally { detailBusy(false); } };
 $('save-page').onclick = savePage;
 $('discard').onclick = () => removeItem(active).catch(failure); $('detail-back').onclick = () => { active = null; openTray(); };
 $('send-batch').onclick = async () => {
@@ -412,59 +307,29 @@ function readProcessing(fieldset) {
     fieldset.querySelectorAll('[data-process]').forEach(input => options[input.dataset.process] = input.checked);
     return options;
 }
-function enableManualCrop() {
-    automaticCrop = false;
-    const input = $('standard-processing').querySelector('[data-process="crop"]');
-    if (input) input.checked = true;
-}
-function updateCropControls(fieldset,busy = false) {
-    const rectify = fieldset.querySelector('[data-process="rectify"]').checked;
-    const crop = fieldset.querySelector('[data-process="crop"]');
-    if (rectify) crop.checked = false;
-    crop.disabled = busy || rectify;
-    return rectify;
-}
 function updateProcessingControls() {
-    const docres = $('backend').value === 'docres';
-    const rectify = updateCropControls($('standard-processing'),editingBusy);
-    if (rectify) { automaticCrop = true; corners = [[0,0],[1,0],[1,1],[0,1]]; draw(); }
-    $('standard-processing').hidden = docres;
-    $('docres-tasks').hidden = !docres;
-    $('docres-direct').hidden = !docres;
-    $('outline').hidden = docres || rectify;
-    controls.forEach(button => button.hidden = docres || rectify);
-    $('rotate').disabled = docres || editingBusy;
-    $('whole').disabled = docres || rectify || editingBusy;
-    if (active) $('photo').src = docres ? active.originalUrl || active.editorUrl : active.editorUrl;
+    $('rotate').disabled = editingBusy;
 }
 function captureOptionsChanged() {
     if (preparing || sending || reordering || editingBusy) return Promise.resolve();
     captureOptionsInitialized = true;
-    defaultBackend = $('capture-backend').value || 'standard';
-    updateCropControls($('capture-processing'));
     defaultProcessing = readProcessing($('capture-processing'));
-    defaultTasks = [...$('capture-docres-tasks').querySelectorAll('input:checked')].map(input => input.value);
-    $('capture-processing').hidden = defaultBackend === 'docres';
-    $('capture-docres-tasks').hidden = defaultBackend !== 'docres';
     items.filter(item => !item.sent && !item.pdf).forEach(item => {
-        item.correction = {...item.correction,corners:defaultProcessing.rectify ? [] : item.correction?.corners || [],rotation:item.correction?.rotation || 0,enhancement:'original',backend:defaultBackend,tasks:[...defaultTasks],processing:{...defaultProcessing}};
+        item.correction = {rotation:item.correction?.rotation || 0,processing:{...defaultProcessing}};
         item.state = 'local'; item.error = '';
     });
     renderItems();
     return view === 'tray' && !$('capture-options').open ? prepareAll() : Promise.resolve();
 }
-$('capture-backend').onchange = captureOptionsChanged;
 $('capture-processing').onchange = captureOptionsChanged;
-$('capture-docres-tasks').onchange = captureOptionsChanged;
 $('reset-capture-processing').onclick = () => {
     $('capture-processing').querySelectorAll('input').forEach(input => input.checked = false);
-    $('capture-docres-tasks').querySelectorAll('input').forEach(input => input.checked = false);
     items.filter(item => !item.sent && !item.pdf && item.correction).forEach(item => item.correction.rotation = 0);
     return captureOptionsChanged();
 };
 $('reset-page-processing').onclick = async () => {
     if (!active) return;
-    active.correction = {corners:[],rotation:0,backend:$('backend').value,enhancement:'original',tasks:[],processing:{}};
+    active.correction = {rotation:0,processing:{autoOrientation:false,rectify:false,appearance:false}};
     await editPage();
 };
 
@@ -496,8 +361,8 @@ function updateReview() {
     const editable = !!item && !item.pdf && item.state === 'ready' && !preparing && !sending && !reordering && !editingBusy;
     ['filter-tool','restoration-tool','edit-page','compare-source'].forEach(id => $(id).disabled = !editable);
     ['restoration-tool','edit-page'].forEach(id => $(id).disabled = !item?.info || item.pdf || preparing || sending || reordering || editingBusy);
-    $('filter-tool').disabled = !editable || item?.correction?.backend === 'docres';
-    $('filter-tab').disabled = !editable || item?.correction?.backend === 'docres';
+    $('filter-tool').disabled = !editable;
+    $('filter-tab').disabled = !editable;
     $('delete-page').disabled = !item || preparing || sending || reordering;
     $('compare-source').setAttribute('aria-pressed',String(showOriginal));
     if (!item) return;
@@ -508,8 +373,8 @@ function updateReview() {
     if (url && image.src !== url) { image.src = url; resetPhotoZoom(); }
     image.alt = t(showOriginal ? 'Photo preview' : 'Corrected page preview');
     document.querySelectorAll('[data-filter]').forEach(button => {
-        button.disabled = !editable || item?.correction?.backend === 'docres';
-        button.setAttribute('aria-pressed',String(button.dataset.filter === (item.correction?.enhancement || defaultEnhancement)));
+        button.disabled = !editable;
+        button.setAttribute('aria-pressed',String(button.dataset.filter === ((item.correction?.processing?.appearance ?? true) ? 'color' : 'original')));
     });
 }
 function changeReviewPage(delta,animate = false) {
@@ -719,13 +584,9 @@ async function beginEdit() {
 async function applyFilter(mode) {
     const item = currentPage();
     if (!item || item.state !== 'ready' || preparing || sending || reordering) return;
-    item.correction ||= {corners:[],rotation:0,backend:'standard',tasks:[...defaultTasks],processing:{...defaultProcessing}};
-    if (item.correction.backend === 'docres') return;
-    item.correction.processing ||= {};
-    if (mode === 'gray') item.correction.processing.grayscale = true;
-    else if (mode === 'color') { item.correction.processing.grayscale = false; item.correction.processing.appearance = true; }
-    else ['shadows','deblur','appearance','grayscale'].forEach(key => item.correction.processing[key] = false);
-    item.correction.enhancement = mode; item.state = 'local'; showOriginal = false;
+    item.correction ||= {rotation:0,processing:{...defaultProcessing}};
+    item.correction.processing.appearance = mode === 'color';
+    item.state = 'local'; showOriginal = false;
     await prepareAll();
     updateReview();
 }
@@ -756,7 +617,6 @@ $('close-options').onclick = () => $('capture-options').close();
 $('capture-options').onclose = () => view === 'tray' ? prepareAll() : Promise.resolve();
 
 $('capture-processing').querySelectorAll('[data-process]').forEach(input => input.checked = !!defaultProcessing[input.dataset.process]);
-$('capture-docres-tasks').querySelectorAll('input').forEach(input => input.checked = defaultTasks.includes(input.value));
 
 $('pdf-files').onchange = event => choose(event.target);
 $('hd-camera').onclick = () => {

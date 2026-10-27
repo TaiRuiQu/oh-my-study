@@ -27,9 +27,9 @@
 
 ## 文档修复组件
 
-标准手机照片修复内置 CPU DocScanner-L ONNX 推理与 OpenCV，无需自行安装 Python 或 CUDA。模型附带 DocScanner 独立的非商业许可证，要求署名及相同方式共享；商业用途需提前取得 Hao Feng 的书面许可。可选 DocRes 仅在电脑端手机导入窗口主动点击**下载并安装 DocRes**后下载，且需单独启用。模型权重约 855 MiB，另需数 GB 独立 Python/PyTorch CUDA 依赖，保存在 `%LOCALAPPDATA%/OhMyStudy/DocRes`。单张 NVIDIA 独立显卡必须具有严格大于 12 GiB 的专用显存，并有已安装且可用的 CUDA 运行时；恰好 12 GiB 不符合要求。应用不安装全局 CUDA 工具包。任务选择、取消与回退见[本地文档修复](wiki/Features-Import-zh-CN.md#本地文档修复)。
+应用内置项目微调的完整页面几何矫正与白底增强 ONNX 模型，合计约 65 MB，另保留约 6.8 MB 的方向识别模型。全部通过 ONNX Runtime 在本机 CPU 推理，无需 Python、CUDA、OpenCV 或额外模型安装器。电脑图片导入提供默认关闭的矫正选项，手机拍照可分别选择方向、几何和白底处理，原图与处理后的 PNG 分开保存。见[图像矫正](wiki/Features-Import-zh-CN.md#本地图像矫正)。
 
-源码构建时先安装 Git LFS 并执行 `git lfs pull`，再执行 `./packaging/prepare-scanner.ps1`。三个随软件分发的 ONNX 模型通过 Git LFS 保存在 `packaging/models/scanner/`；准备脚本校验固定的文件大小和 SHA-256 后复制到构建工具目录，不再下载上游权重或安装 Python。CI 在准备依赖前检出 LFS 对象。模型、许可证与修改说明一起分发。维护者可主动执行 `./packaging/prepare-docscanner.ps1 -CheckpointPath <DocScanner-L.pth>`，重新生成仓库中的 DocScanner ONNX；这个独立导出器在需要时下载固定版本的上游源码，并使用独立的 CPU Python/PyTorch 工具链。也可用 `-PythonExecutable <python.exe>` 指定含 torch 2.9.1 CPU、torchvision 0.24.1 CPU、onnx 1.19.1、onnxruntime 1.23.2、numpy 2.2.6 与 pillow 11.3.0 的导出环境。导出器验证 PyTorch/ONNX 数值一致性，并核对固定的输出 SHA-256。
+源码构建先安装 Git LFS，执行 `git lfs pull`，再执行 `./packaging/prepare-restoration.ps1`。模型位于 `packaging/models/restoration/`，准备脚本按 `packaging/restoration.lock.json` 校验大小与 SHA-256，再复制到构建工具目录。CI 在准备依赖之前检出 LFS 资源。UVDoc、SyntheticDoc 的 MIT 声明和方向模型的 Apache-2.0 声明随模型分发，不分发训练数据集或 Python 训练环境。
 
 ## 使用 Setup 安装
 
