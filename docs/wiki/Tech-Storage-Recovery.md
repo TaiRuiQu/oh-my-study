@@ -2,11 +2,11 @@
 
 [Home](Home.md) · [Tech for nerds](Tech-for-nerds.md) · [简体中文](Tech-Storage-Recovery-zh-CN.md)
 
-## Schema v6
+## Schema v7
 
-The library contains `study.sqlite3` and managed `assets`. The current SQLite `user_version` is **6**. Earlier writable libraries receive a `study.sqlite3.pre-v6-…` database snapshot before transactional migration. Schema v4 converts recursive legacy questions into shared stems and flat items and adds query-summary columns; v5 records ownership of generated question images in `question_assets`.
+The library contains `study.sqlite3` and managed `assets`. The current SQLite `user_version` is **7**. Earlier writable libraries receive a `study.sqlite3.pre-v7-…` database snapshot before transactional migration. Schema v4 converts recursive legacy questions into shared stems and flat items and adds query-summary columns; v5 records ownership of generated question images in `question_assets`.
 
-Schema v6 adds a separate `student` source-page role for answer attachments while preserving original page IDs, order, rotations, and PDF relationships. Student responses and nullable error analysis remain in the question JSON. Questions retain typed JSON payloads, while summary columns support list search/filter/sort without deserializing every question. Reference answers match `matched_item_key`. Grading rollback records support explicit task retry; semantic-index tables cache embeddings independently of question payloads. Older application versions cannot open the upgraded schema.
+Schema v6 adds a separate `student` source-page role for answer attachments while preserving original page IDs, order, rotations, and PDF relationships. Schema v7 adds `workflow_artifacts`, which stores each run's MinerU archives, per-page Markdown and content lists, extracted images, OCR records, the split plan, and each stage's typed JSON. Artifacts cascade with their grading run, are included in library backups, and are removed when retry rolls back that run. Student responses and nullable error analysis remain in the question JSON. Questions retain typed JSON payloads, while summary columns support list search/filter/sort without deserializing every question. Reference answers match `matched_item_key`. Grading rollback records support explicit task retry; semantic-index tables cache embeddings independently of question payloads. Older application versions cannot open the upgraded schema.
 
 ## Ownership and indexing
 

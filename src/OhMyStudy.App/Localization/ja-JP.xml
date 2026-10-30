@@ -995,4 +995,132 @@ f′(x) = 0 より x = −1 または x = 1。
     <text key="PhoneCapture.Model.Progress" xml:space="preserve">画像 {0}/{1} を補正中…</text>
     <text key="PhoneCapture.Model.Continue" xml:space="preserve">続ける</text>
     <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">ページの向きを認識中…</text>
+    <text key="Workflow.Title" xml:space="preserve">試験処理フロー</text>
+    <text key="Workflow.Description" xml:space="preserve">各工程のモデルを選びます。原本と認識資料はライブラリに保存されます。</text>
+    <text key="Workflow.MinerUToken" xml:space="preserve">MinerU Bearer トークン</text>
+    <text key="Workflow.SplitterUrl" xml:space="preserve">問題分割 API URL</text>
+    <text key="Workflow.SplitterModel" xml:space="preserve">問題分割モデル</text>
+    <text key="Workflow.SplitterKey" xml:space="preserve">問題分割 API キー</text>
+    <text key="Workflow.Grader" xml:space="preserve">採点モデル</text>
+    <text key="Workflow.Parallel" xml:space="preserve">同時処理する問題数</text>
+    <text key="Workflow.Rounds" xml:space="preserve">解答あたりの最大呼び出し数</text>
+    <text key="Workflow.Regions" xml:space="preserve">問題領域の補完</text>
+    <text key="Workflow.BaseRegionPath" xml:space="preserve">YOLO26N 問題モデル（ONNX）</text>
+    <text key="Workflow.ChineseRegionPath" xml:space="preserve">中国語問題モデル（任意の ONNX）</text>
+    <text key="Workflow.RegionDescription" xml:space="preserve">領域モデルはローカルで実行されます。問題枠に解答欄が含まれない場合、採点には元の解答画像を使います。</text>
+    <text key="Workflow.SameModel" xml:space="preserve">解答モデルを使用</text>
+    <text key="Workflow.Invalid" xml:space="preserve">保存済みモデル、処理制限、ONNX パスを確認してください。</text>
+    <text key="Workflow.Configure" xml:space="preserve">設定で試験処理フローを構成してください。</text>
+    <text key="Workflow.SelectGrader" xml:space="preserve">設定で採点モデルを選び直してください。</text>
+    <text key="Workflow.Upload" xml:space="preserve">ページは MinerU と問題分割モデルに送信されます。整理した問題は解答モデル、解答画像は採点モデルに送信され、各段階で料金が発生する場合があります。</text>
+    <text key="Workflow.OcrCost" xml:space="preserve">表示料金に OCR と価格未設定のモデル料金は含まれません。</text>
+    <text key="Workflow.Solve" xml:space="preserve">問題を解答</text>
+    <text key="Workflow.Assess" xml:space="preserve">解答を採点</text>
+    <text key="Workflow.Split" xml:space="preserve">問題と資料を整理</text>
+    <text key="Workflow.SplitCorrection" xml:space="preserve">検証結果に基づき問題と解答の関連付けを修正しています。</text>
+    <text key="Workflow.Ocr" xml:space="preserve">MinerU でページを認識</text>
+    <text key="Workflow.Detect" xml:space="preserve">問題領域を検出</text>
+    <text key="Workflow.Python" xml:space="preserve">Python で計算</text>
+    <text key="Workflow.Process" xml:space="preserve">問題を処理</text>
+    <text key="Workflow.AwaitingSolution" xml:space="preserve">個別の解答を待機中。</text>
+    <text key="Workflow.AwaitingAssessment" xml:space="preserve">個別の採点を待機中。</text>
+    <text key="Workflow.QuestionStep" xml:space="preserve">{0} · 問題 {1}</text>
+    <text key="Workflow.OcrProgress" xml:space="preserve">OCR ページ: {0}/{1}。</text>
+    <text key="Workflow.QuestionProgress" xml:space="preserve">完了した問題: {0}/{1}。</text>
+    <text key="Workflow.GroupProgress" xml:space="preserve">{0} 問を整理しました。個別に解答中。</text>
+    <text key="Workflow.Grouped" xml:space="preserve">{0} 問を整理しました。</text>
+    <text key="Workflow.Done" xml:space="preserve">OCR、問題整理、解答、採点が完了しました。</text>
+    <text key="Workflow.NoDetector" xml:space="preserve">領域モデル未設定。問題分割モデルが OCR と元画像を確認します。</text>
+    <text key="Workflow.Export" xml:space="preserve">認識資料をエクスポート</text>
+    <text key="Workflow.Exported" xml:space="preserve">認識資料をエクスポートしました。</text>
+    <text key="Workflow.ExportFailed" xml:space="preserve">OCR の完了と保存先への書き込み権限を確認してください。</text>
+    <text key="Workflow.SolvingModel" xml:space="preserve">解答モデル</text>
+    <text key="Workflow.SetupOcr" xml:space="preserve">1. アップロードと認識</text>
+    <text key="Workflow.SetupSplit" xml:space="preserve">2. 問題分割と資料の関連付け</text>
+    <text key="Workflow.SetupSolve" xml:space="preserve">3. 並列解答</text>
+    <text key="Workflow.SetupGrade" xml:space="preserve">4. 答案の採点</text>
+    <text key="Workflow.OcrOutput" xml:space="preserve">MinerU が試験全体の Markdown、画像、表を抽出します。</text>
+    <text key="Workflow.SplitOutput" xml:space="preserve">問題文、図表、解答領域を問題ごとにまとめます。</text>
+    <text key="Workflow.SolveSetup" xml:space="preserve">開始時に解答モデルを選びます。問題ごとに独立処理し、制限付き Python 計算を利用します。</text>
+    <text key="Workflow.GradeOutput" xml:space="preserve">原本の解答領域と独立した解答を使って採点します。未記入の試験は採点しません。</text>
+    <text key="Workflow.ChooseProviderModel" xml:space="preserve">プロバイダー / モデルを選択</text>
+    <text key="Workflow.SharedProvider" xml:space="preserve">保存済みの接続先とキーを使用します。</text>
+    <text key="Workflow.Advanced" xml:space="preserve">計算制限と領域検出</text>
+    <text key="Workflow.Progress" xml:space="preserve">処理の進捗</text>
+    <text key="Workflow.QuestionListTitle" xml:space="preserve">問題ごとの進捗</text>
+    <text key="Workflow.Details" xml:space="preserve">技術詳細とモデル記録</text>
+    <text key="Workflow.Empty" xml:space="preserve">形式判定 → 認識 → 分割 → 解答 → 採点</text>
+    <text key="Workflow.TokenSaved" xml:space="preserve">MinerU キーは保存済みです。空欄で維持します。</text>
+    <text key="Workflow.TokenMissing" xml:space="preserve">MinerU キーを保存して認識を有効にします。</text>
+    <text key="Workflow.SelectSplitter" xml:space="preserve">保存済みプロバイダーから問題分割モデルを選んでください。</text>
+    <text key="Workflow.StageOcr" xml:space="preserve">アップロードと認識</text>
+    <text key="Workflow.StageSplit" xml:space="preserve">問題分割と資料の関連付け</text>
+    <text key="Workflow.StageSolve" xml:space="preserve">並列解答</text>
+    <text key="Workflow.StageGrade" xml:space="preserve">答案の採点</text>
+    <text key="Workflow.OcrSaved" xml:space="preserve">{0}/{1} ページ認識済み · Markdown、画像、表を保存</text>
+    <text key="Workflow.OcrCount" xml:space="preserve">{0}/{1} ページ認識済み · MinerU</text>
+    <text key="Workflow.SplitCount" xml:space="preserve">{0} 問 · 原資料を関連付け済み</text>
+    <text key="Workflow.WaitOcr" xml:space="preserve">認識資料を待機中</text>
+    <text key="Workflow.ReferenceMatched" xml:space="preserve">参考解答を問題に照合済み</text>
+    <text key="Workflow.NoReferenceSolve" xml:space="preserve">参考解答の取込では解答しません</text>
+    <text key="Workflow.NoReferenceGrade" xml:space="preserve">参考解答の取込では採点しません</text>
+    <text key="Workflow.SolvedCount" xml:space="preserve">{0}/{1} 問解答済み · 同時に最大 {2} 問</text>
+    <text key="Workflow.BlankSkip" xml:space="preserve">未記入の試験 · 採点不要</text>
+    <text key="Workflow.GradedCount" xml:space="preserve">採点済み {0} · 不要 {1} · {2}</text>
+    <text key="Workflow.Counts" xml:space="preserve">分割 {0} · 解答 {1} · 採点 {2} · 採点不要 {3}</text>
+    <text key="Workflow.NotRequired" xml:space="preserve">不要</text>
+    <text key="Workflow.Stopped" xml:space="preserve">停止</text>
+    <text key="Workflow.Waiting" xml:space="preserve">待機中</text>
+    <text key="Workflow.SolutionStatus" xml:space="preserve">解答：{0}</text>
+    <text key="Workflow.GradeStatus" xml:space="preserve">採点：{0}</text>
+    <text key="Workflow.QuestionLabel" xml:space="preserve">第 {0} 問</text>
+    <text key="Workflow.UploadTitle" xml:space="preserve">MinerU にページをアップロード</text>
+    <text key="Workflow.UploadCount" xml:space="preserve">{0}/{1} ページをアップロード済み。</text>
+    <text key="Workflow.SetupTitle" xml:space="preserve">試験処理を設定</text>
+    <text key="Workflow.SetupHelp" xml:space="preserve">設定で MinerU キーを保存し、問題分割モデルを選んでください。</text>
+    <text key="Workflow.StartIntro" xml:space="preserve">原本はローカルに保存されます。開始後は次の工程を自動処理します。</text>
+    <text key="Workflow.SolveHelp" xml:space="preserve">問題ごとに独立して解答し、制限付き Python 計算を利用します。</text>
+    <text key="Workflow.ParallelHelp" xml:space="preserve">最大 {0} 問を同時に処理します。</text>
+    <text key="Workflow.CalculationPolicy" xml:space="preserve">Python 計算には実行権限の設定が適用されます。</text>
+    <text key="Workflow.LocalCalculator" xml:space="preserve">Windows サンドボックスを利用できないため、制限付き Python 計算をローカルで実行します。</text>
+    <text key="Workflow.ModelOptions" xml:space="preserve">モデルと計算のオプション</text>
+    <text key="Workflow.RetryHelp" xml:space="preserve">再試行すると今回の結果を消去して最初から処理します。原本と手動編集は保持されます。発生済みの料金は戻りません。</text>
+    <text key="Workflow.UploadSummary" xml:space="preserve">ページのプレビューを形式判定モデルに送信し、続いて MinerU と分割モデルで処理します。問題資料と答案画像は必要に応じて解答・採点先に送信します。各工程で料金が発生する場合があり、OCR と価格未設定の呼出しは見積り対象外です。</text>
+    <text key="Workflow.Start" xml:space="preserve">処理を開始</text>
+    <text key="Workflow.RecognizedPages" xml:space="preserve">認識済みページ</text>
+    <text key="Workflow.SplitQuestions" xml:space="preserve">分割済み問題</text>
+    <text key="Workflow.CostScope" xml:space="preserve">OCR と価格未設定の呼出しは見積り対象外です。</text>
+    <text key="Workflow.CalculationExecution" xml:space="preserve">Python 計算の実行権限</text>
+    <text key="Workflow.CalculationAsk" xml:space="preserve">実行前に制限付き Python 計算を確認します。</text>
+    <text key="Workflow.CalculationDirect" xml:space="preserve">制限付き Python 計算を確認なしでローカル実行します。</text>
+    <text key="Workflow.Save" xml:space="preserve">処理設定を保存</text>
+    <text key="Workflow.Visual.Flow" xml:space="preserve">試験の処理フロー</text>
+    <text key="Workflow.Visual.Ocr" xml:space="preserve">ページ認識</text>
+    <text key="Workflow.Visual.Split" xml:space="preserve">問題分割</text>
+    <text key="Workflow.Visual.Solve" xml:space="preserve">並列解答</text>
+    <text key="Workflow.Visual.Grade" xml:space="preserve">答案採点</text>
+    <text key="Workflow.Visual.OcrDetail" xml:space="preserve">MinerU → テキスト・画像・表</text>
+    <text key="Workflow.Visual.SplitDetail" xml:space="preserve">問題文・図表・解答領域をまとめる</text>
+    <text key="Workflow.Visual.SolveDetail" xml:space="preserve">問題ごとの解答・制限付き Python 計算</text>
+    <text key="Workflow.Visual.GradeDetail" xml:space="preserve">原答案と解答を照合・未記入は省略</text>
+    <text key="PhoneCapture.ImportDescription" xml:space="preserve">このパソコンから PDF や画像を選ぶか、同じ Wi-Fi に接続したスマートフォンで撮影して送信できます。原本はこのパソコンに保存され、認識前にモデルと送信範囲を確認できます。</text>
+    <text key="Workflow.Classify" xml:space="preserve">試験形式を判定</text>
+    <text key="Workflow.ClassifyShort" xml:space="preserve">形式判定</text>
+    <text key="Workflow.ClassifierModel" xml:space="preserve">形式判定モデル</text>
+    <text key="Workflow.ClassifierDefault" xml:space="preserve">問題分割モデルを使用</text>
+    <text key="Workflow.ClassifyHelp" xml:space="preserve">OCR 前に問題・答案・解答用紙・採点を区別</text>
+    <text key="Workflow.Classified" xml:space="preserve">試験形式の判定が完了しました。</text>
+    <text key="Workflow.FormatBlank" xml:space="preserve">未記入の問題用紙</text>
+    <text key="Workflow.FormatInline" xml:space="preserve">問題用紙に記入済み・未採点</text>
+    <text key="Workflow.FormatMarkedInline" xml:space="preserve">問題用紙に記入済み・教師採点あり</text>
+    <text key="Workflow.FormatSeparate" xml:space="preserve">問題用紙と別の解答用紙</text>
+    <text key="Workflow.FormatMarkedSheet" xml:space="preserve">問題用紙と教師採点済みの解答用紙</text>
+    <text key="Workflow.FormatUncertain" xml:space="preserve">試験形式の確認が必要です。</text>
+    <text key="Workflow.ClassifierReferenceSkip" xml:space="preserve">参考解答の取込では形式判定を省略</text>
+    <text key="Workflow.FormatConfidence" xml:space="preserve">{0} · 信頼度 {1:P0}</text>
+    <text key="Workflow.AnswerReview" xml:space="preserve">答案の対応付けまたは採点の確認が必要です。</text>
+    <text key="Workflow.ReviewState" xml:space="preserve">要確認</text>
+    <text key="Workflow.GradeCountWithReview" xml:space="preserve">採点 {0} · 要確認 {1} · 不要 {2} · {3}</text>
+    <text key="Workflow.QuestionCountWithReview" xml:space="preserve">分割 {0} · 解答 {1} · 採点 {2} · 要確認 {3} · 不要 {4}</text>
+    <text key="Workflow.ReferenceUpload" xml:space="preserve">参考解答のページを MinerU と分割先に送信して対応付けます。OCR と価格未設定の呼出しは見積り対象外です。</text>
 </resources>

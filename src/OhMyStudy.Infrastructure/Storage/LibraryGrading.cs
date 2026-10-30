@@ -96,14 +96,15 @@ public sealed partial class LibraryRepository
         {
             var next = DomainJson.Deserialize<Question>(json);
             var input = CheckRun(jobId); var existing = Questions(input.Document.Id);
+            var document = input.ProcessingDocument;
             var previous = existing.SingleOrDefault(q => q.Question.DraftKey == next.DraftKey);
             next = next with { Notes = previous?.Question.Notes ?? "" };
             if (previous is not null) next = Preserve(next, previous.Question, input.Document.Mode is ImportMode.TeacherGraded or ImportMode.Auto);
             var references = References(input.Document.Id);
-            GradingValidation.ValidateQuestion(next, input.Document, references, true);
+            GradingValidation.ValidateQuestion(next, document, references, true);
             CheckManual(next, previous?.Question);
             if (next.Items.Any(item => item.Attempt?.Grade.Source != GradeSource.Manual))
-                GradingValidation.ValidateQuestion(next with { Items = next.Items.Where(item => item.Attempt?.Grade.Source != GradeSource.Manual).ToList() }, input.Document, references, false);
+                GradingValidation.ValidateQuestion(next with { Items = next.Items.Where(item => item.Attempt?.Grade.Source != GradeSource.Manual).ToList() }, document, references, false);
             RequireUniqueItemKeys(existing.Where(q => q.Question.DraftKey != next.DraftKey), next);
             var stored = WriteQuestion(input.Document.Id, next, previous?.Id);
             TrackGradingChange(jobId, "question", stored.Id, previous is null ? null : DomainJson.Serialize(previous), DomainJson.Serialize(stored));
@@ -188,11 +189,12 @@ public sealed partial class LibraryRepository
         return Run(() => Transaction(cancellationToken, () =>
         {
             var input = CheckRun(jobId); var questions = Questions(input.Document.Id); var references = References(input.Document.Id);
-            GradingValidation.ValidateCoverage(input.Document, DomainJson.Deserialize<List<Coverage>>(json), questions, referenceOnly, viewedCopy);
+            var document = input.ProcessingDocument;
+            GradingValidation.ValidateCoverage(document, DomainJson.Deserialize<List<Coverage>>(json), questions, referenceOnly, viewedCopy);
             if (!referenceOnly)
             {
                 if (!questions.Select(q => q.Question.DraftKey).ToHashSet().SetEquals(saved)) throw new InvalidOperationException("This round must save all questions. Existing questions must not be silently omitted");
-                foreach (var question in questions) GradingValidation.ValidateQuestion(question.Question, input.Document, references, true);
+                foreach (var question in questions) GradingValidation.ValidateQuestion(question.Question, document, references, true);
             }
             var allKeys = questions.SelectMany(q => GradingValidation.ItemKeys(q.Question)).ToHashSet();
             if (references.Any(r => r.MatchedItemKey is { } key && !allKeys.Contains(key))) throw new InvalidOperationException("A reference answer points to an unsaved item");

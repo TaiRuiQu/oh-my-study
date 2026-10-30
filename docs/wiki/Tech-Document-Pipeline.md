@@ -33,7 +33,7 @@ Regions store normalized rectangles on the unrotated full page. Given original w
 
 For W=1000 and H=2000, (0.1,0.2,0.3,0.1) means (100,400,300,200). A 90-degree display rotation changes the presentation transform; it does not rewrite x/y into a different coordinate system. The image above is schematic, not a scale drawing of that rectangle.
 
-The read_pages response supplies ordered per-page results, crop, rotation, dimensions, coordinate-system labels, and local image paths. Model regions use integer bbox corners from 0 to 999; stored regions use the fractional rectangles above. A crop helps inspect detail, but returned crop pixels must not be mistaken for full-page coordinates.
+The OCR workflow converts MinerU 0–1000 bbox corners into the fractional rectangles above, mapping any user-applied page rotation back to the original raster. Splitter, detector, solving and grading contracts all retain original-page coordinates. Solving/assessment receive original crops with source regions and display rotations; crop pixels must not be mistaken for full-page coordinates. See the [workflow](Tech-Model-Loop.md).
 
 ## Reading performance without changing evidence
 

@@ -36,4 +36,4 @@ Oh My Study 将试卷 PDF 和图片整理为保存在本地、可以编辑的题
 
 Wiki 现与代码一起维护于 `docs/wiki`，完整章节见[目录](_Sidebar.md)，来源见[迁移说明](README.md)。
 
-当前功能包括公共题干/有序评分项、独立题目阅读页、本地文字与可选[语义搜索](Features-Search-zh-CN.md)、[任务重试恢复](Features-Tasks-zh-CN.md)、批量读页/存题、一小时文件上传复用、持久 Python、生成学习图片以及 SQLite v6，旧发行版可能不同。
+当前功能包括公共题干/有序评分项、独立题目阅读页、本地文字与可选[语义搜索](Features-Search-zh-CN.md)、[任务重试恢复](Features-Tasks-zh-CN.md)、MinerU OCR 与本地题框兜底、固定的形式判断/切题/并行解题/评分阶段、一小时文件上传复用、受限 Python 计算器以及 SQLite v7，旧发行版可能不同。

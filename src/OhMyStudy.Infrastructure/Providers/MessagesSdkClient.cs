@@ -19,7 +19,7 @@ namespace OhMyStudy.Infrastructure.Providers;
 internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyDictionary<string, string> headers)
 {
     private static readonly string[] ReservedKeys =
-        ["model", "messages", "max_tokens", "stream", "tools", "thinking", "output_config", "cache_control", "session_id", "prompt_cache_key"];
+        ["model", "messages", "max_tokens", "stream", "tools", "thinking", "cache_control", "session_id", "prompt_cache_key"];
     private readonly bool _openRouter = OpenRouter.IsEndpoint(baseUri);
 
     public Task<Turn> CallAsync(ProviderCredentials credentials, RequestOptions options, JsonArray history, IReadOnlyList<Tool> tools, Action<ProviderProgress>? progress, CancellationToken cancellationToken)
@@ -106,7 +106,18 @@ internal sealed class MessagesSdkClient(HttpClient http, Uri baseUri, IReadOnlyD
         // An explicit null would still travel on the wire; Gemini's implicit cache needs the field absent.
         if (request.CacheControl is null) body.Remove("cache_control");
         body["stream"] = JsonElement.Parse(options.Stream ? "true" : "false");
-        foreach (var (key, value) in options.Extra) body.Add(key, value.Clone());
+        foreach (var (key, value) in options.Extra)
+        {
+            if (key == "output_config" && body.TryGetValue(key, out var existing))
+            {
+                if (value.ValueKind != JsonValueKind.Object) throw ProviderProtocol.Invalid("output_config must be an object");
+                var merged = existing.EnumerateObject().ToDictionary(property => property.Name, property => property.Value.Clone());
+                foreach (var property in value.EnumerateObject())
+                    if (!merged.TryAdd(property.Name, property.Value.Clone())) throw ProviderProtocol.Invalid("native parameter collision: output_config." + property.Name);
+                body[key] = Element(merged);
+            }
+            else body.Add(key, value.Clone());
+        }
         if (request.CacheControl is not null && body.TryGetValue("system", out var system)
             && system.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(system.GetString()))
             body["system"] = JsonElement.Parse(new JsonArray(new JsonObject

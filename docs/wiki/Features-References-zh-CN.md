@@ -44,7 +44,7 @@ AI 解答与参考冲突时另存差异，不静默替换参考。
 
 广泛重跑前备份。稳定键支持更新；省略可选值保留旧值，明确空值可替换。已提交结果在后续失败时保留。检查新任务并比较答案、参考、评分、覆盖，不假设后一次必然更好。
 
-实现与参考: [LibraryGrading.cs](../../src/OhMyStudy.Infrastructure/Storage/LibraryGrading.cs) · [MainWindow.Results.cs](../../src/OhMyStudy.App/MainWindow.Results.cs) · [GradingPrompts.cs](../../src/OhMyStudy.Infrastructure/Grading/GradingPrompts.cs)
+实现与参考: [LibraryGrading.cs](../../src/OhMyStudy.Infrastructure/Storage/LibraryGrading.cs) · [MainWindow.Results.cs](../../src/OhMyStudy.App/MainWindow.Results.cs) · [WorkflowPrompts.cs](../../src/OhMyStudy.Infrastructure/Grading/WorkflowPrompts.cs)
 
 ---
 

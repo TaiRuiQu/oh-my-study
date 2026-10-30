@@ -5,6 +5,7 @@ using System.ClientModel.Primitives;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using OhMyStudy.Application.Diagnostics;
 using OhMyStudy.Domain;
 using OpenAI.Responses;
 using SdkRequestOptions = System.ClientModel.Primitives.RequestOptions;
@@ -366,7 +367,19 @@ internal sealed class ResponsesSdkClient
                 case StreamingResponseRefusalDeltaUpdate or StreamingResponseRefusalDoneUpdate: throw new ProviderException(ErrorKind.Refusal, "provider declined the request");
                 case StreamingResponseErrorUpdate error: throw ProviderErrors.Classify(400, Element(new JsonObject { ["error"] = new JsonObject { ["code"] = error.Code, ["message"] = error.Message } }));
                 case StreamingResponseFailedUpdate failed: throw ProviderErrors.Classify(400, Element(Failure(failed.Response)));
-                case StreamingResponseIncompleteUpdate: throw ProviderProtocol.Incomplete("Responses stream incomplete");
+                case StreamingResponseIncompleteUpdate incomplete:
+                    var response = incomplete.Response is { } value
+                        ? JsonNode.Parse(ModelReaderWriter.Write(value, ModelReaderWriterOptions.Json, OpenAI.OpenAIContext.Default).ToString()) : null;
+                    string reason = response?["incomplete_details"]?["reason"]?.GetValue<string>() ?? "unknown";
+                    OperationDiagnostics.Record("Model.Incomplete", new()
+                    {
+                        ["response_id"] = response?["id"]?.DeepClone(),
+                        ["incomplete_details"] = response?["incomplete_details"]?.DeepClone(),
+                        ["max_output_tokens"] = response?["max_output_tokens"]?.DeepClone(),
+                        ["usage"] = response?["usage"]?.DeepClone()
+                    }, true);
+                    throw new ProviderException(ErrorKind.Incomplete, "Responses stream incomplete: " + reason)
+                    { Diagnostic = reason == "max_output_tokens" ? "output_token_limit" : "incomplete_response" };
                 case StreamingResponseCompletedUpdate completed: _terminal = completed.Response ?? throw ProviderProtocol.ProtocolError("missing response"); break;
             }
         }

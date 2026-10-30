@@ -4,17 +4,17 @@
 
 ## Read task activity
 
-One AI task runs at a time. Select a task to inspect state, page reads, saved-question count, activity, and usage details. The summary defaults to its content height; drag its divider to adjust the summary/log split. Percentage progress describes activity rather than remaining time.
+One exam task runs at a time, with questions processed in parallel inside it. Tasks opens automatically when processing starts. Five ordered steps show exam-format classification, upload and OCR, question splitting and material binding, independent parallel solving, and student-work grading. Each step shows its current state and output count; skipped steps such as grading a blank exam are marked as not required. The summary shows recognized pages, split questions and estimated model cost, excluding OCR and unpriced calls. Solving and grading can overlap across questions.
 
-Tool steps start collapsed, and consecutive completed tools retain a grouped summary. The background-free disclosure arrow follows the label and appears on hover, keyboard focus, or while expanded. Click the label or arrow to toggle details. Expand a step or group to inspect each action, including every recorded page read and crop preview, the actual Python or PowerShell code, and available output or errors. Each preview identifies its page, crop coordinates in percentages, and rotation when applicable. Screenshots load when expanded, and refreshes preserve the expansion state. Python actions are labeled **Run Python**. Older tasks show only the details they originally retained. Two consecutive text-only replies trigger continuation prompts; a third fails because prose cannot save questions.
+The per-question list shows solution and grading states independently, including waiting and not required; questions whose answers could not be matched or graded with confidence are marked for review. Blank exams skip grading; reference imports skip solving and grading. Expand Technical details and model records for model replies, controlled Python calculations, output and errors. The former agent conversation is no longer the main task interface. After processing stops, Export recognition materials saves a ZIP with full.md, images, OCR records, the split plan and available model results.
 
-Temporary network/stream/service/rate-limit failures retry the current round up to four attempts, normally after 1, 2, and 4 seconds. Retry-After can extend a wait to 30 seconds. Completed rounds/tools are retained, incomplete responses are not executed, and a round whose retry usage was not reported stays out of the cost total.
+Choose splitting and optional grading models from saved providers in Settings → Exam workflow. The start dialog can change these models and select the solving provider/model. Provider addresses and keys are reused, selections are remembered, and each task retains its own snapshot. Model calls are not automatically replayed after failure.
 
 ## Cancel, retry, or re-recognize
 
 Cancel stops later work while keeping saved results. Minimizing continues work; exiting stops it. Unfinished jobs become interrupted after restart.
 
-**Retry task** is available for failed/interrupted tasks. Choose model/thinking settings and confirm: it rolls back that run's question changes, references, paper information, generated images, and task files, then replaces the failed task with a fresh run, logs, usage, and permissions. Originals, earlier results, and notes on earlier questions are kept. Prior charges and code changes outside task folders cannot be undone.
+**Retry task** is available for failed/interrupted tasks. Choose the workflow models and confirm: it rolls back that run's question changes, references, paper information, generated images, and task files, then starts a fresh workflow. Originals, earlier results and protected manual edits are kept. Previous charges remain.
 
 Retry is refused while the same exam is busy, after a newer run, without older recovery records, or when saved questions were edited. Use **Re-recognize** in Exams to retain current results and edits in those cases. Both operations can incur new charges.
 
@@ -22,13 +22,13 @@ Retry is refused while the same exam is busy, after a newer run, without older r
 
 | Setting | Behavior |
 | --- | --- |
-| Ask every time | Review exact Python/PowerShell code before host execution; Allow later calls applies only to this task. Later keeps waiting. |
-| Run in sandbox | Task-specific Python AppContainer, separate PowerShell AppContainer per call, copied inputs and private result folders. Network defaults off. |
-| Run directly on this machine | Current default; runs with your Windows account's file/network access without per-call approval. |
+| Ask every time | Review Python calculation execution before running; allowing later calls applies only to this task. |
+| Run in sandbox | Executes the controlled calculator in a task-specific Python AppContainer. |
+| Run directly on this machine | Runs the controlled calculator locally without per-call approval. |
 
 Change settings before starting a task. A sandbox-unavailable start dialog explains proposed host execution; failures inside a working sandbox do not silently rerun on the host. AI provider uploads are independent of sandbox networking.
 
-Python state persists between calls within one task, including ordinary exceptions. Timeout/cancellation/output overflow/worker exit resets it. PowerShell shares files, not variables. Generated images can be inspected and reused in questions and PDF exports.
+Only solving exposes the Python calculator. It accepts approved mathematical expressions and simple assignments, with no shell, imports, files or network operations. Calculation variables are local to each call. Reasoning and capability options are under Model and calculation options in the start dialog.
 
 ## Local diagnostics
 

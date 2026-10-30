@@ -24,4 +24,4 @@ Recognition uses batched page reads and question saves. Failed or interrupted ta
 
 The default code execution mode runs on the host without per-call approval. Change it to Ask every time or Run in sandbox before submitting new tasks. Files API support defaults off; compatible uploads use one-hour expiration and task-end deletion attempts. Codex mode also defaults off and, for Responses providers, sends a stable `prompt_cache_key` on new tasks. See the models and tasks chapters for details.
 
-The library is local and currently uses schema v6. Back up the complete folder after exit before upgrading or broad reprocessing. Keys stay in Windows Credential Manager. See [installation](../installation.md), [usage](../usage.md), and [model prompt profiles](../model-prompts.md).
+The library is local and currently uses schema v7. Back up the complete folder after exit before upgrading or broad reprocessing. Keys stay in Windows Credential Manager. See [installation](../installation.md), [usage](../usage.md), and [model prompt profiles](../model-prompts.md).

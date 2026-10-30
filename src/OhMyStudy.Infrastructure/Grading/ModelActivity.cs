@@ -12,7 +12,7 @@ internal static class ModelActivity
 {
     private static readonly ProviderRetryPolicy RetryPolicy = new() { MaximumAttempts = 4 };
 
-    public static async Task<(Turn Turn, int Retries)> CallAsync(JobContext context, uint ordinal, Func<Action<ProviderProgress>, Task<Turn>> call, CancellationToken cancellationToken)
+    public static async Task<(Turn Turn, int Retries)> CallAsync(JobContext context, uint ordinal, Func<Action<ProviderProgress>, Task<Turn>> call, CancellationToken cancellationToken, int maximumAttempts = 4)
     {
         var clock = Stopwatch.StartNew();
         var activity = new JobActivity { Key = $"model-{ordinal}", Kind = "model", Title = $"Recognition round {ordinal}", Detail = "Waiting for the model response" };
@@ -60,7 +60,7 @@ internal static class ModelActivity
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 try { turn = await call(Progress).ConfigureAwait(false); break; }
-                catch (Exception error) when (attempt < RetryPolicy.MaximumAttempts && !cancellationToken.IsCancellationRequested && CanRetry(error))
+                catch (Exception error) when (attempt < maximumAttempts && !cancellationToken.IsCancellationRequested && CanRetry(error))
                 {
                     retries++;
                     var delay = ProviderClient.RetryDelay((error as ProviderException)?.Error.RetryAfter, attempt, RetryPolicy);

@@ -174,6 +174,8 @@ Mobile capture uses a saturated scanner blue, black camera chrome, and cool pale
 
 ### Desktop authority
 
+The desktop exam workflow extends the native system without changing tokens. Settings use a connected vertical Steps track before provider management: MinerU recognition, provider-backed splitting, parallel solving, and grading. Each 36px icon node connects to the next with a 1px rule; captions use 16px semibold text and 13px output hints. Configuration fields align to the right and move below their own caption below 680px of step width, while the track remains continuous. No numerical prefixes are used. The start dialog uses a compact horizontal icon flow with arrows and a simple model form. Tasks reuse the connected step component with live states, then show per-question progress; diagnostic records stay in an expander. Provider cards have a 20px gap without a divider or resize handle. Existing task brushes and WinUI controls retain theme behavior. No mobile tokens or raster assets are used.
+
 Desktop colors remain theme resources in [WorkspaceResources.xaml](src/OhMyStudy.App/Themes/WorkspaceResources.xaml), including `TaskAccentBrush`, `TaskAccentBackgroundBrush`, `WorkspaceCanvasBrush`, `WorkspaceSurfaceBrush`, `WorkspaceCardBrush`, `WorkspaceBorderBrush`, and paper/text resources. Preserve their Light, Default, and HighContrast mappings. Mobile's fixed light review palette does not replace those theme dictionaries.
 
 **The The Surface Boundary Rule.** Mobile blue, Study Sans, shell dimensions, and tool grids belong to mobile capture. Desktop continues to use WinUI resources and native control behavior.

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using OhMyStudy.Domain;
 
 namespace OhMyStudy.App.Localization;
 
@@ -71,10 +72,28 @@ public static partial class UiText
     public static string Format(string source, params object?[] arguments)
         => string.Format(Culture, Get(source), arguments);
 
+    public static string ExamFormatName(ExamFormat format) => Get(format switch
+    {
+        ExamFormat.BlankPaper => "Exam without student answers",
+        ExamFormat.InlineAnswers => "Answers on the exam paper",
+        ExamFormat.MarkedInlineAnswers => "Teacher-marked answers on the exam paper",
+        ExamFormat.SeparateAnswerSheet => "Exam with separate answer sheets",
+        ExamFormat.MarkedAnswerSheet => "Exam with teacher-marked answer sheets",
+        _ => "Exam format needs review."
+    });
+
     public static string ActivityText(string source)
     {
+        if (source == "pending") return Get("Queued");
         string translated = Get(source);
         if (translated != source) return translated;
+        if (source.StartsWith("Question ", StringComparison.Ordinal)) return Format("Question {0}", source[9..]);
+        foreach (var prefix in new[] { "Solve question", "Assess student work", "Process question" })
+            if (source.StartsWith(prefix + " ", StringComparison.Ordinal)) return Format("{0} {1}", Get(prefix), source[(prefix.Length + 1)..]);
+        var workflow = WorkflowProgress().Match(source);
+        if (workflow.Success) return Format(workflow.Groups[1].Value switch { "OCR pages" => "OCR pages: {0}/{1}.", "Uploaded pages" => "Uploaded pages: {0}/{1}.", _ => "Questions completed: {0}/{1}." }, workflow.Groups[2].Value, workflow.Groups[3].Value);
+        workflow = WorkflowGrouped().Match(source);
+        if (workflow.Success) return Format(source.EndsWith("Solving independently.", StringComparison.Ordinal) ? "Questions grouped: {0}. Solving independently." : "Questions grouped: {0}.", workflow.Groups[1].Value);
         var match = ProgressMessage().Match(source);
         if (match.Success) return Format("Pages read: {0}. Questions saved: {1}.", match.Groups[1].Value, match.Groups[2].Value);
         match = RoundMessage().Match(source);
@@ -84,6 +103,12 @@ public static partial class UiText
         match = PreparedActionsMessage().Match(source);
         return match.Success ? Format("Actions prepared: {0}", match.Groups[1].Value) : source;
     }
+
+    [GeneratedRegex(@"\A(OCR pages|Questions completed|Uploaded pages): ([0-9]+)/([0-9]+)\.\z", RegexOptions.CultureInvariant)]
+    private static partial Regex WorkflowProgress();
+
+    [GeneratedRegex(@"\AQuestions grouped: ([0-9]+)\.(?: Solving independently\.)?\z", RegexOptions.CultureInvariant)]
+    private static partial Regex WorkflowGrouped();
 
     [GeneratedRegex(@"\A(?:Pages read: |已阅读 )([0-9]+)(?:\. Questions saved: | 页，已保存 )([0-9]+)(?:\.| 题。)\z", RegexOptions.CultureInvariant)]
     private static partial Regex ProgressMessage();

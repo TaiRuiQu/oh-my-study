@@ -6,10 +6,10 @@
 
 - [架构、构建与验证](Tech-Architecture-zh-CN.md)
 - [文档准备、页面身份与坐标](Tech-Document-Pipeline-zh-CN.md)
-- [供应商适配、批量工具、流与用量](Tech-Model-Loop-zh-CN.md)
+- [OCR、切题、并行解题与评分](Tech-Model-Loop-zh-CN.md)
 - [评分项、评分约束与编辑保护](Tech-Validation-Grading-zh-CN.md)
 - [任务生命周期、重试恢复与代码隔离](Tech-Jobs-Execution-zh-CN.md)
-- [SQLite v6、资源、搜索索引与恢复](Tech-Storage-Recovery-zh-CN.md)
+- [SQLite v7、资源、搜索索引与恢复](Tech-Storage-Recovery-zh-CN.md)
 - [原生阅读、公式资源与 PDF 编译](Tech-Rendering-Export-zh-CN.md)
 
 ## 项目边界
@@ -25,9 +25,9 @@
 
 ## 处理与持久化
 
-导入校验限制并保留原件，再将一份试卷放入一个模型会话。模型调用 `read_pages`、`save_references`、`save_paper_info`、`save_questions`、可选 `python`/`shell` 与 `finish`。仅参考任务不允许写题目/试卷信息。每次保存均经过类型校验、活动任务和取消边界。
+导入校验限制并保留原件，再排入固定工作流，而不是一个模型的自由会话。形式判断模型先区分页面，MinerU 抽取 Markdown、图片和表格，切题模型组合题目并绑定材料，解题模型仅用受控 `python` 工具独立作答，最后由独立评分调用比对原始作答截图。仅参考任务跳过解题和评分。每次保存均经过类型校验、活动任务和取消边界。
 
-题目结构为公共题干与有序扁平 `QuestionItem`。参考引用评分项键，覆盖引用题目键，生成图片保留原件证据。数据库当前 v6。显式重试仅在恢复检查允许时回滚失败轮次；重新识别保留现有结果及受保护手动/教师评分。
+题目结构为公共题干与有序扁平 `QuestionItem`。参考引用评分项键，覆盖引用题目键，抽取插图保留原件证据。数据库当前 v7，新增存放 OCR 输出与各阶段 JSON 的 `workflow_artifacts` 表。显式重试仅在恢复检查允许时回滚失败轮次；重新识别保留现有结果及受保护手动/教师评分。
 
 识别、文件上传、可选后台向量化与重排具有不同数据路径。[语义搜索](Features-Search-zh-CN.md) 使用缓存向量、本地余弦扫描与可选远端重排。供应商/搜索密钥在库外 Windows 凭据管理器中。
 
@@ -52,4 +52,10 @@ Lint 仅在本地检查改动中的空白错误，并在 30 秒内停止。界�
 ./scripts/Capture-AppWindow.ps1 -ExecutablePath ./src/OhMyStudy.App/bin/Release/net10.0-windows10.0.26100.0/win-x64/OhMyStudy.App.exe -Destination ./output/ui-review/main-window.png
 ```
 
-`-DelaySeconds` 控制窗口打开后的渲染等待时间。`-ArgumentList` 传递程序参数；Debug 构建请传入 `--ui-process`，直接截取界面进程。可选的 `-PrepareWindow` 脚本块在截图前接收已启动的进程，用于打开需要检查的页面。生成的截图放在 `output`；清理输出目录后，`scripts` 中的脚本仍会保留。
+`-DelaySeconds` 控制窗口打开后的渲染等待时间。`-ArgumentList` 传递程序参数；Debug 构建请传入 `--ui-process`，直接截取界面进程。可选的 `-PrepareWindow` 脚本块在截图前接收已启动的进程，用于打开需要检查的页面。`-ProcessId` 改为截取已在运行的实例；`-Width`/`-Height` 会先调整窗口尺寸，`-Cursor` 包含鼠标指针。生成的截图放在 `output`；清理输出目录后，`scripts` 中的脚本仍会保留。
+
+脚本调用 `tools/ScreenCapture`，通过 Direct3D 11 使用 Windows Graphics Capture 读取帧。它不要求窗口在前台，也不会置顶或激活窗口，因此被遮挡或处于后台的窗口同样能正确截取，检查过程中桌面焦点不会改变。临时截图可直接运行：
+
+```powershell
+dotnet run --project tools/ScreenCapture -c Release -- --process 1234 --destination output/ui-review/tasks.png
+```

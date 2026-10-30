@@ -1,77 +1,58 @@
 param(
-    [Parameter(Mandatory)][string]$ExecutablePath,
-    [Parameter(Mandatory)][string]$Destination,
+    [string]$ExecutablePath,
+    [string]$Destination,
     [string[]]$ArgumentList = @(),
     [double]$DelaySeconds = 2,
+    [int]$ProcessId = 0,
+    [int]$Width = 0,
+    [int]$Height = 0,
+    [switch]$Cursor,
     [scriptblock]$PrepareWindow
 )
 
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Drawing
-Add-Type @'
-using System;
-using System.Runtime.InteropServices;
-public static class StudyWindowCapture
-{
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Rect { public int Left, Top, Right, Bottom; }
-    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr window, out Rect rectangle);
-    [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr window, IntPtr device, uint flags);
-    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr window, int command);
-    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
-}
-'@
+$root = Split-Path -Parent $PSScriptRoot
+$project = Join-Path $root 'tools/ScreenCapture/ScreenCapture.csproj'
+if (-not (Test-Path -LiteralPath $project)) { throw 'The screen capture project is missing.' }
+if ($Destination -eq '') { throw 'Provide -Destination for the PNG output.' }
+if ($ProcessId -eq 0 -and $ExecutablePath -eq '') { throw 'Provide -ExecutablePath or -ProcessId.' }
 
-$taskStart = @{
-    FilePath = (Resolve-Path -LiteralPath $ExecutablePath).Path
-    WorkingDirectory = Split-Path -Parent (Resolve-Path -LiteralPath $ExecutablePath).Path
-    WindowStyle = 'Hidden'
-    PassThru = $true
-}
-if ($ArgumentList.Count -gt 0) { $taskStart.ArgumentList = $ArgumentList }
-$taskProcess = Start-Process @taskStart
+$startedProcess = $null
 try {
-    $taskDeadline = [DateTime]::UtcNow.AddSeconds(30)
-    do {
-        $taskProcess.Refresh()
-        if ($taskProcess.HasExited) { throw "The app exited before opening a window. Exit code: $($taskProcess.ExitCode)." }
-        if ($taskProcess.MainWindowHandle -ne 0) { break }
-        Start-Sleep -Milliseconds 100
-    } while ([DateTime]::UtcNow -lt $taskDeadline)
-    if ($taskProcess.MainWindowHandle -eq 0) { throw 'The app did not open a main window within 30 seconds.' }
-    [StudyWindowCapture]::ShowWindow($taskProcess.MainWindowHandle, 5) | Out-Null
-    [StudyWindowCapture]::SetForegroundWindow($taskProcess.MainWindowHandle) | Out-Null
-    Start-Sleep -Milliseconds ([int]($DelaySeconds * 1000))
-    if ($PrepareWindow) { & $PrepareWindow $taskProcess }
-    $taskProcess.Refresh()
-    $taskWindow = $taskProcess.MainWindowHandle
-    $taskRectangle = New-Object StudyWindowCapture+Rect
-    if (-not [StudyWindowCapture]::GetWindowRect($taskWindow, [ref]$taskRectangle)) { throw 'Could not obtain the app window bounds.' }
-    $taskBitmap = [System.Drawing.Bitmap]::new($taskRectangle.Right - $taskRectangle.Left, $taskRectangle.Bottom - $taskRectangle.Top)
-    try {
-        $taskGraphics = [System.Drawing.Graphics]::FromImage($taskBitmap)
-        try {
-            $taskDevice = $taskGraphics.GetHdc()
-            try { $taskCaptured = [StudyWindowCapture]::PrintWindow($taskWindow, $taskDevice, 2) }
-            finally { $taskGraphics.ReleaseHdc($taskDevice) }
+    if ($ProcessId -eq 0) {
+        $resolved = (Resolve-Path -LiteralPath $ExecutablePath).Path
+        $startInfo = @{
+            FilePath = $resolved
+            WorkingDirectory = Split-Path -Parent $resolved
+            WindowStyle = 'Hidden'
+            PassThru = $true
         }
-        finally { $taskGraphics.Dispose() }
-        if (-not $taskCaptured) { throw 'PrintWindow failed.' }
-        $taskDestination = [System.IO.Path]::GetFullPath($Destination)
-        [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($taskDestination)) | Out-Null
-        $taskBitmap.Save($taskDestination, [System.Drawing.Imaging.ImageFormat]::Png)
-        Write-Output $taskDestination
+        if ($ArgumentList.Count -gt 0) { $startInfo.ArgumentList = $ArgumentList }
+        $startedProcess = Start-Process @startInfo
+        if ($PrepareWindow) { & $PrepareWindow $startedProcess }
+        $ProcessId = $startedProcess.Id
     }
-    finally { $taskBitmap.Dispose() }
+    $arguments = @('run', '--project', $project, '-c', 'Release', '--', '--process', $ProcessId.ToString(),
+        '--destination', $Destination, '--delay-ms', ([int]($DelaySeconds * 1000)).ToString())
+    if ($Width -gt 0) { $arguments += '--width'; $arguments += $Width.ToString() }
+    if ($Height -gt 0) { $arguments += '--height'; $arguments += $Height.ToString() }
+    if ($Cursor) { $arguments += '--cursor' }
+    $build = dotnet build $project -c Release --nologo -v quiet
+    if ($LASTEXITCODE -ne 0) { throw "The screen capture project did not build.`n$build" }
+    $output = & dotnet @arguments
+    if ($LASTEXITCODE -ne 0) { throw "Screen capture failed.`n$output" }
+    Write-Output $output
 }
 finally {
-    if (-not $taskProcess.HasExited) {
-        $taskProcess.CloseMainWindow() | Out-Null
-        if (-not $taskProcess.WaitForExit(5000)) {
-            $taskProcess.Kill()
-            $taskProcess.WaitForExit()
+    if ($null -ne $startedProcess -and -not $startedProcess.HasExited) {
+        $startedProcess.CloseMainWindow() | Out-Null
+        if (-not $startedProcess.WaitForExit(5000)) {
+            $startedProcess.Kill()
+            $startedProcess.WaitForExit()
         }
     }
-    Write-Output "Closed app process $($taskProcess.Id)."
-    $taskProcess.Dispose()
+    if ($null -ne $startedProcess) {
+        Write-Output "Closed app process $($startedProcess.Id)."
+        $startedProcess.Dispose()
+    }
 }

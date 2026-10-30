@@ -20,7 +20,7 @@ public sealed partial class MainWindow
         string.Join(',', ModelThinkingOptions.Children.OfType<CheckBox>().Where(c => c.IsChecked == true).Select(c => c.Content)));
     private bool HasModelDraft => _settingsFormsReady && ModelEditor.Visibility == Visibility.Visible && ModelFormState() != _modelFormBaseline;
     private bool HasProviderDraft => _settingsFormsReady && (ProviderFormState() != _providerFormBaseline || ProviderKey.Password.Length > 0);
-    private bool HasUnsavedSettingsChanges => HasModelDraft || HasProviderDraft || HasSearchSettingsDraft;
+    private bool HasUnsavedSettingsChanges => HasModelDraft || HasProviderDraft || HasSearchSettingsDraft || HasWorkflowDraft;
 
     private async Task SaveSettingsFormsAsync()
     {
@@ -31,6 +31,7 @@ public sealed partial class MainWindow
         }
         if (HasProviderDraft) await SaveProviderAsync();
         if (HasSearchSettingsDraft) await SaveSearchSettingsAsync();
+        if (HasWorkflowDraft) await SaveWorkflowSettingsAsync();
     }
 
     private async Task<bool> ConfirmDiscardSettingsAsync(bool modelOnly = false)
@@ -57,6 +58,7 @@ public sealed partial class MainWindow
     private void DiscardSettingsForm()
     {
         PopulateSearchSettings();
+        PopulateWorkflowSettings();
         if (_providers.FirstOrDefault(p => p.Id == _selectedProviderId) is { } provider) PopulateProviderEditor(provider);
         else ClearProviderEditor();
     }
@@ -71,6 +73,7 @@ public sealed partial class MainWindow
             ProviderPicker.SelectedItem = provider; _selectedProviderId = provider.Id;
         }
         finally { _refreshingProviders = false; }
+        RefreshWorkflowModelPickers();
         UpdateSettingsActionAvailability();
     }
 

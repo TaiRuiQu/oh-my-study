@@ -44,7 +44,7 @@ For a question continued across two pages, check the question source pages and a
 
 Back up before a broad rerun. Stable keys allow updates; omitted optional values keep older values, explicit empty values may replace them. Successfully committed corrections/results remain if later processing fails. Inspect the new task and compare the resulting answers, references, grades, and coverage rather than treating a later run as inherently better.
 
-Implementation and reference: [LibraryGrading.cs](../../src/OhMyStudy.Infrastructure/Storage/LibraryGrading.cs) · [MainWindow.Results.cs](../../src/OhMyStudy.App/MainWindow.Results.cs) · [GradingPrompts.cs](../../src/OhMyStudy.Infrastructure/Grading/GradingPrompts.cs)
+Implementation and reference: [LibraryGrading.cs](../../src/OhMyStudy.Infrastructure/Storage/LibraryGrading.cs) · [MainWindow.Results.cs](../../src/OhMyStudy.App/MainWindow.Results.cs) · [WorkflowPrompts.cs](../../src/OhMyStudy.Infrastructure/Grading/WorkflowPrompts.cs)
 
 ---
 

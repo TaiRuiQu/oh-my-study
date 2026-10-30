@@ -8,13 +8,17 @@ public sealed partial class MainWindow
 {
     private void InitializeSettingsLayout()
     {
-        foreach (var feedback in new[] { ProviderFeedback, ModelFeedback, ModelCatalogFeedback, ModelCnyPreview, ModelExtraInfo, LibraryFeedback, ExecutionDescription, OriginalCaption, LanguageFeedback, SearchSettingsFeedback })
+        foreach (var feedback in new[] { ProviderFeedback, ModelFeedback, ModelCatalogFeedback, ModelCnyPreview, ModelExtraInfo, LibraryFeedback, ExecutionDescription, OriginalCaption, LanguageFeedback, SearchSettingsFeedback, WorkflowFeedback })
         {
             feedback.RegisterPropertyChangedCallback(TextBlock.TextProperty, OptionalTextChanged);
             OptionalTextChanged(feedback, TextBlock.TextProperty);
         }
         _providers.CollectionChanged += (_, _) =>
+        {
             ProviderPicker.Visibility = _providers.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            if (_settingsFormsReady && !_refreshingProviders)
+                RefreshWorkflowModelPickers();
+        };
     }
 
     private static void OptionalTextChanged(DependencyObject sender, DependencyProperty property)
@@ -27,27 +31,19 @@ public sealed partial class MainWindow
     {
         bool compact = e.NewSize.Width < 720;
         ProviderLayout.RowSpacing = 0;
-        ProviderListColumn.Width = compact ? new GridLength(1, GridUnitType.Star) : new GridLength(Math.Clamp(ProviderSplitter.ColumnSize ?? 212, 180, Math.Max(180, e.NewSize.Width - 432)));
-        ProviderLayout.ColumnDefinitions[1].Width = new GridLength(compact ? 0 : 12);
+        ProviderListColumn.Width = compact ? new GridLength(1, GridUnitType.Star) : new GridLength(212);
+        ProviderLayout.ColumnDefinitions[1].Width = new GridLength(compact ? 0 : 20);
         ProviderLayout.ColumnDefinitions[2].Width = compact ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        ProviderLayout.RowDefinitions[0].Height = compact ? new GridLength(ProviderSplitter.RowSize ?? 200) : GridLength.Auto;
-        ProviderLayout.RowDefinitions[1].Height = new GridLength(compact ? 12 : 0);
+        ProviderLayout.RowDefinitions[0].Height = GridLength.Auto;
+        ProviderLayout.RowDefinitions[1].Height = new GridLength(compact ? 16 : 0);
         ProviderLayout.RowDefinitions[2].Height = GridLength.Auto;
-        ProviderSplitter.Visibility = Visibility.Visible;
-        ProviderSplitter.Orientation = compact ? Orientation.Horizontal : Orientation.Vertical;
-        ProviderSplitter.MinimumBefore = compact ? 140 : 180;
-        ProviderSplitter.MinimumAfter = 420;
-        Grid.SetColumn(ProviderSplitter, compact ? 0 : 1);
-        Grid.SetRow(ProviderSplitter, compact ? 1 : 0);
-        Grid.SetColumnSpan(ProviderSplitter, compact ? 3 : 1);
-        Grid.SetRowSpan(ProviderSplitter, compact ? 1 : 3);
         ProviderSidebar.VerticalAlignment = compact ? VerticalAlignment.Stretch : VerticalAlignment.Top;
         Grid.SetColumnSpan(ProviderSidebar, compact ? 3 : 1);
         Grid.SetColumnSpan(ProviderDetails, compact ? 3 : 1);
         Grid.SetColumn(ProviderDetails, compact ? 0 : 2);
         Grid.SetRow(ProviderDetails, compact ? 2 : 0);
 
-        double detailWidth = compact ? e.NewSize.Width : e.NewSize.Width - ProviderListColumn.Width.Value - 12;
+        double detailWidth = compact ? e.NewSize.Width : e.NewSize.Width - ProviderListColumn.Width.Value - 20;
         bool singleColumn = detailWidth < 540;
         PlaceSettingsField(ProviderName, 0, 0, singleColumn ? 2 : 1, 14);
         PlaceSettingsField(ProtocolPicker, singleColumn ? 1 : 0, singleColumn ? 0 : 1, singleColumn ? 2 : 1, 14);

@@ -23,13 +23,19 @@ Do not select answered mode simply to make an empty practice paper appear in Mis
 
 ## Start processing
 
+Open Settings → Exam workflow first. Keep your saved MinerU token. Choose the splitting model from your saved providers (for example, DeepSeek `deepseek-flash`); its address and key are reused. Choose an optional grading model. The start dialog also lets you choose splitting, solving, and grading models for this task. Parallel questions default to 3 and calls per solution to 4. If the bundled YOLO detector is prepared, it runs locally; an optional Chinese ONNX checkpoint can be configured after independent validation.
+
+Pages are sent to MinerU and the splitter, bound questions to the solving model, and original student-work crops to the grading model. OCR and unpriced model charges are excluded from the displayed estimate.
+
 Click Import exam, select the files, choose the exam type, provider, model, and thinking options. Your last provider, model, and thinking choice are remembered for the next task. Keep the default thinking choice unless you have confirmed another option is supported. If capabilities are unconfirmed, understand the uncertainty before allowing a trial.
 
-The confirmation explains provider uploads and may show a sandbox-unavailable warning. Import and recognize starts local preservation and queues recognition. Your external source file is not the app's only copy after import.
+Settings shows a connected icon Steps track with each configuration beside its stage. The start dialog uses a horizontal flow: classify the exam format, upload and OCR, split and bind materials, solve in parallel, and grade student work. Reasoning and calculation permissions are under Model and calculation options. Start workflow saves the originals locally and queues processing; Tasks opens automatically. Your external source file is not the app's only copy after import.
 
 ## Follow the first result
 
-Open Tasks. Reading, saving, computation, and completion are distinct activities. A question can appear before the job finishes. A saved original is evidence of import, not of complete recognition.
+After OCR has run and the task stops, use **Export recognition materials** in Tasks to save a ZIP containing `full.md`, page images, raw OCR output and workflow results.
+
+Open Tasks to see the five-stage workflow, including the detected exam format, recognized pages, split questions, and per-question solution and grading status. Blank exams show grading as not required; skipped stages are labelled explicitly. Expand Technical details and model records for model output, calculations, and errors. A question can appear before the job finishes. A saved original is evidence of import, not of complete recognition.
 
 If the task fails, keep the imported exam. Read the error and fix the provider/model or material problem. Use Retry task to roll back the failed run and start over, or Re-recognize to retain saved results; see [task recovery](Features-Tasks.md). This may incur fresh usage, but avoids unnecessary duplicate imports.
 

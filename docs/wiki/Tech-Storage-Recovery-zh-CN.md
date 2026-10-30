@@ -2,13 +2,15 @@
 
 [首页](Home-zh-CN.md) · [技术内幕](Tech-for-nerds-zh-CN.md) · [English](Tech-Storage-Recovery.md)
 
-## 数据库 v6
+## 数据库 v7
 
-资料库包含 `study.sqlite3` 与受管理 `assets`，当前 SQLite `user_version` 为 **6**。升级已有可写旧库前，生成 `study.sqlite3.pre-v6-…` 数据库快照，再事务迁移。v4 将旧递归题目转换为公共题干与扁平评分项，并增加列表摘要列；v5 用 `question_assets` 记录题目生成图片的所有权。
+资料库包含 `study.sqlite3` 与受管理 `assets`，当前 SQLite `user_version` 为 **7**。升级已有可写旧库前，生成 `study.sqlite3.pre-v7-…` 数据库快照，再事务迁移。v4 将旧递归题目转换为公共题干与扁平评分项，并增加列表摘要列；v5 用 `question_assets` 记录题目生成图片的所有权。
 
 题目仍保存类型化 JSON，列表摘要列支持搜索、筛选、排序，无需逐一反序列化全部题目。参考答案使用 `matched_item_key`；评分回滚记录支持显式任务重试；语义索引表独立缓存向量。旧应用不能打开升级后的数据库。
 
 v6 为作答附件增加独立的 `student` 页面角色，保留原页面 ID、顺序、旋转和 PDF 关联。学生作答与可为空的错因分析继续保存在题目 JSON 中。
+
+v7 新增 `workflow_artifacts`，保存每次运行的 MinerU 原始压缩包、逐页 Markdown 与内容列表、抽取图片、OCR 记录、切题计划和各阶段类型化 JSON。产物随评分运行级联删除，包含在资料库备份中，重试回滚该轮时一并移除。
 
 ## 所有权与索引
 

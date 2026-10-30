@@ -37,7 +37,7 @@ public static class NativeQuestionPresenter
             var notice = new InfoBar { Severity = InfoBarSeverity.Warning, IsOpen = true, IsClosable = false, Title = UiText.Get("Needs review") };
             var messages = new StackPanel { Spacing = 6, Margin = new Thickness(0, 0, 16, 14) };
             foreach (string issue in question.Uncertainties)
-                messages.Children.Add(await reading.PresentAsync(issue, cancellationToken, width: Math.Max(40, reading.Width - 64)));
+                messages.Children.Add(await reading.PresentAsync(UiText.Get(issue), cancellationToken, width: Math.Max(40, reading.Width - 64)));
             notice.Content = messages;
             if (confirmResult is not null)
             {

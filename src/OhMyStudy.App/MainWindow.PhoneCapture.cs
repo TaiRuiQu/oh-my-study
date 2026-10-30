@@ -21,6 +21,12 @@ public sealed partial class MainWindow
         {
             XamlRoot = RootGrid.XamlRoot,
             Title = UiText.Get("Import from"),
+            Content = new TextBlock
+            {
+                Text = UiText.Get("Choose PDFs or images from this computer, or send photos from a phone on the same Wi-Fi. Originals stay on this computer; model and upload details are confirmed before recognition."),
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 420
+            },
             PrimaryButtonText = UiText.Get("Choose files"),
             SecondaryButtonText = UiText.Get("Take photos with phone"),
             CloseButtonText = UiText.Get("Cancel")

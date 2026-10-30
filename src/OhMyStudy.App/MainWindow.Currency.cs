@@ -44,12 +44,15 @@ public sealed partial class MainWindow
         static string Price(double? value, double factor) => value.HasValue ? $"¥{value.Value * factor:0.######}" : UiText.Get("Not set");
         ModelCnyPreview.Text = UiText.Format("CNY estimate: uncached {0}    cached {1}    cache write {2}    output {3}", Price(input, factor), Price(read, factor), Price(write, factor), Price(output, factor)) + (rate is not null ? "\n" + RateNote(rate) : "");
     }
-    private async Task UpdateTaskCnyCostAsync(string jobId, long generation, double cost, string currency)
+    private async Task UpdateTaskCnyCostAsync(string jobId, long generation, IReadOnlyDictionary<string, double> costs)
     {
-        CnyRate? rate = currency == "USD" ? await GetCnyRateAsync() : null;
+        CnyRate? rate = costs.ContainsKey("USD") ? await GetCnyRateAsync() : null;
         if (_closed || generation != _taskRefreshGeneration || _selectedTaskId != jobId) return;
-        TaskUsage.Text = currency == "CNY" ? $"¥{cost:0.######}" : currency == "USD" && rate is not null ? $"¥{cost * rate.Rate:0.######}" : UiText.Get("Unavailable");
-        TaskRateNote.Text = rate is not null ? RateNote(rate) : currency == "CNY" ? UiText.Get("Estimated using CNY prices.") : UiText.Get("Exchange rate unavailable. CNY estimate cannot be shown.");
+        bool available = costs.Keys.All(currency => currency is "CNY" or "USD") && (!costs.ContainsKey("USD") || rate is not null);
+        double total = costs.GetValueOrDefault("CNY") + costs.GetValueOrDefault("USD") * (rate?.Rate ?? 0);
+        TaskUsage.Text = available ? $"¥{total:0.######}" : UiText.Get("Unavailable");
+        TaskRateNote.Text = (rate is not null ? RateNote(rate) : available ? UiText.Get("Estimated using CNY prices.") : UiText.Get("Exchange rate unavailable. CNY estimate cannot be shown."))
+            + "\n" + UiText.Get("Estimate excludes OCR and unpriced calls.");
         ToolTipService.SetToolTip(TaskUsage, rate is not null ? RateNote(rate) : null);
     }
 }

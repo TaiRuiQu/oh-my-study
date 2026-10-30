@@ -61,10 +61,7 @@ public static class ProviderProtocol
                         }
                 }
                 usage = Get(raw, "usage");
-                var ri = Count(usage, "input_tokens");
-                var rr = Count(Get(usage, "input_tokens_details"), "cached_tokens");
-                var rw = OptionalCacheCount(Get(usage, "input_tokens_details"), "cache_write_tokens");
-                normalized = new Usage { Input = ri, InputUncached = ri.HasValue && rr.HasValue && rw.HasValue && rr <= ri && rw <= ri - rr ? ri - rr - rw : null, CacheRead = rr, CacheWrite = rw, Output = Count(usage, "output_tokens"), Reasoning = Count(Get(usage, "output_tokens_details"), "reasoning_tokens"), Total = Count(usage, "total_tokens"), Raw = Clone(usage) };
+                normalized = ResponsesUsage(usage);
                 break;
             case Protocol.Messages:
                 var content = RequiredArray(raw, "content");
@@ -87,6 +84,17 @@ public static class ProviderProtocol
             default: throw Invalid("unknown protocol");
         }
         return new Turn { Protocol = protocol, Text = text.ToString(), Calls = calls, Context = context.Clone(), Usage = normalized, StopReason = stop, Raw = raw.Clone() };
+    }
+
+    internal static Usage ResponsesUsage(JsonElement usage)
+    {
+        var input = Count(usage, "input_tokens");
+        var read = Count(Get(usage, "input_tokens_details"), "cached_tokens");
+        var write = OptionalCacheCount(Get(usage, "input_tokens_details"), "cache_write_tokens");
+        return new Usage { Input = input,
+            InputUncached = input.HasValue && read.HasValue && write.HasValue && read <= input && write <= input - read ? input - read - write : null,
+            CacheRead = read, CacheWrite = write, Output = Count(usage, "output_tokens"),
+            Reasoning = Count(Get(usage, "output_tokens_details"), "reasoning_tokens"), Total = Count(usage, "total_tokens"), Raw = Clone(usage) };
     }
 
     public static void ContinueWith(Protocol protocol, JsonArray history, Turn turn, IReadOnlyList<ToolResult> results)
@@ -121,7 +129,7 @@ public static class ProviderProtocol
             if (protocol == Protocol.Responses) appended.Add((JsonNode)new JsonObject { ["type"] = "function_call_output", ["call_id"] = result.Call.Id, ["output"] = blocks });
             else resultsContent.Add((JsonNode)new JsonObject { ["type"] = "tool_result", ["tool_use_id"] = result.Call.Id, ["content"] = blocks, ["is_error"] = result.IsError });
         }
-        if (protocol != Protocol.Responses) appended.Add((JsonNode)new JsonObject { ["role"] = "user", ["content"] = resultsContent });
+        if (protocol != Protocol.Responses && resultsContent.Count > 0) appended.Add((JsonNode)new JsonObject { ["role"] = "user", ["content"] = resultsContent });
         foreach (var item in appended) history.Add(item?.DeepClone());
     }
 

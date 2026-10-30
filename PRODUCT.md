@@ -17,6 +17,8 @@ Study libraries and originals stay local by default. AI transcription, answers, 
 
 ## Interface continuity
 
+Recognition uses a fixed workflow: upload and MinerU OCR, question splitting with material binding, independent parallel solving, and student-work grading. Present this as connected icon Steps rather than numbered explanatory rows; the start dialog uses a compact horizontal flow. Select splitting and grading models from saved providers and choose the solving model when starting a task. Reuse provider credentials and the saved MinerU token. Tasks opens on submission and shows stage outputs plus per-question solution and grading status. Technical records are secondary, expandable content. Blank exams and reference-only imports skip irrelevant steps. The task surface does not preserve the former agent presentation. Provider list and settings cards are separated by whitespace, without a divider.
+
 This is an extension of the existing interface. Inherit the teal accents, neutral surfaces, Microsoft YaHei UI desktop typography, WinUI controls, and light, dark, and high-contrast behavior established in `src/OhMyStudy.App/Themes/WorkspaceResources.xaml`. The phone page uses system sans-serif typography and the corresponding teal/neutral palette.
 
 Keep controls readable, focus visible, mathematics legible, and long operations responsive. Show progress, actionable errors, retry, and cancellation. The phone editor permits vertical scrolling and manual rotation. Keep interface text in the Simplified Chinese, English, Japanese, and Korean localization catalogs. Use concise interface messages and detailed English diagnostics without credentials.

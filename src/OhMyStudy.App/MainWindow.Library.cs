@@ -114,7 +114,7 @@ public sealed partial class MainWindow
             string privateRuntime = Path.Combine(AppContext.BaseDirectory, "runtime", "python");
             var activeLibrary = _library;
             _searchIndexer = new BackgroundSearchIndexer(_library);
-            _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new LoggedJobRunner(new GradingRunner(_library, new NativePageImages(), questionSaved: _searchIndexer.Enqueue)),
+            _jobs = await JobQueue.CreateAsync(new LibraryJobStore(_library), new LoggedJobRunner(new GradingRunner(_library, new NativePageImages(), questionSaved: _searchIndexer.Enqueue, regionDetector: new NativeQuestionRegionDetector())),
                 new PolicyToolExecutor(new HostToolExecutor(privateRuntime), new SandboxToolExecutor(privateRuntime)), Path.Combine(_libraryDirectory, "task-results"), _lifetime.Token);
             ViewModel.SaveQuestionAsync = async question =>
             {
@@ -135,6 +135,7 @@ public sealed partial class MainWindow
             ExecutionModePicker.SelectedIndex = _settings.ExecutionMode switch { "sandbox" => 1, "bypass_permission" => 2, _ => 0 };
             SandboxNetworkToggle.IsChecked = _settings.SandboxNetworking;
             await RefreshProvidersAsync();
+            PopulateWorkflowSettings();
             await RefreshDocumentsAsync();
             _ = ObserveJobsAsync();
             await RefreshTasksAsync();
@@ -364,7 +365,6 @@ public sealed partial class MainWindow
             {
                 recognitionJob = await SubmitProcessingAsync(imported, processing!, false);
                 recognitionQueued = true;
-                await ShowQuestionLibraryAsync();
             }
             ViewModel.StatusMessage = studentAnswers ? UiText.Get("Student answers added. Recognize again to grade them.") : reference ? UiText.Get("Reference answers added.")
                 : RecognitionStatus((await _jobs!.GetAsync(recognitionJob!.Id, _lifetime.Token)).State);
@@ -587,7 +587,7 @@ public sealed partial class MainWindow
     {
         if (!_initialized || ExecutionDescription is null) return;
         var mode = ExecutionModePicker.SelectedIndex switch { 1 => "sandbox", 2 => "bypass_permission", _ => "request_permission" };
-        ExecutionDescription.Text = mode == "sandbox" ? UiText.Get("You will be informed before starting if the sandbox is unavailable.") : mode == "request_permission" ? UiText.Get("You decide whether to allow each code or command execution.") : UiText.Get("Code and commands can access this account's files and network.");
+        ExecutionDescription.Text = mode == "sandbox" ? UiText.Get("You will be informed before starting if the sandbox is unavailable.") : mode == "request_permission" ? UiText.Get("Review controlled Python calculations before execution.") : UiText.Get("Run controlled Python calculations locally without asking each time.");
         if (_loadingLibrary || _library is null) return;
         try { await ChangeSettingsAsync(current => current with { ExecutionMode = mode }); } catch { ViewModel.StatusMessage = UiText.Get("Settings could not be saved."); }
     }
@@ -626,7 +626,8 @@ public sealed partial class MainWindow
         catch (Exception error) { AppLog.Error("Recognition.Start", error); ViewModel.StatusMessage = UiText.Get("Could not start the task. Check model settings or wait for the current task to finish."); }
     }
 
-    private sealed record ProcessingChoice(Provider Provider, ModelConfig Model, Thinking? Thinking, bool AllowUnknown, ExecutionPolicy Policy, ImportMode Mode);
+    private sealed record ProcessingChoice(Provider Provider, ModelConfig Model, Thinking? Thinking, bool AllowUnknown, ExecutionPolicy Policy, ImportMode Mode,
+        WorkflowModel Splitter, WorkflowModel? Grader, WorkflowModel? Classifier);
 
     private async Task<ProcessingChoice?> ChooseProcessingAsync(bool references, bool importing, bool retry = false)
     {
@@ -640,6 +641,14 @@ public sealed partial class MainWindow
             ViewModel.StatusMessage = importing ? UiText.Get("Not imported yet. Set up a model first.") : UiText.Get("Add a model and key in Settings first.");
             return null;
         }
+        if (_settings.ExamWorkflow?.MinerUTokenRef is null || ConfiguredSplitterSelection() is null)
+        {
+            var setup = new ContentDialog { XamlRoot = RootGrid.XamlRoot, RequestedTheme = RootGrid.ActualTheme,
+                Title = UiText.Get("Set up the exam workflow"), Content = UiText.Get("Save a MinerU token and choose a splitting model in Settings before starting."),
+                PrimaryButtonText = UiText.Get("Go to Settings"), CloseButtonText = UiText.Get("Cancel") };
+            if (await setup.ShowAsync() == ContentDialogResult.Primary) Navigation.SelectedItem = Navigation.SettingsItem;
+            return null;
+        }
         double fieldWidth = Math.Max(200, Math.Min(460, RootGrid.ActualWidth - 96));
         string? rememberedProviderId = null;
         string? rememberedModelId = _settings.DefaultModel;
@@ -650,8 +659,20 @@ public sealed partial class MainWindow
         }
         var providerChoice = CreateProcessingChoice(UiText.Get("Provider"), fieldWidth);
         foreach (var candidate in providers) providerChoice.Items.Add(candidate.Name);
-        var modelChoice = CreateProcessingChoice(UiText.Get("Recognition model"), fieldWidth);
+        var modelChoice = CreateProcessingChoice(UiText.Get("Solving model"), fieldWidth);
         var thinkingChoice = CreateProcessingChoice(UiText.Get("Reasoning"), fieldWidth);
+        var workflowModels = providers.SelectMany(p => p.Models.Select(m => new WorkflowModel(p, m))).ToList();
+        var classifierChoice = CreateProcessingChoice(UiText.Get("Exam format model"), fieldWidth);
+        classifierChoice.Items.Add(UiText.Get("Use the splitting model"));
+        foreach (var candidate in workflowModels) classifierChoice.Items.Add(candidate.Provider.Name + " / " + candidate.Model.Label);
+        classifierChoice.SelectedIndex = 1 + workflowModels.FindIndex(m => m.Provider.Id + ":" + m.Model.Id == _settings.ExamWorkflow?.ClassifierModel);
+        var splitChoice = CreateProcessingChoice(UiText.Get("Question splitting model"), fieldWidth);
+        foreach (var candidate in workflowModels) splitChoice.Items.Add(candidate.Provider.Name + " / " + candidate.Model.Label);
+        splitChoice.SelectedIndex = workflowModels.FindIndex(m => m.Provider.Id + ":" + m.Model.Id == ConfiguredSplitterSelection());
+        var gradeChoice = CreateProcessingChoice(UiText.Get("Grading model"), fieldWidth);
+        gradeChoice.Items.Add(UiText.Get("Use the solving model"));
+        foreach (var candidate in workflowModels) gradeChoice.Items.Add(candidate.Provider.Name + " / " + candidate.Model.Label);
+        gradeChoice.SelectedIndex = 1 + workflowModels.FindIndex(m => m.Provider.Id + ":" + m.Model.Id == _settings.ExamWorkflow?.GraderModel);
         var unknown = new CheckBox { Content = UiText.Get("Allow trying models with unverified capabilities") };
         var models = new List<ModelConfig>();
         var thinkingOptions = new List<Thinking>();
@@ -674,7 +695,11 @@ public sealed partial class MainWindow
         var preferred = _settings.ExecutionMode switch { "sandbox" => ExecutionMode.Sandbox, "bypass_permission" => ExecutionMode.BypassPermission, _ => ExecutionMode.RequestPermission };
         var capability = await SandboxCapability.ProbeAsync(Path.Combine(AppContext.BaseDirectory, "runtime", "python"), _lifetime.Token);
         var policy = ExecutionPolicy.Freeze(preferred, capability, _settings.SandboxNetworking);
-        var content = new StackPanel { Spacing = 14 };
+        var content = new StackPanel { Spacing = 16, MaxWidth = fieldWidth };
+        content.Children.Add(new Controls.WorkflowOverview { ReferencesOnly = references, Margin = new Thickness(0, 0, 0, 8) });
+        content.Children.Add(new TextBlock { Text = UiText.Get(references ? "Reference pages go to MinerU and the splitting provider for matching. OCR and unpriced calls are excluded from estimates." : "Page previews first go to the format model, then MinerU and the splitter process the pages. Question materials and answer crops go to the solving and grading providers as needed. Each stage may charge; OCR and unpriced calls are excluded from estimates."), TextWrapping = TextWrapping.Wrap, FontSize = 13 });
+        if (!references && policy.Warning is not null)
+            content.Children.Add(new TextBlock { Text = UiText.Get("The Windows sandbox is unavailable. The controlled Python calculator will run locally."), TextWrapping = TextWrapping.Wrap });
         var modeChoice = CreateProcessingChoice(UiText.Get("Exam type"), fieldWidth);
         modeChoice.Items.Add(UiText.Get("Detect automatically"));
         modeChoice.Items.Add(UiText.Get("Blank exam"));
@@ -682,10 +707,19 @@ public sealed partial class MainWindow
         modeChoice.Items.Add(UiText.Get("Already graded by a teacher"));
         modeChoice.SelectedIndex = 0;
         if (importing) content.Children.Add(modeChoice);
-        content.Children.Add(providerChoice); content.Children.Add(modelChoice); content.Children.Add(thinkingChoice); content.Children.Add(unknown);
-        if (retry) content.Children.Add(new TextBlock { Text = UiText.Get("Retry clears the failed run's saved results and temporary files, then starts a new task. Original documents and manual edits are kept. Previous provider charges and changes made by code outside task folders cannot be undone."), TextWrapping = TextWrapping.Wrap });
-        if (policy.Warning is not null) content.Children.Add(new TextBlock { Text = UiText.Get("Sandbox unavailable. Code and commands will run locally with access to this account's files and network."), TextWrapping = TextWrapping.Wrap });
-        content.Children.Add(new TextBlock { Text = UiText.Get("Materials will be sent to the selected model and may incur charges."), TextWrapping = TextWrapping.Wrap });
+        if (!references) content.Children.Add(classifierChoice);
+        content.Children.Add(splitChoice);
+        if (!references)
+        {
+            content.Children.Add(providerChoice); content.Children.Add(modelChoice); content.Children.Add(gradeChoice);
+            content.Children.Add(new TextBlock { Text = UiText.Format("Up to {0} questions run at once.", _settings.ExamWorkflow?.ParallelQuestions ?? 3), TextWrapping = TextWrapping.Wrap, FontSize = 13 });
+        }
+        var advanced = new StackPanel { Spacing = 12 }; advanced.Children.Add(thinkingChoice); advanced.Children.Add(unknown);
+        thinkingChoice.Visibility = references ? Visibility.Collapsed : Visibility.Visible;
+        if (!references) advanced.Children.Add(new TextBlock { Text = UiText.Get("Python calculations follow your execution permission settings."), TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(new Expander { Header = UiText.Get("Model and calculation options"), Content = advanced,
+            HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
+        if (retry) content.Children.Add(new TextBlock { Text = UiText.Get("Retry clears this run's saved results and starts the workflow again. Originals and manual edits are kept. Previous provider charges remain."), TextWrapping = TextWrapping.Wrap });
         var filesNotice = new TextBlock { Text = UiText.Get("Images will be uploaded to the provider Files API and referenced by file ID. Files expire after 1 hour and are deleted when the task ends. Provider storage or model charges may apply."), TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
         providerChoice.SelectionChanged += (_, _) =>
         {
@@ -694,7 +728,7 @@ public sealed partial class MainWindow
             filesNotice.Visibility = providers[providerChoice.SelectedIndex].SupportsFilesApi ? Visibility.Visible : Visibility.Collapsed;
         };
         modelChoice.SelectionChanged += (_, _) => { if (modelChoice.SelectedIndex >= 0) FillThinking(models[modelChoice.SelectedIndex]); };
-        content.Children.Add(filesNotice);
+        advanced.Children.Add(filesNotice);
         if (!references && _settings.EmbeddingModel is { } embedding)
             content.Children.Add(new TextBlock { Text = UiText.Format("New question text will also be sent to {0} using {1} for automatic indexing. Additional charges may apply.", embedding.BaseUrl, embedding.Model), TextWrapping = TextWrapping.Wrap });
         int providerIndex = providers.FindIndex(p => p.Id == rememberedProviderId);
@@ -705,24 +739,32 @@ public sealed partial class MainWindow
             XamlRoot = RootGrid.XamlRoot,
             Title = retry ? UiText.Get("Retry task") : importing ? UiText.Get("Import exam") : references ? UiText.Get("Organize reference answers") : UiText.Get("Recognize again"),
             RequestedTheme = RootGrid.ActualTheme,
-            Content = content,
-            PrimaryButtonText = retry ? UiText.Get("Retry task") : importing ? UiText.Get("Import and recognize") : UiText.Get("Start"),
+            Content = new ScrollViewer { Content = content, MaxHeight = Math.Max(240, RootGrid.ActualHeight - 240), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled },
+            PrimaryButtonText = UiText.Get("Start workflow"),
             CloseButtonText = UiText.Get("Cancel"),
-            DefaultButton = ContentDialogButton.Primary
+            DefaultButton = ContentDialogButton.Primary,
+            IsPrimaryButtonEnabled = splitChoice.SelectedIndex >= 0
         };
+        splitChoice.SelectionChanged += (_, _) => dialog.IsPrimaryButtonEnabled = splitChoice.SelectedIndex >= 0;
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return null;
         var provider = providers[providerChoice.SelectedIndex];
         var model = models[modelChoice.SelectedIndex];
         Thinking? thinking = thinkingChoice.SelectedIndex > 0 ? thinkingOptions[thinkingChoice.SelectedIndex - 1] : null;
+        var selectedSplitter = workflowModels[splitChoice.SelectedIndex];
+        var selectedClassifier = classifierChoice.SelectedIndex > 0 ? workflowModels[classifierChoice.SelectedIndex - 1] : null;
+        var selectedGrader = gradeChoice.SelectedIndex > 0 ? workflowModels[gradeChoice.SelectedIndex - 1] : null;
         try
         {
             string defaultModel = provider.Id + ":" + model.Id;
-            if (_settings.DefaultModel != defaultModel || !SameThinking(_settings.DefaultThinking, thinking))
-                await ChangeSettingsAsync(current => current with { DefaultModel = defaultModel, DefaultThinking = thinking });
+            await ChangeSettingsAsync(current => current with { DefaultModel = defaultModel, DefaultThinking = thinking,
+                ExamWorkflow = current.ExamWorkflow! with { SplitterModel = selectedSplitter.Provider.Id + ":" + selectedSplitter.Model.Id,
+                    ClassifierModel = selectedClassifier is null ? null : selectedClassifier.Provider.Id + ":" + selectedClassifier.Model.Id,
+                    Splitter = new(selectedSplitter.Provider.BaseUrl, selectedSplitter.Model.Id, selectedSplitter.Provider.KeyRef),
+                    GraderModel = selectedGrader is null ? null : selectedGrader.Provider.Id + ":" + selectedGrader.Model.Id } });
         }
         catch (Exception error) { AppLog.Error("Processing.RememberChoice", error); }
         return new(provider, model, thinking, unknown.IsChecked == true, policy,
-            modeChoice.SelectedIndex switch { 1 => ImportMode.Blank, 2 => ImportMode.AiGrading, 3 => ImportMode.TeacherGraded, _ => ImportMode.Auto });
+            modeChoice.SelectedIndex switch { 1 => ImportMode.Blank, 2 => ImportMode.AiGrading, 3 => ImportMode.TeacherGraded, _ => ImportMode.Auto }, selectedSplitter, selectedGrader, selectedClassifier);
     }
 
     private static bool SameThinking(Thinking? left, Thinking? right) =>
@@ -732,12 +774,14 @@ public sealed partial class MainWindow
     {
         if (_jobs is null) throw new InvalidOperationException(UiText.Get("Task queue is not ready."));
         if (_library is not null) document = await _library.GetDocumentAsync(document.Id, _lifetime.Token);
-        var input = new GradingInput { Document = document, Provider = processing.Provider, Model = processing.Model, Thinking = processing.Thinking, AllowUnknown = processing.AllowUnknown };
+        var input = CreateWorkflowInput(document, processing);
         var submitted = await _jobs.SubmitAsync(references ? DiagnosticKind.References : DiagnosticKind.Grading, processing.Policy, input, _lifetime.Token);
         _activeJob = submitted.Id;
         AppLog.Info("Recognition.Queued", $"Job={_activeJob}; Document={document.Id}; Model={processing.Model.Id}");
         try { await RefreshTasksAsync(); }
         catch (Exception error) { AppLog.Error("Recognition.RefreshQueuedJob", error); }
+        _selectedTaskId = submitted.Id;
+        Navigation.SelectedItem = Navigation.MenuItems.OfType<NavigationViewItem>().First(i => i.Tag as string == "tasks");
         return submitted;
     }
     private static string RecognitionStatus(JobState state) => state switch

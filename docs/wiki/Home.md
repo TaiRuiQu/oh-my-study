@@ -36,4 +36,4 @@ This wiki describes the current repository implementation. Older releases may di
 
 The maintained Wiki now lives in `docs/wiki`. Use [contents](_Sidebar.md) for all chapters and [migration notes](README.md) for provenance.
 
-Current behavior includes shared stems and ordered items, dedicated question reading pages, local text and optional [meaning search](Features-Search.md), [task retry recovery](Features-Tasks.md), batch page reads/saves, reusable one-hour file uploads, persistent Python, generated study images, and SQLite v6. Older releases may differ.
+Current behavior includes shared stems and ordered items, dedicated question reading pages, local text and optional [meaning search](Features-Search.md), [task retry recovery](Features-Tasks.md), MinerU OCR with local question-region fallback, fixed format-classification, splitting, parallel solving and grading stages, reusable one-hour file uploads, a restricted Python calculator, and SQLite v7. Older releases may differ.

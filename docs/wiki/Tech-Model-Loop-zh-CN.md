@@ -1,40 +1,39 @@
-# 供应商适配、批量工具、流式响应与用量
+# OCR、切题、并行解题与独立评分
 
 [首页](Home-zh-CN.md) · [技术内幕](Tech-for-nerds-zh-CN.md) · [English](Tech-Model-Loop.md)
 
-## 一份试卷，一个会话
+## 固定阶段
 
-Responses 与 Messages 使用独立 SDK 适配器，共享轮次契约。运行器发送文档元数据、去除个人笔记的已有题目和参考答案，按需加入页面图片。每任务只选择一次模型提示配置；未知版本使用家族通用配置，未知 ID 使用通用配置。见[模型提示配置](../model-prompts.zh-CN.md)。
+识别已改为各模型上下文分离的工作流：MinerU 识别原始页面，小模型切题并绑定材料，选定的解题模型按题独立求解；有作答的题目再进入独立评分调用，可配置另一评分模型。仅整理参考答案时，只识别、匹配参考答案，不解题。
 
-工具、指令和历史消息在轮次间保持稳定，各协议保留自己的推理与工具调用上下文。流式文字仅用于显示活动，不能保存题目。
+MinerU 使用 `https://mineru.net/api/v4/file-urls/batch` 申请上传地址，以签名 PUT 上传，并轮询 `extract-results/batch/{batch_id}`。官方接口要求 Bearer Token，不能用 Access Key / Secret Key 对替代。原页资源保留在本地；上传渲染后的页面而非原始 PDF，明确页面身份及坐标对应。
 
-| 工具 | 契约 |
-| --- | --- |
-| `read_pages` | 按序批量读取整页/裁片，返回元数据、图片、本地文件。只有整页读取计入覆盖。 |
-| `save_references` | 替换完整参考列表，匹配稳定评分项键，保留已有作答引用的参考键。 |
-| `save_paper_info` | 推断学科/总分并保护手动试卷信息，仅整卷任务可用。 |
-| `save_questions` | 批量保存公共题干与评分项，通常每次 4–8 题。逐项返回结果，部分失败不回滚成功项，仅整卷任务可用。 |
-| `python`、`shell` | 按任务执行策略计算或处理图片，可用 `outputs` 返回最多八张图片及可复用资源 ID。 |
-| `finish` | 校验整页覆盖与保存结果，成功后结束任务。 |
+OCR 与本地题框检测可并行运行。每页保存 MinerU 原始 ZIP、Markdown、内容列表 JSON 及引用图片；`full.md` 按页序合并并给图片链接加页命名空间。`ocr.json` 包含归一化来源区域和托管图片资源；`regions.json`、`split-plan.json`、逐次解题和评分 JSON 也保存在资料库的 `workflow_artifacts` 表。数据库版本 7 仅新增该表，升级前备份数据库。资料库备份包含这些产物，重试回滚会删除失败轮次的产物。
 
-仅整理参考答案的任务提供页面读取、参考保存、计算和完成工具，不能保存题目或试卷信息。代码默认超时 60 秒，`timeout_ms` 接受 1–300,000 毫秒。Python 在任务内共享笔记本状态，PowerShell 每次启动新进程。
+## 切题与区域兜底
 
-题目内容支持文本、公式、结构化表格、图片和 Mermaid 流程图。图片与 Mermaid 的 `width_percent` 可选，范围为 1–100。省略时，PDF 默认最大宽度为 9 cm，且不超过当前栏宽；显式值覆盖该默认值。Mermaid 必须提供代码与原始材料区域；生成图片同样保留证据区域。省略的宽度在存储中保持未指定；此前保存的数值宽度会保留。在题目编辑器中清空数值宽度可恢复默认值。提示要求优先用 Markdown/结构化表格、Mermaid 流程图和 Matplotlib PNG 替代不清晰的裁片，并说明精确的字体指令与 `^`、`<`、`>` 整单元格合并标记。Mermaid 输出限于使用简单节点和带标签箭头的原始 `flowchart`/`graph` 代码，以便受限的原生渲染器显示。
+切题模型从已保存的供应商中选择，与解题和评分模型独立。任务保存供应商、模型、地址和凭据引用快照。直连 DeepSeek 使用 `/responses`，关闭思考并通过严格 JSON Schema 限定输出；其他供应商使用其已配置的 Responses 或 Messages 协议，不提供工具。输入包括 OCR、原页图、已有稳定键、参考答案、题框。切题必须逐一处理全部 OCR 块和题框，关联跨页续题、共享阅读材料、配图、表格，并识别作答区域。整卷 Markdown 留存，归一化的 OCR 块作为结构化切题输入。
 
-## 边界与恢复
+YOLO26N Question Segmentation v2 是单类别题目框检测器。安装 `uv` 后运行 `./packaging/prepare-question-regions.ps1`，将固定版本的公开权重转换为 ONNX。转换工具保存在忽略的 `output/`；应用使用 ONNX Runtime 检测，无需 Python/PyTorch。准备好的 `native/question-regions/base.onnx` 自动启用；设置中可覆盖其路径并增加中文模型。两个模型独立提供候选框，不把题框模型称为手写识别模型。没有安装模型时，任务明确显示无区域兜底，仍使用 OCR 和原图审阅。
 
-最多 60 个模型轮次，关联截止时间 20 分钟。连续两次纯文字回复会收到继续提示，第三次失败。工具参数错误返回纠正反馈；不能因部分条目失败而无故重复已成功项。参数不是单个 JSON 对象（包括被截断或格式错误的流式参数）时不会执行，也不会结束任务：每次这类调用都会收到纠正提示，模型可以据此重试。
+ONNX 输入为固定 float32 RGB `[1,3,1280,1280]`，以 114 填充 letterbox；输出为端到端 `[1,N,6]`（四角坐标、置信度、类别）。导出使用 `nms=False`、opset 17、静态尺寸，检测阈值 0.20。存储坐标相对未旋转整页归一化；MinerU 的 0–1000 四角坐标只转换一次。显示旋转不改证据坐标。
 
-临时网络、流中断、服务错误与限流允许每轮最多四次尝试，通常等待 1、2、4 秒；Retry-After 可延长到 30 秒。不执行未完成响应。鉴权、参数、拒绝与明确输出上限错误不自动重试。保留先前已完成轮次。重试用量未报告时，该次调用不计价，任务合计仍保留已经计价的调用。
+[中文数据集评估](../question-regions-dataset.zh-CN.md)决定暂不使用候选数据集进行生产微调。本次没有生成中文微调权重。
 
-## 文件上传与缓存
+## 独立解题和评分
 
-Files API 按供应商显式启用，新任务保存该设置。会话内按 MIME 和内容哈希去重页面、裁片及生成图片。Responses 上传使用 `purpose=user_data`、`expires_after[anchor]=created_at` 和 `expires_after[seconds]=3600`；Messages 使用自己的上传格式与 `expires_in_seconds=3600`。后续调用引用文件 ID，避免反复发送 base64。成功、失败、取消后均尝试逐个删除上传文件。拒绝上传时明确失败，不静默回退为内联或永久文件。
+切题先保存待复核草稿，再开始付费解题。每个解题上下文仅接收绑定后的题目及原始题区截图，返回答案、解析、知识点和不确定项，不能改题目或评分项稳定键。空白模式不创建作答；已作答和教师批改模式逐题评分；自动模式对切题阶段发现笔迹、疑似笔迹、作答区域或已有作答的题目评分。
 
-OpenRouter 使用固定端点会话；Messages 显式缓存固定系统指令并自动缓存增长的会话；OpenRouter 上的 Gemini 使用隐式缓存。缓存效果仍取决于供应商与模型。
+评分接收独立解法、已核实参考答案、附整页坐标的原始作答截图；未定位作答裁片时发送相关整页，避免题框排除空白答题区后遗漏笔迹。看不清的笔迹标为不确定；教师/自动模式保护明确教师结果，不能把 AI 解法充作学生答案。仓储继续保护手动修改的作答、人工分数、教师证据和笔记。
 
-Codex 模式是供应商的可选开关，并随新任务保存。协议为 Responses 且开关打开时，每一轮都发送 `prompt_cache_key`，值为该试卷的文档 ID，并在整个任务中保持不变。开关关闭、协议为 Messages 或 ID 为空时不发送。该字段名已被保留，同名的额外参数会被拒绝。
+解题端唯一工具是 `python`：AST 解释器只接受数学表达式、简单赋值和批准的数值/SymPy 函数，不允许导入、属性访问、文件、网络、shell 或字符串求值。符号计算只接收表达式对象。变量仅在单次调用内有效；执行仍经过现有权限和取消边界，Python 执行闸门避免并行题目破坏共享工作进程。模型不再调用读页、保存、完成或 shell 工具。
 
-用量记录保存配置价格、货币、供应商报告的 token 分类、重试信息和估算。缺少输出数量时省略该项费用。缺少输入分类、输入拆分与总量不一致、已知非零用量没有单价，或重试用量未报告时，该次调用的估算保持未知。任务合计只相加已知估算。文件存储与语义搜索费用不属于识别 token 估算。
+## 边界、费用与失败
 
-源码：[运行器](../../src/OhMyStudy.Infrastructure/Grading/GradingRunner.cs)、[工具](../../src/OhMyStudy.Infrastructure/Grading/GradingTools.cs)、[重试活动](../../src/OhMyStudy.Infrastructure/Grading/ModelActivity.cs)、[文件会话](../../src/OhMyStudy.Infrastructure/Providers/ProviderFileSession.cs)、[协议](../../src/OhMyStudy.Infrastructure/Providers/ProviderProtocol.cs)。
+默认并行 3 题，可设 1–8 题；每题最多 4 次解题调用，可设 1–8 次；单次受控计算限 30 秒，任务总限时 30 分钟。切题输出预算默认为 32,768 token，并受模型上限限制；直连响应被截断时保留原生响应及 token 用量。分类、切题和评分各允许最多三次校验尝试，关闭传输层自动重试。简短任务提示与 API 输出 Schema 分开传入。模型响应先经过格式归一化，再检查 Schema 和领域规则；原始及归一化产物均可查阅。真实证据缺失或评分矛盾通过有界反馈要求修正，存储 JSON 契约与页面覆盖规则仍严格校验。
+
+切题、解题、评分均记录 token 用量。各模型按供应商配置单价估算，人民币与美元金额先换算再汇总；MinerU 和未定价调用明确不计入显示估算。导入确认说明全部上传对象及各阶段可能计费。密钥仅进入 Windows 凭据管理器，不进入任务快照和识别产物。
+
+任务失败后可保留 OCR、题目草稿和已完成结果。重试使用现有恢复记录回滚该轮次；重新识别则保留已有编辑，两者可能产生新费用。Files API 上传和清理限制在各题独立客户端内，避免并行题目混用上传状态。
+
+源码：[运行器](../../src/OhMyStudy.Infrastructure/Grading/GradingRunner.cs)、[MinerU](../../src/OhMyStudy.Infrastructure/Grading/MinerUClient.cs)、[切题](../../src/OhMyStudy.Infrastructure/Grading/QuestionSplitter.cs)、[提示](../../src/OhMyStudy.Infrastructure/Grading/WorkflowPrompts.cs)、[检测器](../../src/OhMyStudy.Documents/QuestionRegionModel.cs)。

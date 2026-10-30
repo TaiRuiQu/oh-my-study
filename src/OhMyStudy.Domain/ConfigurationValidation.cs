@@ -10,6 +10,21 @@ public static class ConfigurationValidation
             && (settings.DefaultModel is null || Encoding.UTF8.GetByteCount(settings.DefaultModel) <= 1024), "invalid application settings");
         if (settings.EmbeddingModel is { } embedding) ValidateSearchModel(embedding);
         if (settings.RerankerModel is { } reranker) ValidateSearchModel(reranker);
+        if (settings.ExamWorkflow is { } workflow) ValidateWorkflow(workflow);
+    }
+
+    public static void ValidateWorkflow(ExamWorkflowSettings workflow)
+    {
+        ValidateSearchModel(workflow.Splitter);
+        DomainValidationException.Require(workflow.ParallelQuestions is >= 1 and <= 8
+            && workflow.MaxQuestionRounds is >= 1 and <= 8 && workflow.SplitterMaxTokens is >= 1024 and <= 32768,
+            "Invalid exam workflow concurrency or output limits.");
+        if (workflow.MinerUTokenRef is { } reference)
+            DomainValidationException.Require(reference.StartsWith("OhMyStudy/provider/", StringComparison.Ordinal)
+                && Guid.TryParse(reference["OhMyStudy/provider/".Length..], out _), "Invalid MinerU credential reference.");
+        foreach (var path in new[] { workflow.RegionModelPath, workflow.ChineseRegionModelPath })
+            DomainValidationException.Require(path is null || Path.IsPathFullyQualified(path) && path.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase),
+                "Question region models require an absolute ONNX path.");
     }
 
     public static void ValidateSearchModel(SearchModel model)

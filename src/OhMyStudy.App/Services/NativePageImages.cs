@@ -20,12 +20,14 @@ public sealed class NativePageImages(string? webpDecoderPath = null) : IGradingI
     private const uint ModelImageLongSideFloor = 1280;
     private readonly string _webpDecoderPath = webpDecoderPath ?? NativeWebpDecoder.DefaultPath;
     public Task<GradingImageResult> ReadAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken) => ReadForModelAsync(bytes, crop, rotation, cancellationToken);
+    public Task<GradingImageResult> ReadLayoutAsync(byte[] bytes, ushort rotation, CancellationToken cancellationToken) => ReadImageAsync(bytes, null, rotation, true, cancellationToken, 1024);
+    public Task<GradingImageResult> ReadOcrAsync(byte[] bytes, ushort rotation, CancellationToken cancellationToken) => ReadForDisplayAsync(bytes, null, rotation, cancellationToken);
 
     public Task<GradingImageResult> ReadForModelAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken = default) => ReadImageAsync(bytes, crop, rotation, true, cancellationToken);
 
     public Task<GradingImageResult> ReadForDisplayAsync(byte[] bytes, Region? crop, ushort rotation, CancellationToken cancellationToken = default) => ReadImageAsync(bytes, crop, rotation, false, cancellationToken);
 
-    private Task<GradingImageResult> ReadImageAsync(byte[] bytes, Region? crop, ushort rotation, bool compress, CancellationToken cancellationToken) => NativeImageWork.RunAsync(async () =>
+    private Task<GradingImageResult> ReadImageAsync(byte[] bytes, Region? crop, ushort rotation, bool compress, CancellationToken cancellationToken, uint? previewLongSide = null) => NativeImageWork.RunAsync(async () =>
     {
         PageViewportTransform.ValidateRotation(rotation);
         using var source = await NativeImageCodec.OpenAsync(bytes, cancellationToken).ConfigureAwait(false);
@@ -40,6 +42,7 @@ public sealed class NativePageImages(string? webpDecoderPath = null) : IGradingI
             bool turned = rotation is 90 or 270;
             double rotatedWidth = turned ? height : width, rotatedHeight = turned ? width : height;
             scale = Math.Min(1, Math.Min(2400d / rotatedWidth, 3600d / rotatedHeight));
+            if (previewLongSide is { } limit) scale = Math.Min(scale, limit / Math.Max(rotatedWidth, rotatedHeight));
         }
         uint decodedWidth = Math.Max(1, (uint)Math.Floor(width * scale));
         uint decodedHeight = Math.Max(1, (uint)Math.Floor(height * scale));

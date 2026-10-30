@@ -10,6 +10,7 @@
     <PackageReference Include="OpenAI" />
     <PackageReference Include="TairuiQu.Anthropic.Aot" />
     <EmbeddedResource Include="Storage/Migrations/*.sql" />
+    <EmbeddedResource Include="Grading/ControlledPython.py" />
     <EmbeddedResource Include="Import/PhoneCaptureIssuer.pem" LogicalName="OhMyStudy.PhoneCapture.Issuer.pem" />
   </ItemGroup>
 </Project>

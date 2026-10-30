@@ -44,7 +44,7 @@ Implementation and reference: [MainWindow.LibrarySettings.cs](../../src/OhMyStud
 
 ## Current library upgrade
 
-The schema is v6. Supported older writable libraries receive the applicable migrations: shared stems/ordered items, generated-image ownership, and separate student-answer page roles. Existing page IDs, order, rotation, and PDF relationships are retained. A pre-upgrade `study.sqlite3.pre-v6-…` database snapshot is kept. This is not a complete asset backup: save, exit, and copy the whole library before upgrading. Older apps cannot open the converted library; keep a complete earlier backup if rollback may be needed. See [storage and migration](Tech-Storage-Recovery.md).
+The schema is v7. Supported older writable libraries receive the applicable migrations: shared stems/ordered items, generated-image ownership, separate student-answer page roles, and per-run recognition artifacts. Existing page IDs, order, rotation, and PDF relationships are retained. A pre-upgrade `study.sqlite3.pre-v6-…` database snapshot is kept. This is not a complete asset backup: save, exit, and copy the whole library before upgrading. Older apps cannot open the converted library; keep a complete earlier backup if rollback may be needed. See [storage and migration](Tech-Storage-Recovery.md).
 
 ---
 

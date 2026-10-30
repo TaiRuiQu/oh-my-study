@@ -59,6 +59,7 @@
     <Content Include="$(DocumentToolchain)\libwebp\libwebp-1.6.0-windows-x64\bin\dwebp.exe" Link="native\webp\dwebp.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\libwebp\libwebp-1.6.0-windows-x64\bin\dwebp.exe')" />
     <Content Include="$(DocumentToolchain)\typst-x86_64-pc-windows-msvc\typst.exe" Link="native\typst\typst.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\typst-x86_64-pc-windows-msvc\typst.exe')" />
     <Content Include="$(DocumentToolchain)\restoration\*" Link="native\restoration\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(DocumentToolchain)\question-regions\base.onnx;$(DocumentToolchain)\question-regions\model.json;$(DocumentToolchain)\question-regions\NOTICE.md" Link="native\question-regions\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('$(DocumentToolchain)\question-regions\base.onnx')" />
     <None Include="$(DocumentToolchain)\runtime\**\*" Link="runtime\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Condition="Exists('$(DocumentToolchain)\runtime\runtime-manifest.json')" />
   </ItemGroup>
   <Target Name="RequireDocumentTools" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">

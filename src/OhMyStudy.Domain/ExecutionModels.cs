@@ -118,6 +118,7 @@ public sealed record JobEvent
 /// <summary>A durable, public execution step. Never stores provider-private thinking or credentials.</summary>
 public sealed record JobActivity
 {
+    public ExamLayout? ExamLayout { get; init; }
     public required string Key { get; init; }
     public required string Kind { get; init; }
     public required string Title { get; init; }

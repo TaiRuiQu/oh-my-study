@@ -24,4 +24,4 @@
 
 代码默认不逐次询问而在本机运行，新任务前可改为每次询问或沙箱运行。Files API 默认关闭，兼容上传请求一小时过期并在任务结束尝试删除。Codex 模式同样默认关闭，Responses 供应商会在新任务中发送稳定的 `prompt_cache_key`。详见模型和任务章节。
 
-资料库保存在本地，当前数据库 v6。升级或大量重识别前退出并备份整个目录。密钥保存在 Windows 凭据管理器。另见[安装](../installation.zh-CN.md)、[使用指南](../usage.zh-CN.md)、[模型提示配置](../model-prompts.zh-CN.md)。
+资料库保存在本地，当前数据库 v7。升级或大量重识别前退出并备份整个目录。密钥保存在 Windows 凭据管理器。另见[安装](../installation.zh-CN.md)、[使用指南](../usage.zh-CN.md)、[模型提示配置](../model-prompts.zh-CN.md)。

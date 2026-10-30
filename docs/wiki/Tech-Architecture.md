@@ -18,7 +18,7 @@ These are successive trust and persistence boundaries. The model does not receiv
 
 ## Async does not mean every component is concurrent
 
-The database has a single owner thread. AI jobs have a single worker. Media preparation and reading use their own services/cancellation. These choices serialize sensitive mutations while keeping expensive work off the UI thread; they do not promise arbitrary parallel recognition.
+The database has a single owner thread and the job queue runs one exam at a time. Inside an exam, independent questions solve and assess concurrently up to the configured limit. Python calculations cross a shared execution gate, while database commits remain serialized. Media preparation and reading keep their own cancellation boundaries.
 
 The MainWindow partial files group feature behavior. They coexist with view models rather than claiming the entire application is a pure declarative MVVM implementation.
 

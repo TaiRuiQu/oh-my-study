@@ -1,0 +1,22 @@
+<UserControl
+    x:Class="OhMyStudy.App.Controls.WorkflowOverview"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="using:OhMyStudy.App.Localization">
+    <Grid x:Name="OverviewFlow" ColumnSpacing="6" AutomationProperties.Name="{l:Text Key=Workflow.Visual.Flow}">
+        <Grid.Resources>
+            <Style x:Key="StepLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="TextAlignment" Value="Center" /></Style>
+            <Style x:Key="StepNode" TargetType="Border"><Setter Property="Width" Value="36" /><Setter Property="Height" Value="36" /><Setter Property="CornerRadius" Value="18" /><Setter Property="Background" Value="{ThemeResource TaskAccentBackgroundBrush}" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
+        </Grid.Resources>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+        <StackPanel Spacing="10"><Border Style="{StaticResource StepNode}"><FontIcon Glyph="&#xE721;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /></Border><TextBlock Text="{l:Text Key=Workflow.ClassifyShort}" Style="{StaticResource StepLabel}" /></StackPanel>
+        <FontIcon Grid.Column="1" Glyph="&#xE72A;" FontSize="12" Foreground="{ThemeResource TaskSecondaryBrush}" VerticalAlignment="Top" Margin="0,12,0,0" AutomationProperties.AccessibilityView="Raw" />
+        <StackPanel Grid.Column="2" Spacing="10"><Border Style="{StaticResource StepNode}"><FontIcon Glyph="&#xE8A5;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /></Border><TextBlock Text="{l:Text Key=Workflow.Visual.Ocr}" Style="{StaticResource StepLabel}" /></StackPanel>
+        <FontIcon Grid.Column="3" Glyph="&#xE72A;" FontSize="12" Foreground="{ThemeResource TaskSecondaryBrush}" VerticalAlignment="Top" Margin="0,12,0,0" AutomationProperties.AccessibilityView="Raw" />
+        <StackPanel Grid.Column="4" Spacing="10"><Border Style="{StaticResource StepNode}"><FontIcon Glyph="&#xE7A8;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /></Border><TextBlock Text="{l:Text Key=Workflow.Visual.Split}" Style="{StaticResource StepLabel}" /></StackPanel>
+        <FontIcon Grid.Column="5" Glyph="&#xE72A;" FontSize="12" Foreground="{ThemeResource TaskSecondaryBrush}" VerticalAlignment="Top" Margin="0,12,0,0" AutomationProperties.AccessibilityView="Raw" />
+        <StackPanel Grid.Column="6" Spacing="10"><Border Style="{StaticResource StepNode}"><FontIcon Glyph="&#xE8EF;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /></Border><TextBlock Text="{l:Text Key=Workflow.Visual.Solve}" Style="{StaticResource StepLabel}" /></StackPanel>
+        <FontIcon Grid.Column="7" Glyph="&#xE72A;" FontSize="12" Foreground="{ThemeResource TaskSecondaryBrush}" VerticalAlignment="Top" Margin="0,12,0,0" AutomationProperties.AccessibilityView="Raw" />
+        <StackPanel Grid.Column="8" Spacing="10"><Border Style="{StaticResource StepNode}"><FontIcon Glyph="&#xE73E;" FontSize="16" Foreground="{ThemeResource TaskAccentBrush}" /></Border><TextBlock Text="{l:Text Key=Workflow.Visual.Grade}" Style="{StaticResource StepLabel}" /></StackPanel>
+    </Grid>
+</UserControl>

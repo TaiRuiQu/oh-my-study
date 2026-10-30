@@ -995,4 +995,132 @@ f′(x) = 0에서 x = −1 또는 x = 1.
     <text key="PhoneCapture.Model.Progress" xml:space="preserve">이미지 {0}/{1} 보정 중…</text>
     <text key="PhoneCapture.Model.Continue" xml:space="preserve">계속</text>
     <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">페이지 방향 인식 중…</text>
+    <text key="Workflow.Title" xml:space="preserve">시험 처리 흐름</text>
+    <text key="Workflow.Description" xml:space="preserve">단계별 모델을 선택합니다. 원본과 인식 자료는 라이브러리에 보관됩니다.</text>
+    <text key="Workflow.MinerUToken" xml:space="preserve">MinerU Bearer 토큰</text>
+    <text key="Workflow.SplitterUrl" xml:space="preserve">문항 분할 API 주소</text>
+    <text key="Workflow.SplitterModel" xml:space="preserve">문항 분할 모델</text>
+    <text key="Workflow.SplitterKey" xml:space="preserve">문항 분할 API 키</text>
+    <text key="Workflow.Grader" xml:space="preserve">채점 모델</text>
+    <text key="Workflow.Parallel" xml:space="preserve">동시 처리 문항 수</text>
+    <text key="Workflow.Rounds" xml:space="preserve">풀이당 최대 호출 수</text>
+    <text key="Workflow.Regions" xml:space="preserve">문항 영역 보완</text>
+    <text key="Workflow.BaseRegionPath" xml:space="preserve">YOLO26N 문항 모델 (ONNX)</text>
+    <text key="Workflow.ChineseRegionPath" xml:space="preserve">중국어 문항 모델 (선택 ONNX)</text>
+    <text key="Workflow.RegionDescription" xml:space="preserve">영역 모델은 로컬에서 실행됩니다. 문항 상자에 답안 공간이 없으면 원본 답안 이미지를 채점에 사용합니다.</text>
+    <text key="Workflow.SameModel" xml:space="preserve">풀이 모델 사용</text>
+    <text key="Workflow.Invalid" xml:space="preserve">저장된 모델, 처리 제한, ONNX 경로를 확인하세요.</text>
+    <text key="Workflow.Configure" xml:space="preserve">설정에서 시험 처리 흐름을 먼저 구성하세요.</text>
+    <text key="Workflow.SelectGrader" xml:space="preserve">설정에서 채점 모델을 다시 선택하세요.</text>
+    <text key="Workflow.Upload" xml:space="preserve">페이지는 MinerU와 문항 분할 모델에 전송됩니다. 분류된 문항은 풀이 모델에, 답안 이미지는 채점 모델에 전송되며 각 단계에서 요금이 발생할 수 있습니다.</text>
+    <text key="Workflow.OcrCost" xml:space="preserve">표시된 예상 비용에는 OCR 및 가격이 없는 모델 요금이 포함되지 않습니다.</text>
+    <text key="Workflow.Solve" xml:space="preserve">문항 풀이</text>
+    <text key="Workflow.Assess" xml:space="preserve">답안 채점</text>
+    <text key="Workflow.Split" xml:space="preserve">문항 및 자료 분류</text>
+    <text key="Workflow.SplitCorrection" xml:space="preserve">검증 결과에 따라 문항과 답안 연결을 수정하고 있습니다.</text>
+    <text key="Workflow.Ocr" xml:space="preserve">MinerU 페이지 인식</text>
+    <text key="Workflow.Detect" xml:space="preserve">문항 영역 감지</text>
+    <text key="Workflow.Python" xml:space="preserve">Python 계산</text>
+    <text key="Workflow.Process" xml:space="preserve">문항 처리</text>
+    <text key="Workflow.AwaitingSolution" xml:space="preserve">독립 풀이 대기 중.</text>
+    <text key="Workflow.AwaitingAssessment" xml:space="preserve">독립 채점 대기 중.</text>
+    <text key="Workflow.QuestionStep" xml:space="preserve">{0} · 문항 {1}</text>
+    <text key="Workflow.OcrProgress" xml:space="preserve">OCR 페이지: {0}/{1}.</text>
+    <text key="Workflow.QuestionProgress" xml:space="preserve">완료 문항: {0}/{1}.</text>
+    <text key="Workflow.GroupProgress" xml:space="preserve">{0}개 문항 분류 완료. 독립 풀이 중.</text>
+    <text key="Workflow.Grouped" xml:space="preserve">{0}개 문항 분류 완료.</text>
+    <text key="Workflow.Done" xml:space="preserve">OCR, 문항 분류, 풀이 및 채점 완료.</text>
+    <text key="Workflow.NoDetector" xml:space="preserve">영역 모델 없음. 분할 모델이 OCR 및 원본 이미지를 검토합니다.</text>
+    <text key="Workflow.Export" xml:space="preserve">인식 자료 내보내기</text>
+    <text key="Workflow.Exported" xml:space="preserve">인식 자료를 내보냈습니다.</text>
+    <text key="Workflow.ExportFailed" xml:space="preserve">OCR 완료 여부와 저장 위치 권한을 확인하세요.</text>
+    <text key="Workflow.SolvingModel" xml:space="preserve">풀이 모델</text>
+    <text key="Workflow.SetupOcr" xml:space="preserve">1. 업로드 및 인식</text>
+    <text key="Workflow.SetupSplit" xml:space="preserve">2. 문항 분할 및 자료 연결</text>
+    <text key="Workflow.SetupSolve" xml:space="preserve">3. 병렬 풀이</text>
+    <text key="Workflow.SetupGrade" xml:space="preserve">4. 답안 채점</text>
+    <text key="Workflow.OcrOutput" xml:space="preserve">MinerU가 전체 시험의 Markdown, 이미지, 표를 추출합니다.</text>
+    <text key="Workflow.SplitOutput" xml:space="preserve">문제, 도표, 답안 영역을 문항별로 연결합니다.</text>
+    <text key="Workflow.SolveSetup" xml:space="preserve">시작할 때 풀이 모델을 선택합니다. 문항별로 독립 처리하며 제한된 Python 계산기를 사용합니다.</text>
+    <text key="Workflow.GradeOutput" xml:space="preserve">원본 답안 영역과 독립 풀이로 채점합니다. 빈 시험은 채점을 건너뜁니다.</text>
+    <text key="Workflow.ChooseProviderModel" xml:space="preserve">공급자 / 모델 선택</text>
+    <text key="Workflow.SharedProvider" xml:space="preserve">저장된 공급자 주소와 키를 사용합니다.</text>
+    <text key="Workflow.Advanced" xml:space="preserve">계산 제한 및 영역 감지</text>
+    <text key="Workflow.Progress" xml:space="preserve">워크플로 진행 상황</text>
+    <text key="Workflow.QuestionListTitle" xml:space="preserve">문항별 진행 상황</text>
+    <text key="Workflow.Details" xml:space="preserve">기술 세부 정보 및 모델 기록</text>
+    <text key="Workflow.Empty" xml:space="preserve">형식 판단 → 인식 → 분할 → 풀이 → 채점</text>
+    <text key="Workflow.TokenSaved" xml:space="preserve">MinerU 키가 저장되어 있습니다. 비워 두면 유지됩니다.</text>
+    <text key="Workflow.TokenMissing" xml:space="preserve">MinerU 키를 저장하면 인식을 사용할 수 있습니다.</text>
+    <text key="Workflow.SelectSplitter" xml:space="preserve">저장된 공급자에서 문항 분할 모델을 선택하세요.</text>
+    <text key="Workflow.StageOcr" xml:space="preserve">업로드 및 인식</text>
+    <text key="Workflow.StageSplit" xml:space="preserve">문항 분할 및 자료 연결</text>
+    <text key="Workflow.StageSolve" xml:space="preserve">병렬 풀이</text>
+    <text key="Workflow.StageGrade" xml:space="preserve">답안 채점</text>
+    <text key="Workflow.OcrSaved" xml:space="preserve">{0}/{1}쪽 인식 · Markdown, 이미지, 표 저장됨</text>
+    <text key="Workflow.OcrCount" xml:space="preserve">{0}/{1}쪽 인식 · MinerU</text>
+    <text key="Workflow.SplitCount" xml:space="preserve">{0}문항 · 원본 자료 연결됨</text>
+    <text key="Workflow.WaitOcr" xml:space="preserve">인식 자료 대기 중</text>
+    <text key="Workflow.ReferenceMatched" xml:space="preserve">참고 답안이 문항에 연결됨</text>
+    <text key="Workflow.NoReferenceSolve" xml:space="preserve">참고 답안 가져오기에서는 풀이를 하지 않습니다</text>
+    <text key="Workflow.NoReferenceGrade" xml:space="preserve">참고 답안 가져오기에서는 채점하지 않습니다</text>
+    <text key="Workflow.SolvedCount" xml:space="preserve">{0}/{1}문항 풀이 · 최대 {2}문항 동시 처리</text>
+    <text key="Workflow.BlankSkip" xml:space="preserve">빈 시험 · 채점 불필요</text>
+    <text key="Workflow.GradedCount" xml:space="preserve">채점 {0} · 불필요 {1} · {2}</text>
+    <text key="Workflow.Counts" xml:space="preserve">분할 {0} · 풀이 {1} · 채점 {2} · 채점 불필요 {3}</text>
+    <text key="Workflow.NotRequired" xml:space="preserve">불필요</text>
+    <text key="Workflow.Stopped" xml:space="preserve">중지됨</text>
+    <text key="Workflow.Waiting" xml:space="preserve">대기 중</text>
+    <text key="Workflow.SolutionStatus" xml:space="preserve">풀이: {0}</text>
+    <text key="Workflow.GradeStatus" xml:space="preserve">채점: {0}</text>
+    <text key="Workflow.QuestionLabel" xml:space="preserve">{0}번 문항</text>
+    <text key="Workflow.UploadTitle" xml:space="preserve">MinerU에 페이지 업로드</text>
+    <text key="Workflow.UploadCount" xml:space="preserve">{0}/{1}쪽 업로드됨.</text>
+    <text key="Workflow.SetupTitle" xml:space="preserve">시험 워크플로 설정</text>
+    <text key="Workflow.SetupHelp" xml:space="preserve">설정에서 MinerU 키를 저장하고 문항 분할 모델을 선택하세요.</text>
+    <text key="Workflow.StartIntro" xml:space="preserve">원본은 로컬에 저장됩니다. 시작 후 아래 단계가 자동 실행됩니다.</text>
+    <text key="Workflow.SolveHelp" xml:space="preserve">문항별로 독립 풀이하며 제한된 Python 계산기를 사용합니다.</text>
+    <text key="Workflow.ParallelHelp" xml:space="preserve">최대 {0}문항을 동시에 처리합니다.</text>
+    <text key="Workflow.CalculationPolicy" xml:space="preserve">Python 계산에는 실행 권한 설정이 적용됩니다.</text>
+    <text key="Workflow.LocalCalculator" xml:space="preserve">Windows 샌드박스를 사용할 수 없어 제한된 Python 계산기를 로컬에서 실행합니다.</text>
+    <text key="Workflow.ModelOptions" xml:space="preserve">모델 및 계산 옵션</text>
+    <text key="Workflow.RetryHelp" xml:space="preserve">재시도 시 이번 결과를 지우고 다시 처리합니다. 원본과 수동 편집은 보존되며 발생한 요금은 유지됩니다.</text>
+    <text key="Workflow.UploadSummary" xml:space="preserve">페이지 미리보기를 형식 판단 모델에 먼저 보내고 MinerU와 분할 모델로 처리합니다. 문제 자료와 답안 이미지는 필요에 따라 풀이·채점 공급자에게 전송합니다. 단계별 요금이 발생할 수 있으며 OCR과 가격 미설정 호출은 추정에서 제외됩니다.</text>
+    <text key="Workflow.Start" xml:space="preserve">워크플로 시작</text>
+    <text key="Workflow.RecognizedPages" xml:space="preserve">인식된 페이지</text>
+    <text key="Workflow.SplitQuestions" xml:space="preserve">분할된 문항</text>
+    <text key="Workflow.CostScope" xml:space="preserve">OCR 및 미가격 호출은 추정에서 제외됩니다.</text>
+    <text key="Workflow.CalculationExecution" xml:space="preserve">Python 계산 권한</text>
+    <text key="Workflow.CalculationAsk" xml:space="preserve">실행 전에 제한된 Python 계산을 검토합니다.</text>
+    <text key="Workflow.CalculationDirect" xml:space="preserve">매번 묻지 않고 제한된 Python 계산을 로컬에서 실행합니다.</text>
+    <text key="Workflow.Save" xml:space="preserve">워크플로 저장</text>
+    <text key="Workflow.Visual.Flow" xml:space="preserve">시험 처리 흐름</text>
+    <text key="Workflow.Visual.Ocr" xml:space="preserve">페이지 인식</text>
+    <text key="Workflow.Visual.Split" xml:space="preserve">문항 분할</text>
+    <text key="Workflow.Visual.Solve" xml:space="preserve">병렬 풀이</text>
+    <text key="Workflow.Visual.Grade" xml:space="preserve">답안 채점</text>
+    <text key="Workflow.Visual.OcrDetail" xml:space="preserve">MinerU → 텍스트·이미지·표</text>
+    <text key="Workflow.Visual.SplitDetail" xml:space="preserve">문제·도표·답안 영역 연결</text>
+    <text key="Workflow.Visual.SolveDetail" xml:space="preserve">독립 풀이 · 제한된 Python 계산</text>
+    <text key="Workflow.Visual.GradeDetail" xml:space="preserve">원본 답안과 풀이 비교 · 빈 시험 생략</text>
+    <text key="PhoneCapture.ImportDescription" xml:space="preserve">컴퓨터에서 PDF나 이미지를 선택하거나 같은 Wi-Fi에 연결된 휴대폰으로 촬영해 전송하세요. 원본은 이 컴퓨터에 보관되며 인식 전에 모델과 업로드 범위를 확인합니다.</text>
+    <text key="Workflow.Classify" xml:space="preserve">시험 형식 판단</text>
+    <text key="Workflow.ClassifyShort" xml:space="preserve">형식 판단</text>
+    <text key="Workflow.ClassifierModel" xml:space="preserve">형식 판단 모델</text>
+    <text key="Workflow.ClassifierDefault" xml:space="preserve">분할 모델 사용</text>
+    <text key="Workflow.ClassifyHelp" xml:space="preserve">OCR 전에 문제·답안·답안지·교사 채점 구분</text>
+    <text key="Workflow.Classified" xml:space="preserve">시험 형식 판단 완료.</text>
+    <text key="Workflow.FormatBlank" xml:space="preserve">답안 없는 시험지</text>
+    <text key="Workflow.FormatInline" xml:space="preserve">시험지에 작성 · 미채점</text>
+    <text key="Workflow.FormatMarkedInline" xml:space="preserve">시험지에 작성 · 교사 채점 있음</text>
+    <text key="Workflow.FormatSeparate" xml:space="preserve">시험지와 별도 답안지</text>
+    <text key="Workflow.FormatMarkedSheet" xml:space="preserve">시험지와 교사 채점된 답안지</text>
+    <text key="Workflow.FormatUncertain" xml:space="preserve">시험 형식 확인이 필요합니다.</text>
+    <text key="Workflow.ClassifierReferenceSkip" xml:space="preserve">참고 답안 가져오기는 형식 판단 생략</text>
+    <text key="Workflow.FormatConfidence" xml:space="preserve">{0} · 신뢰도 {1:P0}</text>
+    <text key="Workflow.AnswerReview" xml:space="preserve">답안 연결 또는 채점 확인이 필요합니다.</text>
+    <text key="Workflow.ReviewState" xml:space="preserve">확인 필요</text>
+    <text key="Workflow.GradeCountWithReview" xml:space="preserve">채점 {0} · 확인 {1} · 불필요 {2} · {3}</text>
+    <text key="Workflow.QuestionCountWithReview" xml:space="preserve">분할 {0} · 풀이 {1} · 채점 {2} · 확인 {3} · 불필요 {4}</text>
+    <text key="Workflow.ReferenceUpload" xml:space="preserve">참고 답안 페이지를 MinerU와 분할 공급자에게 보내 연결합니다. OCR과 가격 미설정 호출은 추정에서 제외됩니다.</text>
 </resources>

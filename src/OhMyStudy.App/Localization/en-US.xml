@@ -995,4 +995,132 @@ Comparing endpoints and stationary points gives a maximum of 2 and minimum of �
     <text key="PhoneCapture.Model.Progress" xml:space="preserve">Correcting image {0} of {1}…</text>
     <text key="PhoneCapture.Model.Continue" xml:space="preserve">Continue</text>
     <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">Orienting page…</text>
+    <text key="Workflow.Title" xml:space="preserve">Exam workflow</text>
+    <text key="Workflow.Description" xml:space="preserve">Choose a model for each step. Originals and recognition materials are kept in your library.</text>
+    <text key="Workflow.MinerUToken" xml:space="preserve">MinerU Bearer token</text>
+    <text key="Workflow.SplitterUrl" xml:space="preserve">Question splitting API URL</text>
+    <text key="Workflow.SplitterModel" xml:space="preserve">Question splitting model</text>
+    <text key="Workflow.SplitterKey" xml:space="preserve">Question splitting API key</text>
+    <text key="Workflow.Grader" xml:space="preserve">Grading model</text>
+    <text key="Workflow.Parallel" xml:space="preserve">Parallel questions</text>
+    <text key="Workflow.Rounds" xml:space="preserve">Maximum calls per solution</text>
+    <text key="Workflow.Regions" xml:space="preserve">Question region fallback</text>
+    <text key="Workflow.BaseRegionPath" xml:space="preserve">YOLO26N question model (ONNX)</text>
+    <text key="Workflow.ChineseRegionPath" xml:space="preserve">Chinese question model (optional ONNX)</text>
+    <text key="Workflow.RegionDescription" xml:space="preserve">Region models run locally. Question boxes may exclude answer space; grading uses original student-work crops.</text>
+    <text key="Workflow.SameModel" xml:space="preserve">Use the solving model</text>
+    <text key="Workflow.Invalid" xml:space="preserve">Choose a saved provider model and check the workflow limits and ONNX paths.</text>
+    <text key="Workflow.Configure" xml:space="preserve">Configure the exam workflow in Settings first.</text>
+    <text key="Workflow.SelectGrader" xml:space="preserve">Select the grading model again in Settings.</text>
+    <text key="Workflow.Upload" xml:space="preserve">Pages will be uploaded to MinerU and the splitting model. Bound questions go to the solving model; student-work crops go to the grading model. Each stage may incur charges.</text>
+    <text key="Workflow.OcrCost" xml:space="preserve">OCR and unpriced model charges are not included in the displayed estimate.</text>
+    <text key="Workflow.Solve" xml:space="preserve">Solve question</text>
+    <text key="Workflow.Assess" xml:space="preserve">Assess student work</text>
+    <text key="Workflow.Split" xml:space="preserve">Group questions and materials</text>
+    <text key="Workflow.SplitCorrection" xml:space="preserve">Correcting question grouping after validation.</text>
+    <text key="Workflow.Ocr" xml:space="preserve">Recognize page with MinerU</text>
+    <text key="Workflow.Detect" xml:space="preserve">Detect question regions</text>
+    <text key="Workflow.Python" xml:space="preserve">Calculate with Python</text>
+    <text key="Workflow.Process" xml:space="preserve">Process question</text>
+    <text key="Workflow.AwaitingSolution" xml:space="preserve">Awaiting independent solution.</text>
+    <text key="Workflow.AwaitingAssessment" xml:space="preserve">Awaiting independent question assessment.</text>
+    <text key="Workflow.QuestionStep" xml:space="preserve">{0} {1}</text>
+    <text key="Workflow.OcrProgress" xml:space="preserve">OCR pages: {0}/{1}.</text>
+    <text key="Workflow.QuestionProgress" xml:space="preserve">Questions completed: {0}/{1}.</text>
+    <text key="Workflow.GroupProgress" xml:space="preserve">Questions grouped: {0}. Solving independently.</text>
+    <text key="Workflow.Grouped" xml:space="preserve">Questions grouped: {0}.</text>
+    <text key="Workflow.Done" xml:space="preserve">OCR, question grouping, solving, and assessment completed.</text>
+    <text key="Workflow.NoDetector" xml:space="preserve">No region model configured. OCR and original source images will be reviewed by the splitting model.</text>
+    <text key="Workflow.Export" xml:space="preserve">Export recognition materials</text>
+    <text key="Workflow.Exported" xml:space="preserve">Recognition materials exported.</text>
+    <text key="Workflow.ExportFailed" xml:space="preserve">Could not export recognition materials. Check that OCR completed and the destination is writable.</text>
+    <text key="Workflow.SolvingModel" xml:space="preserve">Solving model</text>
+    <text key="Workflow.SetupOcr" xml:space="preserve">1. Upload and recognize</text>
+    <text key="Workflow.SetupSplit" xml:space="preserve">2. Split and bind materials</text>
+    <text key="Workflow.SetupSolve" xml:space="preserve">3. Solve in parallel</text>
+    <text key="Workflow.SetupGrade" xml:space="preserve">4. Grade student work</text>
+    <text key="Workflow.OcrOutput" xml:space="preserve">MinerU extracts full-exam Markdown, images and tables.</text>
+    <text key="Workflow.SplitOutput" xml:space="preserve">The selected model groups question text, figures, tables and answer regions.</text>
+    <text key="Workflow.SolveSetup" xml:space="preserve">Choose the solving model when starting a task. Questions run independently with a controlled Python calculator.</text>
+    <text key="Workflow.GradeOutput" xml:space="preserve">Original answer-region crops are graded against the independent solution. Blank exams skip grading.</text>
+    <text key="Workflow.ChooseProviderModel" xml:space="preserve">Choose a provider / model</text>
+    <text key="Workflow.SharedProvider" xml:space="preserve">Uses the provider’s saved address and key.</text>
+    <text key="Workflow.Advanced" xml:space="preserve">Calculation limits and region detection</text>
+    <text key="Workflow.Progress" xml:space="preserve">Workflow progress</text>
+    <text key="Workflow.QuestionListTitle" xml:space="preserve">Per-question progress</text>
+    <text key="Workflow.Details" xml:space="preserve">Technical details and model records</text>
+    <text key="Workflow.Empty" xml:space="preserve">Classify → recognize → split → solve → grade</text>
+    <text key="Workflow.TokenSaved" xml:space="preserve">MinerU token saved. Leave the field blank to keep it.</text>
+    <text key="Workflow.TokenMissing" xml:space="preserve">Add a MinerU token to enable OCR.</text>
+    <text key="Workflow.SelectSplitter" xml:space="preserve">Choose a splitting model from a saved provider.</text>
+    <text key="Workflow.StageOcr" xml:space="preserve">Upload and recognize</text>
+    <text key="Workflow.StageSplit" xml:space="preserve">Split and bind materials</text>
+    <text key="Workflow.StageSolve" xml:space="preserve">Solve in parallel</text>
+    <text key="Workflow.StageGrade" xml:space="preserve">Grade student work</text>
+    <text key="Workflow.OcrSaved" xml:space="preserve">Recognized {0}/{1} pages · Markdown, images and tables saved</text>
+    <text key="Workflow.OcrCount" xml:space="preserve">Recognized {0}/{1} pages · MinerU</text>
+    <text key="Workflow.SplitCount" xml:space="preserve">{0} questions · source materials bound</text>
+    <text key="Workflow.WaitOcr" xml:space="preserve">Waiting for OCR materials</text>
+    <text key="Workflow.ReferenceMatched" xml:space="preserve">Reference answers matched to questions</text>
+    <text key="Workflow.NoReferenceSolve" xml:space="preserve">Reference import does not solve questions</text>
+    <text key="Workflow.NoReferenceGrade" xml:space="preserve">Reference import does not grade student work</text>
+    <text key="Workflow.SolvedCount" xml:space="preserve">Solved {0}/{1} · up to {2} questions at once</text>
+    <text key="Workflow.BlankSkip" xml:space="preserve">Blank exam · no student work to grade</text>
+    <text key="Workflow.GradedCount" xml:space="preserve">Graded {0} · not required {1} · {2}</text>
+    <text key="Workflow.Counts" xml:space="preserve">{0} split · {1} solved · {2} graded · {3} without grading</text>
+    <text key="Workflow.NotRequired" xml:space="preserve">Not required</text>
+    <text key="Workflow.Stopped" xml:space="preserve">Stopped</text>
+    <text key="Workflow.Waiting" xml:space="preserve">Waiting</text>
+    <text key="Workflow.SolutionStatus" xml:space="preserve">Solution: {0}</text>
+    <text key="Workflow.GradeStatus" xml:space="preserve">Grading: {0}</text>
+    <text key="Workflow.QuestionLabel" xml:space="preserve">Question {0}</text>
+    <text key="Workflow.UploadTitle" xml:space="preserve">Upload pages to MinerU</text>
+    <text key="Workflow.UploadCount" xml:space="preserve">Uploaded pages: {0}/{1}.</text>
+    <text key="Workflow.SetupTitle" xml:space="preserve">Set up the exam workflow</text>
+    <text key="Workflow.SetupHelp" xml:space="preserve">Save a MinerU token and choose a splitting model in Settings before starting.</text>
+    <text key="Workflow.StartIntro" xml:space="preserve">Originals are saved locally. The following steps run automatically after you start.</text>
+    <text key="Workflow.SolveHelp" xml:space="preserve">Each question is solved independently with a controlled Python calculator.</text>
+    <text key="Workflow.ParallelHelp" xml:space="preserve">Up to {0} questions run at once.</text>
+    <text key="Workflow.CalculationPolicy" xml:space="preserve">Python calculations follow your execution permission settings.</text>
+    <text key="Workflow.LocalCalculator" xml:space="preserve">The Windows sandbox is unavailable. The controlled Python calculator will run locally.</text>
+    <text key="Workflow.ModelOptions" xml:space="preserve">Model and calculation options</text>
+    <text key="Workflow.RetryHelp" xml:space="preserve">Retry clears this run's saved results and starts the workflow again. Originals and manual edits are kept. Previous provider charges remain.</text>
+    <text key="Workflow.UploadSummary" xml:space="preserve">Page previews first go to the format model, then MinerU and the splitter process the pages. Question materials and answer crops go to the solving and grading providers as needed. Each stage may charge; OCR and unpriced calls are excluded from estimates.</text>
+    <text key="Workflow.Start" xml:space="preserve">Start workflow</text>
+    <text key="Workflow.RecognizedPages" xml:space="preserve">Recognized pages</text>
+    <text key="Workflow.SplitQuestions" xml:space="preserve">Split questions</text>
+    <text key="Workflow.CostScope" xml:space="preserve">Estimate excludes OCR and unpriced calls.</text>
+    <text key="Workflow.CalculationExecution" xml:space="preserve">Python calculation permissions</text>
+    <text key="Workflow.CalculationAsk" xml:space="preserve">Review controlled Python calculations before execution.</text>
+    <text key="Workflow.CalculationDirect" xml:space="preserve">Run controlled Python calculations locally without asking each time.</text>
+    <text key="Workflow.Save" xml:space="preserve">Save workflow</text>
+    <text key="Workflow.Visual.Flow" xml:space="preserve">Exam processing workflow</text>
+    <text key="Workflow.Visual.Ocr" xml:space="preserve">Recognize</text>
+    <text key="Workflow.Visual.Split" xml:space="preserve">Split</text>
+    <text key="Workflow.Visual.Solve" xml:space="preserve">Solve</text>
+    <text key="Workflow.Visual.Grade" xml:space="preserve">Grade</text>
+    <text key="Workflow.Visual.OcrDetail" xml:space="preserve">MinerU → text, images and tables</text>
+    <text key="Workflow.Visual.SplitDetail" xml:space="preserve">Question text and materials stay together</text>
+    <text key="Workflow.Visual.SolveDetail" xml:space="preserve">Independent questions · controlled Python</text>
+    <text key="Workflow.Visual.GradeDetail" xml:space="preserve">Compare original work with the solution; skip blank exams</text>
+    <text key="PhoneCapture.ImportDescription" xml:space="preserve">Choose PDFs or images from this computer, or send photos from a phone on the same Wi-Fi. Originals stay on this computer; model and upload details are confirmed before recognition.</text>
+    <text key="Workflow.Classify" xml:space="preserve">Identify exam format</text>
+    <text key="Workflow.ClassifyShort" xml:space="preserve">Classify</text>
+    <text key="Workflow.ClassifierModel" xml:space="preserve">Exam format model</text>
+    <text key="Workflow.ClassifierDefault" xml:space="preserve">Use the splitting model</text>
+    <text key="Workflow.ClassifyHelp" xml:space="preserve">Detect answer sheets and teacher marks before OCR</text>
+    <text key="Workflow.Classified" xml:space="preserve">Exam format identified.</text>
+    <text key="Workflow.FormatBlank" xml:space="preserve">Exam without student answers</text>
+    <text key="Workflow.FormatInline" xml:space="preserve">Answers on the exam paper</text>
+    <text key="Workflow.FormatMarkedInline" xml:space="preserve">Teacher-marked answers on the exam paper</text>
+    <text key="Workflow.FormatSeparate" xml:space="preserve">Exam with separate answer sheets</text>
+    <text key="Workflow.FormatMarkedSheet" xml:space="preserve">Exam with teacher-marked answer sheets</text>
+    <text key="Workflow.FormatUncertain" xml:space="preserve">Exam format needs review.</text>
+    <text key="Workflow.ClassifierReferenceSkip" xml:space="preserve">Reference import skips format classification</text>
+    <text key="Workflow.FormatConfidence" xml:space="preserve">{0} · confidence {1:P0}</text>
+    <text key="Workflow.AnswerReview" xml:space="preserve">Answer matching or grading needs review.</text>
+    <text key="Workflow.ReviewState" xml:space="preserve">Needs review</text>
+    <text key="Workflow.GradeCountWithReview" xml:space="preserve">Graded {0} · review {1} · not required {2} · {3}</text>
+    <text key="Workflow.QuestionCountWithReview" xml:space="preserve">{0} split · {1} solved · {2} graded · {3} for review · {4} without grading</text>
+    <text key="Workflow.ReferenceUpload" xml:space="preserve">Reference pages go to MinerU and the splitting provider for matching. OCR and unpriced calls are excluded from estimates.</text>
 </resources>

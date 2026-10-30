@@ -74,6 +74,7 @@ public sealed partial class MainWindow
         var active = jobs.FirstOrDefault(j => !j.State.IsTerminal());
         _activeJob = active?.Id; ViewModel.UpdateJob(active);
         if (TasksPanel.Visibility != Visibility.Visible) return;
+        jobs = jobs.Where(j => j.Input?.Splitter is not null).ToList();
         bool empty = jobs.Count == 0;
         TaskEmpty.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
         TaskSidebar.Visibility = TaskDetail.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
@@ -125,6 +126,7 @@ public sealed partial class MainWindow
         }
         finally { _updatingTaskPicker = false; }
         var selected = jobs.First(j => j.Id == _selectedTaskId);
+        TaskExportRecognition.Visibility = selected.Input is not null && selected.State.IsTerminal() ? Visibility.Visible : Visibility.Collapsed;
         if (_library is null || _logJobId == selected.Id && _renderedTaskSequence == selected.Sequence) return;
         var events = await _library.ListJobEventsAsync(selected.Id, _lifetime.Token);
         var calls = await _library.ListJobModelCallsAsync(selected.Id, _lifetime.Token);
@@ -145,15 +147,9 @@ public sealed partial class MainWindow
                 else activities.Add(step.Key, (step, item.CreatedAt));
             }
         }
-        // Older jobs truthfully show the state transitions they actually retained.
-        if (activities.Count == 0)
-            foreach (var item in events.Where(e => e.Kind is "queued" or "started" or "completed" or "failed" or "cancelled" or "interrupted" or "permission_requested"))
-            {
-                var snapshot = DomainJson.Deserialize<Job>(item.Payload.GetRawText());
-                activities[item.Id] = (new JobActivity { Key = item.Id, Kind = "state", Title = TaskState(snapshot.State), Detail = snapshot.Message, State = snapshot.State.IsTerminal() ? "completed" : "running" }, item.CreatedAt);
-            }
         if (activities.Count == 0)
             activities["queued"] = (new JobActivity { Key = "queued", Kind = "state", Title = TaskState(selected.State), Detail = selected.Message }, selected.CreatedAt);
+        UpdateWorkflowProgress(selected, activities.Values.Select(v => v.Activity).ToArray());
         int pages = activities.Values.Max(v => v.Activity.PagesRead);
         int questions = activities.Values.Max(v => v.Activity.QuestionsSaved);
         bool hasTrace = events.Any(e => e.Kind == "activity");
@@ -182,7 +178,7 @@ public sealed partial class MainWindow
         TaskPermissionButton.Visibility = selected.PendingPermission is null ? Visibility.Collapsed : Visibility.Visible;
         ulong inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0;
         bool inputKnown = true, outputKnown = true, cacheKnown = true, cacheWriteKnown = true;
-        double cost = 0; int pricedCalls = 0;
+        var costs = new Dictionary<string, double>(StringComparer.Ordinal);
         foreach (var call in calls)
         {
             if (call.TryGetProperty("usage", out var usage))
@@ -193,9 +189,13 @@ public sealed partial class MainWindow
                 if (usage.TryGetProperty("cache_write", out var w) && w.ValueKind == System.Text.Json.JsonValueKind.Number && w.TryGetUInt64(out var wi)) cacheWriteTokens += wi; else cacheWriteKnown = false;
             }
             if (!call.TryGetProperty("usage", out _)) { inputKnown = false; outputKnown = false; cacheKnown = false; cacheWriteKnown = false; }
-            if (call.TryGetProperty("estimated_cost", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Number && c.TryGetDouble(out var amount)) { cost += amount; pricedCalls++; }
+            if (call.TryGetProperty("estimated_cost", out var c) && c.ValueKind == System.Text.Json.JsonValueKind.Number && c.TryGetDouble(out var amount))
+            {
+                string currency = call.TryGetProperty("currency", out var unit) ? unit.GetString() ?? "" : "";
+                costs[currency] = costs.GetValueOrDefault(currency) + amount;
+            }
         }
-        bool priced = pricedCalls > 0;
+        bool priced = costs.Count > 0;
         TaskInputUsage.Text = inputKnown ? UiText.Format("Input {0:N0}", inputTokens) : UiText.Get("Input usage not provided"); TaskOutputUsage.Text = outputKnown ? UiText.Format("Output {0:N0}", outputTokens) : UiText.Get("Output usage not provided");
         TaskInputUncached.Text = inputKnown && cacheKnown && cacheReadTokens <= inputTokens ? UiText.Format("Uncached {0:N0}", inputTokens - cacheReadTokens) : UiText.Get("Uncached usage not provided");
         TaskInputCached.Text = cacheKnown ? UiText.Format("Cache read {0:N0}", cacheReadTokens) : UiText.Get("Cache read usage not provided");
@@ -204,7 +204,7 @@ public sealed partial class MainWindow
         TaskTokenUsage.Visibility = calls.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         TaskUsage.Text = "—";
         TaskRateNote.Text = priced ? UiText.Get("Calculating cost…") : calls.Count > 0 ? UiText.Get("Cannot estimate cost: pricing or usage details are incomplete.") : UiText.Get("No cost records yet");
-        if (priced) _ = UpdateTaskCnyCostAsync(selected.Id, generation, cost, selected.Input?.Model.Currency ?? "USD");
+        if (priced) _ = UpdateTaskCnyCostAsync(selected.Id, generation, costs);
         var effectiveActivities = activities.Values.Select(item =>
         {
             var (activity, time) = item;
@@ -309,7 +309,7 @@ public sealed partial class MainWindow
                 var processing = await ChooseProcessingAsync(job.Kind == DiagnosticKind.References, false, retry: true);
                 if (processing is null) return;
                 var document = await _library.GetDocumentAsync(original.Document.Id, _lifetime.Token);
-                input = new GradingInput { Document = document, Provider = processing.Provider, Model = processing.Model, Thinking = processing.Thinking, AllowUnknown = processing.AllowUnknown };
+                input = CreateWorkflowInput(document, processing);
                 policy = processing.Policy;
             }
             var replacement = await _jobs.RetryAsync(job.Id, policy, input, _lifetime.Token);

@@ -995,4 +995,132 @@
     <text key="PhoneCapture.Model.Progress" xml:space="preserve">正在矫正第 {0}/{1} 张图片…</text>
     <text key="PhoneCapture.Model.Continue" xml:space="preserve">继续</text>
     <text key="PhoneCapture.Model.OrientationStage" xml:space="preserve">正在识别页面方向…</text>
+    <text key="Workflow.Title" xml:space="preserve">试卷识别与批改</text>
+    <text key="Workflow.Description" xml:space="preserve">按步骤分配模型，原件与识别材料保存在本机资料库。</text>
+    <text key="Workflow.MinerUToken" xml:space="preserve">MinerU Bearer Token</text>
+    <text key="Workflow.SplitterUrl" xml:space="preserve">切题 API 地址</text>
+    <text key="Workflow.SplitterModel" xml:space="preserve">切题模型</text>
+    <text key="Workflow.SplitterKey" xml:space="preserve">切题 API 密钥</text>
+    <text key="Workflow.Grader" xml:space="preserve">评分模型</text>
+    <text key="Workflow.Parallel" xml:space="preserve">并行题目数</text>
+    <text key="Workflow.Rounds" xml:space="preserve">每题最多解题调用数</text>
+    <text key="Workflow.Regions" xml:space="preserve">题目区域兜底</text>
+    <text key="Workflow.BaseRegionPath" xml:space="preserve">YOLO26N 题框模型（ONNX）</text>
+    <text key="Workflow.ChineseRegionPath" xml:space="preserve">中文题框模型（可选 ONNX）</text>
+    <text key="Workflow.RegionDescription" xml:space="preserve">题框模型在本机运行。题框可能不含答题空白区，评分会使用原始作答区域截图。</text>
+    <text key="Workflow.SameModel" xml:space="preserve">使用解题模型</text>
+    <text key="Workflow.Invalid" xml:space="preserve">请选择已有供应商模型，并检查工作流限制与 ONNX 路径。</text>
+    <text key="Workflow.Configure" xml:space="preserve">请先在设置中配置试卷识别流水线。</text>
+    <text key="Workflow.SelectGrader" xml:space="preserve">请在设置中重新选择评分模型。</text>
+    <text key="Workflow.Upload" xml:space="preserve">页面将上传到 MinerU 和切题模型；绑定后的题目发送给解题模型，作答截图发送给评分模型。各阶段可能产生费用。</text>
+    <text key="Workflow.OcrCost" xml:space="preserve">显示的费用估算不包含 OCR 和未配置价格的模型费用。</text>
+    <text key="Workflow.Solve" xml:space="preserve">解题</text>
+    <text key="Workflow.Assess" xml:space="preserve">评分</text>
+    <text key="Workflow.Split" xml:space="preserve">切题与材料绑定</text>
+    <text key="Workflow.SplitCorrection" xml:space="preserve">正在根据校验结果修正切题与作答绑定。</text>
+    <text key="Workflow.Ocr" xml:space="preserve">MinerU 页面识别</text>
+    <text key="Workflow.Detect" xml:space="preserve">检测题目区域</text>
+    <text key="Workflow.Python" xml:space="preserve">Python 计算</text>
+    <text key="Workflow.Process" xml:space="preserve">处理题目</text>
+    <text key="Workflow.AwaitingSolution" xml:space="preserve">等待独立解题。</text>
+    <text key="Workflow.AwaitingAssessment" xml:space="preserve">等待独立评分。</text>
+    <text key="Workflow.QuestionStep" xml:space="preserve">{0} · 第 {1} 题</text>
+    <text key="Workflow.OcrProgress" xml:space="preserve">OCR 已识别 {0}/{1} 页。</text>
+    <text key="Workflow.QuestionProgress" xml:space="preserve">已完成 {0}/{1} 题。</text>
+    <text key="Workflow.GroupProgress" xml:space="preserve">已切分 {0} 题，正在独立解题。</text>
+    <text key="Workflow.Grouped" xml:space="preserve">已切分 {0} 题。</text>
+    <text key="Workflow.Done" xml:space="preserve">OCR、切题、解题与评分已完成。</text>
+    <text key="Workflow.NoDetector" xml:space="preserve">未配置题框模型，切题模型将结合 OCR 和原图检查。</text>
+    <text key="Workflow.Export" xml:space="preserve">导出识别材料</text>
+    <text key="Workflow.Exported" xml:space="preserve">识别材料已导出。</text>
+    <text key="Workflow.ExportFailed" xml:space="preserve">无法导出识别材料，请确认 OCR 已完成且目标位置可写。</text>
+    <text key="Workflow.SolvingModel" xml:space="preserve">解题模型</text>
+    <text key="Workflow.SetupOcr" xml:space="preserve">1. 上传与识别</text>
+    <text key="Workflow.SetupSplit" xml:space="preserve">2. 切题与材料绑定</text>
+    <text key="Workflow.SetupSolve" xml:space="preserve">3. 并行解答</text>
+    <text key="Workflow.SetupGrade" xml:space="preserve">4. 作答评分</text>
+    <text key="Workflow.OcrOutput" xml:space="preserve">MinerU 提取整卷 Markdown、图片和表格。</text>
+    <text key="Workflow.SplitOutput" xml:space="preserve">把题干、图表与作答区域绑定为独立题目。</text>
+    <text key="Workflow.SolveSetup" xml:space="preserve">启动任务时选择解题模型，各题独立处理，可使用受控的 Python 计算器。</text>
+    <text key="Workflow.GradeOutput" xml:space="preserve">将原始作答区域与独立解答一起交给评分模型；空白试卷跳过评分。</text>
+    <text key="Workflow.ChooseProviderModel" xml:space="preserve">选择供应商 / 模型</text>
+    <text key="Workflow.SharedProvider" xml:space="preserve">沿用供应商已保存的地址和密钥。</text>
+    <text key="Workflow.Advanced" xml:space="preserve">计算限制与区域检测</text>
+    <text key="Workflow.Progress" xml:space="preserve">工作流进度</text>
+    <text key="Workflow.QuestionListTitle" xml:space="preserve">逐题进度</text>
+    <text key="Workflow.Details" xml:space="preserve">技术详情与模型记录</text>
+    <text key="Workflow.Empty" xml:space="preserve">形式判断 → 上传识别 → 切题绑定 → 并行解答 → 作答评分</text>
+    <text key="Workflow.TokenSaved" xml:space="preserve">MinerU 凭据已保存，留空即可沿用。</text>
+    <text key="Workflow.TokenMissing" xml:space="preserve">填写 MinerU 凭据后即可启用识别。</text>
+    <text key="Workflow.SelectSplitter" xml:space="preserve">请从已有供应商中选择切题模型。</text>
+    <text key="Workflow.StageOcr" xml:space="preserve">上传与识别</text>
+    <text key="Workflow.StageSplit" xml:space="preserve">切题与材料绑定</text>
+    <text key="Workflow.StageSolve" xml:space="preserve">并行解答</text>
+    <text key="Workflow.StageGrade" xml:space="preserve">作答评分</text>
+    <text key="Workflow.OcrSaved" xml:space="preserve">已识别 {0}/{1} 页 · Markdown、图片和表格已保存</text>
+    <text key="Workflow.OcrCount" xml:space="preserve">已识别 {0}/{1} 页 · MinerU</text>
+    <text key="Workflow.SplitCount" xml:space="preserve">已切出 {0} 题 · 原始材料已绑定</text>
+    <text key="Workflow.WaitOcr" xml:space="preserve">等待识别材料</text>
+    <text key="Workflow.ReferenceMatched" xml:space="preserve">参考答案已与题目匹配</text>
+    <text key="Workflow.NoReferenceSolve" xml:space="preserve">导入参考答案时不解题</text>
+    <text key="Workflow.NoReferenceGrade" xml:space="preserve">导入参考答案时不评分</text>
+    <text key="Workflow.SolvedCount" xml:space="preserve">已解答 {0}/{1} 题 · 最多同时处理 {2} 题</text>
+    <text key="Workflow.BlankSkip" xml:space="preserve">空白试卷 · 无需评分</text>
+    <text key="Workflow.GradedCount" xml:space="preserve">已评分 {0} 题 · 无需评分 {1} 题 · {2}</text>
+    <text key="Workflow.Counts" xml:space="preserve">已切题 {0} · 已解答 {1} · 已评分 {2} · 无需评分 {3}</text>
+    <text key="Workflow.NotRequired" xml:space="preserve">无需处理</text>
+    <text key="Workflow.Stopped" xml:space="preserve">已停止</text>
+    <text key="Workflow.Waiting" xml:space="preserve">等待中</text>
+    <text key="Workflow.SolutionStatus" xml:space="preserve">解答：{0}</text>
+    <text key="Workflow.GradeStatus" xml:space="preserve">评分：{0}</text>
+    <text key="Workflow.QuestionLabel" xml:space="preserve">第 {0} 题</text>
+    <text key="Workflow.UploadTitle" xml:space="preserve">上传页面至 MinerU</text>
+    <text key="Workflow.UploadCount" xml:space="preserve">已上传 {0}/{1} 页。</text>
+    <text key="Workflow.SetupTitle" xml:space="preserve">配置试卷工作流</text>
+    <text key="Workflow.SetupHelp" xml:space="preserve">请先在设置中保存 MinerU 凭据并选择切题模型。</text>
+    <text key="Workflow.StartIntro" xml:space="preserve">原件保存在本机，启动后依次自动完成以下步骤。</text>
+    <text key="Workflow.SolveHelp" xml:space="preserve">每道题独立解答，可使用受控的 Python 计算器。</text>
+    <text key="Workflow.ParallelHelp" xml:space="preserve">最多同时处理 {0} 道题。</text>
+    <text key="Workflow.CalculationPolicy" xml:space="preserve">Python 计算遵循设置中的执行权限。</text>
+    <text key="Workflow.LocalCalculator" xml:space="preserve">Windows 沙箱不可用，受控的 Python 计算器将在本机运行。</text>
+    <text key="Workflow.ModelOptions" xml:space="preserve">模型与计算选项</text>
+    <text key="Workflow.RetryHelp" xml:space="preserve">重试会清理本次任务的结果并重新运行工作流，保留原件与手动修改；已产生的费用无法退回。</text>
+    <text key="Workflow.UploadSummary" xml:space="preserve">页面预览先发送给形式判断模型，再由 MinerU 与切题模型处理。题目和作答区域按需发送给解题、评分模型。各阶段可能计费，估算不含 OCR 及未定价调用。</text>
+    <text key="Workflow.Start" xml:space="preserve">启动工作流</text>
+    <text key="Workflow.RecognizedPages" xml:space="preserve">已识别页数</text>
+    <text key="Workflow.SplitQuestions" xml:space="preserve">已切出题目</text>
+    <text key="Workflow.CostScope" xml:space="preserve">估算不含 OCR 与未定价调用。</text>
+    <text key="Workflow.CalculationExecution" xml:space="preserve">Python 计算权限</text>
+    <text key="Workflow.CalculationAsk" xml:space="preserve">执行前审阅受控的 Python 计算。</text>
+    <text key="Workflow.CalculationDirect" xml:space="preserve">在本机运行受控的 Python 计算，不逐次询问。</text>
+    <text key="Workflow.Save" xml:space="preserve">保存工作流</text>
+    <text key="Workflow.Visual.Flow" xml:space="preserve">试卷处理流程</text>
+    <text key="Workflow.Visual.Ocr" xml:space="preserve">识别整页</text>
+    <text key="Workflow.Visual.Split" xml:space="preserve">切题绑定</text>
+    <text key="Workflow.Visual.Solve" xml:space="preserve">并行解答</text>
+    <text key="Workflow.Visual.Grade" xml:space="preserve">作答评分</text>
+    <text key="Workflow.Visual.OcrDetail" xml:space="preserve">MinerU → 文字、图片、表格</text>
+    <text key="Workflow.Visual.SplitDetail" xml:space="preserve">把题干、图表与作答区域归到同一题</text>
+    <text key="Workflow.Visual.SolveDetail" xml:space="preserve">各题独立求解 · 受控 Python 计算</text>
+    <text key="Workflow.Visual.GradeDetail" xml:space="preserve">原始作答对照解答 · 空白卷跳过</text>
+    <text key="PhoneCapture.ImportDescription" xml:space="preserve">从电脑选择 PDF 或图片，或用同一 Wi-Fi 下的手机拍照传入。原件保存在本机，识别前会确认模型与上传范围。</text>
+    <text key="Workflow.Classify" xml:space="preserve">判断试卷形式</text>
+    <text key="Workflow.ClassifyShort" xml:space="preserve">形式判断</text>
+    <text key="Workflow.ClassifierModel" xml:space="preserve">形式判断模型</text>
+    <text key="Workflow.ClassifierDefault" xml:space="preserve">沿用切题模型</text>
+    <text key="Workflow.ClassifyHelp" xml:space="preserve">OCR 前区分试卷、作答、答题卡与教师批改</text>
+    <text key="Workflow.Classified" xml:space="preserve">试卷形式判断完成。</text>
+    <text key="Workflow.FormatBlank" xml:space="preserve">纯试卷，无作答</text>
+    <text key="Workflow.FormatInline" xml:space="preserve">试卷内作答，未批改</text>
+    <text key="Workflow.FormatMarkedInline" xml:space="preserve">试卷内作答，含教师批改</text>
+    <text key="Workflow.FormatSeparate" xml:space="preserve">试卷与独立答题卡</text>
+    <text key="Workflow.FormatMarkedSheet" xml:space="preserve">试卷与已批改答题卡</text>
+    <text key="Workflow.FormatUncertain" xml:space="preserve">试卷形式待核对。</text>
+    <text key="Workflow.ClassifierReferenceSkip" xml:space="preserve">参考答案导入跳过形式判断</text>
+    <text key="Workflow.FormatConfidence" xml:space="preserve">{0} · 判断置信度 {1:P0}</text>
+    <text key="Workflow.AnswerReview" xml:space="preserve">作答匹配或评分需要核对。</text>
+    <text key="Workflow.ReviewState" xml:space="preserve">待核对</text>
+    <text key="Workflow.GradeCountWithReview" xml:space="preserve">已评分 {0} · 待核对 {1} · 无需评分 {2} · {3}</text>
+    <text key="Workflow.QuestionCountWithReview" xml:space="preserve">已切题 {0} · 已解答 {1} · 已评分 {2} · 待核对 {3} · 无需评分 {4}</text>
+    <text key="Workflow.ReferenceUpload" xml:space="preserve">参考答案页面发送给 MinerU 和切题供应商进行匹配，估算不含 OCR 及未定价调用。</text>
 </resources>

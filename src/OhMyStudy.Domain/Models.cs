@@ -91,6 +91,7 @@ public sealed record PageEdit
 
 public sealed record AppSettings
 {
+    public ExamWorkflowSettings? ExamWorkflow { get; init; }
     public bool LegacyNoticeDismissed { get; init; }
     public string? DefaultModel { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -106,6 +107,13 @@ public sealed record AppSettings
 
 public sealed record GradingInput
 {
+    public WorkflowModel? Classifier { get; init; }
+    public ExamLayout? Layout { get; init; }
+    [JsonIgnore]
+    public Document ProcessingDocument => Layout?.Apply(Document) ?? Document;
+    public WorkflowModel? Splitter { get; init; }
+    public ExamWorkflowSettings? Workflow { get; init; }
+    public WorkflowModel? Grader { get; init; }
     public required Document Document { get; init; }
     public required Provider Provider { get; init; }
     public required ModelConfig Model { get; init; }

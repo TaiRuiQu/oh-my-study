@@ -451,6 +451,7 @@
                                             <StackPanel Grid.Column="1" Spacing="6">
                                                 <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock x:Name="TaskTitle" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="24" TextWrapping="Wrap" /><TextBlock TextWrapping="Wrap" x:Name="TaskSampleMark" Grid.Column="1" Text="{l:Text Key=S0519}" Style="{StaticResource QuietTextStyle}" Visibility="Collapsed" VerticalAlignment="Top" Margin="0,4,0,0" /></Grid>
                                                 <TextBlock x:Name="TaskSubtitle" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                                <HyperlinkButton x:Name="TaskExportRecognition" Content="{l:Text Key=Workflow.Export}" Click="TaskExportRecognition_Click" Padding="0" HorizontalAlignment="Left" Visibility="Collapsed" />
                                             </StackPanel>
                                         </Grid>
                                         <StackPanel x:Name="TaskButtons" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
@@ -462,8 +463,8 @@
                                     </Grid>
                                     <Grid ColumnSpacing="24">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                        <StackPanel Spacing="8"><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0523}" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskPages" FontSize="24" FontWeight="SemiBold" /></StackPanel>
-                                        <StackPanel Grid.Column="1" Spacing="8"><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0524}" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskQuestions" FontSize="24" FontWeight="SemiBold" /></StackPanel>
+                                        <StackPanel Spacing="8"><TextBlock TextWrapping="Wrap" Text="{l:Text Key=Workflow.RecognizedPages}" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskPages" FontSize="24" FontWeight="SemiBold" /></StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="8"><TextBlock TextWrapping="Wrap" Text="{l:Text Key=Workflow.SplitQuestions}" Style="{StaticResource QuietTextStyle}" /><TextBlock x:Name="TaskQuestions" FontSize="24" FontWeight="SemiBold" /></StackPanel>
                                         <Grid x:Name="TaskCostRow" Grid.Column="2" RowSpacing="8">
                                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                             <StackPanel Orientation="Horizontal" Spacing="12">
@@ -493,25 +494,92 @@
                                 </StackPanel>
                             </ScrollViewer>
                             <controls:ColumnSplitter x:Name="TaskSummarySplitter" Grid.Row="1" Orientation="Horizontal" MinimumBefore="120" MinimumAfter="140" AutomationProperties.Name="{l:Text Key=S0740}" />
-                            <Border Grid.Row="2">
-                                <Grid RowSpacing="12" Padding="24,16,24,0">
-                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                                    <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0529}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><ProgressRing x:Name="TaskProgress" IsActive="True" Width="14" Height="14" MinWidth="14" MinHeight="14" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0530}" /><TextBlock x:Name="TaskStateLabel" Style="{StaticResource QuietTextStyle}" Foreground="{ThemeResource TaskAccentBrush}" VerticalAlignment="Center" /></StackPanel><Button FontSize="16" Grid.Column="3" Click="TaskLatest_Click" ToolTipService.ToolTip="{l:Text Key=S0531}" AutomationProperties.Name="{l:Text Key=S0531}"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE74B;" FontSize="12" /><TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0532}" /></StackPanel></Button></Grid>
-                                    <ScrollViewer x:Name="TaskLogScroll" Grid.Row="1" HorizontalContentAlignment="Stretch" SizeChanged="TaskLog_SizeChanged" ViewChanged="TaskLog_ViewChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="TaskLog" Spacing="0" Padding="0,0,4,20" /></ScrollViewer>
-                                </Grid>
-                            </Border>
+                            <ScrollViewer Grid.Row="2" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Spacing="20" Padding="24,12,24,24">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{l:Text Key=Workflow.Progress}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <ProgressRing x:Name="TaskProgress" IsActive="True" Width="14" Height="14" MinWidth="14" MinHeight="14" Visibility="Collapsed" AutomationProperties.Name="{l:Text Key=S0530}" />
+                                            <TextBlock x:Name="TaskStateLabel" Style="{StaticResource QuietTextStyle}" Foreground="{ThemeResource TaskAccentBrush}" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <StackPanel x:Name="TaskWorkflowStages" Spacing="0" />
+                                    <StackPanel x:Name="TaskQuestionSection" Spacing="10" Visibility="Collapsed">
+                                        <TextBlock Text="{l:Text Key=Workflow.QuestionListTitle}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock x:Name="TaskQuestionSummary" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                        <StackPanel x:Name="TaskQuestionList" Spacing="0" />
+                                    </StackPanel>
+                                    <Expander Header="{l:Text Key=Workflow.Details}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                        <StackPanel Spacing="12">
+                                            <Button Content="{l:Text Key=S0532}" Click="TaskLatest_Click" HorizontalAlignment="Left" />
+                                            <ScrollViewer x:Name="TaskLogScroll" MaxHeight="400" HorizontalContentAlignment="Stretch" SizeChanged="TaskLog_SizeChanged" ViewChanged="TaskLog_ViewChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel x:Name="TaskLog" Spacing="0" Padding="0,0,4,20" /></ScrollViewer>
+                                        </StackPanel>
+                                    </Expander>
+                                </StackPanel>
+                            </ScrollViewer>
                         </Grid>
                     </Border>
-                    <Border x:Name="TaskEmpty" Grid.ColumnSpan="2" Grid.RowSpan="2" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
+                    <Border x:Name="TaskEmpty" Grid.ColumnSpan="3" Grid.RowSpan="2" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="300" Margin="24">
                             <Border Background="{ThemeResource TaskAccentBackgroundBrush}" CornerRadius="24" Width="88" Height="88"><FontIcon Glyph="&#xE9F9;" FontSize="38" Foreground="{ThemeResource TaskAccentBrush}" /></Border>
                             <TextBlock Text="{l:Text Key=S0533}" Style="{StaticResource SubtitleTextBlockStyle}" TextAlignment="Center" TextWrapping="Wrap" />
+                            <TextBlock Text="{l:Text Key=Workflow.Empty}" TextAlignment="Center" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
                             <Button FontSize="16" Content="{l:Text Key=S0202}" Click="OpenFiles_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
                 </Grid>
                 <ScrollViewer x:Name="SettingsPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="20" Padding="0,0,4,16">
+                        <TextBlock Text="{l:Text Key=Workflow.Title}" TextWrapping="Wrap" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Border Padding="16" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
+                            <StackPanel Spacing="20">
+                                <StackPanel Spacing="0">
+                                    <controls:WorkflowStep Title="{l:Text Key=Workflow.Classify}" Description="{l:Text Key=Workflow.ClassifyHelp}" Glyph="&#xE721;">
+                                        <controls:WorkflowStep.Fields>
+                                            <ComboBox x:Name="WorkflowClassifier" Header="{l:Text Key=Workflow.ClassifierModel}" HorizontalAlignment="Stretch" />
+                                        </controls:WorkflowStep.Fields>
+                                    </controls:WorkflowStep>
+                                    <controls:WorkflowStep Title="{l:Text Key=Workflow.StageOcr}" Description="{l:Text Key=Workflow.Visual.OcrDetail}" Glyph="&#xE8A5;">
+                                        <controls:WorkflowStep.Fields>
+                                            <StackPanel Spacing="8">
+                                                <PasswordBox x:Name="MinerUToken" Header="{l:Text Key=Workflow.MinerUToken}" />
+                                                <TextBlock x:Name="WorkflowCredentialStatus" Style="{StaticResource QuietTextStyle}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </controls:WorkflowStep.Fields>
+                                    </controls:WorkflowStep>
+                                    <controls:WorkflowStep Title="{l:Text Key=Workflow.StageSplit}" Description="{l:Text Key=Workflow.Visual.SplitDetail}" Glyph="&#xE7A8;">
+                                        <controls:WorkflowStep.Fields>
+                                            <StackPanel Spacing="8">
+                                                <ComboBox x:Name="WorkflowSplitter" Header="{l:Text Key=Workflow.SplitterModel}" PlaceholderText="{l:Text Key=Workflow.ChooseProviderModel}" HorizontalAlignment="Stretch" />
+                                                <TextBlock Text="{l:Text Key=Workflow.SharedProvider}" TextWrapping="Wrap" Style="{StaticResource QuietTextStyle}" />
+                                            </StackPanel>
+                                        </controls:WorkflowStep.Fields>
+                                    </controls:WorkflowStep>
+                                    <controls:WorkflowStep Title="{l:Text Key=Workflow.StageSolve}" Description="{l:Text Key=Workflow.Visual.SolveDetail}" Glyph="&#xE8EF;">
+                                        <controls:WorkflowStep.Fields>
+                                            <NumberBox x:Name="WorkflowParallel" Header="{l:Text Key=Workflow.Parallel}" Minimum="1" Maximum="8" SmallChange="1" SpinButtonPlacementMode="Inline" Value="3" />
+                                        </controls:WorkflowStep.Fields>
+                                    </controls:WorkflowStep>
+                                    <controls:WorkflowStep Title="{l:Text Key=Workflow.StageGrade}" Description="{l:Text Key=Workflow.Visual.GradeDetail}" Glyph="&#xE73E;" IsLast="True">
+                                        <controls:WorkflowStep.Fields>
+                                            <ComboBox x:Name="WorkflowGrader" Header="{l:Text Key=Workflow.Grader}" HorizontalAlignment="Stretch" />
+                                        </controls:WorkflowStep.Fields>
+                                    </controls:WorkflowStep>
+                                </StackPanel>
+                                <Expander Header="{l:Text Key=Workflow.Advanced}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <StackPanel Spacing="12">
+                                        <NumberBox x:Name="WorkflowRounds" Header="{l:Text Key=Workflow.Rounds}" Minimum="1" Maximum="8" SmallChange="1" SpinButtonPlacementMode="Inline" Value="4" />
+                                        <TextBlock Text="{l:Text Key=Workflow.Regions}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" />
+                                        <TextBox x:Name="QuestionRegionPath" Header="{l:Text Key=Workflow.BaseRegionPath}" PlaceholderText="C:\models\question-regions.onnx" />
+                                        <TextBox x:Name="ChineseQuestionRegionPath" Header="{l:Text Key=Workflow.ChineseRegionPath}" />
+                                        <TextBlock Text="{l:Text Key=Workflow.RegionDescription}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Expander>
+                                <Button Content="{l:Text Key=Workflow.Save}" Click="SaveWorkflowSettings_Click" Style="{StaticResource AccentButtonStyle}" />
+                                <TextBlock x:Name="WorkflowFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                            </StackPanel>
+                        </Border>
                         <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0535}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Grid x:Name="ProviderLayout" RowSpacing="16" SizeChanged="ProviderLayout_SizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition x:Name="ProviderListColumn" Width="212" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -525,7 +593,6 @@
                                     <Button Grid.Row="2" Content="{l:Text Key=S0538}" Click="NewProvider_Click" HorizontalAlignment="Stretch" />
                                 </Grid>
                             </Border>
-                            <controls:ColumnSplitter x:Name="ProviderSplitter" Grid.Column="1" MinimumBefore="180" MinimumAfter="420" AutomationProperties.Name="{l:Text Key=S0740}" />
                             <StackPanel x:Name="ProviderDetails" Grid.Column="2" Spacing="16">
                                 <Border x:Name="ProviderSettingsCard" Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                                     <StackPanel Spacing="14">
@@ -660,14 +727,14 @@
                                 <TextBlock x:Name="LibraryFeedback" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                             </StackPanel>
                         </Border>
-                        <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0579}" Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock TextWrapping="Wrap" Text="{l:Text Key=Workflow.CalculationExecution}" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <Border Padding="24" CornerRadius="12" Background="{ThemeResource WorkspaceCardBrush}" BorderBrush="{ThemeResource WorkspaceBorderBrush}" BorderThickness="1">
                             <StackPanel Spacing="12">
-                                <ComboBox x:Name="ExecutionModePicker" Header="{l:Text Key=S0580}" MinWidth="280" SelectionChanged="ExecutionModePicker_SelectionChanged">
+                                <ComboBox x:Name="ExecutionModePicker" Header="{l:Text Key=Workflow.CalculationExecution}" MinWidth="280" SelectionChanged="ExecutionModePicker_SelectionChanged">
                                     <ComboBoxItem Content="{l:Text Key=S0581}" /><ComboBoxItem Content="{l:Text Key=S0582}" /><ComboBoxItem Content="{l:Text Key=S0583}" />
                                 </ComboBox>
                                 <TextBlock x:Name="ExecutionDescription" TextWrapping="Wrap" />
-                                <CheckBox x:Name="SandboxNetworkToggle" Content="{l:Text Key=S0584}" Checked="SandboxNetworkToggle_Changed" Unchecked="SandboxNetworkToggle_Changed" />
+                                <CheckBox x:Name="SandboxNetworkToggle" Content="{l:Text Key=S0584}" Checked="SandboxNetworkToggle_Changed" Unchecked="SandboxNetworkToggle_Changed" Visibility="Collapsed" />
                             </StackPanel>
                         </Border>
                         <TextBlock TextWrapping="Wrap" Text="{l:Text Key=S0585}" Style="{StaticResource SubtitleTextBlockStyle}" />
